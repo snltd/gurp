@@ -1,8 +1,8 @@
 # These are settings that you will be able to override from config or 
 # command-line at some point
-(def verbose true)
-(def dry-run true)
-(def debug-output true)
+(var verbose true)
+(var dry-run false)
+(var debug-output false)
 
 (defn say 
   "Print output"

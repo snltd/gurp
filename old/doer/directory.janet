@@ -1,14 +1,14 @@
-(import ../lib/maps)
 (use ../lib/core)
+(import ../lib/maps)
 (use sh)
 
 # You can't recursively create directories. By choice.
 # TODO make it so you can override this somewhere
-(def dir-defaults @{
+(def -defaults @{
   :user "root" 
   :group "root" 
-  :mode "755" 
-  :rmstyle "normal"})
+  :mode "755" })
+  #:rmstyle "normal"})  ## TODO where will this go?
 
 (defn directory-now 
   "Returns the current state of the given directory. Nil if it does not exist"
@@ -22,7 +22,7 @@
       nil)))
 
 # In a directory we can modify user, group, and mode
-(defn create [path]
+(defn -create [path]
   (say "creating directory: " path)
   (enact! |(os/mkdir path)))
 
@@ -60,8 +60,8 @@
       (enact! (os/chmod path want)))))
 
 (defn correct [path now want]
-  (correct-user path (maps/uid->user (now :user)) (want :user))
-  (correct-group path (maps/gid->group (now :group)) (want :user))
+  (correct-user path (maps/uid->name (now :user)) (want :user))
+  (correct-group path (maps/gid->name (now :group)) (want :user))
   (correct-mode path (now :mode) (scan-number (string/format "%d" (want :mode)))))
 
 (defn must [path & body] 
@@ -73,11 +73,15 @@
     (table/setproto want dir-defaults)
     (correct path now want))) 
 
-(defn must-not [path & body]
+(defn -must-not [path & body]
+  (pp body)
   (when (os/stat path) 
     (say-debug path " exists and shouldn't")
     (case (get (table ;body) :rmstyle)
-      "recursive" (enact! |($ rmdir -p ,path))
-      "nuke" (enact! |($ rm -fr ,path))
-      nil (enact! |(os/rmdir path))
+      "recursive" |($ rmdir -p ,path)
+      "nuke" (pp |($ rm -fr ,path))
+      nil (fn [] os/rmdir path))
       (error "rmstyle must be recursive or nuke"))))
+
+(defn must-not [path & body]
+  (enact! (-must-not path body)))
