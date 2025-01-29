@@ -1,0 +1,7 @@
+(print "HELLO from basenode/init")
+(require "./dirs")
+# (require "./cron")
+# (require "./sudo")
+# (require "./users")
+# (require "./nfs")
+(require "./packages")
