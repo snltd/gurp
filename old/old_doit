@@ -1,0 +1,15 @@
+#!/usr/bin/env janet
+
+(defn load-doers []
+  (def directory (require "./doer/directory"))
+  (put module/cache "directory" directory))
+
+(defn main [& argv]
+  (if (not= 2 (length argv))
+    (do
+      (print "usage: doit <directory>")
+      (os/exit 1))
+
+  (do
+    (load-doers)
+    (dofile (argv 1)))))

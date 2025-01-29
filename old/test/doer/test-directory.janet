@@ -1,0 +1,20 @@
+(use judge)
+(use ../../doer/directory)
+
+(deftest directory-now
+  (test (directory-now "/this/does/not/exist") nil)
+  (test ((directory-now "test/resources/dir-755") :mode) 493)
+  (test 
+    (keys (directory-now "test/resources/dir-755")) 
+    @[:mode :group :user]))
+
+(deftest must-not
+  (test (-must-not "/this/does/not/exist") nil)
+  (test-error 
+    (-must-not "test/resources/dir-755" :rmstyle "nonsense") 
+    "rmstyle must be recursive or nuke") 
+  (test 
+    (marshal
+    (-must-not "test/resources/dir-755" :rmstyle "nuke") 
+))
+)

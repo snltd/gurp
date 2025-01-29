@@ -1,0 +1,35 @@
+(import directory)
+(import file)
+
+(directory/is "/tmp/merp"
+  :mode "755")
+
+(directory/gone "/tmp/byerp"
+  :rmstyle "nuke"
+  )
+
+(file/is "/tmp/test_file"
+# from should handle templates and literal files
+# if you have :content and :from, that's an error
+  :from "file_template"
+  :owner "root"
+  :group "root"
+  :values { :word "merp" :gibbus "gurp" })
+
+(file/is "/tmp/file_from_string"
+  :content "this is the content"
+)
+
+(user/is "rob"
+  :id 264
+  :primary_group 24
+  :other_groups 
+  :gcos "Rob Fisher")
+  
+# 
+(users/group "gibs"
+  :id (users/
+  )
+
+(def big_datasets ["flac" "video"])
+
