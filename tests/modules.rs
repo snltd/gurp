@@ -16,15 +16,4 @@ mod test {
                 "Failed to load module 'missing'\n",
             ));
     }
-
-    // #[test]
-    // #[ignore]
-    // fn test_missing_file() {
-    //     Command::cargo_bin("gurp")
-    //         .unwrap()
-    //         .arg("/no/such/dir")
-    //         .assert()
-    //         .failure()
-    //         .stderr("Error configuring host: No such file or directory (os error 2)\n");
-    // }
 }

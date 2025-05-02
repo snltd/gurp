@@ -1,5 +1,4 @@
-(host "serv"
-  :contact-by "local" # can also be an ssh command, or "zlogin"
+(host "tester"
   :vars {
     :var_a "value_a"
     :var_b "value_b"
