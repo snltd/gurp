@@ -20,11 +20,12 @@ struct Cli {
     #[arg(short, long, global = true)]
     noop: bool,
     /// :-separated list of directories which may house module files
+    #[arg(short = 'M', long, global = true)]
     module_dirs: Option<String>,
     /// One or more hostfiles
     #[arg(required = true)]
     files: Vec<Utf8PathBuf>,
-}
+} // might not need the global. Will there be subcommands?
 
 fn configure_host(host_file_path: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
     let janet_host_config = std::fs::read_to_string(host_file_path)?;
