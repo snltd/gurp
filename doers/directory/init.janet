@@ -104,3 +104,8 @@
     (-must-not "test/resources/dir-755" :rmstyle "nuke") 
 ))
 )
+
+(defn is [path & opts]
+  (let [opts (table ;opts)]
+    (print "configure directory" path)
+    (if-let [comment (get opts :comment)] (print comment))))

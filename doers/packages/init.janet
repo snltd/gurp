@@ -1,5 +1,4 @@
 (use sh)
-(use judge)
 (use "../core/core")
 
 (def my-name "packages")
