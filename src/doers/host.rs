@@ -2,7 +2,7 @@ use crate::utils::janet_helpers as j;
 use crate::utils::module;
 use crate::utils::types::{Opts, VarMap};
 use crate::{debug, verbose};
-use anyhow::Context;
+use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
 use janetrs::client::JanetClient;
 
@@ -35,7 +35,7 @@ pub fn configure(host_config: HostConfig, opts: &Opts) -> anyhow::Result<bool> {
         if let Some(path) = module::find(module, &module_dirs, opts) {
             module::process(&path, opts)?;
         } else {
-            eprintln!("Failed to load module {}", module);
+            return Err(anyhow!("Failed to load module '{}'", module));
         }
     }
 

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test {
     use assert_cmd::Command;
-    // use img_tool::test_utils::spec_helper::fixture;
+    use gurp::test_utils::spec_helper::fixture;
     use predicates::prelude::*;
 
     #[test]
@@ -25,5 +25,18 @@ mod test {
             .assert()
             .failure()
             .stderr("Error configuring host: No such file or directory (os error 2)\n");
+    }
+
+    #[test]
+    #[ignore]
+    fn test_bad_janet() {
+        Command::cargo_bin("gurp")
+            .unwrap()
+            .arg(fixture("bad.janet"))
+            .assert()
+            .failure()
+            .stderr(predicate::str::ends_with(
+                "Error configuring host: Failed to compile code\n",
+            ));
     }
 }
