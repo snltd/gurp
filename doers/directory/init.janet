@@ -1,3 +1,4 @@
+(use judge)
 (use ../lib/core)
 (import ../lib/maps)
 (use sh)
@@ -64,7 +65,7 @@
   (correct-group path (maps/gid->name (now :group)) (want :user))
   (correct-mode path (now :mode) (scan-number (string/format "%d" (want :mode)))))
 
-(defn must [path & body] 
+(defn is [path & body] 
   (if (os/stat path) 
     (say-debug "directory exists: " path)
     (create path))
@@ -85,3 +86,21 @@
 
 (defn must-not [path & body]
   (enact! (-must-not path body)))
+
+(deftest directory-now
+  (test (directory-now "/this/does/not/exist") nil)
+  (test ((directory-now "test/resources/dir-755") :mode) 493)
+  (test 
+    (keys (directory-now "test/resources/dir-755")) 
+    @[:mode :group :user]))
+
+(deftest must-not
+  (test (-must-not "/this/does/not/exist") nil)
+  (test-error 
+    (-must-not "test/resources/dir-755" :rmstyle "nonsense") 
+    "rmstyle must be recursive or nuke") 
+  (test 
+    (marshal
+    (-must-not "test/resources/dir-755" :rmstyle "nuke") 
+))
+)

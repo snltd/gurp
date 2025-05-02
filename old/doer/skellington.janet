@@ -25,7 +25,7 @@
   by (must)"
   [ojb have want])
 
-(defn must
+(defn is
   "Defines the attributes the object must have"
   [obj & opts])
 
