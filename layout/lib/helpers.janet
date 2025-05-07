@@ -1,7 +1,7 @@
 (defmacro host [name & body]
   ~(defn machine-config []
      (var roles (array))
-     (each role (get :roles ,;body)
+     (each role (get (table ,;body) :roles)
        (var sym (symbol (string role "/role")))
        (var fn-entry (get (curenv) sym))
        (when (nil? fn-entry)
@@ -13,7 +13,9 @@
        (when (not (function? fn-to-call))
          (error (string "Role is not callable: " sym)))
        (array/push roles (fn-to-call)))
-     (apply helpers/merge-roles roles)))
+     (table :vars (get (table ,;body) :vars)
+            :resources
+            (apply helpers/merge-roles roles))))
 
 (defmacro role [name & body]
   ~(defn ,name []

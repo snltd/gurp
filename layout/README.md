@@ -9,6 +9,11 @@ number of roles. Example:
 (import ./roles/devtools)
 
 (helpers/host "example"
+  :vars {
+    :var_a "value a"
+    :var_b ["item_1" "item_2" "item_3"]
+    :var_c 12345
+  }
   :roles [
     "devtools"
   ])
@@ -48,7 +53,8 @@ Resources are all defined in the same way. `ensure` or `remove`, a string name,
 and a table of options with symbol keys.
 
 The `helpers/host` macro expands to a function `machine-config`, which iterates
-over the roles, and merges all their resources into a single table.
+over the roles, and merges all their resources into a single table. It also adds
+vars defined in the `host`.
 
 You do not need a Janet runtime. The Rust part of `gurp` calls `machine-config`,
 and exectues the Janet code in its built-in Janet interpreter.
