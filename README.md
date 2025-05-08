@@ -5,6 +5,12 @@ tool with a Lisp front-end.
 
 ## Design
 
+A user will write machine configurations using a thin
+[Janet](https://janet-lang.org/) DSL. Resources such as Unix users, SMF
+services, or ZFS datasets are described as Janet tables, but can, of course, be
+wrapped in, or contain, arbitrary Janet code. Resources may reference properties
+of other resources.
+
 ### Important
 
 - Configuration is Janet. It seems such a natural fit for this domain.
@@ -14,10 +20,10 @@ tool with a Lisp front-end.
 
 ### Maybe
 
-- You (or some program really) compiles a single binary containing Janet, gurp's
+- ~~You (or some program really) compiles a single binary containing Janet, gurp's
   "doers", and the machine configuration. You can then plonk that binary on your
   host and run it. Or perhaps a `.jimage` file, which would only require the
-  `janet` binary. We'll see.
+  `janet` binary.~~ This isn't happening now. The back-end will be Rust. 
 
 ### Not Important
 
@@ -28,3 +34,7 @@ tool with a Lisp front-end.
 ### Not Happening
 
 - Coverage of anything that isn't OmniOS.
+
+## NOTES
+
+Currently needs `CFLAGS="-D__EXTENSIONS__ -std=c99" cargo build` to compile.
