@@ -3,6 +3,7 @@ mod utils;
 use crate::doers::host;
 use crate::utils::janet_runner;
 use crate::utils::types::Opts;
+use anyhow::Context;
 use camino::Utf8PathBuf;
 use clap::Parser;
 use janetrs::client::Error;
@@ -27,12 +28,20 @@ struct Cli {
     files: Vec<Utf8PathBuf>,
 } // might not need the global. Will there be subcommands?
 
-fn configure_host(host_file_path: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
+fn prep_host_config(host_file_path: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<String> {
     let janet_host_config = std::fs::read_to_string(host_file_path)?;
+    let qualified_path = host_file_path.canonicalize_utf8()?;
+    let host_config_dir = qualified_path.parent().context("cannot find parent")?;
+    Ok(format!(
+        "{}\n{}",
+        format!("(setdyn *syspath* \"{}\")", host_config_dir),
+        janet_host_config
+    ))
+}
+
+fn execute_host_config(janet_host_config: String, opts: &Opts) -> anyhow::Result<bool> {
     let mut client = janet_runner::janet_client();
-    let host_config =
-        host::define_host_config(host_file_path, &mut client, janet_host_config.as_str())?;
-    host::configure(host_config, opts)?;
+    host::configure(janet_host_config, &mut client, opts)?;
     Ok(true)
 }
 
@@ -48,7 +57,16 @@ fn main() -> Result<(), Error> {
     };
 
     for host_file in cli.files {
-        if let Err(e) = configure_host(&host_file, &opts) {
+        let host_config = match prep_host_config(&host_file, &opts) {
+            Ok(conf) => conf,
+            Err(e) => {
+                eprintln!("Error prepping host config: {}", e);
+                exit_code = 1;
+                continue;
+            }
+        };
+
+        if let Err(e) = execute_host_config(host_config, &opts) {
             eprintln!("Error configuring host: {}", e);
             exit_code = 1;
         }

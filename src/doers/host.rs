@@ -4,8 +4,56 @@ use crate::utils::types::{Opts, VarMap};
 use crate::{debug, verbose};
 use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
-use janetrs::client::JanetClient;
+// use janetrs::JanetTable;
+use janetrs::JanetType::Table;
+// use janetrs::client::JanetClient;
+// use janetrs::env::CFunOptions;
+// use janetrs::{Janet, JanetArgs, TaggedJanet};
 
+use janetrs::{Janet, JanetType, client::JanetClient, env::CFunOptions, janet_fn};
+
+// #[janetrs::janet_fn(arity(fix(1)))]
+#[janet_fn]
+fn machine_config_handler(config_table: &mut [Janet]) -> Janet {
+    // let table: JanetTable = JanetTable::unpack(config_table).unwrap();
+    let janet_table = config_table[0];
+    // let table = janet_table.try_unwrap().unwrap();
+    println!("{:?}", janet_table.len());
+    Janet::nil()
+}
+
+fn hbar() -> String {
+    "-".repeat(80)
+}
+
+fn setup_bindings(client: &mut JanetClient, opts: &Opts) {
+    debug!(opts, "Setting up CFunction binding for machine-config");
+    client.add_c_fn(CFunOptions::new(
+        c"run-machine-configuration",
+        machine_config_handler_c,
+    ));
+}
+
+pub fn configure(
+    janet_host_config: String,
+    client: &mut JanetClient,
+    opts: &Opts,
+) -> anyhow::Result<bool> {
+    setup_bindings(client, opts);
+    // verbose!(opts, "Configuring {}", host_config.name);
+    debug!(
+        opts,
+        "Janet host config follows:\n{}\n{}{}",
+        hbar(),
+        janet_host_config,
+        hbar()
+    );
+
+    let result = client.run(janet_host_config)?;
+    Ok(true)
+}
+
+/*
 // The host doer is the boss. It collects a top-level Janet host definition, which it turns into
 // a HostConfig struct. This is used as the root of the host configuration, fanning out across the
 // included modules.
@@ -145,3 +193,4 @@ mod test {
         assert!(define_host_config(&path, &mut janet_runner::janet_client(), user_input).is_err());
     }
 }
+*/
