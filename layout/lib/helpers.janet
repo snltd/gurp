@@ -13,9 +13,11 @@
        (when (not (function? fn-to-call))
          (error (string "Role is not callable: " sym)))
        (array/push roles (fn-to-call)))
-     (table :vars (get (table ,;body) :vars)
+     (table/to-struct (table :metadata { :name ,name }
+            :vars (get (table ,;body) :vars)
             :resources
-            (apply helpers/merge-roles roles))))
+            (table/to-struct
+            (apply helpers/merge-roles roles))))))
 
 (defmacro role [name & body]
   ~(defn ,name []

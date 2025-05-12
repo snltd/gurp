@@ -28,7 +28,7 @@ struct Cli {
     files: Vec<Utf8PathBuf>,
 } // might not need the global. Will there be subcommands?
 
-fn prep_host_config(host_file_path: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<String> {
+fn prep_host_config(host_file_path: &Utf8PathBuf, _opts: &Opts) -> anyhow::Result<String> {
     let janet_host_config = std::fs::read_to_string(host_file_path)?;
     let qualified_path = host_file_path.canonicalize_utf8()?;
     let host_config_dir = qualified_path.parent().context("cannot find parent")?;

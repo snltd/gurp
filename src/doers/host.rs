@@ -1,24 +1,171 @@
-use crate::utils::janet_helpers as j;
-use crate::utils::module;
-use crate::utils::types::{Opts, VarMap};
-use crate::{debug, verbose};
+// use crate::unpack_janet_table;
+// use crate::utils::janet_helpers as j;
+// use crate::utils::module;
+use crate::debug;
+use crate::utils::types::Opts;
 use anyhow::{Context, anyhow};
-use camino::Utf8PathBuf;
-// use janetrs::JanetTable;
-use janetrs::JanetType::Table;
+// use camino::Utf8PathBuf;
+use janetrs::JanetStruct;
+// use crate::unpack_janet_table;
+// use janetrs::JanetType::Table;
 // use janetrs::client::JanetClient;
 // use janetrs::env::CFunOptions;
 // use janetrs::{Janet, JanetArgs, TaggedJanet};
+use janetrs::TaggedJanet;
+use janetrs::{Janet, client::JanetClient, env::CFunOptions};
+use std::collections::HashMap;
+// use crate::utils::janet_helpers;
+use serde_json::{Map, Value};
 
-use janetrs::{Janet, JanetType, client::JanetClient, env::CFunOptions, janet_fn};
+type HostMetadata = HashMap<String, String>;
+type Resource = HashMap<String, String>;
+type ResourceType = String;
+type HostResources = HashMap<ResourceType, Vec<Resource>>;
+type HostVars = HashMap<String, String>;
 
-// #[janetrs::janet_fn(arity(fix(1)))]
-#[janet_fn]
+#[derive(Debug)]
+struct HostConfig {
+    metadata: HostMetadata,
+    resources: HostResources,
+    vars: Option<HostVars>,
+}
+
+pub fn janet_to_json(j: &Janet) -> Value {
+    // I'm going to leave the :s at the beginning of the key names for now, because it will
+    // make it clear we're talking about user data.
+    match j.unwrap() {
+        TaggedJanet::Nil => Value::Null,
+        TaggedJanet::Boolean(b) => Value::Bool(b),
+        TaggedJanet::Number(n) => match serde_json::Number::from_f64(n) {
+            Some(num) => Value::Number(num),
+            None => Value::Null,
+        },
+        TaggedJanet::String(s) => Value::String(s.to_string()),
+        TaggedJanet::Symbol(s) => Value::String(s.to_string()),
+        TaggedJanet::Keyword(k) => Value::String(k.to_string()),
+        TaggedJanet::Array(arr) => {
+            let vec = arr.iter().map(janet_to_json).collect();
+            Value::Array(vec)
+        }
+        TaggedJanet::Tuple(tup) => {
+            let vec = tup.iter().map(janet_to_json).collect();
+            Value::Array(vec)
+        }
+        TaggedJanet::Table(tab) => {
+            let mut map = Map::new();
+            for (k, v) in tab.iter() {
+                let key = k.to_string();
+                map.insert(key, janet_to_json(v));
+            }
+            Value::Object(map)
+        }
+        TaggedJanet::Struct(tab) => {
+            let mut map = Map::new();
+            for (k, v) in tab.iter() {
+                let key = k.to_string();
+                map.insert(key, janet_to_json(v));
+            }
+            Value::Object(map)
+        }
+        // I don't think we'll need any more exotic types
+        other => Value::String(format!("<{:?}>", other)),
+    }
+}
+
+// fn unpack_struct(table: &Janet) -> anyhow::Result<HashMap<String, String>> {
+//     match table.unwrap() {
+//         TaggedJanet::Struct(res) => {
+//             let mut ret = HashMap::new();
+//             for (k, v) in res {
+//                 ret.insert(
+//                     k.unwrap().to_string().replacen(":", "", 1),
+//                     v.unwrap().to_string(),
+//                 );
+//             }
+
+//             Ok(ret)
+//         }
+//         TaggedJanet::Table(res) => {
+//             let mut ret = HashMap::new();
+//             for (k, v) in res {
+//                 ret.insert(
+//                     k.unwrap().to_string().replacen(":", "", 1),
+//                     v.unwrap().to_string(),
+//                 );
+//             }
+
+//             Ok(ret)
+//         }
+//         _ => Err(anyhow!(format!("Expected Janet struct, got: {:?}", table))),
+//     }
+// }
+
+// fn extract_resources(table: &Janet) -> anyhow::Result<HostResources> {
+//     println!("{:?}", table);
+//     println!("{:?}", janet_to_json(table));
+//     todo!()
+// }
+
+// fn _extract_resources(table: &Janet) -> anyhow::Result<HostResources> {
+//     match table.unwrap() {
+//         TaggedJanet::Struct(res) => {
+//             let mut ret = HashMap::new();
+//             for (resource_type, resources) in res {
+//                 let resource_type = resource_type.unwrap().to_string().replacen(":", "", 1);
+//                 let resource_list = match resources.unwrap() {
+//                     TaggedJanet::Array(res_list) => {
+//                         res_list.iter().map(|r| unpack_struct(r).unwrap()).collect()
+//                     }
+//                     _ => {
+//                         return Err(anyhow!(format!(
+//                             "{} resources are not a Janet array",
+//                             resource_type
+//                         )));
+//                     }
+//                 };
+
+//                 ret.insert(resource_type, resource_list);
+//             }
+
+//             Ok(ret)
+//         }
+//         _ => Err(anyhow!("Resources is not a Janet struct")),
+//     }
+// }
+
+// fn extract_data(table: &Janet) -> anyhow::Result<HostConfig> {
+//     let host_metadata = janet_to_json(table);
+
+//     let janet_metadata = table
+//         .get(Janet::from(":metadata"))
+//         .context("Host config has no metadata")?;
+
+//     let vars = match table.get(Janet::from(":vars")) {
+//         Some(janet_vars) => Some(unpack_struct(janet_vars)?),
+//         None => None,
+//     };
+
+//     let janet_resources = table
+//         .get(Janet::from(":resources"))
+//         .context("Host config has no resources")?;
+
+//     Ok(HostConfig {
+//         metadata: unpack_struct(janet_metadata)?,
+//         vars,
+//         resources: extract_resources(janet_resources)?,
+//     })
+// }
+
+#[janetrs::janet_fn(arity(fix(1)))]
 fn machine_config_handler(config_table: &mut [Janet]) -> Janet {
-    // let table: JanetTable = JanetTable::unpack(config_table).unwrap();
-    let janet_table = config_table[0];
-    // let table = janet_table.try_unwrap().unwrap();
-    println!("{:?}", janet_table.len());
+    let values = janet_to_json(&config_table[0]);
+
+    let metadata: HostMetadata = serde_json::from_value(values[":metadata"].clone()).unwrap();
+    let vars = values[":vars"].clone();
+    let resources = values[":resources"].clone();
+
+    println!("{:#?}", vars);
+
     Janet::nil()
 }
 
