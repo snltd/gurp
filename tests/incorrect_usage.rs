@@ -24,7 +24,7 @@ mod test {
             .arg("/no/such/dir")
             .assert()
             .failure()
-            .stderr("Error configuring host: No such file or directory (os error 2)\n");
+            .stderr("Error prepping host config: No such file or directory (os error 2)\n");
     }
 
     #[test]
