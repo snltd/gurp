@@ -21,6 +21,19 @@ pub struct DirectoryEnsure {
 }
 
 #[derive(Debug, PartialEq)]
+struct GurpDirectory {
+    pub path: Utf8PathBuf,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct DirectoryState {
+    pub group: String,
+    pub mode: String,
+    pub name: String,
+    pub owner: String,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct DirectoryRemove {
     pub path: Utf8PathBuf,
     pub recurse: bool,

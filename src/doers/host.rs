@@ -1,20 +1,18 @@
+use crate::debug;
 use crate::doers::directory;
 use crate::doers::types::Resource;
 use crate::utils::janet_helpers as j;
-use crate::utils::janet_helpers::{JanetExt, JanetTableExt};
+use crate::utils::janet_helpers::JanetExt;
 use crate::utils::types::Opts;
-use crate::{debug, verbose};
 use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
-use janetrs::{Janet, client::JanetClient, env::CFunOptions};
-use janetrs::{JanetKeyword, JanetString, TaggedJanet};
-use serde_json::Value;
-use std::cell::Ref;
+use janetrs::{Janet, env::CFunOptions};
+use janetrs::{JanetKeyword, TaggedJanet};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
 thread_local! {
-    static OPTIONS: RefCell<Option<Opts>> = RefCell::new(None);
+    static OPTIONS: RefCell<Option<Opts>> = const { RefCell::new(None) };
 }
 
 #[derive(Debug)]
@@ -157,7 +155,7 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
     };
 
     match janet_to_rust_config(janet_metadata, janet_resources, &opts) {
-        Ok(config) => Janet::from(true),
+        Ok(_config) => Janet::from(true),
         Err(e) => {
             eprintln!("Failed to generate Rust config: {}", e);
             Janet::from(false)
