@@ -24,7 +24,7 @@ mod test {
             .arg("/no/such/dir")
             .assert()
             .failure()
-            .stderr("Error prepping host config: No such file or directory (os error 2)\n");
+            .stderr("ERROR: No such file or directory (os error 2)\n");
     }
 
     #[test]
@@ -35,8 +35,6 @@ mod test {
             .arg(fixture("bad.janet"))
             .assert()
             .failure()
-            .stderr(predicate::str::ends_with(
-                "Error configuring host: Failed to compile code\n",
-            ));
+            .stderr(predicate::str::ends_with("ERROR: Failed to compile code\n"));
     }
 }

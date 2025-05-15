@@ -1,6 +1,6 @@
-(import lib/helpers)
-(import roles/devtools)
-
+(import ./lib/helpers)
+(import ./roles/devtools)
+(import ./roles/basenode)
 
 # (pp (macex1
 # '(helpers/host "example"
@@ -16,7 +16,10 @@
 
 (helpers/host "example"
   :roles [
+    "basenode"
     "devtools"
   ])
  
-(run-machine-configuration (machine-config))
+(pp (machine-config))
+
+

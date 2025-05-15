@@ -1,3 +1,4 @@
+/*
 use crate::utils::types::Opts;
 use crate::{debug, verbose};
 use camino::Utf8PathBuf;
@@ -15,3 +16,4 @@ pub fn find(module: &str, module_path: &str, opts: &Opts) -> Option<Utf8PathBuf>
         candidate.exists()
     })
 }
+*/

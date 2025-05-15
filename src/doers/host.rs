@@ -1,343 +1,252 @@
-// use crate::unpack_janet_table;
-// use crate::utils::janet_helpers as j;
-// use crate::utils::module;
-use crate::debug;
+use crate::doers::directory;
+use crate::doers::types::Resource;
+use crate::utils::janet_helpers as j;
+use crate::utils::janet_helpers::{JanetExt, JanetTableExt};
 use crate::utils::types::Opts;
+use crate::{debug, verbose};
 use anyhow::{Context, anyhow};
-// use camino::Utf8PathBuf;
-use janetrs::JanetStruct;
-// use crate::unpack_janet_table;
-// use janetrs::JanetType::Table;
-// use janetrs::client::JanetClient;
-// use janetrs::env::CFunOptions;
-// use janetrs::{Janet, JanetArgs, TaggedJanet};
-use janetrs::TaggedJanet;
+use camino::Utf8PathBuf;
 use janetrs::{Janet, client::JanetClient, env::CFunOptions};
+use janetrs::{JanetKeyword, JanetString, TaggedJanet};
+use serde_json::Value;
+use std::cell::Ref;
+use std::cell::RefCell;
 use std::collections::HashMap;
-// use crate::utils::janet_helpers;
-use serde_json::{Map, Value};
 
-type HostMetadata = HashMap<String, String>;
-type Resource = HashMap<String, String>;
-type ResourceType = String;
-type HostResources = HashMap<ResourceType, Vec<Resource>>;
-type HostVars = HashMap<String, String>;
+thread_local! {
+    static OPTIONS: RefCell<Option<Opts>> = RefCell::new(None);
+}
 
 #[derive(Debug)]
 struct HostConfig {
     metadata: HostMetadata,
     resources: HostResources,
-    vars: Option<HostVars>,
 }
 
-pub fn janet_to_json(j: &Janet) -> Value {
-    // I'm going to leave the :s at the beginning of the key names for now, because it will
-    // make it clear we're talking about user data.
-    match j.unwrap() {
-        TaggedJanet::Nil => Value::Null,
-        TaggedJanet::Boolean(b) => Value::Bool(b),
-        TaggedJanet::Number(n) => match serde_json::Number::from_f64(n) {
-            Some(num) => Value::Number(num),
-            None => Value::Null,
-        },
-        TaggedJanet::String(s) => Value::String(s.to_string()),
-        TaggedJanet::Symbol(s) => Value::String(s.to_string()),
-        TaggedJanet::Keyword(k) => Value::String(k.to_string()),
-        TaggedJanet::Array(arr) => {
-            let vec = arr.iter().map(janet_to_json).collect();
-            Value::Array(vec)
-        }
-        TaggedJanet::Tuple(tup) => {
-            let vec = tup.iter().map(janet_to_json).collect();
-            Value::Array(vec)
-        }
-        TaggedJanet::Table(tab) => {
-            let mut map = Map::new();
-            for (k, v) in tab.iter() {
-                let key = k.to_string();
-                map.insert(key, janet_to_json(v));
-            }
-            Value::Object(map)
-        }
-        TaggedJanet::Struct(tab) => {
-            let mut map = Map::new();
-            for (k, v) in tab.iter() {
-                let key = k.to_string();
-                map.insert(key, janet_to_json(v));
-            }
-            Value::Object(map)
-        }
-        // I don't think we'll need any more exotic types
-        other => Value::String(format!("<{:?}>", other)),
-    }
+#[derive(Debug, PartialEq, Eq)]
+struct HostMetadata {
+    name: String,
 }
 
-// fn unpack_struct(table: &Janet) -> anyhow::Result<HashMap<String, String>> {
-//     match table.unwrap() {
-//         TaggedJanet::Struct(res) => {
-//             let mut ret = HashMap::new();
-//             for (k, v) in res {
-//                 ret.insert(
-//                     k.unwrap().to_string().replacen(":", "", 1),
-//                     v.unwrap().to_string(),
-//                 );
-//             }
+type ResourceType = String;
+type HostResources = HashMap<ResourceType, Vec<Resource>>;
 
-//             Ok(ret)
-//         }
-//         TaggedJanet::Table(res) => {
-//             let mut ret = HashMap::new();
-//             for (k, v) in res {
-//                 ret.insert(
-//                     k.unwrap().to_string().replacen(":", "", 1),
-//                     v.unwrap().to_string(),
-//                 );
-//             }
+// Read the host file the user gives us, and execute it with our embedded Janet interpreter. This
+// generates a big Janet Table, with these keys:
+//
+//   :metadata   For now just has the name of the machine in it.
+//   :resources  A Table whose keys are resource types, e.g. :file or :service and whose value
+//               are Arrays of those resources. Each resource is defined as a Janet Table.
+//
+// The final function call passes this big Table to (run-machine-configuration), which is a Janet
+// CFunction defined
+// in this file, and mapped to machine_config_handler(). Because it's a Janet function it has to receive
+// and return a janetrs::Janet. So it calls out to other functions to do all the actual work,
+// returning success or failure.
+//
+// Janet is dynamically typed, and Rust is not. To reduce friction, I (at least for now) convert
+// :resources into JSON.
+//
+// With vecs of properly typed resources, we can construct a dependency graph, check it
+// looks valid, then apply the resources in order. Some resource types, say packages, can be
+// grouped together
+// into a single action.
 
-//             Ok(ret)
-//         }
-//         _ => Err(anyhow!(format!("Expected Janet struct, got: {:?}", table))),
-//     }
-// }
+pub fn do_it(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
+    OPTIONS.with(|o| {
+        *o.borrow_mut() = Some(Opts {
+            debug: opts.debug,
+            noop: opts.noop,
+            module_dirs: opts.module_dirs.clone(),
+            verbose: opts.verbose,
+        });
+    });
 
-// fn extract_resources(table: &Janet) -> anyhow::Result<HostResources> {
-//     println!("{:?}", table);
-//     println!("{:?}", janet_to_json(table));
-//     todo!()
-// }
+    let host_config = prep_host_config(host_file, opts)?;
 
-// fn _extract_resources(table: &Janet) -> anyhow::Result<HostResources> {
-//     match table.unwrap() {
-//         TaggedJanet::Struct(res) => {
-//             let mut ret = HashMap::new();
-//             for (resource_type, resources) in res {
-//                 let resource_type = resource_type.unwrap().to_string().replacen(":", "", 1);
-//                 let resource_list = match resources.unwrap() {
-//                     TaggedJanet::Array(res_list) => {
-//                         res_list.iter().map(|r| unpack_struct(r).unwrap()).collect()
-//                     }
-//                     _ => {
-//                         return Err(anyhow!(format!(
-//                             "{} resources are not a Janet array",
-//                             resource_type
-//                         )));
-//                     }
-//                 };
+    debug!(
+        opts,
+        "Janet host config follows:\n{}\n{}{}",
+        "-".repeat(80),
+        host_config,
+        "-".repeat(80),
+    );
 
-//                 ret.insert(resource_type, resource_list);
-//             }
+    let mut client = j::janet_client();
 
-//             Ok(ret)
-//         }
-//         _ => Err(anyhow!("Resources is not a Janet struct")),
-//     }
-// }
-
-// fn extract_data(table: &Janet) -> anyhow::Result<HostConfig> {
-//     let host_metadata = janet_to_json(table);
-
-//     let janet_metadata = table
-//         .get(Janet::from(":metadata"))
-//         .context("Host config has no metadata")?;
-
-//     let vars = match table.get(Janet::from(":vars")) {
-//         Some(janet_vars) => Some(unpack_struct(janet_vars)?),
-//         None => None,
-//     };
-
-//     let janet_resources = table
-//         .get(Janet::from(":resources"))
-//         .context("Host config has no resources")?;
-
-//     Ok(HostConfig {
-//         metadata: unpack_struct(janet_metadata)?,
-//         vars,
-//         resources: extract_resources(janet_resources)?,
-//     })
-// }
-
-#[janetrs::janet_fn(arity(fix(1)))]
-fn machine_config_handler(config_table: &mut [Janet]) -> Janet {
-    let values = janet_to_json(&config_table[0]);
-
-    let metadata: HostMetadata = serde_json::from_value(values[":metadata"].clone()).unwrap();
-    let vars = values[":vars"].clone();
-    let resources = values[":resources"].clone();
-
-    println!("{:#?}", vars);
-
-    Janet::nil()
-}
-
-fn hbar() -> String {
-    "-".repeat(80)
-}
-
-fn setup_bindings(client: &mut JanetClient, opts: &Opts) {
-    debug!(opts, "Setting up CFunction binding for machine-config");
     client.add_c_fn(CFunOptions::new(
         c"run-machine-configuration",
         machine_config_handler_c,
     ));
-}
 
-pub fn configure(
-    janet_host_config: String,
-    client: &mut JanetClient,
-    opts: &Opts,
-) -> anyhow::Result<bool> {
-    setup_bindings(client, opts);
-    // verbose!(opts, "Configuring {}", host_config.name);
-    debug!(
-        opts,
-        "Janet host config follows:\n{}\n{}{}",
-        hbar(),
-        janet_host_config,
-        hbar()
-    );
-
-    let result = client.run(janet_host_config)?;
-    Ok(true)
-}
-
-/*
-// The host doer is the boss. It collects a top-level Janet host definition, which it turns into
-// a HostConfig struct. This is used as the root of the host configuration, fanning out across the
-// included modules.
-
-#[derive(Debug, PartialEq)]
-pub struct HostConfig {
-    pub path: Utf8PathBuf,
-    pub name: String,
-    pub vars: Option<VarMap>,
-    pub modules: Vec<String>,
-}
-
-pub fn configure(host_config: HostConfig, opts: &Opts) -> anyhow::Result<bool> {
-    verbose!(opts, "Configuring {}", host_config.name);
-    debug!(opts, "Raw host config: {:?}", host_config);
-
-    let module_dirs = match &opts.module_dirs {
-        Some(path) => path.to_owned(),
-        None => host_config
-            .path
-            .parent()
-            .context("could not find host file parent")?
-            .to_string(),
-    };
-
-    for module in &host_config.modules {
-        if let Some(path) = module::find(module, &module_dirs, opts) {
-            module::process(&path, opts)?;
-        } else {
-            return Err(anyhow!("Failed to load module '{}'", module));
+    match client.run(host_config) {
+        Ok(_) => Ok(true),
+        Err(e) => {
+            eprintln!("TODO: handle errors properly");
+            Err(anyhow!(e))
         }
     }
-
-    Ok(true)
 }
 
-pub fn define_host_config(
-    path: &Utf8PathBuf,
-    client: &mut JanetClient,
-    server_desc: &str,
-) -> anyhow::Result<HostConfig> {
-    // The user defines a host as a chunk of Janet. We parse it here, and we'll do the heavy lifting
-    // of finding and running the Janet which configures the host.
-    //
-    // So all we need to do is turn a definition into a name and a table.
-    let inject_macro = "(defmacro host [hostname & args] ~[,hostname (table ,;args)])";
-    let server_desc_lisp = format!("{}\n{}", inject_macro, server_desc);
-    let result = client.run(server_desc_lisp)?;
+fn janet_insert(host_file: &Utf8PathBuf) -> anyhow::Result<String> {
+    // We can inject our own Janet code into what the user gives us, to reduce boilerplate.
+    let host_config_dir = host_file
+        .parent()
+        .context(format!("cannot find parent of {}", host_file))?;
 
-    let (host_name, config_table) = j::unpack_object(&result)?;
+    // Override the default include path
+    Ok(format!("(setdyn *syspath* \"{}\")", host_config_dir))
+}
 
-    let modules = config_table
-        .get(janetrs::Janet::keyword("modules".into()))
-        .context("Cannot find a list of modules")?;
+fn prep_host_config(host_file_path: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<String> {
+    let janet_host_config = std::fs::read_to_string(host_file_path)?;
+    debug!(opts, "Reading host config from {}", host_file_path);
+    let qualified_path = host_file_path.canonicalize_utf8()?;
+    Ok(format!(
+        "{}\n{}",
+        janet_insert(&qualified_path)?,
+        janet_host_config
+    ))
+}
 
-    let modules = j::unpack_tuple_of_strings(modules)?;
+#[janetrs::janet_fn(arity(fix(1)))]
+fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
+    let config_elements = janet_config.len() as i32;
 
-    let vars = match config_table.get(janetrs::Janet::keyword("vars".into())) {
-        Some(janet_vars) => Some(j::unpack_var_struct(janet_vars)?),
-        None => None,
+    if config_elements != 1 {
+        eprintln!(
+            "Expected single host configuration element, got {}",
+            config_elements
+        );
+        return Janet::from(false);
+    }
+
+    let opts = OPTIONS
+        .with(|o| o.borrow().clone())
+        .expect("Failed to recover options");
+
+    let janet_config = &janet_config[0].unwrap();
+
+    debug!(opts, "Extracting Janet config table");
+
+    let config_table = match janet_config {
+        TaggedJanet::Table(table) => table,
+        other => {
+            eprintln!("Expected Janet table, got {}", other);
+            return Janet::from(false);
+        }
     };
 
+    debug!(opts, "Extracting Janet metadata");
+
+    let janet_metadata = match config_table.get(Janet::from(":metadata")) {
+        Some(md) => md,
+        None => {
+            eprintln!("Host config has no metadata");
+            return Janet::from(false);
+        }
+    };
+
+    debug!(opts, "Extracting Janet resources");
+
+    let janet_resources = match config_table.get(Janet::from(":resources")) {
+        Some(md) => md,
+        None => {
+            eprintln!("Host config has no resources");
+            return Janet::from(false);
+        }
+    };
+
+    match janet_to_rust_config(janet_metadata, janet_resources, &opts) {
+        Ok(config) => Janet::from(true),
+        Err(e) => {
+            eprintln!("Failed to generate Rust config: {}", e);
+            Janet::from(false)
+        }
+    }
+}
+
+fn janet_to_rust_metadata(janet_metadata: &Janet, opts: &Opts) -> anyhow::Result<HostMetadata> {
+    debug!(opts, "Extracting Janet metadata table");
+    let rust_metadata = match janet_metadata.unwrap() {
+        TaggedJanet::Table(table) => {
+            if let Some(name) = table.get(JanetKeyword::from("name")) {
+                HostMetadata {
+                    name: name.unwrap().to_string(),
+                }
+            } else {
+                return Err(anyhow!("Did not find 'name' in host metadata"));
+            }
+        }
+        _ => {
+            return Err(anyhow!("Expected metadata to be Janet table"));
+        }
+    };
+
+    Ok(rust_metadata)
+}
+
+fn janet_to_rust_resources(janet_resources: &Janet, opts: &Opts) -> anyhow::Result<HostResources> {
+    debug!(opts, "Extracting Janet resource table");
+    let resources = janet_resources.extract_table()?;
+
+    for (resource_type, resource_list) in resources {
+        match resource_type.unwrap().to_string().as_str() {
+            ":directories" => {
+                let x = directory::unpack_list(&resource_list)?;
+
+                println!("{:?}", x);
+            }
+            other => {
+                eprintln!("{} resources are not supported", other);
+            }
+        }
+    }
+    todo!()
+}
+
+fn janet_to_rust_config(
+    janet_metadata: &Janet,
+    janet_resources: &Janet,
+    opts: &Opts,
+) -> anyhow::Result<HostConfig> {
     Ok(HostConfig {
-        path: path.clone(),
-        name: host_name,
-        vars,
-        modules,
+        metadata: janet_to_rust_metadata(janet_metadata, opts)?,
+        resources: janet_to_rust_resources(janet_resources, opts)?,
     })
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils::janet_runner;
+    use janetrs::JanetTable;
 
     #[test]
-    fn test_define_host_config() {
-        let path = Utf8PathBuf::from("dummy_path");
-        let user_input = r#"(host "serv"
-                            :vars {
-                                :var_a "value_a"
-                                :var_b 123456789
-                            }
-                            :modules [
-                                "physical"
-                                "zfs_snapshot"])"#;
+    fn test_janet_to_rust_metadata_good() {
+        init_janet();
+
+        let good_janet_metadata =
+            Janet::wrap(JanetTable::builder(1).put("name", "test_name").finalize());
 
         assert_eq!(
-            HostConfig {
-                path: path.clone(),
-                name: "serv".to_owned(),
-                vars: Some(VarMap::from([
-                    ("var_a".to_owned(), "value_a".to_owned()),
-                    ("var_b".to_owned(), "123456789".to_owned())
-                ])),
-                modules: vec!["physical".to_owned(), "zfs_snapshot".to_owned()],
+            HostMetadata {
+                name: "test_name".to_owned(),
             },
-            define_host_config(&path, &mut janet_runner::janet_client(), user_input).unwrap()
+            janet_to_rust_metadata(&good_janet_metadata).unwrap()
         );
-    }
 
-    #[test]
-    fn test_define_host_config_no_vars() {
-        let path = Utf8PathBuf::from("dummy_path");
-        let user_input = r#"(host "serv"
-                            :modules [
-                                "physical"
-                                "zfs_snapshot"])"#;
-
-        assert_eq!(
-            HostConfig {
-                path: path.clone(),
-                name: "serv".to_owned(),
-                vars: None,
-                modules: vec!["physical".to_owned(), "zfs_snapshot".to_owned()],
-            },
-            define_host_config(&path, &mut janet_runner::janet_client(), user_input).unwrap()
+        let bad_janet_metadata = Janet::wrap(
+            JanetTable::builder(1)
+                .put("unknown", "test_name")
+                .finalize(),
         );
+
+        assert!(janet_to_rust_metadata(&bad_janet_metadata).is_err());
     }
 
-    #[test]
-    fn test_define_host_config_no_modules() {
-        let path = Utf8PathBuf::from("dummy_path");
-        let user_input = r#"(host "serv"
-                            :vars {
-                                :var_a "value_a"
-                                :var_b 123456789
-                            })"#;
-
-        assert!(define_host_config(&path, &mut janet_runner::janet_client(), user_input).is_err());
-    }
-
-    #[test]
-    fn test_define_host_config_no_host_name() {
-        let path = Utf8PathBuf::from("dummy_path");
-        let user_input = "()";
-        assert!(define_host_config(&path, &mut janet_runner::janet_client(), user_input).is_err());
+    fn init_janet() {
+        unsafe {
+            janetrs::lowlevel::janet_init();
+        }
     }
 }
-*/
