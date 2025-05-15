@@ -29,6 +29,9 @@ struct HostMetadata {
 }
 
 type ResourceType = String;
+
+// I keep changing my mind whether this should be a hash or a vec. We'll see what fits the
+// problem best.
 type HostResources = HashMap<ResourceType, Vec<Resource>>;
 
 // Read the host file the user gives us, and execute it with our embedded Janet interpreter. This
@@ -43,9 +46,6 @@ type HostResources = HashMap<ResourceType, Vec<Resource>>;
 // in this file, and mapped to machine_config_handler(). Because it's a Janet function it has to receive
 // and return a janetrs::Janet. So it calls out to other functions to do all the actual work,
 // returning success or failure.
-//
-// Janet is dynamically typed, and Rust is not. To reduce friction, I (at least for now) convert
-// :resources into JSON.
 //
 // With vecs of properly typed resources, we can construct a dependency graph, check it
 // looks valid, then apply the resources in order. Some resource types, say packages, can be
@@ -186,22 +186,26 @@ fn janet_to_rust_metadata(janet_metadata: &Janet, opts: &Opts) -> anyhow::Result
 }
 
 fn janet_to_rust_resources(janet_resources: &Janet, opts: &Opts) -> anyhow::Result<HostResources> {
+    let mut ret = HashMap::new();
+
     debug!(opts, "Extracting Janet resource table");
     let resources = janet_resources.extract_table()?;
+    debug!(opts, "Found {} resource types", resources.len());
 
     for (resource_type, resource_list) in resources {
         match resource_type.unwrap().to_string().as_str() {
             ":directories" => {
-                let x = directory::unpack_list(&resource_list)?;
-
-                println!("{:?}", x);
+                let directories = directory::unpack_list(&resource_list)?;
+                debug!(opts, "Found {} directory resource(s) ", directories.len());
+                ret.insert("directories".to_owned(), directories);
             }
             other => {
                 eprintln!("{} resources are not supported", other);
             }
         }
     }
-    todo!()
+
+    Ok(ret)
 }
 
 fn janet_to_rust_config(

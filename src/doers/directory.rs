@@ -1,3 +1,4 @@
+use crate::doers::types::Resource;
 use crate::utils::janet_helpers::{JanetExt, JanetTableExt};
 use anyhow::anyhow;
 use camino::Utf8PathBuf;
@@ -70,13 +71,13 @@ impl TryFrom<&Janet> for DirectoryResource {
     }
 }
 
-pub fn unpack_list(resource_list: &Janet) -> anyhow::Result<Vec<DirectoryResource>> {
+pub fn unpack_list(resource_list: &Janet) -> anyhow::Result<Vec<Resource>> {
     let resource_list = resource_list.extract_array()?;
 
     let mut ret = Vec::new();
 
     for r in resource_list {
-        ret.push(DirectoryResource::try_from(&r)?);
+        ret.push(Resource::Directory(DirectoryResource::try_from(&r)?));
     }
 
     Ok(ret)
