@@ -91,7 +91,7 @@ mod test {
         init_janet();
 
         let example_dir_ensure = Janet::wrap(janetrs::table! {
-            ":action" => ":ensure",
+            ":action" => "ensure",
             ":group" => "sysadmin",
             ":mode" => "0755",
             ":name" => "test_directory",

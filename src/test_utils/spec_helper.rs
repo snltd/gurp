@@ -1,5 +1,5 @@
-// #[cfg(test)]
-// use crate::utils::types::Opts;
+#[cfg(test)]
+use crate::utils::types::Opts;
 use camino::Utf8PathBuf;
 use std::env::current_dir;
 // use std::path::Path;
@@ -13,15 +13,14 @@ pub fn fixture(file: &str) -> Utf8PathBuf {
         .join(file)
 }
 
-// #[cfg(test)]
-// pub fn defopts() -> GlobalOpts {
-//     GlobalOpts {
-//         debug: false,
-//         noop: false,
-//         quality: 75,
-//         verbose: false,
-//     }
-// }
+#[cfg(test)]
+pub fn defopts() -> Opts {
+    Opts {
+        debug: false,
+        noop: false,
+        verbose: false,
+    }
+}
 
 // #[cfg(test)]
 // use assert_fs::TempDir;

@@ -1,4 +1,5 @@
 mod doers;
+mod test_utils;
 mod utils;
 use crate::utils::types::Opts;
 use camino::Utf8PathBuf;
@@ -17,9 +18,6 @@ struct Cli {
     /// Say what would happen, without actually doing it
     #[arg(short, long, global = true)]
     noop: bool,
-    /// :-separated list of directories which may house module files
-    #[arg(short = 'M', long, global = true)]
-    module_dirs: Option<String>,
     /// One or more hostfiles
     #[arg(required = true)]
     files: Vec<Utf8PathBuf>,
@@ -30,7 +28,6 @@ fn main() -> Result<(), Error> {
     let cli = Cli::parse();
 
     let opts = Opts {
-        module_dirs: cli.module_dirs,
         debug: cli.debug,
         noop: cli.noop,
         verbose: cli.verbose,

@@ -57,7 +57,6 @@ pub fn do_it(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
         *o.borrow_mut() = Some(Opts {
             debug: opts.debug,
             noop: opts.noop,
-            module_dirs: opts.module_dirs.clone(),
             verbose: opts.verbose,
         });
     });
@@ -219,29 +218,26 @@ fn janet_to_rust_config(
 #[cfg(test)]
 mod test {
     use super::*;
-    use janetrs::JanetTable;
+    use crate::test_utils::spec_helper::defopts;
+    use janetrs::table;
 
     #[test]
     fn test_janet_to_rust_metadata_good() {
         init_janet();
 
-        let good_janet_metadata =
-            Janet::wrap(JanetTable::builder(1).put("name", "test_name").finalize());
+        let good_janet_metadata = Janet::wrap(table! { ":name" => "test_name"});
+
+        println!("{:?}", good_janet_metadata);
 
         assert_eq!(
             HostMetadata {
                 name: "test_name".to_owned(),
             },
-            janet_to_rust_metadata(&good_janet_metadata).unwrap()
+            janet_to_rust_metadata(&good_janet_metadata, &defopts()).unwrap()
         );
 
-        let bad_janet_metadata = Janet::wrap(
-            JanetTable::builder(1)
-                .put("unknown", "test_name")
-                .finalize(),
-        );
-
-        assert!(janet_to_rust_metadata(&bad_janet_metadata).is_err());
+        let bad_janet_metadata = Janet::wrap(table! { ":unknown" => "test_name" });
+        assert!(janet_to_rust_metadata(&bad_janet_metadata, &defopts()).is_err());
     }
 
     fn init_janet() {
