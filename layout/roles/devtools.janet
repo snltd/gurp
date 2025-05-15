@@ -2,7 +2,7 @@
 (use ../lib/helpers)
 (use ../defaults)
 
-(role role
+(role devtools
       :packages [(ensure "git")
                  (ensure "rg")
                  (remove "go")]

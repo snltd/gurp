@@ -2,7 +2,7 @@
 (use ../lib/helpers)
 (use ../defaults)
 
-(role role
+(role basenode
       :packages [(ensure "helix")]
       :users [(ensure "rob"
                       :uid 264

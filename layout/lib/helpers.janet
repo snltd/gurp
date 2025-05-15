@@ -3,9 +3,16 @@
 
 (use ../defaults)
 
+(def id-sep "/")
+
 (defn flesh-out-resource
   "Adds the given 'default' proto to a single resource"
-  [resource default-values]
+  [resource resource-type default-values]
+  (def role (get resource :role))
+  (put resource :role nil)
+  # we probably won't need :name either
+  (def resource-name (get resource :name))
+  (put resource :_id (string/join [role resource-type resource-name] id-sep))
   (table/setproto resource default-values)
   (table/proto-flatten resource))
 
@@ -15,7 +22,7 @@
   (let [resource-proto (get defaults resource-type)]
     (if (nil? resource-proto)
       resource-list
-      (map (fn [r] (flesh-out-resource r resource-proto)) resource-list))))
+      (map (fn [r] (flesh-out-resource r resource-type resource-proto)) resource-list))))
 
 (defn merge-protos
   "Adds default values to all resources of all types"
@@ -47,8 +54,8 @@
   ~(defn machine-config
      []
      (def roles (array))
-     (each role (get (table ,;host-definition) :roles)
-       (def sym (symbol (string role "/role")))
+     (each role-name (get (table ,;host-definition) :roles)
+       (def sym (symbol (string role-name "/" role-name)))
        (def fn-entry (get (curenv) sym))
        (when (nil? fn-entry)
          (error (string "No such role: " sym)))
@@ -58,6 +65,7 @@
            fn-entry))
        (when (not (function? fn-to-call))
          (error (string "Role is not callable: " sym)))
+       (setdyn :role-name role-name)
        (array/push roles (fn-to-call)))
      (table :metadata @{:name ,host-name}
             :resources
@@ -74,6 +82,7 @@
   [resource-name & resource-definition]
   ~(merge (table ,;resource-definition)
           {:name ,resource-name
+           :role (dyn :role-name)
            :action "ensure"}))
 
 (defmacro remove
