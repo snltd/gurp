@@ -37,7 +37,8 @@
        :type :package})
 
 (test (helpers/file "test-role" {:name "my-file" :owner "rob"})
-  {:_id "test-role/file/my-file"
-   :name "my-file"
-   :owner "rob"
-   :type :file})
+      {:_id "test-role/file/my-file"
+       :name "my-file"
+       :owner "rob"
+       :group "root"
+       :type :file})

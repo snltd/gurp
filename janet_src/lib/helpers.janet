@@ -17,20 +17,24 @@
   "Given a role and a package name, return a package resource struct. In
   OmniOS, the package version is effectively part of the name"
   [role-name package-name]
-  (def prototype (proto :package))
   (struct/proto-flatten
-    (struct/with-proto {:type :package
-                        :name package-name
-                        :_id (string role-name "/package/" package-name)})))
+    (struct/with-proto
+      (proto :package)
+      :type :package
+      :name package-name
+      :_id (string role-name "/package/" package-name))))
 
 (defn file
   [role-name resource-spec]
-  (def prototype (proto :file))
-  (pp prototype)
   (def user-def
-  (struct/with-proto prototype :type :file
-                               :_id (string role-name "/file/" (get resource-spec :name))))
-  (struct/proto-flatten (table/to-struct (merge resource-spec user-def))))
+    (struct/with-proto
+      (proto :file)
+      :type :file
+      :_id (string role-name "/file/" (get resource-spec :name))))
+  (table/to-struct
+    (merge
+      (merge (struct/proto-flatten user-def))
+      resource-spec)))
 
 (defmacro role [role-name & role-definition]
   ~(defn ,role-name
