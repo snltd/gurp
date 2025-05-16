@@ -1,1 +1,0 @@
-(def gibbus "Mister Gibbus")
