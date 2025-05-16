@@ -41,40 +41,40 @@
     :package "helix"
     :package "chubb")
   (test (example-role)
-        @[{:_id "example-role/package/helix"
-           :name "helix"
-           :type :package}
-          {:_id "example-role/package/chubb"
-           :name "chubb"
-           :type :package}]))
+    @[{:_id "/example-role/package/helix"
+       :name "helix"
+       :type :package}
+      {:_id "/example-role/package/chubb"
+       :name "chubb"
+       :type :package}]))
 
 (deftest "create-package-resource"
   (test (gurp/package "test-role" "helix")
-        {:_id "test-role/package/helix"
-         :name "helix"
-         :type :package}))
+    {:_id "/test-role/package/helix"
+     :name "helix"
+     :type :package}))
 
 (deftest "create-file-resource"
   (test (gurp/file "test-role"
                       {:name "my-file"
                        :path "/my/file"
                        :owner "rob"})
-        {:_id "test-role/file/my-file"
-         :name "my-file"
-         :path "/my/file"
-         :owner "rob"
-         :group "root"
-         :type :file}))
+    {:_id "/test-role/file/my-file"
+     :group "root"
+     :name "my-file"
+     :owner "rob"
+     :path "/my/file"
+     :type :file}))
 
 (deftest "create-directory-resource"
   (test (gurp/directory "test-role"
                            {:name "my-dir"
                             :path "/my/dir"
                             :group "sysadmin"})
-        {:_id "test-role/directory/my-dir"
-         :name "my-dir"
-         :path "/my/dir"
-         :group "sysadmin"
-         :recurse false
-         :owner "root"
-         :type :directory}))
+    {:_id "/test-role/directory/my-dir"
+     :group "sysadmin"
+     :name "my-dir"
+     :owner "root"
+     :path "/my/dir"
+     :recurse false
+     :type :directory}))

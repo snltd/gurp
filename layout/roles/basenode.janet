@@ -1,4 +1,4 @@
-(import ../../janet_src/lib/helpers)
+(import ../../janet_src/lib/gurp)
 
 (gurp/role basenode
       :package "helix"

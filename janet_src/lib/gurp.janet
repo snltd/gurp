@@ -55,7 +55,7 @@
     (struct/with-proto
       (proto resource-type)
       :type resource-type
-      :_id (string role-name "/" resource-type "/" (get resource-spec :name))))
+      :_id (string "/" role-name "/" resource-type "/" (get resource-spec :name))))
   (->>
     (merge resource-spec)
     (merge (struct/proto-flatten user-def))
@@ -70,7 +70,7 @@
       (proto :package)
       :type :package
       :name package-name
-      :_id (string role-name "/package/" package-name))
+      :_id (string "/" role-name "/package/" package-name))
     (struct/proto-flatten)))
 
 (defn file
