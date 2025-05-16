@@ -54,22 +54,22 @@
   ~(defn machine-config
      []
      (def roles (array))
-     (each role-name (get (table ,;host-definition) :roles)
-       (def sym (symbol (string role-name "/" role-name)))
-       (def fn-entry (get (curenv) sym))
+     (each host-role (get (table ,;host-definition) :roles)
+       (def role-fn (symbol (string host-role "/" host-role)))
+       (def fn-entry (get (curenv) role-fn))
        (when (nil? fn-entry)
-         (error (string "No such role: " sym)))
+         (error (string "No such role: " role-fn)))
        (def fn-to-call
          (if (table? fn-entry)
            (get fn-entry :value)
            fn-entry))
        (when (not (function? fn-to-call))
-         (error (string "Role is not callable: " sym)))
-       (setdyn :role-name role-name)
-       (array/push roles (fn-to-call)))
+         (error (string "Role is not callable: " role-fn)))
+       (setdyn :host-role host-role)
+       (array/push roles (helpers/merge-protos (fn-to-call))))
      (table :metadata @{:name ,host-name}
             :resources
-            (helpers/merge-protos (apply helpers/merge-role-tables roles)))))
+            (apply helpers/merge-role-tables roles))))
 
 (defmacro role [role-name & role-definition]
   "Turn a role definition into a table"
@@ -90,15 +90,19 @@
   [resource-name & resource-definition]
   ~(merge (table ,;resource-definition)
           {:name ,resource-name
+           :role (dyn :role-name)
            :action "remove"}))
 
 (defn merge-role-tables
-  "Merges multiple role tables into the single, final table"
+  "Merges multiple role tables into the single flat array of resources"
   [& role-tables]
-  (let [result (table)]
+  (print "-----------------------")
+  (pp role-tables)
+  (print "-----------------------")
+  (let [result (array)]
     (each role-table role-tables
       (each resource-type (keys role-table)
-        (var resources (get result resource-type @[]))
-        (put result resource-type
-             (array/concat resources (get role-table resource-type)))))
+        # (var resources (get result resource-type @[]))
+        (array/concat result 
+             (get role-table resource-type))))
     result))
