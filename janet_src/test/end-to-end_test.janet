@@ -1,0 +1,40 @@
+(use judge)
+
+(import ./resources/example)
+(import ./resources/roles/basenode)
+(import ./resources/roles/devtools)
+(import ../lib/gurp)
+
+(deftest "produce-config-struct-for-rust"
+  (test (example/machine-config)
+    @[{:_id "/basenode/package/helix"
+       :name "helix"
+       :type :package}
+      {:_id "/basenode/file/basenode_file"
+       :content "some words"
+       :group "root"
+       :name "basenode_file"
+       :owner "root"
+       :path "/tmp/basenode.txt"
+       :type :file}
+      {:_id "/basenode/directory/merp"
+       :group :user/rob/group
+       :mode "0755"
+       :name "merp"
+       :owner :user/rob/uid
+       :path "/tmp/merp"
+       :recurse false
+       :type :directory}
+      {:_id "/devtools/package/rust"
+       :name "rust"
+       :type :package}
+      {:_id "/devtools/package/git"
+       :name "git"
+       :type :package}
+      {:_id "/devtools/file/git_config"
+       :group "root"
+       :name "git_config"
+       :owner "root"
+       :path "/tmp/git-config.txt"
+       :source "git-config"
+       :type :file}]))
