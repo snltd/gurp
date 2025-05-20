@@ -82,3 +82,8 @@ other Github thing, but mainly this is for thinking out loud.
 
 - Packages need to be grouped so we only make a single call to the package
   manager. Adding packages is going to be a huge chunk of the execution time.
+
+- I've over-thought dependencies to a point where it's stopped me dead. I'm
+  going to go with a very crude approach and once the thing roughly works
+  end-to-end I'll revisit it. I feel like I need to see how it behaves, and what
+  the final data structures end up looking like.

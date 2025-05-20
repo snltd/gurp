@@ -50,6 +50,18 @@ type HostResources = HashMap<ResourceType, Vec<Resource>>;
 // grouped together
 // into a single action.
 
+pub fn dump_janet(janet_code: &String) -> String {
+    let mut ret = "-".repeat(80);
+    ret.push('\n');
+    janet_code
+        .lines()
+        .enumerate()
+        .for_each(|(i, l)| ret.push_str(&format!("{:>5} | {}\n", i + 1, l)));
+    // janet_code,
+    ret.push_str("-".repeat(80).as_str());
+    ret.push('\n');
+    ret
+}
 pub fn do_it(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
     OPTIONS.with(|o| {
         *o.borrow_mut() = Some(Opts {
@@ -63,10 +75,8 @@ pub fn do_it(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
 
     debug!(
         opts,
-        "Janet host config follows:\n{}\n{}{}",
-        "-".repeat(80),
-        host_config,
-        "-".repeat(80),
+        "Janet host config follows:\n{}",
+        dump_janet(&host_config)
     );
 
     let mut client = j::janet_client();
@@ -91,8 +101,16 @@ fn janet_insert(host_file: &Utf8PathBuf) -> anyhow::Result<String> {
         .parent()
         .context(format!("cannot find parent of {}", host_file))?;
 
-    // Override the default include path
-    Ok(format!("(setdyn *syspath* \"{}\")", host_config_dir))
+    // TODO at some point this will be baked into the binary, but over-rideable via a flag. It's
+    // still very much in flux though, so we'll just read it off disk every time for now.
+    //
+    let gurp_lib = std::fs::read_to_string("janet_src/lib/gurp.janet")?;
+
+    // Override the default include path, and drop the lib into the given file.
+    Ok(format!(
+        "(setdyn *syspath* \"{}\")\n\n{}\n",
+        host_config_dir, gurp_lib,
+    ))
 }
 
 fn prep_host_config(host_file_path: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<String> {
@@ -247,4 +265,7 @@ mod test {
             janetrs::lowlevel::janet_init();
         }
     }
+
+    #[test]
+    fn test_janet_to_rust_resources() {}
 }
