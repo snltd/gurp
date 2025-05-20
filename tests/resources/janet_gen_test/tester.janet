@@ -5,7 +5,4 @@
            :roles ["devtools"
                    "basenode"])
 
-
-
-(pp (machine-config))
-# (run-machine-configuration (machine-config))
+(run-machine-configuration (machine-config))

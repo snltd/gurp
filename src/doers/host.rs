@@ -104,7 +104,14 @@ fn janet_insert(host_file: &Utf8PathBuf) -> anyhow::Result<String> {
     // TODO at some point this will be baked into the binary, but over-rideable via a flag. It's
     // still very much in flux though, so we'll just read it off disk every time for now.
     //
-    let gurp_lib = std::fs::read_to_string("janet_src/lib/gurp.janet")?;
+    let gurp_lib_path =
+        Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("janet_src/lib/gurp.janet");
+
+    if !gurp_lib_path.exists() {
+        panic!("Could not find gurp lib at {}", gurp_lib_path);
+    }
+
+    let gurp_lib = std::fs::read_to_string(gurp_lib_path)?;
 
     // Override the default include path, and drop the lib into the given file.
     Ok(format!(
@@ -220,6 +227,8 @@ fn janet_to_rust_resources(janet_resources: &Janet, opts: &Opts) -> anyhow::Resu
             }
         }
     }
+
+    println!("{:?}", ret);
 
     Ok(ret)
 }
