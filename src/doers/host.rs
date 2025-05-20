@@ -33,13 +33,13 @@ type ResourceType = String;
 type HostResources = HashMap<ResourceType, Vec<Resource>>;
 
 // Read the host file the user gives us, and execute it with our embedded Janet interpreter. This
-// generates a big Janet Table, with these keys:
+// generates a big Janet Struct, with these keys:
 //
 //   :metadata   For now just has the name of the machine in it.
-//   :resources  A Table whose keys are resource types, e.g. :file or :service and whose value
-//               are Arrays of those resources. Each resource is defined as a Janet Table.
+//   :resources  A Structwhose keys are resource types, e.g. :file or :service and whose value
+//               are Arrays of those resources. Each resource is defined as a Janet Struct.
 //
-// The final function call passes this big Table to (run-machine-configuration), which is a Janet
+// The final function call passes this big Structto (run-machine-configuration), which is a Janet
 // CFunction defined
 // in this file, and mapped to machine_config_handler(). Because it's a Janet function it has to receive
 // and return a janetrs::Janet. So it calls out to other functions to do all the actual work,
@@ -149,19 +149,19 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
 
     let janet_config = &janet_config[0].unwrap();
 
-    debug!(opts, "Extracting Janet config table");
+    debug!(opts, "Extracting Janet config struct");
 
-    let config_table = match janet_config {
-        TaggedJanet::Table(table) => table,
+    let config_struct = match janet_config {
+        TaggedJanet::Struct(data) => data,
         other => {
-            eprintln!("Expected Janet table, got {}", other);
+            eprintln!("Expected Janet struct, got {}", other);
             return Janet::from(false);
         }
     };
 
     debug!(opts, "Extracting Janet metadata");
 
-    let janet_metadata = match config_table.get(Janet::from(":metadata")) {
+    let janet_metadata = match config_struct.get(Janet::from(":metadata")) {
         Some(md) => md,
         None => {
             eprintln!("Host config has no metadata");
@@ -171,7 +171,7 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
 
     debug!(opts, "Extracting Janet resources");
 
-    let janet_resources = match config_table.get(Janet::from(":resources")) {
+    let janet_resources = match config_struct.get(Janet::from(":resources")) {
         Some(md) => md,
         None => {
             eprintln!("Host config has no resources");
@@ -189,10 +189,10 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
 }
 
 fn janet_to_rust_metadata(janet_metadata: &Janet, opts: &Opts) -> anyhow::Result<HostMetadata> {
-    debug!(opts, "Extracting Janet metadata table");
+    debug!(opts, "Extracting Janet metadata struct");
     let rust_metadata = match janet_metadata.unwrap() {
-        TaggedJanet::Table(table) => {
-            if let Some(name) = table.get(JanetKeyword::from("name")) {
+        TaggedJanet::Struct(metadata) => {
+            if let Some(name) = metadata.get(JanetKeyword::from("name")) {
                 HostMetadata {
                     name: name.unwrap().to_string(),
                 }
@@ -201,7 +201,7 @@ fn janet_to_rust_metadata(janet_metadata: &Janet, opts: &Opts) -> anyhow::Result
             }
         }
         _ => {
-            return Err(anyhow!("Expected metadata to be Janet table"));
+            return Err(anyhow!("Expected metadata to be Janet struct"));
         }
     };
 
@@ -211,8 +211,8 @@ fn janet_to_rust_metadata(janet_metadata: &Janet, opts: &Opts) -> anyhow::Result
 fn janet_to_rust_resources(janet_resources: &Janet, opts: &Opts) -> anyhow::Result<HostResources> {
     let mut ret = HashMap::new();
 
-    debug!(opts, "Extracting Janet resource table");
-    let resources = janet_resources.extract_table()?;
+    debug!(opts, "Extracting Janet resource struct");
+    let resources = janet_resources.extract_struct()?;
     debug!(opts, "Found {} resource types", resources.len());
 
     for (resource_type, resource_list) in resources {
@@ -248,13 +248,13 @@ fn janet_to_rust_config(
 mod test {
     use super::*;
     use crate::test_utils::spec_helper::defopts;
-    use janetrs::table;
+    use janetrs::structs;
 
     #[test]
     fn test_janet_to_rust_metadata_good() {
         init_janet();
 
-        let good_janet_metadata = Janet::wrap(table! { ":name" => "test_name"});
+        let good_janet_metadata = Janet::wrap(structs! { ":name" => "test_name"});
 
         println!("{:?}", good_janet_metadata);
 
@@ -265,7 +265,7 @@ mod test {
             janet_to_rust_metadata(&good_janet_metadata, &defopts()).unwrap()
         );
 
-        let bad_janet_metadata = Janet::wrap(table! { ":unknown" => "test_name" });
+        let bad_janet_metadata = Janet::wrap(structs! { ":unknown" => "test_name" });
         assert!(janet_to_rust_metadata(&bad_janet_metadata, &defopts()).is_err());
     }
 

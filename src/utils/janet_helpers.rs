@@ -1,29 +1,29 @@
 use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
 use janetrs::client::JanetClient;
-use janetrs::{Janet, JanetArray, JanetTable, TaggedJanet};
+use janetrs::{Janet, JanetArray, JanetStruct, TaggedJanet};
 
 pub fn janet_client() -> JanetClient {
     JanetClient::init_with_default_env().expect("Failed to create Janet client")
 }
 
 pub trait JanetExt {
-    fn extract_table(&self) -> anyhow::Result<JanetTable>;
+    fn extract_struct(&self) -> anyhow::Result<JanetStruct>;
     fn extract_array(&self) -> anyhow::Result<JanetArray>;
 }
 
 impl JanetExt for Janet {
-    fn extract_table(&self) -> anyhow::Result<JanetTable> {
+    fn extract_struct(&self) -> anyhow::Result<JanetStruct> {
         let extracted = self.unwrap();
 
-        let table = match extracted {
-            TaggedJanet::Table(table) => table,
+        let data = match extracted {
+            TaggedJanet::Struct(data) => data,
             _ => {
-                return Err(anyhow!(format!("did not find table in {:?}", self)));
+                return Err(anyhow!(format!("did not find struct in {:?}", self)));
             }
         };
 
-        Ok(table)
+        Ok(data)
     }
 
     fn extract_array(&self) -> anyhow::Result<JanetArray> {
@@ -40,13 +40,13 @@ impl JanetExt for Janet {
     }
 }
 
-pub trait JanetTableExt {
+pub trait JanetStructExt {
     fn get_field_string(&self, field: &str) -> anyhow::Result<String>;
     fn get_field_bool(&self, field: &str) -> anyhow::Result<bool>;
     fn get_field_pathbuf(&self, field: &str) -> anyhow::Result<Utf8PathBuf>;
 }
 
-impl JanetTableExt for JanetTable<'_> {
+impl JanetStructExt for JanetStruct<'_> {
     fn get_field_string(&self, field: &str) -> anyhow::Result<String> {
         let ret = self
             .get(Janet::keyword(field.into()))

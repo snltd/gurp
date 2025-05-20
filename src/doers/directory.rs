@@ -1,5 +1,5 @@
 use crate::doers::types::Resource;
-use crate::utils::janet_helpers::{JanetExt, JanetTableExt};
+use crate::utils::janet_helpers::{JanetExt, JanetStructExt};
 use anyhow::anyhow;
 use camino::Utf8PathBuf;
 use janetrs::{Janet, JanetArray};
@@ -61,20 +61,20 @@ impl TryFrom<&Janet> for DirectoryResource {
     type Error = anyhow::Error;
 
     fn try_from(value: &Janet) -> anyhow::Result<DirectoryResource> {
-        let table = value.extract_table()?;
+        let data = value.extract_struct()?;
 
-        match table.get_field_string("action")?.as_str() {
+        match data.get_field_string("action")?.as_str() {
             "ensure" => Ok(DirectoryResource::Ensure(DirectoryEnsure {
-                name: table.get_field_string("name")?,
-                group: table.get_field_string("group")?,
-                owner: table.get_field_string("owner")?,
-                mode: table.get_field_string("mode")?,
-                path: table.get_field_pathbuf("path")?,
-                recurse: table.get_field_bool("recurse")?,
+                name: data.get_field_string("name")?,
+                group: data.get_field_string("group")?,
+                owner: data.get_field_string("owner")?,
+                mode: data.get_field_string("mode")?,
+                path: data.get_field_pathbuf("path")?,
+                recurse: data.get_field_bool("recurse")?,
             })),
             "remove" => Ok(DirectoryResource::Remove(DirectoryRemove {
-                path: table.get_field_pathbuf("path")?,
-                recurse: table.get_field_bool("recurse")?,
+                path: data.get_field_pathbuf("path")?,
+                recurse: data.get_field_bool("recurse")?,
             })),
             other => Err(anyhow!(format!(
                 "action must be 'ensure' or 'remove' (got {})",
@@ -104,7 +104,7 @@ mod test {
     fn test_unpack() {
         init_janet();
 
-        let example_dir_ensure = Janet::wrap(janetrs::table! {
+        let example_dir_ensure = Janet::wrap(janetrs::structs! {
             ":action" => "ensure",
             ":group" => "sysadmin",
             ":mode" => "0755",
@@ -128,7 +128,7 @@ mod test {
             DirectoryResource::try_from(&example_dir_ensure).unwrap()
         );
 
-        let example_dir_remove = Janet::wrap(janetrs::table! {
+        let example_dir_remove = Janet::wrap(janetrs::structs! {
             ":action" => "remove",
             ":recurse" => false,
             ":path" => "/tmp/merp",
