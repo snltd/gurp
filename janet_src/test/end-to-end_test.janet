@@ -3,7 +3,7 @@
 (import ./resources/example)
 (import ./resources/roles/basenode)
 (import ./resources/roles/devtools)
-(import ../lib/gurp)
+(use ../lib/gurp)
 
 (deftest "produce-config-struct-for-rust"
   (test (example/machine-config)

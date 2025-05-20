@@ -1,8 +1,8 @@
-(import ../../lib/gurp)
+(use ../../lib/gurp)
 (import ./roles/devtools)
 (import ./roles/basenode)
 
-(gurp/host "example"
+(host "example"
   :roles [
     "basenode"
     "devtools"

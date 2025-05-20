@@ -1,6 +1,6 @@
-(import ../../../lib/gurp)
+(use ../../../lib/gurp)
 
-(gurp/role devtools
+(role devtools
       :package "rust"
       :package "git"
       :file {:name "git_config"

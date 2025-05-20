@@ -1,6 +1,6 @@
-(import ../../../lib/gurp)
+(use ../../../lib/gurp)
 
-(gurp/role basenode
+(role basenode
       :package "helix"
       :file {:name "basenode_file"
              :path "/tmp/basenode.txt"

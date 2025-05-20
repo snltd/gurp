@@ -1,19 +1,22 @@
+(defn find-named-fn
+  "When given a string, returns the function with that name. Or an error"
+  [fn-name-as-string]
+  (def fn-entry (get (curenv) (symbol fn-name-as-string)))
+  (if-not fn-entry
+    (error (string/format "'%s' is not defined in this environment" fn-name-as-string)))
+  (let [fn-reference (if (table? fn-entry) (get fn-entry :value) fn-entry)]
+    (if-not (function? fn-reference)
+      (error (string/format "'%s' is not callable" fn-name-as-string)))
+    fn-reference))
+
 (defmacro host [host-name & host-definition]
+  "The top-level wrapper used to define a host to be configured"
   ~(defn machine-config
-  []
+     []
      (var resources (array))
      (each host-role (get (table ,;host-definition) :roles)
-       (def role-fn (symbol (string host-role "/" host-role)))
-       (def fn-entry (get (curenv) role-fn))
-       (when (nil? fn-entry)
-         (error (string "No such role: " role-fn)))
-       (def fn-to-call
-         (if (table? fn-entry)
-           (get fn-entry :value)
-           fn-entry))
-       (when (not (function? fn-to-call))
-         (error (string "Role is not callable: " role-fn)))
-       (array/concat resources (fn-to-call)))
+       (let [fn-to-call (find-named-fn (string host-role "/" host-role))]
+         (array/concat resources (fn-to-call))))
      resources))
 
 (defmacro role [role-name & role-definition]
@@ -21,23 +24,13 @@
      []
      (var resources (array))
      (each [resource-type resource-spec] (partition 2 (array ,;role-definition))
-       (var resource-type-fn (symbol (string "gurp/" resource-type)))
-       (def fn-entry (get (curenv) resource-type-fn))
-       (when (nil? fn-entry)
-         (error (string "resource not supported: " resource-type)))
-       (def fn-to-call
-         (if (table? fn-entry)
-           (get fn-entry :value)
-           fn-entry))
-       (when (not (function? fn-to-call))
-         (error (string "resource fn is not callable: " resource-type)))
-       (array/push resources (fn-to-call ',role-name resource-spec)))
+       (let [fn-to-call (find-named-fn resource-type)]
+         (array/push resources (fn-to-call ',role-name resource-spec))))
      resources))
 
 (def- default-protos
   {:file {:owner "root"
           :group "root"}
-   # :package {:a 1}
    :directory {:owner "root"
                :group "root"
                :recurse false}})
