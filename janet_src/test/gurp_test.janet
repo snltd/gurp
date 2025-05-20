@@ -10,7 +10,7 @@
       (get (table :roles ["basenode"]) :roles)
       (let [fn-to-call (find-named-fn (string host-role "/" host-role))]
         (array/concat resources (fn-to-call))))
-    resources))
+    {:metadata {:name "example-node"} :resources resources}))
 
 (test-macro
   (role "basenode" :package "helix" :package "rust")

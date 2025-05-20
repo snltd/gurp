@@ -1,14 +1,3 @@
-(defn find-named-fn
-  "When given a string, returns the function with that name. Or an error"
-  [fn-name-as-string]
-  (def fn-entry (get (curenv) (symbol fn-name-as-string)))
-  (if-not fn-entry
-    (error (string/format "'%s' is not defined in this environment" fn-name-as-string)))
-  (let [fn-reference (if (table? fn-entry) (get fn-entry :value) fn-entry)]
-    (if-not (function? fn-reference)
-      (error (string/format "'%s' is not callable" fn-name-as-string)))
-    fn-reference))
-
 (defmacro host [host-name & host-definition]
   "The top-level wrapper used to define a host to be configured"
   ~(defn machine-config
@@ -17,7 +6,8 @@
      (each host-role (get (table ,;host-definition) :roles)
        (let [fn-to-call (find-named-fn (string host-role "/" host-role))]
          (array/concat resources (fn-to-call))))
-     resources))
+     {:metadata {:name ,host-name}
+      :resources resources}))
 
 (defmacro role [role-name & role-definition]
   ~(defn ,role-name
@@ -75,3 +65,14 @@
   "Given a specification, produce a directory resource"
   [role-name resource-spec]
   (resource-from :directory role-name resource-spec))
+
+(defn find-named-fn
+  "When given a string, returns the function with that name. Or an error"
+  [fn-name-as-string]
+  (def fn-entry (get (curenv) (symbol fn-name-as-string)))
+  (if-not fn-entry
+    (error (string/format "'%s' is not defined in this environment" fn-name-as-string)))
+  (let [fn-reference (if (table? fn-entry) (get fn-entry :value) fn-entry)]
+    (if-not (function? fn-reference)
+      (error (string/format "'%s' is not callable" fn-name-as-string)))
+    fn-reference))
