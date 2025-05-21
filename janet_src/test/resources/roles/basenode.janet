@@ -1,12 +1,15 @@
 (use ../../../lib/gurp)
 
 (role basenode
-      :package "helix"
-      :file {:name "basenode_file"
-             :path "/tmp/basenode.txt"
-             :content "some words"}
-      :directory {:name "merp"
+      (package/ensure "helix")
+      (package/remove "go")
+      (file/ensure "basenode_file"
+                   :path "/tmp/basenode.txt"
+                   :content "some words")
+      (directory/ensure "merp"
                   :path "/tmp/merp"
                   :owner :user/rob/uid
                   :group :user/rob/group
-                  :mode "0755"})
+                  :mode "0755")
+      (directory/remove "junk"
+                  :path "/tmp/junk"))

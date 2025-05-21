@@ -1,12 +1,17 @@
 (use ../../lib/gurp)
-(import ./roles/devtools)
-(import ./roles/basenode)
+(use ./roles/devtools)
+(use ./roles/basenode)
 
 (host "example"
-  :roles [
-    "basenode"
-    "devtools"
-  ])
+  (basenode)
+  (devtools)
+  )
 
-  # (pp
-  # (machine-config))
+  (pp
+  (machine-config))
+
+# (pp (macex1
+# '(host "example"
+#   (roles/basenode)
+#   (roles/devtools))
+#   ))

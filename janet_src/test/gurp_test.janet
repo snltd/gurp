@@ -2,80 +2,117 @@
 (use ../lib/gurp)
 
 (test-macro
-  (host "example-node" :roles ["basenode"])
+  (host "example-node" (role "basenode") (role "devtools"))
   (defn machine-config
     []
-    (var resources (array))
-    (each host-role
-      (get (table :roles ["basenode"]) :roles)
-      (let [fn-to-call (find-named-fn (string host-role "/" host-role))]
-        (array/concat resources (fn-to-call))))
-    {:metadata {:name "example-node"} :resources resources}))
+    {:metadata {:name "example-node"} :resources (group-by-action-and-type (flatten (tuple (role "basenode") (role "devtools"))))}))
 
 (test-macro
-  (role "basenode" :package "helix" :package "rust")
-  (defn "basenode"
+  (role basenode
+        (package/ensure "helix")
+        (package/remove "go")
+        (file/ensure "basenode_file"
+                     :path "/tmp/basenode.txt"
+                     :content "some words")
+        (directory/ensure "merp"
+                          :path "/tmp/merp"
+                          :owner :user/rob/uid
+                          :group :user/rob/group
+                          :mode "0755")
+        (directory/remove "junk"
+                          :path "/tmp/junk"))
+  (defn basenode
     []
-    (var resources (array))
-    (each [resource-type resource-spec]
-      (partition 2 (array :package "helix" :package "rust"))
-      (let [fn-to-call (find-named-fn resource-type)]
-        (array/push resources (fn-to-call (quote "basenode") resource-spec))))
-    resources))
+    (setdyn :role-dyn (string (quote basenode)))
+    (collect-resources (package/ensure "helix") (package/remove "go") (file/ensure "basenode_file" :path "/tmp/basenode.txt" :content "some words") (directory/ensure "merp" :path "/tmp/merp" :owner :user/rob/uid :group :user/rob/group :mode "0755") (directory/remove "junk" :path "/tmp/junk"))))
 
-(deftest "role"
-  (role
-    example-role
-    :package "helix"
-    :package "chubb")
-  (test (example-role)
-        @[{:_id "/example-role/package/helix"
-           :name "helix"
-           :type :package}
-          {:_id "/example-role/package/chubb"
-           :name "chubb"
-           :type :package}]))
+(deftest "remove-package-resource"
+  (test (package/remove "helix")
+        {:package {:_id "//package/helix"
+                   :action :remove
+                   :name "helix"}}))
 
-(deftest "create-package-resource"
-  (test (package "test-role" "helix")
-        {:_id "/test-role/package/helix"
-         :name "helix"
-         :type :package}))
+(deftest "ensure-resources"
+  (setdyn :role-dyn (string "test-role"))
 
-(deftest "create-file-resource"
-  (test (file "test-role"
-              {:name "my-file"
-               :path "/my/file"
-               :owner "rob"})
-        {:_id "/test-role/file/my-file"
-         :group "root"
-         :name "my-file"
-         :owner "rob"
-         :path "/my/file"
-         :type :file}))
+  (test "gibbus"
+        "gibbus")
+  (test (file/ensure "my-file"
+                     :path "/my/file"
+                     :owner "rob")
+        {:file {:_id "/test-role/file/my-file"
+                :action :ensure
+                :group "root"
+                :name "my-file"
+                :owner "rob"
+                :path "/my/file"
+                :role "test-role"}})
 
-(deftest "create-directory-resource"
-  (test (directory "test-role"
-                   {:name "my-dir"
-                    :path "/my/dir"
-                    :group "sysadmin"})
-        {:_id "/test-role/directory/my-dir"
-         :group "sysadmin"
-         :name "my-dir"
-         :owner "root"
-         :path "/my/dir"
-         :recurse false
-         :type :directory}))
+  (test (directory/ensure "deep-dir"
+                          :path "/my/deep/nested/directory/needs/recursion"
+                          :recurse true
+                          :owner "daemon")
+        {:directory {:_id "/test-role/directory/deep-dir"
+                     :action :ensure
+                     :group "root"
+                     :name "deep-dir"
+                     :owner "daemon"
+                     :path "/my/deep/nested/directory/needs/recursion"
+                     :recurse true
+                     :role "test-role"}})
 
-(def not-a-function "fixture for test-find-named-fn" nil)
-(defn function-to-be-found "fixture for test-find-named-fn" [] nil)
+  (setdyn :role-dyn nil))
 
-(deftest "test-find-named-fn"
-  (test (find-named-fn "function-to-be-found") @function-to-be-found)
-  (test (type (find-named-fn "function-to-be-found")) :function)
-
-  (test-error (find-named-fn "no-such-function")
-              "'no-such-function' is not defined in this environment")
-
-  (test-error (find-named-fn "not-a-function")
-              "'not-a-function' is not callable"))
+(deftest "test-group-by-action"
+  (def data
+    @[{:package {:_id "/basenode/package/helix" :action :ensure :name "helix" :role "basenode"}} {:package {:_id "/basenode/package/go" :action :remove :name "go" :role "basenode"}} {:file {:_id "/basenode/file/basenode_file" :action :ensure :content "some words" :group "root" :name "basenode_file" :owner "root" :path "/tmp/basenode.txt" :role "basenode"}} {:directory {:_id "/basenode/directory/merp" :action :ensure :group :user/rob/group :mode "0755" :name "merp" :owner :user/rob/uid :path "/tmp/merp" :recurse false :role "basenode"}} {:directory {:_id "/basenode/directory/junk" :action :remove :group "root" :name "junk" :owner "root" :path "/tmp/junk" :recurse false :role "basenode"}} {:package {:_id "/devtools/package/rust" :action :ensure :name "rust" :role "devtools"}} {:package {:_id "/devtools/package/git" :action :ensure :name "git" :role "devtools"}} {:file {:_id "/devtools/file/git_config" :action :ensure :group "root" :name "git_config" :owner "root" :path "/tmp/git-config.txt" :role "devtools" :source "git-config"}}])
+  (test (group-by-action-and-type data)
+        {:ensure @{:directory @[{:_id "/basenode/directory/merp"
+                                 :action :ensure
+                                 :group :user/rob/group
+                                 :mode "0755"
+                                 :name "merp"
+                                 :owner :user/rob/uid
+                                 :path "/tmp/merp"
+                                 :recurse false
+                                 :role "basenode"}]
+                   :file @[{:_id "/basenode/file/basenode_file"
+                            :action :ensure
+                            :content "some words"
+                            :group "root"
+                            :name "basenode_file"
+                            :owner "root"
+                            :path "/tmp/basenode.txt"
+                            :role "basenode"}
+                           {:_id "/devtools/file/git_config"
+                            :action :ensure
+                            :group "root"
+                            :name "git_config"
+                            :owner "root"
+                            :path "/tmp/git-config.txt"
+                            :role "devtools"
+                            :source "git-config"}]
+                   :package @[{:_id "/basenode/package/helix"
+                               :action :ensure
+                               :name "helix"
+                               :role "basenode"}
+                              {:_id "/devtools/package/rust"
+                               :action :ensure
+                               :name "rust"
+                               :role "devtools"}
+                              {:_id "/devtools/package/git"
+                               :action :ensure
+                               :name "git"
+                               :role "devtools"}]}
+         :remove @{:directory @[{:_id "/basenode/directory/junk"
+                                 :action :remove
+                                 :group "root"
+                                 :name "junk"
+                                 :owner "root"
+                                 :path "/tmp/junk"
+                                 :recurse false
+                                 :role "basenode"}]
+                   :package @[{:_id "/basenode/package/go"
+                               :action :remove
+                               :name "go"
+                               :role "basenode"}]}}))
