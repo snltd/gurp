@@ -3,15 +3,7 @@
 (use ./roles/basenode)
 
 (host "example"
-  (basenode)
-  (devtools)
-  )
+      (basenode)
+      (devtools))
 
-  (pp
-  (machine-config))
-
-# (pp (macex1
-# '(host "example"
-#   (roles/basenode)
-#   (roles/devtools))
-#   ))
+(machine-config)

@@ -62,7 +62,28 @@
       :resources (group-by-action-and-type (flatten (tuple ,;host-definition)))}))
 
 (defn group-by-action-and-type [data]
-  "Turns an array of resources into a struct nesting on :action -> resource-type"
+  "Turns an array of resources into a struct of structs"
+  (defn collate [aggr item]
+    (each resource-type (keys item)
+      (let [resource (get item resource-type)
+            action (get resource :action)]
+        (when action
+          (unless (get aggr action)
+            (put aggr action @{}))
+          (put aggr action
+               (let [curr-map (get aggr action)
+                     curr-list (get curr-map resource-type @[])]
+                 (put curr-map resource-type (array/concat curr-list [resource]))
+                 curr-map)))))
+    aggr)
+
+  (var ret (reduce collate @{} data))
+  (each k (keys ret) (put ret k (table/to-struct (get ret k))))
+  (table/to-struct ret))
+
+
+(defn _group-by-action-and-type [data]
+  "Turns an array of resources into a struct which holds two tables kese"
   (defn collate [aggr item]
     "Private function for reduce"
     (each resource-type (keys item)
