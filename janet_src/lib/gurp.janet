@@ -2,8 +2,7 @@
   {:file {:owner "root"
           :group "root"}
    :directory {:owner "root"
-               :group "root"
-               :recurse false}})
+               :group "root"}})
 
 # For now this is a shim around the hardcoded fallbacks. In the future we'll
 # let the user supply their own. Not sure how, yet.

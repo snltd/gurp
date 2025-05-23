@@ -1,9 +1,12 @@
+use crate::debug;
+use crate::utils::types::Opts;
 use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
 use janetrs::client::JanetClient;
 use janetrs::{Janet, JanetArray, JanetStruct, TaggedJanet};
 
-pub fn janet_client() -> JanetClient {
+pub fn janet_client(opts: &Opts) -> JanetClient {
+    debug!(opts, "Initialising janet client");
     JanetClient::init_with_default_env().expect("Failed to create Janet client")
 }
 

@@ -1,8 +1,8 @@
-(import roles/devtools)
-(import roles/basenode)
+(use roles/devtools)
+(use roles/basenode)
 
 (host "example"
-           :roles ["devtools"
-                   "basenode"])
+      (basenode)
+      (devtools))
 
 (run-machine-configuration (machine-config))

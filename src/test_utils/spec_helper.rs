@@ -22,6 +22,22 @@ pub fn defopts() -> Opts {
     }
 }
 
+#[cfg(test)]
+pub fn defopts_noop() -> Opts {
+    Opts {
+        debug: false,
+        noop: true,
+        verbose: false,
+    }
+}
+
+#[cfg(test)]
+pub fn init_janet() {
+    unsafe {
+        janetrs::lowlevel::janet_init();
+    }
+}
+
 // #[cfg(test)]
 // use assert_fs::TempDir;
 // #[cfg(test)]

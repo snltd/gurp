@@ -1,3 +1,16 @@
+use colored::Colorize;
+
+#[macro_export]
+macro_rules! info {
+    ($opts:expr, $($arg:tt)*) => {
+        if $opts.verbose || $opts.noop || $opts.debug {
+            println!("{}", format!($($arg)*).bold());
+        } else {
+            println!($($arg)*);
+        }
+    };
+}
+
 #[macro_export]
 macro_rules! verbose {
     ($opts:expr, $($arg:tt)*) => {

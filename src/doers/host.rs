@@ -1,9 +1,11 @@
-use crate::debug;
 use crate::doers::directory;
-use crate::doers::types::Resource;
+// use crate::doers::types::Resource;
+use crate::doers::types::{EnsureResources, RemoveResources};
+use crate::doers::types::{HostConfig, HostMetadata, HostResources};
 use crate::utils::janet_helpers as j;
 use crate::utils::janet_helpers::JanetExt;
 use crate::utils::types::Opts;
+use crate::{debug, verbose};
 use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
 use janetrs::{Janet, env::CFunOptions};
@@ -15,23 +17,6 @@ thread_local! {
     static OPTIONS: RefCell<Option<Opts>> = const { RefCell::new(None) };
 }
 
-#[derive(Debug)]
-struct HostConfig {
-    metadata: HostMetadata,
-    resources: HostResources,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-struct HostMetadata {
-    name: String,
-}
-
-type ResourceType = String;
-
-// I keep changing my mind whether this should be a hash or a vec. We'll see what fits the
-// problem best.
-type HostResources = HashMap<ResourceType, Vec<Resource>>;
-
 // Read the host file the user gives us, and execute it with our embedded Janet interpreter. This
 // generates a big Janet Struct, with these keys:
 //
@@ -39,7 +24,7 @@ type HostResources = HashMap<ResourceType, Vec<Resource>>;
 //   :resources  A Structwhose keys are resource types, e.g. :file or :service and whose value
 //               are Arrays of those resources. Each resource is defined as a Janet Struct.
 //
-// The final function call passes this big Structto (run-machine-configuration), which is a Janet
+// The final function call passes this big Struct to (run-machine-configuration), which is a Janet
 // CFunction defined
 // in this file, and mapped to machine_config_handler(). Because it's a Janet function it has to receive
 // and return a janetrs::Janet. So it calls out to other functions to do all the actual work,
@@ -50,7 +35,7 @@ type HostResources = HashMap<ResourceType, Vec<Resource>>;
 // grouped together
 // into a single action.
 
-pub fn dump_janet(janet_code: &String) -> String {
+pub fn dump_janet(janet_code: &str) -> String {
     let mut ret = "-".repeat(80);
     ret.push('\n');
     janet_code
@@ -62,7 +47,9 @@ pub fn dump_janet(janet_code: &String) -> String {
     ret.push('\n');
     ret
 }
+
 pub fn do_it(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
+    debug!(opts, "Stashing opts object");
     OPTIONS.with(|o| {
         *o.borrow_mut() = Some(Opts {
             debug: opts.debug,
@@ -79,7 +66,7 @@ pub fn do_it(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
         dump_janet(&host_config)
     );
 
-    let mut client = j::janet_client();
+    let mut client = j::janet_client(opts);
 
     client.add_c_fn(CFunOptions::new(
         c"run-machine-configuration",
@@ -87,7 +74,10 @@ pub fn do_it(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
     ));
 
     match client.run(host_config) {
-        Ok(_) => Ok(true),
+        Ok(_) => {
+            println!("TODO: handle successful return properly");
+            Ok(true)
+        }
         Err(e) => {
             eprintln!("TODO: handle errors properly");
             Err(anyhow!(e))
@@ -95,7 +85,7 @@ pub fn do_it(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
     }
 }
 
-fn janet_insert(host_file: &Utf8PathBuf) -> anyhow::Result<String> {
+fn janet_insert(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<String> {
     // We can inject our own Janet code into what the user gives us, to reduce boilerplate.
     let host_config_dir = host_file
         .parent()
@@ -111,7 +101,8 @@ fn janet_insert(host_file: &Utf8PathBuf) -> anyhow::Result<String> {
         panic!("Could not find gurp lib at {}", gurp_lib_path);
     }
 
-    let gurp_lib = std::fs::read_to_string(gurp_lib_path)?;
+    let gurp_lib = std::fs::read_to_string(&gurp_lib_path)?;
+    debug!(opts, "Injecting '{}' to user Janet", gurp_lib_path);
 
     // Override the default include path, and drop the lib into the given file.
     Ok(format!(
@@ -124,9 +115,10 @@ fn prep_host_config(host_file_path: &Utf8PathBuf, opts: &Opts) -> anyhow::Result
     let janet_host_config = std::fs::read_to_string(host_file_path)?;
     debug!(opts, "Reading host config from {}", host_file_path);
     let qualified_path = host_file_path.canonicalize_utf8()?;
+
     Ok(format!(
         "{}\n{}",
-        janet_insert(&qualified_path)?,
+        janet_insert(&qualified_path, opts)?,
         janet_host_config
     ))
 }
@@ -180,7 +172,11 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
     };
 
     match janet_to_rust_config(janet_metadata, janet_resources, &opts) {
-        Ok(_config) => Janet::from(true),
+        Ok(config) => match ensure_and_remove(&config, &opts) {
+            // TODO handle what happens
+            Ok(_) => Janet::from(true),
+            Err(_) => Janet::from(false),
+        },
         Err(e) => {
             eprintln!("Failed to generate Rust config: {}", e);
             Janet::from(false)
@@ -189,7 +185,7 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
 }
 
 fn janet_to_rust_metadata(janet_metadata: &Janet, opts: &Opts) -> anyhow::Result<HostMetadata> {
-    debug!(opts, "Extracting Janet metadata struct");
+    debug!(opts, "Extracting Rust metadata struct");
     let rust_metadata = match janet_metadata.unwrap() {
         TaggedJanet::Struct(metadata) => {
             if let Some(name) = metadata.get(JanetKeyword::from("name")) {
@@ -208,29 +204,80 @@ fn janet_to_rust_metadata(janet_metadata: &Janet, opts: &Opts) -> anyhow::Result
     Ok(rust_metadata)
 }
 
-fn janet_to_rust_resources(janet_resources: &Janet, opts: &Opts) -> anyhow::Result<HostResources> {
-    let mut ret = HashMap::new();
-
-    debug!(opts, "Extracting Janet resource struct");
+fn janet_to_rust_ensure(janet_resources: &Janet, opts: &Opts) -> anyhow::Result<EnsureResources> {
     let resources = janet_resources.extract_struct()?;
-    debug!(opts, "Found {} resource types", resources.len());
+    let mut ret: EnsureResources = HashMap::new();
 
     for (resource_type, resource_list) in resources {
-        match resource_type.unwrap().to_string().as_str() {
-            ":directories" => {
-                let directories = directory::unpack_list(&resource_list)?;
-                debug!(opts, "Found {} directory resource(s) ", directories.len());
-                ret.insert("directories".to_owned(), directories);
+        let resource_type = resource_type.unwrap().to_string();
+        let resource_list = resource_list.extract_array()?;
+
+        #[rustfmt::skip]
+        debug!(opts, "Found {} {} resources to ensure", resource_list.len(), resource_type);
+
+        match resource_type.as_str() {
+            ":directory" => {
+                ret.insert(
+                    "directory".to_owned(),
+                    directory::unpack_ensure_list(&resource_list)?,
+                );
             }
-            other => {
-                eprintln!("{} resources are not supported", other);
-            }
+            other => eprintln!("{} resources are not implemented", other),
         }
     }
 
-    println!("{:?}", ret);
+    Ok(ret)
+}
+
+fn janet_to_rust_remove(janet_resources: &Janet, opts: &Opts) -> anyhow::Result<RemoveResources> {
+    let resources = janet_resources.extract_struct()?;
+    let mut ret: RemoveResources = HashMap::new();
+
+    for (resource_type, resource_list) in resources {
+        let resource_type = resource_type.unwrap().to_string();
+        let resource_list = resource_list.extract_array()?;
+
+        #[rustfmt::skip]
+        debug!(opts, "Found {} {} resource(s) to ensure", resource_list.len(), resource_type);
+
+        match resource_type.as_str() {
+            ":directory" => {
+                ret.insert(
+                    "directory".to_owned(),
+                    directory::unpack_remove_list(&resource_list)?,
+                );
+            }
+            other => eprintln!("{} resources are not implemented", other),
+        }
+    }
 
     Ok(ret)
+}
+
+fn janet_to_rust_resources(janet_resources: &Janet, opts: &Opts) -> anyhow::Result<HostResources> {
+    debug!(opts, "Extracting Janet enable/remove struct");
+    let resource_actions = janet_resources.extract_struct()?;
+
+    let ensure_resources = match resource_actions.get(JanetKeyword::from("ensure")) {
+        Some(resources) => janet_to_rust_ensure(resources, opts)?,
+        None => {
+            verbose!(opts, "No ensure resources found");
+            HashMap::new()
+        }
+    };
+
+    let remove_resources = match resource_actions.get(JanetKeyword::from("remove")) {
+        Some(resources) => janet_to_rust_remove(resources, opts)?,
+        None => {
+            verbose!(opts, "No remove resources found");
+            HashMap::new()
+        }
+    };
+
+    Ok(HostResources {
+        ensure: ensure_resources,
+        remove: remove_resources,
+    })
 }
 
 fn janet_to_rust_config(
@@ -242,6 +289,11 @@ fn janet_to_rust_config(
         metadata: janet_to_rust_metadata(janet_metadata, opts)?,
         resources: janet_to_rust_resources(janet_resources, opts)?,
     })
+}
+
+fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<bool> {
+    println!("{:#?}", config);
+    todo!()
 }
 
 #[cfg(test)]
