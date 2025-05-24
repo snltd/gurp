@@ -1,45 +1,38 @@
 // use crate::doers::directory::DirectoryResource;
-use camino::Utf8PathBuf;
+use crate::{
+    doers::directory::{DirectoryToEnsure, DirectoryToRemove},
+    utils::types::Opts,
+};
 use std::collections::HashMap;
+
+pub trait Apply {
+    fn apply(&self, opts: &Opts) -> anyhow::Result<bool>;
+}
 
 #[derive(Debug)]
 pub enum Ensure {
-    Directory(DirectoryEnsure),
+    Directory(DirectoryToEnsure),
+}
+
+impl Ensure {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<bool> {
+        match self {
+            Ensure::Directory(d) => d.apply(opts),
+        }
+    }
 }
 
 #[derive(Debug)]
 pub enum Remove {
-    Directory(DirectoryRemove),
+    Directory(DirectoryToRemove),
 }
 
-#[derive(Debug, PartialEq)]
-pub struct DirectoryEnsure {
-    pub id: String,
-    pub group: String,
-    pub mode: String,
-    pub name: String,
-    pub owner: String,
-    pub path: Utf8PathBuf,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct DirectoryRemove {
-    pub id: String,
-    pub path: Utf8PathBuf,
-    pub name: String,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct DirectoryStateEnsure {
-    pub group: String,
-    pub mode: String,
-    pub owner: String,
-    pub name: String,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct DirectoryStateRemove {
-    pub exists: bool,
+impl Remove {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<bool> {
+        match self {
+            Remove::Directory(d) => d.apply(opts),
+        }
+    }
 }
 
 #[derive(Debug)]

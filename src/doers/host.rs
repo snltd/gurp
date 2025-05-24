@@ -1,11 +1,12 @@
 use crate::doers::directory;
+use colored::Colorize;
 // use crate::doers::types::Resource;
 use crate::doers::types::{EnsureResources, RemoveResources};
 use crate::doers::types::{HostConfig, HostMetadata, HostResources};
 use crate::utils::janet_helpers as j;
 use crate::utils::janet_helpers::JanetExt;
 use crate::utils::types::Opts;
-use crate::{debug, verbose};
+use crate::{debug, info, verbose};
 use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
 use janetrs::{Janet, env::CFunOptions};
@@ -117,9 +118,10 @@ fn prep_host_config(host_file_path: &Utf8PathBuf, opts: &Opts) -> anyhow::Result
     let qualified_path = host_file_path.canonicalize_utf8()?;
 
     Ok(format!(
-        "{}\n{}",
+        "{}\n{}\n{}",
         janet_insert(&qualified_path, opts)?,
-        janet_host_config
+        janet_host_config,
+        "(run-machine-configuration (machine-config))",
     ))
 }
 
@@ -292,8 +294,36 @@ fn janet_to_rust_config(
 }
 
 fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<bool> {
-    println!("{:#?}", config);
-    todo!()
+    println!(
+        "{}",
+        format!("Configuring host '{}'", config.metadata.name).bold()
+    );
+
+    let ensure_order = &["directory"];
+
+    for resource_type in ensure_order {
+        if let Some(resources) = config.resources.ensure.get(*resource_type) {
+            for resource in resources {
+                resource.apply(opts)?;
+            }
+        } else {
+            debug!(opts, "No {} resources to ensure", resource_type);
+        }
+    }
+
+    let remove_order = &["directory"];
+
+    for resource_type in remove_order {
+        if let Some(resources) = config.resources.remove.get(*resource_type) {
+            for resource in resources {
+                resource.apply(opts)?;
+            }
+        } else {
+            debug!(opts, "No {} resources to remove", resource_type);
+        }
+    }
+
+    Ok(true)
 }
 
 #[cfg(test)]
