@@ -1,3 +1,4 @@
+[![Test Rust](https://github.com/snltd/gurp/actions/workflows/test-rust.yml/badge.svg)](https://github.com/snltd/gurp/actions/workflows/test-rust.yml) [![Janet Tests](https://github.com/snltd/gurp/actions/workflows/test-janet.yml/badge.svg)](https://github.com/snltd/gurp/actions/workflows/test-janet.yml)
 # gurp
 
 Gurp is an almost certainly doomed attempt to write an illumos configuration
