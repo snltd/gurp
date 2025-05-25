@@ -20,22 +20,31 @@ Roles are defined by similar Janet files in `roles/`, and look like this (though
 potentially subject to huge amounts of change):
 
 ```
-(gurp/role basenode
-      :package "helix"
-      :file {:name "basenode_file"
-             :path "/tmp/basenode.txt"
-             :content "some words"}
-      :directory {:name "merp"
-                  :path "/tmp/merp"
-                  :mode "0755"})
+(role "my-role"
+      (package/ensure "helix")
+      (file/ensure "config-file"
+             :path "/etc/config.txt"
+             :owner "rob"
+             :content "config values")
+      (directory/ensure "data-dir"
+                  :path "/data"
+                  :owner :/my-role/file/config-file/owner
+                  :group "engineering"
+                  :mode "0775"))
 ```
 
 Resources are all defined in the same way. `ensure` or `remove`, a string name,
-and a table of options with symbol keys.
+and pairs of symbol keys and string values.
+
+Note that the `:owner` of the directory is a Janet keyword. This is a reference
+which will be followed, and make the owner of the directory the same as that of
+the file. References can refer to other references, and `gurp` is able to
+detect unresolvable loops and dangling references.
 
 If you want to use variables, use `(var)` or `(def)`, and have them expanded at
 compile time. You can put as much or as little actual Janet as you like in your
-definition.
+definition. Remember, you have a full, powerful programming language at your
+disposal.
 
 Resources have default values. These are defined in a top-level `defaults.janet`
 which will eventually be supplied by the executable as a "default-default".
