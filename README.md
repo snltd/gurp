@@ -1,13 +1,14 @@
 # gurp
 
-Gurp is an almost certainly doomed attempt to write a configuration management
-tool with a Lisp front-end.
+Gurp is an almost certainly doomed attempt to write an illumos configuration
+management tool with a Lisp front-end.
 
 ## Design
 
-A user will write machine configurations using a thin
+A user writes machine configurations using a thin
 [Janet](https://janet-lang.org/) DSL. Resources such as Unix users, SMF
-services, or ZFS datasets are described as Janet tables, but can, of course, be
+services, or ZFS datasets have their properties described as Janet tables, but
+can, of course, be
 wrapped in, or contain, arbitrary Janet code. Resources may reference properties
 of other resources.
 
