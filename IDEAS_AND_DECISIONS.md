@@ -87,3 +87,12 @@ other Github thing, but mainly this is for thinking out loud.
   going to go with a very crude approach and once the thing roughly works
   end-to-end I'll revisit it. I feel like I need to see how it behaves, and what
   the final data structures end up looking like.
+
+- ~~Resources should be able to refer to other resources. I'm not sure how far I
+  want to go with this. Terraform `data`? Probably not, but you should at least
+  be able to say "this file should have the same owner as this file" without
+  having to use variables.~~ This is implemented. It catches unresolved and
+  circular references, and it all happens in the Janet phase.
+
+- Should we lint user input? Check for required fields? Warn on unknown ones?
+  Check for clashing directory/file paths?

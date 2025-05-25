@@ -16,15 +16,15 @@
                      :content "some words")
         (directory/ensure "merp"
                           :path "/tmp/merp"
-                          :owner :user/rob/uid
-                          :group :user/rob/group
+                          :owner "tester"
+                          :group "tester"
                           :mode "0755")
         (directory/remove "junk"
                           :path "/tmp/junk"))
   (defn basenode
     []
     (setdyn :role-dyn (string (quote basenode)))
-    (collect-resources (package/ensure "helix") (package/remove "go") (file/ensure "basenode_file" :path "/tmp/basenode.txt" :content "some words") (directory/ensure "merp" :path "/tmp/merp" :owner :user/rob/uid :group :user/rob/group :mode "0755") (directory/remove "junk" :path "/tmp/junk"))))
+    (collect-resources (package/ensure "helix") (package/remove "go") (file/ensure "basenode_file" :path "/tmp/basenode.txt" :content "some words") (directory/ensure "merp" :path "/tmp/merp" :owner "tester" :group "tester" :mode "0755") (directory/remove "junk" :path "/tmp/junk"))))
 
 (deftest "remove-package-resource"
   (test (package/remove "helix")
@@ -63,52 +63,52 @@
 
 (deftest "test-group-by-action"
   (def data
-    @[{:package {:_id "/basenode/package/helix" :action :ensure :name "helix" :role "basenode"}} {:package {:_id "/basenode/package/go" :action :remove :name "go" :role "basenode"}} {:file {:_id "/basenode/file/basenode_file" :action :ensure :content "some words" :group "root" :name "basenode_file" :owner "root" :path "/tmp/basenode.txt" :role "basenode"}} {:directory {:_id "/basenode/directory/merp" :action :ensure :group :user/rob/group :mode "0755" :name "merp" :owner :user/rob/uid :path "/tmp/merp" :role "basenode"}} {:directory {:_id "/basenode/directory/junk" :action :remove :group "root" :name "junk" :owner "root" :path "/tmp/junk" :role "basenode"}} {:package {:_id "/devtools/package/rust" :action :ensure :name "rust" :role "devtools"}} {:package {:_id "/devtools/package/git" :action :ensure :name "git" :role "devtools"}} {:file {:_id "/devtools/file/git_config" :action :ensure :group "root" :name "git_config" :owner "root" :path "/tmp/git-config.txt" :role "devtools" :source "git-config"}}])
+    @[{:package {:_id "/basenode/package/helix" :action :ensure :name "helix" :role "basenode"}} {:package {:_id "/basenode/package/go" :action :remove :name "go" :role "basenode"}} {:file {:_id "/basenode/file/basenode_file" :action :ensure :content "some words" :group "root" :name "basenode_file" :owner "root" :path "/tmp/basenode.txt" :role "basenode"}} {:directory {:_id "/basenode/directory/merp" :action :ensure :group "tester" :mode "0755" :name "merp" :owner "tester" :path "/tmp/merp" :role "basenode"}} {:directory {:_id "/basenode/directory/junk" :action :remove :group "root" :name "junk" :owner "root" :path "/tmp/junk" :role "basenode"}} {:package {:_id "/devtools/package/rust" :action :ensure :name "rust" :role "devtools"}} {:package {:_id "/devtools/package/git" :action :ensure :name "git" :role "devtools"}} {:file {:_id "/devtools/file/git_config" :action :ensure :group "root" :name "git_config" :owner "root" :path "/tmp/git-config.txt" :role "devtools" :source "git-config"}}])
   (test (group-by-action-and-type data)
-    {:ensure {:directory @[{:_id "/basenode/directory/merp"
-                            :action :ensure
-                            :group :user/rob/group
-                            :mode "0755"
-                            :name "merp"
-                            :owner :user/rob/uid
-                            :path "/tmp/merp"
-                            :role "basenode"}]
-              :file @[{:_id "/basenode/file/basenode_file"
-                       :action :ensure
-                       :content "some words"
-                       :group "root"
-                       :name "basenode_file"
-                       :owner "root"
-                       :path "/tmp/basenode.txt"
-                       :role "basenode"}
-                      {:_id "/devtools/file/git_config"
-                       :action :ensure
-                       :group "root"
-                       :name "git_config"
-                       :owner "root"
-                       :path "/tmp/git-config.txt"
-                       :role "devtools"
-                       :source "git-config"}]
-              :package @[{:_id "/basenode/package/helix"
-                          :action :ensure
-                          :name "helix"
-                          :role "basenode"}
-                         {:_id "/devtools/package/rust"
-                          :action :ensure
-                          :name "rust"
-                          :role "devtools"}
-                         {:_id "/devtools/package/git"
-                          :action :ensure
-                          :name "git"
-                          :role "devtools"}]}
-     :remove {:directory @[{:_id "/basenode/directory/junk"
-                            :action :remove
-                            :group "root"
-                            :name "junk"
-                            :owner "root"
-                            :path "/tmp/junk"
-                            :role "basenode"}]
-              :package @[{:_id "/basenode/package/go"
-                          :action :remove
-                          :name "go"
-                          :role "basenode"}]}}))
+        {:ensure {:directory @[{:_id "/basenode/directory/merp"
+                                :action :ensure
+                                :group "tester"
+                                :mode "0755"
+                                :name "merp"
+                                :owner "tester"
+                                :path "/tmp/merp"
+                                :role "basenode"}]
+                  :file @[{:_id "/basenode/file/basenode_file"
+                           :action :ensure
+                           :content "some words"
+                           :group "root"
+                           :name "basenode_file"
+                           :owner "root"
+                           :path "/tmp/basenode.txt"
+                           :role "basenode"}
+                          {:_id "/devtools/file/git_config"
+                           :action :ensure
+                           :group "root"
+                           :name "git_config"
+                           :owner "root"
+                           :path "/tmp/git-config.txt"
+                           :role "devtools"
+                           :source "git-config"}]
+                  :package @[{:_id "/basenode/package/helix"
+                              :action :ensure
+                              :name "helix"
+                              :role "basenode"}
+                             {:_id "/devtools/package/rust"
+                              :action :ensure
+                              :name "rust"
+                              :role "devtools"}
+                             {:_id "/devtools/package/git"
+                              :action :ensure
+                              :name "git"
+                              :role "devtools"}]}
+         :remove {:directory @[{:_id "/basenode/directory/junk"
+                                :action :remove
+                                :group "root"
+                                :name "junk"
+                                :owner "root"
+                                :path "/tmp/junk"
+                                :role "basenode"}]
+                  :package @[{:_id "/basenode/package/go"
+                              :action :remove
+                              :name "go"
+                              :role "basenode"}]}}))

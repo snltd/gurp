@@ -60,7 +60,65 @@
      {:metadata {:name ,host-name}
       :resources (group-by-action-and-type (flatten (tuple ,;host-definition)))}))
 
+
 (defn group-by-action-and-type [data]
+  "Turns an array of resources into a struct of structs, and resolves references."
+
+  (def flat-data (flatten (map values data)))
+
+  (var resolve-reference nil)
+  (set resolve-reference
+       (fn [val seen]
+         (if (keyword? val)
+           (let [last-sep (last (string/find-all "/" val))
+                 chunks (string/split "/" val last-sep)
+                 id (first chunks)
+                 field (keyword (last chunks))
+                 referenced-struct (find (fn [a] (= id (get a :_id))) flat-data)]
+
+             (if (nil? referenced-struct)
+               (error (string/format "Referenced resource '%s' not found" id)))
+
+             (if (has-value? seen id)
+               (error (string/format "Detected circular reference [%q]" seen)))
+
+             (array/push seen id)
+
+             (def referenced-val (get referenced-struct field))
+
+             (if (keyword? referenced-val)
+               (resolve-reference referenced-val seen)
+             referenced-val))
+         val)))
+
+  (defn resolve-resource [res]
+    (var out @{})
+    (each k (keys res)
+      (put out k
+           (if (= k :action) (get res k)
+             (resolve-reference (get res k) @[]))))
+    (table/to-struct out))
+
+  (defn collate [aggr item]
+    (each resource-type (keys item)
+      (let [resource-raw (get item resource-type)
+            resource (resolve-resource resource-raw)
+            action (get resource :action)]
+        (when action
+          (unless (get aggr action)
+            (put aggr action @{}))
+          (put aggr action
+               (let [curr-map (get aggr action)
+                     curr-list (get curr-map resource-type @[])]
+                 (put curr-map resource-type (array/concat curr-list [resource]))
+                 curr-map))))) aggr)
+
+  (var ret (reduce collate @{} data))
+  (each k (keys ret) (put ret k (table/to-struct (get ret k))))
+  (table/to-struct ret))
+
+
+(defn _group-by-action-and-type [data]
   "Turns an array of resources into a struct of structs"
   (defn collate [aggr item]
     (each resource-type (keys item)
@@ -80,24 +138,6 @@
   (each k (keys ret) (put ret k (table/to-struct (get ret k))))
   (table/to-struct ret))
 
-
-(defn _group-by-action-and-type [data]
-  "Turns an array of resources into a struct which holds two tables kese"
-  (defn collate [aggr item]
-    "Private function for reduce"
-    (each resource-type (keys item)
-      (let [resource (get item resource-type)
-            action (get resource :action)]
-        (when action
-          (unless (get aggr action)
-            (put aggr action @{}))
-          (put aggr action
-               (let [curr-map (get aggr action)
-                     curr-list (get curr-map resource-type @[])]
-                 (put curr-map resource-type (array/concat curr-list [resource]))
-                 curr-map)))))
-    aggr)
-  (table/to-struct (reduce collate @{} data)))
 
 (defn collect-resources
   [& resource-structs]
