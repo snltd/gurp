@@ -8,9 +8,9 @@ jobs:
       matrix:
         rust: [stable, nightly]
     steps:
-    - uses: hecrj/setup-rust-action@v2
+    - uses: hecrj/setup-rust-action@110f36749599534ca96628b82f52ae67e5d95a3c
       with:
         rust-version: ${{ matrix.rust }}
-    - uses: actions/checkout@v4
-    - name: Run Rust tests
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+    - name: Run Rust Tests
       run: cargo test -- --include-ignored
