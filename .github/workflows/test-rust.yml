@@ -1,4 +1,4 @@
-name: Test 
+name: Test Rust
 on: 
   - push
 jobs:
@@ -12,5 +12,5 @@ jobs:
       with:
         rust-version: ${{ matrix.rust }}
     - uses: actions/checkout@v4
-    - name: Run tests
+    - name: Run Rust tests
       run: cargo test -- --include-ignored
