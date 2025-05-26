@@ -96,3 +96,11 @@ other Github thing, but mainly this is for thinking out loud.
 
 - Should we lint user input? Check for required fields? Warn on unknown ones?
   Check for clashing directory/file paths?
+
+- As well as `ensure` and `remove`, an `only` or `exactly` command, which
+  adds/removes resources of a suitable type until the installed instances match
+  the given list.
+
+- Define SMF services in Janet, rather than in XML.
+
+- Handle zones, replacing Oozone. Zones defined, naturally, with Janet.
