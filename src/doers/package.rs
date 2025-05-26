@@ -2,14 +2,25 @@
 // `pkg://sysdef/ooce/editor/helix@25.1-151052.0:20250108t110907Z`. This means you
 // can't request specific versions. I might change this, but I never pin to
 // version, and I'm immediately only solving the problems I actually have.
+// You need the full path as well: it isn't remotely smart and can't understand that "helix"
+// is "ooce/editor/helix".
 
 // Operating only on name makes the doer run faster, because it knows exactly
-// what can and cannot be done, so runs `pkg(5)` in the most efficient way
-// possible `pkg(5)` is rather a slow tool.
+// what can and cannot be done, so runs `pkg(1)` in the most efficient way
+// possible. `pkg(1)` is rather a slow tool.
 
+use crate::doers::types::{Apply, Ensure, Remove};
+use crate::utils::janet_helpers::JanetExt;
+use crate::utils::types::Opts;
+use crate::{debug, info, verbose, warn};
+use colored::Colorize;
+use janetrs::JanetArray;
+use janetrs::JanetKeyword;
 use std::process::Command;
+use std::sync::LazyLock;
 
-fn installed_packages() -> anyhow::Result<String> {
+// A chunk of text from pkg(1). This is expensive, so do it once and parse the output twice.
+fn pkg_output() -> anyhow::Result<String> {
     let cmd = Command::new("/bin/pkg")
         .arg("list")
         .arg("-aH")
@@ -22,10 +33,128 @@ fn installed_packages() -> anyhow::Result<String> {
 
 type PackageName = String;
 
+static CURRENT_PKG_OUTPUT: LazyLock<String> =
+    LazyLock::new(|| pkg_output().expect("Could not get package list"));
+
 // TODO this needs a better name
 struct GlobalPackages {
     available: Vec<PackageName>,
     installed: Vec<PackageName>,
+}
+
+#[derive(Debug)]
+pub struct PackagesToEnsure {
+    package_list: Vec<String>,
+}
+
+#[derive(Debug)]
+pub struct PackagesToRemove {
+    package_list: Vec<String>,
+}
+
+impl Apply for PackagesToEnsure {
+    fn apply(&self, opts: &Opts) -> anyhow::Result<bool> {
+        if self.package_list.is_empty() {
+            verbose!(opts, "No packages to install");
+            return Ok(false);
+        }
+
+        info!(opts, "package: installing {}", self.package_list.join(", "));
+
+        let mut cmd = Command::new("/bin/pkg");
+
+        cmd.arg("install");
+        cmd.arg("-q");
+
+        if opts.noop {
+            cmd.arg("-n");
+        }
+
+        cmd.args(&self.package_list);
+        let result = cmd.status()?;
+
+        Ok(result.success())
+    }
+}
+
+impl Apply for PackagesToRemove {
+    fn apply(&self, opts: &Opts) -> anyhow::Result<bool> {
+        if self.package_list.is_empty() {
+            verbose!(opts, "No packages to remove");
+            return Ok(false);
+        }
+
+        info!(opts, "package: removing {}", self.package_list.join(", "));
+
+        let mut cmd = Command::new("/bin/pkg");
+
+        cmd.arg("uninstall");
+        cmd.arg("-q");
+
+        if opts.noop {
+            cmd.arg("-n");
+        }
+
+        cmd.args(&self.package_list);
+        let result = cmd.status()?;
+
+        Ok(result.success())
+    }
+}
+
+// Receive a list of packages, but return a single element vec which will be applied.
+pub fn unpack_ensure_list(resource_list: &JanetArray, opts: &Opts) -> anyhow::Result<Vec<Ensure>> {
+    let global_packages = parse_pkg_output(&CURRENT_PKG_OUTPUT);
+
+    let mut install_list = Vec::new();
+
+    for candidate_struct in resource_list {
+        let candidate_struct = candidate_struct.extract_struct()?;
+        if let Some(candidate) = candidate_struct.get(JanetKeyword::from("name")) {
+            let candidate = candidate.unwrap().to_string();
+
+            if global_packages.installed.contains(&candidate) {
+                debug!(opts, "package: {} already installed", candidate);
+                continue;
+            }
+
+            if global_packages.available.contains(&candidate) {
+                debug!(opts, "package: {} scheduled for install", candidate);
+                install_list.push(candidate);
+            } else {
+                warn!(opts, "package: {} not available", candidate);
+            }
+        }
+    }
+
+    Ok(vec![Ensure::Packages(PackagesToEnsure {
+        package_list: install_list,
+    })])
+}
+//
+// Receive a list of packages, but return a single element vec which will be applied.
+pub fn unpack_remove_list(resource_list: &JanetArray, opts: &Opts) -> anyhow::Result<Vec<Remove>> {
+    let global_packages = parse_pkg_output(&CURRENT_PKG_OUTPUT);
+
+    let mut remove_list = Vec::new();
+
+    for candidate_struct in resource_list {
+        let candidate_struct = candidate_struct.extract_struct()?;
+        if let Some(candidate) = candidate_struct.get(JanetKeyword::from("name")) {
+            let candidate = candidate.unwrap().to_string();
+
+            if global_packages.installed.contains(&candidate) {
+                debug!(opts, "package: {} scheduled for removal", candidate);
+                remove_list.push(candidate);
+            } else {
+                debug!(opts, "package: {} is not installed", candidate);
+            }
+        }
+    }
+
+    Ok(vec![Remove::Packages(PackagesToRemove {
+        package_list: remove_list,
+    })])
 }
 
 fn parse_pkg_output(output: &str) -> GlobalPackages {

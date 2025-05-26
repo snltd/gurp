@@ -28,3 +28,10 @@ macro_rules! debug {
         }
     };
 }
+
+#[macro_export]
+macro_rules! warn {
+    ($opts:expr, $($arg:tt)*) => {
+        eprint!($($arg)*);
+    };
+}
