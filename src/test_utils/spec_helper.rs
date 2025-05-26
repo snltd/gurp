@@ -2,6 +2,7 @@
 use crate::utils::types::Opts;
 use camino::Utf8PathBuf;
 use std::env::current_dir;
+use std::fs;
 // use std::path::Path;
 
 #[allow(dead_code)]
@@ -11,6 +12,11 @@ pub fn fixture(file: &str) -> Utf8PathBuf {
         .join("tests")
         .join("resources")
         .join(file)
+}
+
+#[cfg(test)]
+pub fn load_fixture(file: &str) -> String {
+    fs::read_to_string(fixture(file)).expect(&format!("Did not find {}", file))
 }
 
 #[cfg(test)]
