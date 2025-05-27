@@ -2,6 +2,8 @@
 use crate::utils::types::Opts;
 use camino::Utf8PathBuf;
 use std::env::current_dir;
+
+#[cfg(test)]
 use std::fs;
 // use std::path::Path;
 
@@ -16,7 +18,7 @@ pub fn fixture(file: &str) -> Utf8PathBuf {
 
 #[cfg(test)]
 pub fn load_fixture(file: &str) -> String {
-    fs::read_to_string(fixture(file)).expect(&format!("Did not find {}", file))
+    fs::read_to_string(fixture(file)).unwrap_or_else(|_| panic!("Did not find {}", file))
 }
 
 #[cfg(test)]

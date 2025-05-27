@@ -265,7 +265,7 @@ impl Apply for DirectoryToEnsure {
 
 fn directory_state(path: &Utf8PathBuf, name: &str) -> anyhow::Result<Option<DirectoryEnsureState>> {
     if path.exists() {
-        let metadata = fs::metadata(&path)?;
+        let metadata = fs::metadata(path)?;
 
         // TODO deal with numeric and string users and groups
         //
@@ -291,13 +291,6 @@ fn directory_state(path: &Utf8PathBuf, name: &str) -> anyhow::Result<Option<Dire
     }
 }
 
-impl DirectoryToRemove {
-    // We only care if it exists
-    fn state(&self) -> bool {
-        self.path.exists()
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -305,7 +298,6 @@ mod test {
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use camino::Utf8PathBuf;
-    // use predicates::prelude;
 
     #[test]
     fn test_directory_ensure_apply_does_not_exist() {
@@ -320,10 +312,11 @@ mod test {
             mode: "0755".to_owned(),
             name: "test_directory".to_owned(),
             owner: "rob".to_owned(),
-            path: Utf8PathBuf::from_path_buf(expected_dir).unwrap(),
+            path: Utf8PathBuf::from_path_buf(expected_dir.clone()).unwrap(),
         };
 
-        required_dir.apply(&defopts());
+        assert!(required_dir.apply(&defopts()).unwrap());
+        assert!(expected_dir.exists());
     }
 
     #[test]
@@ -411,29 +404,6 @@ mod test {
         };
 
         assert!(dir_does_not_exist.state().unwrap().is_none());
-    }
-
-    #[test]
-    fn test_directory_remove_state() {
-        let temp = TempDir::new().unwrap();
-        let dir = temp.child("dir-to-test");
-        dir.create_dir_all().unwrap();
-
-        let dir_exists = DirectoryToRemove {
-            name: "tester".to_owned(),
-            id: "/test-role/directory/dir-to-test".to_owned(),
-            path: Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap(),
-        };
-
-        assert!(dir_exists.state());
-
-        let dir_does_not_exist = DirectoryToRemove {
-            name: "tester".to_owned(),
-            id: "/test-role/directory/dir-to-test".to_owned(),
-            path: Utf8PathBuf::from("/does/not/exist/dir-to-test"),
-        };
-
-        assert!(!dir_does_not_exist.state());
     }
 
     #[test]
