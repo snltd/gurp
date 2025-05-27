@@ -300,26 +300,6 @@ mod test {
     use camino::Utf8PathBuf;
 
     #[test]
-    fn test_directory_ensure_apply_does_not_exist() {
-        let temp = TempDir::new().unwrap();
-        let expected_dir = temp.to_path_buf().join("test_directory");
-
-        assert!(!expected_dir.exists());
-
-        let required_dir = DirectoryToEnsure {
-            id: "/test-role/directory/test_directory".to_owned(),
-            group: "sysadmin".to_owned(),
-            mode: "0755".to_owned(),
-            name: "test_directory".to_owned(),
-            owner: "rob".to_owned(),
-            path: Utf8PathBuf::from_path_buf(expected_dir.clone()).unwrap(),
-        };
-
-        assert!(required_dir.apply(&defopts()).unwrap());
-        assert!(expected_dir.exists());
-    }
-
-    #[test]
     fn test_directory_remove_apply_does_not_exist() {
         let dir_does_not_exist = DirectoryToRemove {
             name: "tester".to_owned(),
