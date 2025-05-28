@@ -95,7 +95,7 @@ other Github thing, but mainly this is for thinking out loud.
   circular references, and it all happens in the Janet phase.
 
 - Should we lint user input? Check for required fields? Warn on unknown ones?
-  Check for clashing directory/file paths?
+  Check for clashing directory/file paths? Clashing resource names?
 
 - As well as `ensure` and `remove`, an `only` or `exactly` command, which
   adds/removes resources of a suitable type until the installed instances match
