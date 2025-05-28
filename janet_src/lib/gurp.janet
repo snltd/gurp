@@ -28,14 +28,14 @@
     (table/to-struct)
     (struct resource-type)))
 
-(defn package/ensure [name &]
-  "Given a a package name, return a package ensure struct. In OmniOS, the
-  package version is effectively part of the name, so there are no parameters"
-  (generic-resource :package :ensure name []))
+(defn pkg/ensure [name &]
+  "Given a a pkg name, return a pkg ensure struct. In OmniOS, the
+  pkg version is effectively part of the name, so there are no parameters"
+  (generic-resource :pkg :ensure name []))
 
-(defn package/remove [name &]
-  "Given a package name, return a package remove struct"
-  (generic-resource :package :remove name []))
+(defn pkg/remove [name &]
+  "Given a pkg name, return a pkg remove struct"
+  (generic-resource :pkg :remove name []))
 
 (defn file/ensure [name & specs]
   "Given a file name and specification, return a file ensure struct"

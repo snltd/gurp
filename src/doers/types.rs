@@ -1,7 +1,7 @@
 // use crate::doers::directory::DirectoryResource;
 use crate::{
     doers::directory::{DirectoryToEnsure, DirectoryToRemove},
-    doers::package::{PackagesToEnsure, PackagesToRemove},
+    doers::pkg::{PkgsToEnsure, PkgsToRemove},
     utils::types::Opts,
 };
 use std::collections::HashMap;
@@ -13,14 +13,14 @@ pub trait Apply {
 #[derive(Debug)]
 pub enum Ensure {
     Directory(DirectoryToEnsure),
-    Packages(PackagesToEnsure),
+    Pkgs(PkgsToEnsure),
 }
 
 impl Ensure {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<bool> {
         match self {
             Ensure::Directory(resource) => resource.apply(opts),
-            Ensure::Packages(resource) => resource.apply(opts),
+            Ensure::Pkgs(resource) => resource.apply(opts),
         }
     }
 }
@@ -28,14 +28,14 @@ impl Ensure {
 #[derive(Debug)]
 pub enum Remove {
     Directory(DirectoryToRemove),
-    Packages(PackagesToRemove),
+    Pkgs(PkgsToRemove),
 }
 
 impl Remove {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<bool> {
         match self {
             Remove::Directory(resource) => resource.apply(opts),
-            Remove::Packages(resource) => resource.apply(opts),
+            Remove::Pkgs(resource) => resource.apply(opts),
         }
     }
 }

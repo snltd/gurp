@@ -1,4 +1,4 @@
 pub mod directory;
 pub mod host;
-pub mod package;
+pub mod pkg;
 pub mod types;
