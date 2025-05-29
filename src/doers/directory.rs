@@ -265,7 +265,7 @@ impl Apply for DirectoryToEnsure {
 
 fn directory_state(path: &Utf8PathBuf, name: &str) -> anyhow::Result<Option<DirectoryEnsureState>> {
     if path.exists() {
-        let metadata = fs::metadata(&path)?;
+        let metadata = fs::metadata(path)?;
 
         // TODO deal with numeric and string users and groups
         //
@@ -288,13 +288,6 @@ fn directory_state(path: &Utf8PathBuf, name: &str) -> anyhow::Result<Option<Dire
         }))
     } else {
         Ok(None)
-    }
-}
-
-impl DirectoryToRemove {
-    // We only care if it exists
-    fn state(&self) -> bool {
-        self.path.exists()
     }
 }
 
