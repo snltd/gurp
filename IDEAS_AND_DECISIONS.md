@@ -104,3 +104,7 @@ other Github thing, but mainly this is for thinking out loud.
 - Define SMF services in Janet, rather than in XML.
 
 - Handle zones, replacing Oozone. Zones defined, naturally, with Janet.
+
+- A `globals` struct in the Janet, at the same level as `metadata` and
+  `resources` that lets the user configure things which will apply to all
+  modules. `pkg` opts and stuff.

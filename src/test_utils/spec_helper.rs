@@ -2,6 +2,9 @@
 use crate::utils::types::Opts;
 use camino::Utf8PathBuf;
 use std::env::current_dir;
+
+#[cfg(test)]
+use std::fs;
 // use std::path::Path;
 
 #[allow(dead_code)]
@@ -14,11 +17,17 @@ pub fn fixture(file: &str) -> Utf8PathBuf {
 }
 
 #[cfg(test)]
+pub fn load_fixture(file: &str) -> String {
+    fs::read_to_string(fixture(file)).unwrap_or_else(|_| panic!("Did not find {}", file))
+}
+
+#[cfg(test)]
 pub fn defopts() -> Opts {
     Opts {
         debug: false,
         noop: false,
         verbose: false,
+        gurp_lib_path: None,
     }
 }
 
@@ -28,6 +37,7 @@ pub fn defopts_noop() -> Opts {
         debug: false,
         noop: true,
         verbose: false,
+        gurp_lib_path: None,
     }
 }
 
