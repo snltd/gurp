@@ -45,7 +45,7 @@ impl JanetExt for Janet {
 
 pub trait JanetStructExt {
     fn get_field_string(&self, field: &str) -> anyhow::Result<String>;
-    fn get_field_bool(&self, field: &str) -> anyhow::Result<bool>;
+    // fn get_field_bool(&self, field: &str) -> anyhow::Result<bool>;
     fn get_field_pathbuf(&self, field: &str) -> anyhow::Result<Utf8PathBuf>;
 }
 
@@ -59,6 +59,7 @@ impl JanetStructExt for JanetStruct<'_> {
         Ok(ret)
     }
 
+    /*
     fn get_field_bool(&self, field: &str) -> anyhow::Result<bool> {
         let value = self
             .get(Janet::keyword(field.into()))
@@ -72,6 +73,7 @@ impl JanetStructExt for JanetStruct<'_> {
             Err(anyhow!(format!("Cannot turn {} into bool", value)))
         }
     }
+    */
 
     fn get_field_pathbuf(&self, field: &str) -> anyhow::Result<Utf8PathBuf> {
         let path = Utf8PathBuf::from(

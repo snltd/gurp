@@ -1,14 +1,13 @@
-use crate::doers::directory;
-use colored::Colorize;
-// use crate::doers::types::Resource;
 use crate::doers::types::{EnsureResources, RemoveResources};
 use crate::doers::types::{HostConfig, HostMetadata, HostResources};
+use crate::doers::{directory, pkg};
 use crate::utils::janet_helpers as j;
 use crate::utils::janet_helpers::JanetExt;
 use crate::utils::types::Opts;
-use crate::{debug, info, verbose};
+use crate::{debug, verbose};
 use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
+use colored::Colorize;
 use janetrs::{Janet, env::CFunOptions};
 use janetrs::{JanetKeyword, TaggedJanet};
 use std::cell::RefCell;
@@ -224,6 +223,12 @@ fn janet_to_rust_ensure(janet_resources: &Janet, opts: &Opts) -> anyhow::Result<
                     directory::unpack_ensure_list(&resource_list)?,
                 );
             }
+            ":pkg" => {
+                ret.insert(
+                    "pkg".to_owned(),
+                    pkg::unpack_ensure_list(&resource_list, opts)?,
+                );
+            }
             other => eprintln!("{} resources are not implemented", other),
         }
     }
@@ -247,6 +252,12 @@ fn janet_to_rust_remove(janet_resources: &Janet, opts: &Opts) -> anyhow::Result<
                 ret.insert(
                     "directory".to_owned(),
                     directory::unpack_remove_list(&resource_list)?,
+                );
+            }
+            ":pkg" => {
+                ret.insert(
+                    "pkg".to_owned(),
+                    pkg::unpack_remove_list(&resource_list, opts)?,
                 );
             }
             other => eprintln!("{} resources are not implemented", other),
@@ -299,7 +310,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<bool> {
         format!("Configuring host '{}'", config.metadata.name).bold()
     );
 
-    let ensure_order = &["directory"];
+    let ensure_order = &["pkg", "directory"];
 
     for resource_type in ensure_order {
         if let Some(resources) = config.resources.ensure.get(*resource_type) {
@@ -311,7 +322,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<bool> {
         }
     }
 
-    let remove_order = &["directory"];
+    let remove_order = &["directory", "pkg"];
 
     for resource_type in remove_order {
         if let Some(resources) = config.resources.remove.get(*resource_type) {

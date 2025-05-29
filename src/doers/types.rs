@@ -1,6 +1,7 @@
 // use crate::doers::directory::DirectoryResource;
 use crate::{
     doers::directory::{DirectoryToEnsure, DirectoryToRemove},
+    doers::pkg::{PkgsToEnsure, PkgsToRemove},
     utils::types::Opts,
 };
 use std::collections::HashMap;
@@ -12,12 +13,14 @@ pub trait Apply {
 #[derive(Debug)]
 pub enum Ensure {
     Directory(DirectoryToEnsure),
+    Pkgs(PkgsToEnsure),
 }
 
 impl Ensure {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<bool> {
         match self {
-            Ensure::Directory(d) => d.apply(opts),
+            Ensure::Directory(resource) => resource.apply(opts),
+            Ensure::Pkgs(resource) => resource.apply(opts),
         }
     }
 }
@@ -25,12 +28,14 @@ impl Ensure {
 #[derive(Debug)]
 pub enum Remove {
     Directory(DirectoryToRemove),
+    Pkgs(PkgsToRemove),
 }
 
 impl Remove {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<bool> {
         match self {
-            Remove::Directory(d) => d.apply(opts),
+            Remove::Directory(resource) => resource.apply(opts),
+            Remove::Pkgs(resource) => resource.apply(opts),
         }
     }
 }
@@ -56,39 +61,3 @@ pub struct HostResources {
     pub ensure: EnsureResources,
     pub remove: RemoveResources,
 }
-
-// pub struct EnableResource {
-//     pub directory: Vec<DirectoryEnsure>,
-// }
-
-// pub struct RemoveResource {
-//     pub directory: Vec<DirectoryRemove>,
-// }
-
-// I keep changing my mind whether this should be a hash or a vec. We'll see what fits the
-// problem best.
-// type HostResources = HashMap<ResourceType, Vec<Resource>>;
-
-// #[derive(Debug, PartialEq)]
-// pub enum DirectoryResource {
-//     Ensure(DirectoryEnsure),
-//     Remove(DirectoryRemove),
-// }
-
-// #[derive(Debug, PartialEq)]
-// struct GurpDirectory {
-//     pub path: Utf8PathBuf,
-// }
-
-// #[derive(Debug)]
-// pub enum Resource {
-//     Directory(DirectoryResource),
-// }
-
-// impl Resource {
-//     fn apply(&self) {
-//         match self {
-//             Resource::Directory(d) => d.apply(),
-//         }
-//     }
-// }

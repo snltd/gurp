@@ -96,3 +96,7 @@ other Github thing, but mainly this is for thinking out loud.
 
 - Should we lint user input? Check for required fields? Warn on unknown ones?
   Check for clashing directory/file paths?
+
+- A `globals` struct in the Janet, at the same level as `metadata` and
+  `resources` that lets the user configure things which will apply to all
+  modules. `pkg` opts and stuff.
