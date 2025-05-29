@@ -141,7 +141,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<bool> {
         format!("Configuring host '{}'", config.metadata.name).bold()
     );
 
-    let ensure_order = &["directory"];
+    let ensure_order = &["pkg", "directory"];
 
     for resource_type in ensure_order {
         if let Some(resources) = config.resources.ensure.get(*resource_type) {
@@ -153,7 +153,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<bool> {
         }
     }
 
-    let remove_order = &["directory"];
+    let remove_order = &["directory", "pkg"];
 
     for resource_type in remove_order {
         if let Some(resources) = config.resources.remove.get(*resource_type) {

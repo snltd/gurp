@@ -1,5 +1,3 @@
-use colored::Colorize;
-
 #[macro_export]
 macro_rules! info {
     ($opts:expr, $($arg:tt)*) => {
@@ -26,5 +24,12 @@ macro_rules! debug {
         if $opts.debug {
             println!($($arg)*);
         }
+    };
+}
+
+#[macro_export]
+macro_rules! warn {
+    ($opts:expr, $($arg:tt)*) => {
+        eprint!($($arg)*);
     };
 }
