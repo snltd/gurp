@@ -4,7 +4,7 @@
 # The references are circular, so should cause an error
 
 (role role-a
-      (package/ensure "helix")
+      (pkg/ensure "helix")
       (file/ensure "a1"
                    :path "/tmp/a1"
                    :owner :/role-b/file/b2/owner

@@ -21,7 +21,7 @@ potentially subject to huge amounts of change):
 
 ```
 (role "my-role"
-      (package/ensure "helix")
+      (pkg/ensure "helix")
       (file/ensure "config-file"
              :path "/etc/config.txt"
              :owner "rob"
