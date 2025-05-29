@@ -4,7 +4,7 @@
 # The reference points to something which does not exist, so should error
 
 (role role-a
-      (package/ensure "helix")
+      (pkg/ensure "helix")
       (file/ensure "a1"
                    :path "/tmp/a1"
                    :owner "tester"

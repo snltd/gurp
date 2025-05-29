@@ -9,8 +9,8 @@
 
 (test-macro
   (role basenode
-        (package/ensure "helix")
-        (package/remove "go")
+        (pkg/ensure "helix")
+        (pkg/remove "go")
         (file/ensure "basenode_file"
                      :path "/tmp/basenode.txt"
                      :content "some words")
@@ -24,11 +24,11 @@
   (defn basenode
     []
     (setdyn :role-dyn (string (quote basenode)))
-    (collect-resources (package/ensure "helix") (package/remove "go") (file/ensure "basenode_file" :path "/tmp/basenode.txt" :content "some words") (directory/ensure "merp" :path "/tmp/merp" :owner "tester" :group "tester" :mode "0755") (directory/remove "junk" :path "/tmp/junk"))))
+    (collect-resources (pkg/ensure "helix") (pkg/remove "go") (file/ensure "basenode_file" :path "/tmp/basenode.txt" :content "some words") (directory/ensure "merp" :path "/tmp/merp" :owner "tester" :group "tester" :mode "0755") (directory/remove "junk" :path "/tmp/junk"))))
 
-(deftest "remove-package-resource"
-  (test (package/remove "helix")
-        {:package {:_id "//package/helix"
+(deftest "remove-pkg-resource"
+  (test (pkg/remove "helix")
+        {:pkg {:_id "//pkg/helix"
                    :action :remove
                    :name "helix"}}))
 
@@ -63,7 +63,7 @@
 
 (deftest "test-group-by-action"
   (def data
-    @[{:package {:_id "/basenode/package/helix" :action :ensure :name "helix" :role "basenode"}} {:package {:_id "/basenode/package/go" :action :remove :name "go" :role "basenode"}} {:file {:_id "/basenode/file/basenode_file" :action :ensure :content "some words" :group "root" :name "basenode_file" :owner "root" :path "/tmp/basenode.txt" :role "basenode"}} {:directory {:_id "/basenode/directory/merp" :action :ensure :group "tester" :mode "0755" :name "merp" :owner "tester" :path "/tmp/merp" :role "basenode"}} {:directory {:_id "/basenode/directory/junk" :action :remove :group "root" :name "junk" :owner "root" :path "/tmp/junk" :role "basenode"}} {:package {:_id "/devtools/package/rust" :action :ensure :name "rust" :role "devtools"}} {:package {:_id "/devtools/package/git" :action :ensure :name "git" :role "devtools"}} {:file {:_id "/devtools/file/git_config" :action :ensure :group "root" :name "git_config" :owner "root" :path "/tmp/git-config.txt" :role "devtools" :source "git-config"}}])
+    @[{:pkg {:_id "/basenode/pkg/helix" :action :ensure :name "helix" :role "basenode"}} {:pkg {:_id "/basenode/pkg/go" :action :remove :name "go" :role "basenode"}} {:file {:_id "/basenode/file/basenode_file" :action :ensure :content "some words" :group "root" :name "basenode_file" :owner "root" :path "/tmp/basenode.txt" :role "basenode"}} {:directory {:_id "/basenode/directory/merp" :action :ensure :group "tester" :mode "0755" :name "merp" :owner "tester" :path "/tmp/merp" :role "basenode"}} {:directory {:_id "/basenode/directory/junk" :action :remove :group "root" :name "junk" :owner "root" :path "/tmp/junk" :role "basenode"}} {:pkg {:_id "/devtools/pkg/rust" :action :ensure :name "rust" :role "devtools"}} {:pkg {:_id "/devtools/pkg/git" :action :ensure :name "git" :role "devtools"}} {:file {:_id "/devtools/file/git_config" :action :ensure :group "root" :name "git_config" :owner "root" :path "/tmp/git-config.txt" :role "devtools" :source "git-config"}}])
   (test (group-by-action-and-type data)
         {:ensure {:directory @[{:_id "/basenode/directory/merp"
                                 :action :ensure
@@ -89,15 +89,15 @@
                            :path "/tmp/git-config.txt"
                            :role "devtools"
                            :source "git-config"}]
-                  :package @[{:_id "/basenode/package/helix"
+                  :pkg @[{:_id "/basenode/pkg/helix"
                               :action :ensure
                               :name "helix"
                               :role "basenode"}
-                             {:_id "/devtools/package/rust"
+                             {:_id "/devtools/pkg/rust"
                               :action :ensure
                               :name "rust"
                               :role "devtools"}
-                             {:_id "/devtools/package/git"
+                             {:_id "/devtools/pkg/git"
                               :action :ensure
                               :name "git"
                               :role "devtools"}]}
@@ -108,7 +108,7 @@
                                 :owner "root"
                                 :path "/tmp/junk"
                                 :role "basenode"}]
-                  :package @[{:_id "/basenode/package/go"
+                  :pkg @[{:_id "/basenode/pkg/go"
                               :action :remove
                               :name "go"
                               :role "basenode"}]}}))

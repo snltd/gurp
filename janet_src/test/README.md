@@ -21,7 +21,7 @@ potentially subject to huge amounts of change):
 
 ```
 (gurp/role basenode
-      :package "helix"
+      :pkg "helix"
       :file {:name "basenode_file"
              :path "/tmp/basenode.txt"
              :content "some words"}

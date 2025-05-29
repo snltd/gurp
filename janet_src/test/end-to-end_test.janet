@@ -2,8 +2,8 @@
 (use ../lib/gurp)
 
 (role devtools
-      (package/ensure "rust")
-      (package/ensure "git")
+      (pkg/ensure "rust")
+      (pkg/ensure "git")
       (file/ensure "hx_config"
                    :owner :/devtools/file/git_config/owner
                    :path "/tmp/hx-config.txt"
@@ -14,8 +14,8 @@
                    :source "git-config"))
 
 (role basenode
-      (package/ensure "helix")
-      (package/remove "go")
+      (pkg/ensure "helix")
+      (pkg/remove "go")
       (file/ensure "basenode_file"
                    :path "/tmp/basenode.txt"
                    :content "some words")
@@ -66,15 +66,15 @@
                                        :path "/tmp/git-config.txt"
                                        :role "devtools"
                                        :source "git-config"}]
-                              :package @[{:_id "/basenode/package/helix"
+                              :pkg @[{:_id "/basenode/pkg/helix"
                                           :action :ensure
                                           :name "helix"
                                           :role "basenode"}
-                                         {:_id "/devtools/package/rust"
+                                         {:_id "/devtools/pkg/rust"
                                           :action :ensure
                                           :name "rust"
                                           :role "devtools"}
-                                         {:_id "/devtools/package/git"
+                                         {:_id "/devtools/pkg/git"
                                           :action :ensure
                                           :name "git"
                                           :role "devtools"}]}
@@ -85,7 +85,7 @@
                                             :owner "root"
                                             :path "/tmp/junk"
                                             :role "basenode"}]
-                              :package @[{:_id "/basenode/package/go"
+                              :pkg @[{:_id "/basenode/pkg/go"
                                           :action :remove
                                           :name "go"
                                           :role "basenode"}]}}}))

@@ -27,6 +27,7 @@ pub fn defopts() -> Opts {
         debug: false,
         noop: false,
         verbose: false,
+        gurp_lib_path: None,
     }
 }
 
@@ -36,6 +37,7 @@ pub fn defopts_noop() -> Opts {
         debug: false,
         noop: true,
         verbose: false,
+        gurp_lib_path: None,
     }
 }
 
