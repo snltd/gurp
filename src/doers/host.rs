@@ -1,5 +1,6 @@
 use crate::debug;
-use crate::doers::types::HostConfig;
+use crate::doers::constants::ONE_RESOURCE_ONE_ERROR;
+use crate::doers::types::{ApplySummary, HostConfig};
 use crate::utils::janet_helpers as j;
 use crate::utils::parser;
 use crate::utils::reader;
@@ -64,11 +65,11 @@ pub fn do_it(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
     match client.run(host_config) {
         // Here we return from doing all the work of configuring the host
         Ok(_) => {
-            println!("TODO: handle successful return properly");
+            println!("Returning OK from host do_it");
             Ok(true)
         }
         Err(e) => {
-            eprintln!("TODO: handle errors properly");
+            println!("Returning ERR from host do_it");
             Err(anyhow!(e))
         }
     }
@@ -122,6 +123,8 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
         }
     };
 
+    println!("Inside  janet handler");
+
     match parser::parse_config(janet_metadata, janet_resources, &opts) {
         Ok(config) => match ensure_and_remove(&config, &opts) {
             // TODO handle what happens
@@ -143,10 +146,22 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<bool> {
 
     let ensure_order = &["pkg", "directory"];
 
+    let mut summary_total = ApplySummary {
+        resources: 0,
+        changes: 0,
+        errors: 0,
+    };
+
     for resource_type in ensure_order {
         if let Some(resources) = config.resources.ensure.get(*resource_type) {
             for resource in resources {
-                resource.apply(opts)?;
+                match resource.apply(opts) {
+                    Ok(summary) => summary_total = summary_total + summary,
+                    Err(e) => {
+                        eprintln!("{} ensure ERROR: {}", resource_type, e);
+                        summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
+                    }
+                }
             }
         } else {
             debug!(opts, "No {} resources to ensure", resource_type);
@@ -158,12 +173,30 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<bool> {
     for resource_type in remove_order {
         if let Some(resources) = config.resources.remove.get(*resource_type) {
             for resource in resources {
-                resource.apply(opts)?;
+                match resource.apply(opts) {
+                    Ok(summary) => summary_total = summary_total + summary,
+                    Err(e) => {
+                        eprintln!("{} remove ERROR: {}", resource_type, e);
+                        summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
+                    }
+                }
             }
         } else {
             debug!(opts, "No {} resources to remove", resource_type);
         }
     }
 
-    Ok(true)
+    report_results(&summary_total, opts);
+
+    // This returns into the Janet handler, which only needs to know if things worked or not.
+
+    Ok(summary_total.errors == 0)
+}
+
+// TODO this should be able to produce machine parseable output, and also send to Wavefront.
+fn report_results(summary_total: &ApplySummary, _opts: &Opts) {
+    println!(
+        "resources: {}  changes: {}  errors: {}",
+        summary_total.resources, summary_total.changes, summary_total.errors
+    );
 }

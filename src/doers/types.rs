@@ -5,9 +5,31 @@ use crate::{
     utils::types::Opts,
 };
 use std::collections::HashMap;
+use std::ops::Add;
+
+pub type Changes<'a> = Vec<&'a str>;
+
+#[derive(Debug, PartialEq)]
+pub struct ApplySummary {
+    pub resources: u32,
+    pub changes: u32,
+    pub errors: u32,
+}
+
+impl Add for ApplySummary {
+    type Output = ApplySummary;
+
+    fn add(self, other: ApplySummary) -> ApplySummary {
+        ApplySummary {
+            resources: self.resources + other.resources,
+            changes: self.changes + other.changes,
+            errors: self.errors + other.errors,
+        }
+    }
+}
 
 pub trait Apply {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<bool>;
+    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary>;
 }
 
 #[derive(Debug)]
@@ -17,7 +39,7 @@ pub enum Ensure {
 }
 
 impl Ensure {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<bool> {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         match self {
             Ensure::Directory(resource) => resource.apply(opts),
             Ensure::Pkgs(resource) => resource.apply(opts),
@@ -32,7 +54,7 @@ pub enum Remove {
 }
 
 impl Remove {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<bool> {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         match self {
             Remove::Directory(resource) => resource.apply(opts),
             Remove::Pkgs(resource) => resource.apply(opts),

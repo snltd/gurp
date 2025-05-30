@@ -37,6 +37,7 @@ fn main() -> anyhow::Result<()> {
     };
 
     for host_file in cli.files {
+        println!("top of host_file loop");
         match doers::host::do_it(&host_file, &opts) {
             Ok(_) => (),
             Err(e) => {
@@ -44,7 +45,9 @@ fn main() -> anyhow::Result<()> {
                 exit_code = 1;
             }
         }
+        println!("bottom of host_file loop");
     }
 
+    println!("just about to exit from main");
     std::process::exit(exit_code);
 }
