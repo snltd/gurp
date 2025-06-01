@@ -1,9 +1,14 @@
 mod doers;
 mod test_utils;
 mod utils;
+
+use crate::doers::host;
+use crate::doers::types::ApplySummary;
+use crate::utils::janet_helpers;
 use crate::utils::types::Opts;
 use camino::Utf8PathBuf;
 use clap::Parser;
+use std::time::{Duration, Instant};
 
 #[derive(Parser)]
 #[clap(version, about = "Configures hosts, or might do one day", long_about = None)]
@@ -20,9 +25,9 @@ struct Cli {
     /// Specify a gurp Janet library, in preference to the built-in
     #[arg(short = 'L', long = "gurp-lib", global = true)]
     gurp_lib_path: Option<Utf8PathBuf>,
-    /// One or more hostfiles
+    /// Host configuration file
     #[arg(required = true)]
-    files: Vec<Utf8PathBuf>,
+    host_config_file: Utf8PathBuf,
 } // might not need the global. Will there be subcommands?
 
 fn main() -> anyhow::Result<()> {
@@ -36,18 +41,34 @@ fn main() -> anyhow::Result<()> {
         gurp_lib_path: cli.gurp_lib_path,
     };
 
-    for host_file in cli.files {
-        println!("top of host_file loop");
-        match doers::host::do_it(&host_file, &opts) {
-            Ok(_) => (),
-            Err(e) => {
-                eprintln!("ERROR: {}", e);
-                exit_code = 1;
-            }
-        }
-        println!("bottom of host_file loop");
+    let start_time = Instant::now();
+    let apply_result = host::apply(&cli.host_config_file, &opts);
+    let elapsed_time = start_time.elapsed();
+
+    // Without this we can't unwrap the summary
+    unsafe {
+        janetrs::lowlevel::janet_init();
     }
 
-    println!("just about to exit from main");
+    match apply_result {
+        Ok(summary) => match janet_helpers::unwrap_summary(&summary) {
+            Ok(summary) => report_results(&summary, elapsed_time, &opts),
+            Err(e) => eprintln!("Failed to unwrap host summary: {}", e),
+        },
+        Err(e) => {
+            exit_code = 1;
+            eprintln!("ERROR: {}", e);
+        }
+    }
+
     std::process::exit(exit_code);
+}
+
+// TODO this should be able to produce machine parseable output, and also send to Wavefront.
+fn report_results(summary_total: &ApplySummary, elapsed_time: Duration, _opts: &Opts) {
+    println!("Run time: {:.3?}", elapsed_time);
+    println!(
+        "resources: {}  changes: {}  errors: {}",
+        summary_total.resources, summary_total.changes, summary_total.errors
+    );
 }

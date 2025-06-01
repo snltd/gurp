@@ -9,7 +9,7 @@ use std::ops::Add;
 
 pub type Changes<'a> = Vec<&'a str>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub struct ApplySummary {
     pub resources: u32,
     pub changes: u32,
