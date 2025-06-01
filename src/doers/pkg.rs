@@ -47,12 +47,14 @@ struct GlobalPkgs {
 
 #[derive(Debug)]
 pub struct PkgsToEnsure {
-    pkg_list: Vec<String>,
+    pub id: String,
+    pub pkg_list: Vec<String>,
 }
 
 #[derive(Debug)]
 pub struct PkgsToRemove {
-    pkg_list: Vec<String>,
+    pub id: String,
+    pub pkg_list: Vec<String>,
 }
 
 impl Apply for PkgsToEnsure {
@@ -143,6 +145,7 @@ pub fn unpack_ensure_list(resource_list: &JanetArray, opts: &Opts) -> anyhow::Re
     }
 
     Ok(vec![Ensure::Pkgs(PkgsToEnsure {
+        id: "/aggr/pkg/all".to_owned(),
         pkg_list: install_list,
     })])
 }
@@ -168,6 +171,7 @@ pub fn unpack_remove_list(resource_list: &JanetArray, opts: &Opts) -> anyhow::Re
     }
 
     Ok(vec![Remove::Pkgs(PkgsToRemove {
+        id: "/aggr/pkg/all".to_owned(),
         pkg_list: remove_list,
     })])
 }

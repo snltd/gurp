@@ -178,7 +178,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
                 match resource.apply(opts) {
                     Ok(summary) => summary_total = summary_total + summary,
                     Err(e) => {
-                        eprintln!("{} ensure ERROR: {}", resource_type, e);
+                        eprintln!("ERROR trying to ensure {}: {}", resource.id(), e);
                         summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
                     }
                 }
