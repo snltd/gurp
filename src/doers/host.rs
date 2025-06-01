@@ -1,5 +1,6 @@
 use crate::debug;
-use crate::doers::types::HostConfig;
+use crate::doers::constants::ONE_RESOURCE_ONE_ERROR;
+use crate::doers::types::{ApplySummary, HostConfig};
 use crate::utils::janet_helpers as j;
 use crate::utils::parser;
 use crate::utils::reader;
@@ -7,7 +8,7 @@ use crate::utils::types::Opts;
 use anyhow::anyhow;
 use camino::Utf8PathBuf;
 use colored::Colorize;
-use janetrs::{Janet, TaggedJanet, env::CFunOptions};
+use janetrs::{Janet, TaggedJanet, env::CFunOptions, structs};
 use std::cell::RefCell;
 
 thread_local! {
@@ -31,9 +32,30 @@ thread_local! {
 // looks valid, then apply the resources in order. Some resource types, say packages, can be
 // grouped together
 // into a single action.
+//
+//
+//
+// top of host_file loop
+// Inside  janet handler
+// :pkg resources are not implemented
+// :file resources are not implemented
+// :pkg resources are not implemented
+// Configuring host 'example'
+// Creating directory /tmp/merp [merp]
+// resources: 2  changes: 1  errors: 0
+// Inside  janet handler
+// :pkg resources are not implemented
+// :file resources are not implemented
+// :pkg resources are not implemented
+// Configuring host 'example'
+// Creating directory /tmp/merp [merp]
+// resources: 2  changes: 1  errors: 0
+// Returning OK from host do_it
+// bottom of host_file loop
+// just about to exit from main
 
 // This is the entry point from main
-pub fn do_it(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
+pub fn apply(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<Janet> {
     debug!(opts, "Stashing opts object");
 
     OPTIONS.with(|o| {
@@ -63,12 +85,9 @@ pub fn do_it(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
     // Compile the Janet and kick off the machine configuration by calling the handler defined above.
     match client.run(host_config) {
         // Here we return from doing all the work of configuring the host
-        Ok(_) => {
-            println!("TODO: handle successful return properly");
-            Ok(true)
-        }
+        Ok(summary) => Ok(summary),
         Err(e) => {
-            eprintln!("TODO: handle errors properly");
+            println!("Returning ERR from host apply");
             Err(anyhow!(e))
         }
     }
@@ -124,9 +143,13 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
 
     match parser::parse_config(janet_metadata, janet_resources, &opts) {
         Ok(config) => match ensure_and_remove(&config, &opts) {
-            // TODO handle what happens
-            Ok(_) => Janet::from(true),
-            Err(_) => Janet::from(false),
+            // You'd think a JanetAbstract would be the right thing here, but it gets very
+            // complicated. The struct is simple enough to do this.
+            Ok(summary) => j::wrap_summary(&summary),
+            Err(e) => {
+                eprintln!("ERROR trapped in Janet handler: {}", e);
+                Janet::from(false)
+            }
         },
         Err(e) => {
             eprintln!("Failed to generate Rust config: {}", e);
@@ -135,7 +158,7 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
     }
 }
 
-fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<bool> {
+fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySummary> {
     println!(
         "{}",
         format!("Configuring host '{}'", config.metadata.name).bold()
@@ -143,10 +166,22 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<bool> {
 
     let ensure_order = &["pkg", "directory"];
 
+    let mut summary_total = ApplySummary {
+        resources: 0,
+        changes: 0,
+        errors: 0,
+    };
+
     for resource_type in ensure_order {
         if let Some(resources) = config.resources.ensure.get(*resource_type) {
             for resource in resources {
-                resource.apply(opts)?;
+                match resource.apply(opts) {
+                    Ok(summary) => summary_total = summary_total + summary,
+                    Err(e) => {
+                        eprintln!("{} ensure ERROR: {}", resource_type, e);
+                        summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
+                    }
+                }
             }
         } else {
             debug!(opts, "No {} resources to ensure", resource_type);
@@ -158,12 +193,18 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<bool> {
     for resource_type in remove_order {
         if let Some(resources) = config.resources.remove.get(*resource_type) {
             for resource in resources {
-                resource.apply(opts)?;
+                match resource.apply(opts) {
+                    Ok(summary) => summary_total = summary_total + summary,
+                    Err(e) => {
+                        eprintln!("{} remove ERROR: {}", resource_type, e);
+                        summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
+                    }
+                }
             }
         } else {
             debug!(opts, "No {} resources to remove", resource_type);
         }
     }
 
-    Ok(true)
+    Ok(summary_total)
 }

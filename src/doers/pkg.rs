@@ -9,7 +9,10 @@
 // what can and cannot be done, so runs `pkg(1)` in the most efficient way
 // possible. `pkg(1)` is rather a slow tool.
 
-use crate::doers::types::{Apply, Ensure, Remove};
+use crate::doers::constants::{
+    NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
+};
+use crate::doers::types::{Apply, ApplySummary, Ensure, Remove};
 use crate::utils::janet_helpers::JanetExt;
 use crate::utils::types::Opts;
 use crate::{debug, info, verbose, warn};
@@ -53,10 +56,14 @@ pub struct PkgsToRemove {
 }
 
 impl Apply for PkgsToEnsure {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<bool> {
+    // Because they're all done in one shot, we consider any number of package changes to be a
+    // single change. You could _MAYBE_ justify this as saying "it's one change to the package
+    // state" but I know in my heart that's cheating. I might make it smarter in the future.
+    //
+    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         if self.pkg_list.is_empty() {
             verbose!(opts, "No pkgs to install");
-            return Ok(false);
+            return Ok(NO_RESOURCES_TO_CHANGE);
         }
 
         info!(opts, "pkg: installing {}", self.pkg_list.join(", "));
@@ -73,15 +80,19 @@ impl Apply for PkgsToEnsure {
         cmd.args(&self.pkg_list);
         let result = cmd.status()?;
 
-        Ok(result.success())
+        if result.success() {
+            Ok(ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            Ok(ONE_RESOURCE_ONE_ERROR)
+        }
     }
 }
 
 impl Apply for PkgsToRemove {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<bool> {
+    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         if self.pkg_list.is_empty() {
             verbose!(opts, "No pkgs to remove");
-            return Ok(false);
+            return Ok(NO_RESOURCES_TO_CHANGE);
         }
 
         info!(opts, "pkg: removing {}", self.pkg_list.join(", "));
@@ -98,7 +109,11 @@ impl Apply for PkgsToRemove {
         cmd.args(&self.pkg_list);
         let result = cmd.status()?;
 
-        Ok(result.success())
+        if result.success() {
+            Ok(ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            Ok(ONE_RESOURCE_ONE_ERROR)
+        }
     }
 }
 

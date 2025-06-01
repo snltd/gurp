@@ -1,5 +1,7 @@
-use crate::doers::types::Apply;
-use crate::doers::types::{Ensure, Remove};
+use crate::doers::constants::{
+    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
+};
+use crate::doers::types::{Apply, ApplySummary, Changes, Ensure, Remove};
 use crate::utils::janet_helpers::{JanetExt, JanetStructExt};
 use crate::utils::types::Opts;
 use crate::{debug, info, verbose};
@@ -15,8 +17,6 @@ use std::os::unix::fs::PermissionsExt;
 use std::sync::LazyLock;
 
 // THINGS TO KNOW / THINGS TO DO.
-// References to other resources do not work yet, for this or any other resource type.
-// Removing a directory ALWAYS removes all its contents.
 // Creating a directory is `mkdir -p` style.
 // You can only define users and groups by their names. UIDs/GIDs do not work.
 
@@ -113,8 +113,6 @@ pub fn unpack_remove_list(resource_list: &JanetArray) -> anyhow::Result<Vec<Remo
         .collect()
 }
 
-type Changes<'a> = Vec<&'a str>;
-
 fn diff_states<'a>(current: &DirectoryEnsureState, desired: &DirectoryEnsureState) -> Changes<'a> {
     let mut to_change = Vec::new();
 
@@ -149,40 +147,40 @@ impl DirectoryToEnsure {
 }
 
 impl Apply for DirectoryToRemove {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<bool> {
+    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         if !self.path.exists() {
             debug!(
                 opts,
                 "directory {} [{}]: {} does not exist", self.name, self.id, self.path
             );
-            return Ok(false);
+            return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
         if NOT_ALLOWED_TO_REMOVE.contains(&self.path) {
             eprintln!("Not allowed to remove {}", self.path);
-            return Ok(false);
+            return Ok(ONE_RESOURCE_ONE_ERROR);
         }
 
         info!(opts, "directory {}: REMOVE", self.name);
 
         if opts.noop {
-            Ok(false)
+            Ok(ONE_RESOURCE_NOOP)
         } else {
             fs::remove_dir_all(&self.path)?;
-            Ok(true)
+            Ok(ONE_RESOURCE_ONE_CHANGE)
         }
     }
 }
 
 impl Apply for DirectoryToEnsure {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<bool> {
+    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let current_state = if self.path.exists() {
             self.state()
         } else {
             info!(opts, "Creating directory {} [{}]", self.path, self.name);
 
             if opts.noop {
-                return Ok(false);
+                return Ok(ONE_RESOURCE_ONE_CHANGE);
             }
 
             fs::create_dir_all(&self.path)?;
@@ -201,7 +199,7 @@ impl Apply for DirectoryToEnsure {
                 self.path,
                 self.name
             );
-            return Ok(false);
+            return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
         let final_owner = if changes.contains(&"owner") {
@@ -259,7 +257,7 @@ impl Apply for DirectoryToEnsure {
             fs::set_permissions(&self.path, fs::Permissions::from_mode(mode))?;
         }
 
-        Ok(true)
+        Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 }
 
@@ -307,7 +305,10 @@ mod test {
             path: Utf8PathBuf::from("/does/not/exist/dir-to-test"),
         };
 
-        assert!(!dir_does_not_exist.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_NO_CHANGE,
+            dir_does_not_exist.apply(&defopts()).unwrap()
+        );
     }
 
     #[test]
@@ -318,7 +319,10 @@ mod test {
             path: Utf8PathBuf::from("/"),
         };
 
-        assert!(!disallowed_dir.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_ERROR,
+            disallowed_dir.apply(&defopts()).unwrap()
+        );
     }
 
     #[test]
@@ -334,7 +338,7 @@ mod test {
         };
 
         assert!(dir.exists());
-        assert!(test_dir.apply(&defopts()).unwrap());
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, test_dir.apply(&defopts()).unwrap());
         assert!(!dir.exists());
     }
 
@@ -351,7 +355,10 @@ mod test {
         };
 
         assert!(dir.exists());
-        assert!(!test_dir.apply(&defopts_noop()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_NO_CHANGE,
+            test_dir.apply(&defopts_noop()).unwrap()
+        );
         assert!(dir.exists());
     }
 
