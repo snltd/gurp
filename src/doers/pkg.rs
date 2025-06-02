@@ -12,7 +12,7 @@
 use crate::doers::constants::{
     NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
 };
-use crate::doers::types::{Apply, ApplySummary, Ensure, Remove};
+use crate::doers::types::{Apply, ApplySummary, Ensure, HasId, Remove};
 use crate::utils::janet_helpers::JanetExt;
 use crate::utils::types::Opts;
 use crate::{debug, info, verbose, warn};
@@ -49,6 +49,12 @@ struct GlobalPkgs {
 pub struct PkgsToEnsure {
     pub id: String,
     pub pkg_list: Vec<String>,
+}
+
+impl HasId for PkgsToEnsure {
+    fn id(&self) -> &str {
+        &self.id
+    }
 }
 
 #[derive(Debug)]

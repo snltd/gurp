@@ -86,20 +86,8 @@ pub struct HostResources {
     pub remove: RemoveResources,
 }
 
-trait HasId {
+pub trait HasId {
     fn id(&self) -> &str;
-}
-
-impl HasId for DirectoryToEnsure {
-    fn id(&self) -> &str {
-        &self.id
-    }
-}
-
-impl HasId for PkgsToEnsure {
-    fn id(&self) -> &str {
-        &self.id
-    }
 }
 
 impl Ensure {
@@ -107,6 +95,7 @@ impl Ensure {
         match self {
             Ensure::Directory(inner) => inner.id(),
             Ensure::Pkgs(inner) => inner.id(),
+            Ensure::User(inner) => inner.id(),
         }
     }
 }

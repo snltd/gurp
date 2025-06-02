@@ -1,7 +1,7 @@
 use crate::doers::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
 };
-use crate::doers::types::{Apply, ApplySummary, Changes, Ensure, Remove};
+use crate::doers::types::{Apply, ApplySummary, Changes, Ensure, HasId, Remove};
 use crate::utils::janet_helpers::{JanetExt, JanetStructExt};
 use crate::utils::types::Opts;
 use crate::{debug, info, verbose};
@@ -76,6 +76,12 @@ impl TryFrom<&Janet> for DirectoryToEnsure {
             mode: data.get_field_string("mode")?,
             path: data.get_field_pathbuf("path")?,
         })
+    }
+}
+
+impl HasId for DirectoryToEnsure {
+    fn id(&self) -> &str {
+        &self.id
     }
 }
 
