@@ -12,7 +12,7 @@
 use crate::doers::constants::{
     NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
 };
-use crate::doers::types::{Apply, ApplySummary, Ensure, Remove};
+use crate::doers::types::{Apply, ApplySummary, Ensure, HasId, Remove};
 use crate::utils::janet_helpers::JanetExt;
 use crate::utils::types::Opts;
 use crate::{debug, info, verbose, warn};
@@ -47,12 +47,20 @@ struct GlobalPkgs {
 
 #[derive(Debug)]
 pub struct PkgsToEnsure {
-    pkg_list: Vec<String>,
+    pub id: String,
+    pub pkg_list: Vec<String>,
+}
+
+impl HasId for PkgsToEnsure {
+    fn id(&self) -> &str {
+        &self.id
+    }
 }
 
 #[derive(Debug)]
 pub struct PkgsToRemove {
-    pkg_list: Vec<String>,
+    pub id: String,
+    pub pkg_list: Vec<String>,
 }
 
 impl Apply for PkgsToEnsure {
@@ -143,6 +151,7 @@ pub fn unpack_ensure_list(resource_list: &JanetArray, opts: &Opts) -> anyhow::Re
     }
 
     Ok(vec![Ensure::Pkgs(PkgsToEnsure {
+        id: "/aggr/pkg/all".to_owned(),
         pkg_list: install_list,
     })])
 }
@@ -168,6 +177,7 @@ pub fn unpack_remove_list(resource_list: &JanetArray, opts: &Opts) -> anyhow::Re
     }
 
     Ok(vec![Remove::Pkgs(PkgsToRemove {
+        id: "/aggr/pkg/all".to_owned(),
         pkg_list: remove_list,
     })])
 }

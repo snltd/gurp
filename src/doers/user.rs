@@ -1,7 +1,7 @@
 use crate::doers::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
 };
-use crate::doers::types::{Apply, ApplySummary, Changes, Ensure, Remove};
+use crate::doers::types::{Apply, ApplySummary, Changes, Ensure, HasId, Remove};
 use crate::utils::helpers;
 use crate::utils::janet_helpers::{JanetExt, JanetStructExt};
 use crate::utils::types::Opts;
@@ -36,6 +36,12 @@ pub struct UserToEnsure {
     pub gcos: String,
     pub primary_group: String,
     pub other_groups: Vec<String>,
+}
+
+impl HasId for UserToEnsure {
+    fn id(&self) -> &str {
+        &self.id
+    }
 }
 
 #[derive(Debug, PartialEq)]

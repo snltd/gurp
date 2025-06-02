@@ -85,3 +85,17 @@ pub struct HostResources {
     pub ensure: EnsureResources,
     pub remove: RemoveResources,
 }
+
+pub trait HasId {
+    fn id(&self) -> &str;
+}
+
+impl Ensure {
+    pub fn id(&self) -> &str {
+        match self {
+            Ensure::Directory(inner) => inner.id(),
+            Ensure::Pkgs(inner) => inner.id(),
+            Ensure::User(inner) => inner.id(),
+        }
+    }
+}
