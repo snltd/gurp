@@ -1,7 +1,7 @@
-// use crate::doers::directory::DirectoryResource;
 use crate::{
     doers::directory::{DirectoryToEnsure, DirectoryToRemove},
     doers::pkg::{PkgsToEnsure, PkgsToRemove},
+    doers::user::{UserToEnsure, UserToRemove},
     utils::types::Opts,
 };
 use std::collections::HashMap;
@@ -36,6 +36,7 @@ pub trait Apply {
 pub enum Ensure {
     Directory(DirectoryToEnsure),
     Pkgs(PkgsToEnsure),
+    User(UserToEnsure),
 }
 
 impl Ensure {
@@ -43,6 +44,7 @@ impl Ensure {
         match self {
             Ensure::Directory(resource) => resource.apply(opts),
             Ensure::Pkgs(resource) => resource.apply(opts),
+            Ensure::User(resource) => resource.apply(opts),
         }
     }
 }
@@ -51,6 +53,7 @@ impl Ensure {
 pub enum Remove {
     Directory(DirectoryToRemove),
     Pkgs(PkgsToRemove),
+    User(UserToRemove),
 }
 
 impl Remove {
@@ -58,6 +61,7 @@ impl Remove {
         match self {
             Remove::Directory(resource) => resource.apply(opts),
             Remove::Pkgs(resource) => resource.apply(opts),
+            Remove::User(resource) => resource.apply(opts),
         }
     }
 }
@@ -72,8 +76,6 @@ pub struct HostConfig {
 pub struct HostMetadata {
     pub name: String,
 }
-
-// type ResourceType = String;
 
 pub type EnsureResources = HashMap<String, Vec<Ensure>>;
 pub type RemoveResources = HashMap<String, Vec<Remove>>;

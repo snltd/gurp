@@ -1,6 +1,7 @@
 use crate::doers::directory;
 use crate::doers::types::{EnsureResources, RemoveResources};
 use crate::doers::types::{HostConfig, HostMetadata, HostResources};
+use crate::doers::user;
 use crate::utils::janet_helpers::JanetExt;
 use crate::utils::types::Opts;
 use crate::{debug, verbose};
@@ -42,6 +43,9 @@ fn extract_ensure_resources(
                     directory::unpack_ensure_list(&resource_list)?,
                 );
             }
+            ":user" => {
+                ret.insert("user".to_owned(), user::unpack_ensure_list(&resource_list)?);
+            }
             other => eprintln!("{} resources are not implemented", other),
         }
     }
@@ -69,6 +73,9 @@ fn extract_remove_resources(
                     "directory".to_owned(),
                     directory::unpack_remove_list(&resource_list)?,
                 );
+            }
+            ":user" => {
+                ret.insert("user".to_owned(), user::unpack_remove_list(&resource_list)?);
             }
             other => eprintln!("{} resources are not implemented", other),
         }

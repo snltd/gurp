@@ -1,3 +1,6 @@
+**This is part documentation, part thinking-out-loud, part
+README-driven-development. It might all change. Trust nothing.**
+
 ## Doers and Resources
 
 Doers are the things that do the things. Not the best name, but neither are the
@@ -81,3 +84,20 @@ version pinning.
 
 If you run gurp with `--noop`, `pkg(1)` will be executed, but with the `-n`
 flag. Therefore it can cause a noop run to fail.
+
+### Users
+
+User resources are created by shelling out to the `useradd(1m)` command. Only
+the essentials are covered by keywords, but there's a mechanism to drop in
+arbitrary options.
+
+```clojure
+(user/ensure "my-name"
+  :username "rdf"
+  :gcos "My Real Name"
+  :primary-group "sysadmin"
+  :home-dir "/export/rob/rdf"
+  :other-groups ["wheel"]
+  :shell "/bin/zsh"
+  :useradd-options ["-z"])
+```
