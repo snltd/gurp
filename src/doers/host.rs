@@ -8,7 +8,7 @@ use crate::utils::types::Opts;
 use anyhow::anyhow;
 use camino::Utf8PathBuf;
 use colored::Colorize;
-use janetrs::{Janet, TaggedJanet, env::CFunOptions, structs};
+use janetrs::{Janet, TaggedJanet, env::CFunOptions};
 use std::cell::RefCell;
 
 thread_local! {
@@ -32,27 +32,6 @@ thread_local! {
 // looks valid, then apply the resources in order. Some resource types, say packages, can be
 // grouped together
 // into a single action.
-//
-//
-//
-// top of host_file loop
-// Inside  janet handler
-// :pkg resources are not implemented
-// :file resources are not implemented
-// :pkg resources are not implemented
-// Configuring host 'example'
-// Creating directory /tmp/merp [merp]
-// resources: 2  changes: 1  errors: 0
-// Inside  janet handler
-// :pkg resources are not implemented
-// :file resources are not implemented
-// :pkg resources are not implemented
-// Configuring host 'example'
-// Creating directory /tmp/merp [merp]
-// resources: 2  changes: 1  errors: 0
-// Returning OK from host do_it
-// bottom of host_file loop
-// just about to exit from main
 
 // This is the entry point from main
 pub fn apply(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<Janet> {
@@ -164,7 +143,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
         format!("Configuring host '{}'", config.metadata.name).bold()
     );
 
-    let ensure_order = &["pkg", "directory"];
+    let ensure_order = &["pkg", "user", "directory"];
 
     let mut summary_total = ApplySummary {
         resources: 0,
@@ -188,7 +167,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
         }
     }
 
-    let remove_order = &["directory", "pkg"];
+    let remove_order = &["directory", "user", "pkg"];
 
     for resource_type in remove_order {
         if let Some(resources) = config.resources.remove.get(*resource_type) {

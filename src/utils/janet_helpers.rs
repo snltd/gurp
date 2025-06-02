@@ -77,6 +77,7 @@ pub trait JanetStructExt {
     // fn get_field_bool(&self, field: &str) -> anyhow::Result<bool>;
     fn get_field_pathbuf(&self, field: &str) -> anyhow::Result<Utf8PathBuf>;
     fn get_field_u32(&self, field: &str) -> anyhow::Result<u32>;
+    fn get_field_string_array(&self, field: &str) -> anyhow::Result<Vec<String>>;
 }
 
 impl JanetStructExt for JanetStruct<'_> {
@@ -142,6 +143,27 @@ impl JanetStructExt for JanetStruct<'_> {
         }
 
         Ok(path)
+    }
+
+    fn get_field_string_array(&self, field: &str) -> anyhow::Result<Vec<String>> {
+        use crate::utils::janet_helpers::JanetExt;
+
+        let ret = self
+            .get(Janet::keyword(field.into()))
+            .context(format!(
+                "no '{}' field in {:?}",
+                Janet::keyword(field.into()),
+                self
+            ))?
+            .extract_array()?
+            .iter()
+            .filter_map(|item| match item.unwrap() {
+                TaggedJanet::String(val) => Some(val.to_string()),
+                _ => None,
+            })
+            .collect();
+
+        Ok(ret)
     }
 }
 
