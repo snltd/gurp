@@ -4,7 +4,7 @@ use crate::utils::types::Opts;
 use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
 use janetrs::client::JanetClient;
-use janetrs::{Janet, JanetArray, JanetStruct, TaggedJanet};
+use janetrs::{Janet, JanetArray, JanetStruct, JanetTuple, TaggedJanet};
 
 // We need to pass an ApplySummary through the Rust->Janet->Rust boundary. These two symmetrical
 // functions are far simpler than faffing about with JanetAbstract.
@@ -23,13 +23,13 @@ pub fn unwrap_summary(summary: &Janet) -> anyhow::Result<ApplySummary> {
 
     Ok(ApplySummary {
         resources: apply_struct
-            .get_field_u32("resources")
-            .context("no resources in apply summary")?,
+            .get_field_u32_string_key("resources")
+            .context("no 'resources' key in apply summary")?,
         changes: apply_struct
-            .get_field_u32("changes")
+            .get_field_u32_string_key("changes")
             .context("no changes in apply summary")?,
         errors: apply_struct
-            .get_field_u32("errors")
+            .get_field_u32_string_key("errors")
             .context("no errors in apply summary")?,
     })
 }
@@ -42,6 +42,7 @@ pub fn janet_client(opts: &Opts) -> JanetClient {
 pub trait JanetExt {
     fn extract_struct(&self) -> anyhow::Result<JanetStruct>;
     fn extract_array(&self) -> anyhow::Result<JanetArray>;
+    fn extract_tuple(&self) -> anyhow::Result<JanetTuple>;
 }
 
 impl JanetExt for Janet {
@@ -70,6 +71,19 @@ impl JanetExt for Janet {
 
         Ok(array)
     }
+
+    fn extract_tuple(&self) -> anyhow::Result<JanetTuple> {
+        let extracted = self.unwrap();
+
+        let array = match extracted {
+            TaggedJanet::Tuple(array) => array,
+            _ => {
+                return Err(anyhow!(format!("did not find tuple in {:?}", self)));
+            }
+        };
+
+        Ok(array)
+    }
 }
 
 pub trait JanetStructExt {
@@ -77,17 +91,18 @@ pub trait JanetStructExt {
     // fn get_field_bool(&self, field: &str) -> anyhow::Result<bool>;
     fn get_field_pathbuf(&self, field: &str) -> anyhow::Result<Utf8PathBuf>;
     fn get_field_u32(&self, field: &str) -> anyhow::Result<u32>;
-    fn get_field_string_array(&self, field: &str) -> anyhow::Result<Vec<String>>;
+    fn get_field_u32_string_key(&self, field: &str) -> anyhow::Result<u32>;
+    fn get_field_string_tuple(&self, field: &str) -> anyhow::Result<Vec<String>>;
 }
 
 impl JanetStructExt for JanetStruct<'_> {
     fn get_field_u32(&self, field: &str) -> anyhow::Result<u32> {
         let j_val = self
-            .get(field)
+            .get(Janet::keyword(field.into()))
             .context(format!(
                 "no '{}' field in {:?}",
                 Janet::keyword(field.into()),
-                self
+                self.keys()
             ))?
             .unwrap();
 
@@ -108,6 +123,30 @@ impl JanetStructExt for JanetStruct<'_> {
             .to_string();
 
         Ok(ret)
+    }
+
+    // This is needed in one particular case. We wrap our final ApplySummary in a Janet at
+    // the end of the Janet callback, then we unpack it in main.rs. Because the original Janet
+    // execution is complete at that point, we need to initialise a second Janet interpreted to
+    // unpack the wrapped ApplySummary. Using keywords as keys, as we normally do in Janet, does
+    // not work in this circumstance because keywords effectively map to a memory address, so
+    // :resources in the first interpreter is not the same as :resources in the second. But,
+    // "resources" is the same wherever you are. So we use string keys in that one circumstance.
+    //
+    fn get_field_u32_string_key(&self, field: &str) -> anyhow::Result<u32> {
+        let j_val = self
+            .get(field)
+            .context(format!(
+                "no '{}' field in {:?}",
+                Janet::keyword(field.into()),
+                self.keys()
+            ))?
+            .unwrap();
+
+        match j_val {
+            TaggedJanet::Number(n) => Ok(n as u32),
+            other => Err(anyhow!("Expected number, found {}", other)),
+        }
     }
 
     /*
@@ -145,7 +184,7 @@ impl JanetStructExt for JanetStruct<'_> {
         Ok(path)
     }
 
-    fn get_field_string_array(&self, field: &str) -> anyhow::Result<Vec<String>> {
+    fn get_field_string_tuple(&self, field: &str) -> anyhow::Result<Vec<String>> {
         use crate::utils::janet_helpers::JanetExt;
 
         let ret = self
@@ -155,7 +194,7 @@ impl JanetStructExt for JanetStruct<'_> {
                 Janet::keyword(field.into()),
                 self
             ))?
-            .extract_array()?
+            .extract_tuple()?
             .iter()
             .filter_map(|item| match item.unwrap() {
                 TaggedJanet::String(val) => Some(val.to_string()),

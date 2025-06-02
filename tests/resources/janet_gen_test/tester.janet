@@ -3,7 +3,7 @@
       (pkg/remove "go")
       (user/ensure "tester"
         :gcos "Testy McTestface"
-        :uid 266
+        :uid 280
         :group "sysadmin"
         :other-groups ["staff" "users"]
         :home-dir "/export/home/tester"

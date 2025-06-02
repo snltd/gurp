@@ -1,9 +1,8 @@
-use std::process::Command;
-
 use crate::doers::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
 };
 use crate::doers::types::{Apply, ApplySummary, Changes, Ensure, Remove};
+use crate::utils::helpers;
 use crate::utils::janet_helpers::{JanetExt, JanetStructExt};
 use crate::utils::types::Opts;
 use crate::{debug, info, verbose};
@@ -12,7 +11,13 @@ use camino::Utf8PathBuf;
 use colored::Colorize;
 use janetrs::{Janet, JanetArray};
 use nix::unistd::{Group, User};
+use std::process::Command;
 use std::sync::LazyLock;
+
+// THINGS TO KNOW
+// Removing a group from "other-groups" will not remove the user from that group. This is a
+// limitation of usermod(1m). I may fix it, or I may not.
+// We do not create the user's home dir. Deal with that yourself.
 
 static NOT_ALLOWED_TO_REMOVE: LazyLock<Vec<&str>> = LazyLock::new(|| {
     vec![
@@ -41,6 +46,7 @@ pub struct UserToRemove {
 
 #[derive(Debug, PartialEq)]
 pub struct UserEnsureState {
+    pub name: String,
     pub uid: u32,
     pub home_dir: Utf8PathBuf,
     pub shell: Utf8PathBuf,
@@ -62,8 +68,8 @@ impl TryFrom<&Janet> for UserToEnsure {
             home_dir: data.get_field_pathbuf("home-dir")?,
             shell: data.get_field_pathbuf("shell")?,
             gcos: data.get_field_string("gcos")?,
-            primary_group: data.get_field_string("primary-group")?,
-            other_groups: data.get_field_string_array("other-groups")?,
+            primary_group: data.get_field_string("group")?,
+            other_groups: data.get_field_string_tuple("other-groups")?,
         })
     }
 }
@@ -138,6 +144,7 @@ impl UserToEnsure {
 
     fn desired_state(&self) -> anyhow::Result<UserEnsureState> {
         Ok(UserEnsureState {
+            name: self.name.to_owned(),
             uid: self.uid,
             home_dir: self.home_dir.to_owned(),
             shell: self.shell.to_owned(),
@@ -198,6 +205,10 @@ impl Apply for UserToEnsure {
             cmd.arg("-u").arg(desired_state.uid.to_string());
         }
 
+        cmd.arg(desired_state.name);
+
+        debug!(opts, "{}", helpers::command_to_string(&cmd));
+
         let result = cmd.status()?;
 
         if result.success() {
@@ -209,10 +220,6 @@ impl Apply for UserToEnsure {
 }
 
 fn create(state: &UserEnsureState, opts: &Opts) -> anyhow::Result<ApplySummary> {
-    if opts.noop {
-        return Ok(ONE_RESOURCE_ONE_CHANGE);
-    }
-
     let mut cmd = Command::new("/usr/sbin/useradd");
 
     cmd.arg("-c")
@@ -220,11 +227,18 @@ fn create(state: &UserEnsureState, opts: &Opts) -> anyhow::Result<ApplySummary> 
         .arg("-g")
         .arg(&state.primary_group)
         .arg("-G")
-        .arg(&state.other_groups.join(","))
+        .arg(state.other_groups.join(","))
         .arg("-s")
         .arg(&state.shell)
         .arg("-u")
-        .arg(state.uid.to_string());
+        .arg(state.uid.to_string())
+        .arg(&state.name);
+
+    debug!(opts, "{}", helpers::command_to_string(&cmd));
+
+    if opts.noop {
+        return Ok(ONE_RESOURCE_ONE_CHANGE);
+    }
 
     let result = cmd.status()?;
 
@@ -247,6 +261,7 @@ fn user_state(
                 .name;
 
             let ret = UserEnsureState {
+                name: user.name,
                 uid: user.uid.into(),
                 home_dir: Utf8PathBuf::try_from(user.dir)?,
                 shell: Utf8PathBuf::try_from(user.shell)?,
@@ -269,12 +284,16 @@ impl Apply for UserToRemove {
                     return Ok(ONE_RESOURCE_ONE_ERROR);
                 }
 
-                verbose!(opts, "Removing use {} [{}]", self.name, self.id);
+                let mut cmd = Command::new("/usr/sbin/userdel");
+                cmd.arg(&self.name);
+
+                info!(opts, "Removing user {} [{}]", self.name, self.id);
+                debug!(opts, "{}", helpers::command_to_string(&cmd));
 
                 if opts.noop {
                     Ok(ONE_RESOURCE_NOOP)
                 } else {
-                    let result = Command::new("/usr/sbin/userdel").arg(&self.name).status()?;
+                    let result = cmd.status()?;
 
                     if result.success() {
                         Ok(ONE_RESOURCE_ONE_CHANGE)
