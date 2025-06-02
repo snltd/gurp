@@ -53,6 +53,14 @@
   "Given a directory name and specification, return a directory remove struct"
   (generic-resource :directory :remove name specs))
 
+(defn user/ensure [name & specs]
+  "Given a user name and specification, return a user ensure struct"
+  (generic-resource :user :ensure name specs))
+
+(defn user/remove [name & specs]
+  "Given a user name and specification, return a user remove struct"
+  (generic-resource :user :remove name specs))
+
 (defmacro host [host-name & host-definition]
   "The top-level wrapper used to define a host to be configured"
   ~(defn machine-config

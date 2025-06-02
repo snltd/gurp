@@ -1,6 +1,13 @@
 (role basenode
       (pkg/ensure "helix")
       (pkg/remove "go")
+      (user/ensure "tester"
+        :gcos "Testy McTestface"
+        :uid 280
+        :group "sysadmin"
+        :other-groups ["staff" "users"]
+        :home-dir "/export/home/tester"
+        :shell "/bin/ksh")
       (file/ensure "basenode_file"
                    :path "/tmp/basenode.txt"
                    :content "some words")

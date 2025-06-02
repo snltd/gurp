@@ -51,9 +51,15 @@ fn main() -> anyhow::Result<()> {
     }
 
     match apply_result {
-        Ok(summary) => match janet_helpers::unwrap_summary(&summary) {
-            Ok(summary) => report_results(&summary, elapsed_time, &opts),
-            Err(e) => eprintln!("Failed to unwrap host summary: {}", e),
+        Ok(res) => match res.unwrap() {
+            janetrs::TaggedJanet::Struct(_) => match janet_helpers::unwrap_summary(&res) {
+                Ok(summary) => report_results(&summary, elapsed_time, &opts),
+                Err(e) => eprintln!("Failed to unwrap host summary: {}: {}", e, res),
+            },
+            _ => {
+                exit_code = 1;
+                eprintln!("ERROR: execution error");
+            }
         },
         Err(e) => {
             exit_code = 1;
