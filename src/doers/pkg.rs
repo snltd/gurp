@@ -16,6 +16,7 @@ use crate::doers::types::{Apply, ApplySummary, Ensure, HasId, Remove};
 use crate::utils::janet_helpers::JanetExt;
 use crate::utils::types::Opts;
 use crate::{debug, info, verbose, warn};
+use anyhow::Context;
 use colored::Colorize;
 use janetrs::JanetArray;
 use janetrs::JanetKeyword;

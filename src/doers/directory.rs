@@ -200,7 +200,7 @@ impl Apply for DirectoryToEnsure {
         }?
         .context(format!("Cannot get state of {}", self.path))?;
 
-        let desired_state = self.desired_state()?;
+        let desired_state = self.desired_state();
 
         let changes = diff_states(&current_state, &desired_state);
 
