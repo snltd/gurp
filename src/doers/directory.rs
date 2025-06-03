@@ -85,6 +85,12 @@ impl HasId for DirectoryToEnsure {
     }
 }
 
+impl HasId for DirectoryToRemove {
+    fn id(&self) -> &str {
+        &self.id
+    }
+}
+
 impl TryFrom<&Janet> for DirectoryToRemove {
     type Error = anyhow::Error;
 
@@ -142,13 +148,13 @@ impl DirectoryToEnsure {
         directory_state(&self.path, &self.name)
     }
 
-    fn desired_state(&self) -> anyhow::Result<DirectoryEnsureState> {
-        Ok(DirectoryEnsureState {
-            name: self.name.to_owned(),
-            group: self.group.to_owned(),
-            owner: self.owner.to_owned(),
-            mode: self.mode.to_owned(),
-        })
+    fn desired_state(&self) -> DirectoryEnsureState {
+        DirectoryEnsureState {
+            name: self.name.clone(),
+            group: self.group.clone(),
+            owner: self.owner.clone(),
+            mode: self.mode.clone(),
+        }
     }
 }
 

@@ -44,6 +44,12 @@ impl HasId for UserToEnsure {
     }
 }
 
+impl HasId for UserToRemove {
+    fn id(&self) -> &str {
+        &self.id
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct UserToRemove {
     pub id: String,
@@ -262,17 +268,16 @@ fn user_state(
 ) -> anyhow::Result<Option<UserEnsureState>> {
     match User::from_name(user_name)? {
         Some(user) => {
-            let primary_gid = Group::from_name(group_name)?
-                .context(format!("Group '{}' not found", group_name))?
-                .name;
-
+            let group = Group::from_name(group_name)?
+                .context(format!("Group '{}' not found for user '{}'", group_name, user_name))?;
+                
             let ret = UserEnsureState {
                 name: user.name,
                 uid: user.uid.into(),
                 home_dir: Utf8PathBuf::try_from(user.dir)?,
                 shell: Utf8PathBuf::try_from(user.shell)?,
                 gcos: user.gecos.to_string_lossy().to_string(),
-                primary_group: primary_gid.to_string(),
+                primary_group: group.name,
                 other_groups: other_groups.clone(),
             };
             Ok(Some(ret))

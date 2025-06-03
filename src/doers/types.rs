@@ -99,3 +99,13 @@ impl Ensure {
         }
     }
 }
+
+impl Remove {
+    pub fn id(&self) -> &str {
+        match self {
+            Remove::Directory(inner) => inner.id(),
+            Remove::Pkgs(inner) => inner.id(),
+            Remove::User(inner) => inner.id(),
+        }
+    }
+}

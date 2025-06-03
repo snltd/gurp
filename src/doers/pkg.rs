@@ -57,6 +57,12 @@ impl HasId for PkgsToEnsure {
     }
 }
 
+impl HasId for PkgsToRemove {
+    fn id(&self) -> &str {
+        &self.id
+    }
+}
+
 #[derive(Debug)]
 pub struct PkgsToRemove {
     pub id: String,
@@ -131,22 +137,23 @@ pub fn unpack_ensure_list(resource_list: &JanetArray, opts: &Opts) -> anyhow::Re
 
     let mut install_list = Vec::new();
 
-    for candidate_struct in resource_list {
-        let candidate_struct = candidate_struct.extract_struct()?;
-        if let Some(candidate) = candidate_struct.get(JanetKeyword::from("name")) {
-            let candidate = candidate.unwrap().to_string();
+    for candidate in resource_list {
+        let candidate_struct = candidate.extract_struct().context("Failed to extract package struct")?;
+        let name = candidate_struct
+            .get(JanetKeyword::from("name"))
+            .context("Package struct missing 'name' field")?
+            .to_string();
 
-            if global_pkgs.installed.contains(&candidate) {
-                debug!(opts, "pkg: {} already installed", candidate);
-                continue;
-            }
+        if global_pkgs.installed.contains(&name) {
+            debug!(opts, "pkg: {} already installed", name);
+            continue;
+        }
 
-            if global_pkgs.available.contains(&candidate) {
-                debug!(opts, "pkg: {} scheduled for install", candidate);
-                install_list.push(candidate);
-            } else {
-                warn!(opts, "pkg: {} not available", candidate);
-            }
+        if global_pkgs.available.contains(&name) {
+            debug!(opts, "pkg: {} scheduled for install", name);
+            install_list.push(name);
+        } else {
+            warn!(opts, "pkg: {} not available", name);
         }
     }
 
