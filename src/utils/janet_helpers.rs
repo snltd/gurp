@@ -1,5 +1,5 @@
 use crate::debug;
-use crate::doers::types::ApplySummary;
+use crate::doers::types::{Action, ApplySummary};
 use crate::utils::types::Opts;
 use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
@@ -203,6 +203,17 @@ impl JanetStructExt for JanetStruct<'_> {
             .collect();
 
         Ok(ret)
+    }
+}
+
+pub fn action_as_enum(janet_data: &JanetStruct) -> anyhow::Result<Action> {
+    match janet_data.get_field_string("action")?.as_str() {
+        ":ensure" => Ok(Action::Ensure),
+        ":remove" => Ok(Action::Remove),
+        other => Err(anyhow!(
+            "Action must be :ensure or :remove. Got '{}'",
+            other
+        )),
     }
 }
 

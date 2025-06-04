@@ -1,11 +1,12 @@
 use crate::doers::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
+    PROTECTED_DIRS,
 };
-use crate::doers::types::{Apply, ApplySummary, Changes, Ensure, HasId, Remove};
-use crate::utils::janet_helpers::{JanetExt, JanetStructExt};
+use crate::doers::types::{Action, Apply, ApplySummary, Changes, Ensure, Remove};
+use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
 use crate::utils::types::Opts;
-use crate::{debug, info, verbose};
-use anyhow::Context;
+use crate::{change, creating, debug, info, no_change, not_there, verbose};
+use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
 use colored::Colorize;
 use janetrs::{Janet, JanetArray};
@@ -14,93 +15,52 @@ use std::fs;
 use std::os::unix;
 use std::os::unix::fs::MetadataExt;
 use std::os::unix::fs::PermissionsExt;
-use std::sync::LazyLock;
 
 // THINGS TO KNOW / THINGS TO DO.
 // Creating a directory is `mkdir -p` style.
 // You can only define users and groups by their names. UIDs/GIDs do not work.
 
-static NOT_ALLOWED_TO_REMOVE: LazyLock<Vec<Utf8PathBuf>> = LazyLock::new(|| {
-    vec![
-        Utf8PathBuf::from("/"),
-        Utf8PathBuf::from("/bin"),
-        Utf8PathBuf::from("/etc"),
-        Utf8PathBuf::from("/lib"),
-        Utf8PathBuf::from("/sbin"),
-        Utf8PathBuf::from("/usr"),
-        Utf8PathBuf::from("/usr/lib"),
-    ]
-});
-
-#[derive(Debug, PartialEq)]
-pub struct DirectoryToEnsure {
-    pub id: String,
-    pub group: String,
-    pub mode: String,
-    pub name: String,
-    pub owner: String,
-    pub path: Utf8PathBuf,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct DirectoryToRemove {
-    pub id: String,
-    pub path: Utf8PathBuf,
-    pub name: String,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct DirectoryEnsureState {
-    pub group: String,
-    pub mode: String,
-    pub owner: String,
-    pub name: String,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct DirectoryRemoveState {
+pub struct GurpDirectory {
+    pub action: Action,
     pub exists: bool,
+    pub id: String,
+    pub name: Utf8PathBuf, // The Path
+    pub desired_state: Option<DirectoryState>,
+    pub doer: String,
 }
 
-impl TryFrom<&Janet> for DirectoryToEnsure {
+#[derive(Debug, PartialEq)]
+pub struct DirectoryState {
+    pub group: String,
+    pub mode: String,
+    pub owner: String,
+}
+
+impl TryFrom<&Janet> for GurpDirectory {
     type Error = anyhow::Error;
 
-    fn try_from(value: &Janet) -> anyhow::Result<DirectoryToEnsure> {
+    fn try_from(value: &Janet) -> anyhow::Result<Self> {
         let data = value.extract_struct()?;
+        let path = data.get_field_pathbuf("path")?;
+        let exists = path.exists();
+        let action = janet_helpers::action_as_enum(&data)?;
 
-        Ok(DirectoryToEnsure {
+        let state = match action {
+            Action::Ensure => Some(DirectoryState {
+                group: data.get_field_string("group")?,
+                mode: data.get_field_string("mode")?,
+                owner: data.get_field_string("owner")?,
+            }),
+            Action::Remove => None,
+        };
+
+        Ok(GurpDirectory {
+            action,
+            doer: "directory".to_owned(),
+            exists,
             id: data.get_field_string("_id")?,
-            name: data.get_field_string("name")?,
-            group: data.get_field_string("group")?,
-            owner: data.get_field_string("owner")?,
-            mode: data.get_field_string("mode")?,
-            path: data.get_field_pathbuf("path")?,
-        })
-    }
-}
-
-impl HasId for DirectoryToEnsure {
-    fn id(&self) -> &str {
-        &self.id
-    }
-}
-
-impl HasId for DirectoryToRemove {
-    fn id(&self) -> &str {
-        &self.id
-    }
-}
-
-impl TryFrom<&Janet> for DirectoryToRemove {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Janet) -> anyhow::Result<DirectoryToRemove> {
-        let data = value.extract_struct()?;
-
-        Ok(DirectoryToRemove {
-            name: data.get_field_string("name")?,
-            id: data.get_field_string("_id")?,
-            path: data.get_field_pathbuf("path")?,
+            name: data.get_field_pathbuf("name")?,
+            desired_state: state,
         })
     }
 }
@@ -109,7 +69,7 @@ pub fn unpack_ensure_list(resource_list: &JanetArray) -> anyhow::Result<Vec<Ensu
     resource_list
         .iter()
         .map(|r| {
-            let dir = DirectoryToEnsure::try_from(r)?;
+            let dir = GurpDirectory::try_from(r)?;
             Ok(Ensure::Directory(dir))
         })
         .collect()
@@ -119,127 +79,74 @@ pub fn unpack_remove_list(resource_list: &JanetArray) -> anyhow::Result<Vec<Remo
     resource_list
         .iter()
         .map(|r| {
-            let dir = DirectoryToRemove::try_from(r)?;
+            let dir = GurpDirectory::try_from(r)?;
             Ok(Remove::Directory(dir))
         })
         .collect()
 }
 
-fn diff_states<'a>(current: &DirectoryEnsureState, desired: &DirectoryEnsureState) -> Changes<'a> {
-    let mut to_change = Vec::new();
-
-    if current.group != desired.group {
-        to_change.push("group");
-    }
-
-    if current.owner != desired.owner {
-        to_change.push("owner");
-    }
-
-    if current.mode != desired.mode {
-        to_change.push("mode");
-    }
-
-    to_change
-}
-
-impl DirectoryToEnsure {
-    fn state(&self) -> anyhow::Result<Option<DirectoryEnsureState>> {
-        directory_state(&self.path, &self.name)
-    }
-
-    fn desired_state(&self) -> DirectoryEnsureState {
-        DirectoryEnsureState {
-            name: self.name.clone(),
-            group: self.group.clone(),
-            owner: self.owner.clone(),
-            mode: self.mode.clone(),
-        }
-    }
-}
-
-impl Apply for DirectoryToRemove {
+impl GurpDirectory {
     fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        if !self.path.exists() {
-            debug!(
-                opts,
-                "directory {} [{}]: {} does not exist", self.name, self.id, self.path
-            );
-            return Ok(ONE_RESOURCE_NO_CHANGE);
-        }
-
-        if NOT_ALLOWED_TO_REMOVE.contains(&self.path) {
-            eprintln!("Not allowed to remove {}", self.path);
-            return Ok(ONE_RESOURCE_ONE_ERROR);
-        }
-
-        info!(opts, "directory {}: REMOVE", self.name);
-
-        if opts.noop {
-            Ok(ONE_RESOURCE_NOOP)
-        } else {
-            fs::remove_dir_all(&self.path)?;
-            Ok(ONE_RESOURCE_ONE_CHANGE)
+        match self.action {
+            Action::Ensure => self.apply_ensure(opts),
+            Action::Remove => self.apply_remove(opts),
         }
     }
-}
 
-impl Apply for DirectoryToEnsure {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        let current_state = if self.path.exists() {
-            self.state()
+    fn apply_remove(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if self.exists {
+            if PROTECTED_DIRS.contains(&self.name) {
+                eprintln!("Not allowed to remove {}", self.name);
+                return Ok(ONE_RESOURCE_ONE_ERROR);
+            }
+
+            // info!(opts, "directory {}: REMOVE", self.name);
+
+            if opts.noop {
+                Ok(ONE_RESOURCE_NOOP)
+            } else {
+                fs::remove_dir_all(&self.name)?;
+                Ok(ONE_RESOURCE_ONE_CHANGE)
+            }
         } else {
-            info!(opts, "Creating directory {} [{}]", self.path, self.name);
+            // not_there!(opts);
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        }
+    }
+
+    fn apply_ensure(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if !self.exists {
+            // creating!();
 
             if opts.noop {
                 return Ok(ONE_RESOURCE_ONE_CHANGE);
             }
 
-            fs::create_dir_all(&self.path)?;
-            directory_state(&self.path, &self.name)
-        }?
-        .context(format!("Cannot get state of {}", self.path))?;
+            fs::create_dir_all(&self.name)?;
+        }
 
-        let desired_state = self.desired_state();
-
-        let changes = diff_states(&current_state, &desired_state);
+        let path = self.name;
+        let current = self.current_state()?;
+        let desired = self.desired_state.unwrap();
+        let changes = self.changes(&current, &desired);
 
         if changes.is_empty() {
-            verbose!(
-                opts,
-                "directory: {} [{}] : no change required",
-                self.path,
-                self.name
-            );
+            // no_change!(opts);
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
         let final_owner = if changes.contains(&"owner") {
-            info!(
-                opts,
-                "directory: {} [{}] : owner {} -> {}",
-                self.path,
-                self.name,
-                current_state.owner,
-                desired_state.owner
-            );
-            desired_state.owner
+            // change!(self, current_state, owner);
+            desired.owner
         } else {
-            current_state.owner
+            current.owner
         };
 
         let final_group = if changes.contains(&"group") {
-            info!(
-                opts,
-                "directory: {} [{}] : group {} -> {}",
-                self.path,
-                self.name,
-                current_state.group,
-                desired_state.group
-            );
-            desired_state.group
+            // change!(self, current_state, group);
+            desired.group
         } else {
-            current_state.group
+            current.group
         };
 
         if changes.contains(&"group") || changes.contains(&"owner") {
@@ -248,34 +155,39 @@ impl Apply for DirectoryToEnsure {
             let group = Group::from_name(&final_group)?
                 .ok_or_else(|| anyhow::anyhow!("No such group '{}'", final_group))?;
 
-            unix::fs::chown(
-                &self.path,
-                Some(user.uid.as_raw()),
-                Some(group.gid.as_raw()),
-            )?;
+            unix::fs::chown(&path, Some(user.uid.as_raw()), Some(group.gid.as_raw()))?;
         }
 
         if changes.contains(&"mode") {
-            info!(
-                opts,
-                "directory: {} [{}] : mode {} -> {}",
-                self.path,
-                self.name,
-                current_state.mode,
-                desired_state.mode
-            );
-
-            let mode = u32::from_str_radix(&self.mode, 8)?;
-            fs::set_permissions(&self.path, fs::Permissions::from_mode(mode))?;
+            // change!(self, current_state, mode);
+            let mode = u32::from_str_radix(&desired.mode, 8)?;
+            fs::set_permissions(path, fs::Permissions::from_mode(mode))?;
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
-}
 
-fn directory_state(path: &Utf8PathBuf, name: &str) -> anyhow::Result<Option<DirectoryEnsureState>> {
-    if path.exists() {
-        let metadata = fs::metadata(path)?;
+    fn changes<'a>(&self, current: &DirectoryState, desired: &DirectoryState) -> Changes<'a> {
+        let mut to_change = Vec::new();
+
+        if current.group != desired.group {
+            to_change.push("group");
+        }
+
+        if current.owner != desired.owner {
+            to_change.push("owner");
+        }
+
+        if current.mode != desired.mode {
+            to_change.push("mode");
+        }
+
+        to_change
+    }
+
+    fn current_state(&self) -> anyhow::Result<DirectoryState> {
+        let path = &self.name;
+        let metadata = fs::metadata(&path)?;
 
         // TODO deal with numeric and string users and groups
         //
@@ -284,20 +196,18 @@ fn directory_state(path: &Utf8PathBuf, name: &str) -> anyhow::Result<Option<Dire
         let gid = metadata.gid();
 
         let owner = User::from_uid(Uid::from_raw(uid))?
-            .context("cannot get directory user")?
-            .name;
-        let group = Group::from_gid(Gid::from_raw(gid))?
-            .context("cannot get directory group")?
+            .context(format!("cannot get owner for directory {}", path))?
             .name;
 
-        Ok(Some(DirectoryEnsureState {
-            name: name.to_owned(),
+        let group = Group::from_gid(Gid::from_raw(gid))?
+            .context(format!("cannot get group for directory {}", path))?
+            .name;
+
+        Ok(DirectoryState {
             group: group.to_owned(),
             owner: owner.to_owned(),
             mode: mode.to_owned(),
-        }))
-    } else {
-        Ok(None)
+        })
     }
 }
 
@@ -312,9 +222,8 @@ mod test {
     #[test]
     fn test_directory_remove_apply_does_not_exist() {
         let dir_does_not_exist = DirectoryToRemove {
-            name: "tester".to_owned(),
+            name: Utf8PathBuf::from("/does/not/exist/dir-to-test"),
             id: "/test-role/directory/dir-to-test".to_owned(),
-            path: Utf8PathBuf::from("/does/not/exist/dir-to-test"),
         };
 
         assert_eq!(

@@ -139,7 +139,9 @@ pub fn unpack_ensure_list(resource_list: &JanetArray, opts: &Opts) -> anyhow::Re
     let mut install_list = Vec::new();
 
     for candidate in resource_list {
-        let candidate_struct = candidate.extract_struct().context("Failed to extract package struct")?;
+        let candidate_struct = candidate
+            .extract_struct()
+            .context("Failed to extract package struct")?;
         let name = candidate_struct
             .get(JanetKeyword::from("name"))
             .context("Package struct missing 'name' field")?

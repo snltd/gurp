@@ -5,7 +5,7 @@ use crate::doers::types::{Apply, ApplySummary, Changes, Ensure, HasId, Remove};
 use crate::utils::helpers;
 use crate::utils::janet_helpers::{JanetExt, JanetStructExt};
 use crate::utils::types::Opts;
-use crate::{debug, info, verbose};
+use crate::{debug, generate_unpack_functions, info, verbose};
 use anyhow::Context;
 use camino::Utf8PathBuf;
 use colored::Colorize;
@@ -26,19 +26,15 @@ static NOT_ALLOWED_TO_REMOVE: LazyLock<Vec<&str>> = LazyLock::new(|| {
     ]
 });
 
+generate_unpack_functions!(User);
+
 #[derive(Debug, PartialEq)]
-pub struct UserToEnsure {
+pub struct UserDesiredState {
     pub id: String,
-    pub name: String,
-    pub uid: u32,
-    pub home_dir: Utf8PathBuf,
-    pub shell: Utf8PathBuf,
-    pub gcos: String,
-    pub primary_group: String,
-    pub other_groups: Vec<String>,
+    state: UserState,
 }
 
-impl HasId for UserToEnsure {
+impl HasId for UserDesiredState {
     fn id(&self) -> &str {
         &self.id
     }
@@ -57,7 +53,7 @@ pub struct UserToRemove {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct UserEnsureState {
+pub struct UserState {
     pub name: String,
     pub uid: u32,
     pub home_dir: Utf8PathBuf,
@@ -67,21 +63,23 @@ pub struct UserEnsureState {
     pub other_groups: Vec<String>,
 }
 
-impl TryFrom<&Janet> for UserToEnsure {
+impl TryFrom<&Janet> for UserDesiredState {
     type Error = anyhow::Error;
 
-    fn try_from(value: &Janet) -> anyhow::Result<UserToEnsure> {
+    fn try_from(value: &Janet) -> anyhow::Result<UserDesiredState> {
         let data = value.extract_struct()?;
 
-        Ok(UserToEnsure {
+        Ok(UserDesiredState {
             id: data.get_field_string("_id")?,
-            name: data.get_field_string("name")?,
-            uid: data.get_field_u32("uid")?,
-            home_dir: data.get_field_pathbuf("home-dir")?,
-            shell: data.get_field_pathbuf("shell")?,
-            gcos: data.get_field_string("gcos")?,
-            primary_group: data.get_field_string("group")?,
-            other_groups: data.get_field_string_tuple("other-groups")?,
+            state: UserState {
+                name: data.get_field_string("name")?,
+                uid: data.get_field_u32("uid")?,
+                home_dir: data.get_field_pathbuf("home-dir")?,
+                shell: data.get_field_pathbuf("shell")?,
+                gcos: data.get_field_string("gcos")?,
+                primary_group: data.get_field_string("group")?,
+                other_groups: data.get_field_string_tuple("other-groups")?,
+            },
         })
     }
 }
@@ -99,27 +97,7 @@ impl TryFrom<&Janet> for UserToRemove {
     }
 }
 
-pub fn unpack_ensure_list(resource_list: &JanetArray) -> anyhow::Result<Vec<Ensure>> {
-    resource_list
-        .iter()
-        .map(|r| {
-            let dir = UserToEnsure::try_from(r)?;
-            Ok(Ensure::User(dir))
-        })
-        .collect()
-}
-
-pub fn unpack_remove_list(resource_list: &JanetArray) -> anyhow::Result<Vec<Remove>> {
-    resource_list
-        .iter()
-        .map(|r| {
-            let dir = UserToRemove::try_from(r)?;
-            Ok(Remove::User(dir))
-        })
-        .collect()
-}
-
-fn diff_states<'a>(current: &UserEnsureState, desired: &UserEnsureState) -> Changes<'a> {
+fn diff_states<'a>(current: &UserState, desired: &UserState) -> Changes<'a> {
     let mut to_change = Vec::new();
 
     if current.uid != desired.uid {
@@ -149,13 +127,13 @@ fn diff_states<'a>(current: &UserEnsureState, desired: &UserEnsureState) -> Chan
     to_change
 }
 
-impl UserToEnsure {
-    fn state(&self) -> anyhow::Result<Option<UserEnsureState>> {
+impl UserDesiredState {
+    fn state(&self) -> anyhow::Result<Option<UserState>> {
         user_state(&self.name, &self.primary_group, &self.other_groups)
     }
 
-    fn desired_state(&self) -> anyhow::Result<UserEnsureState> {
-        Ok(UserEnsureState {
+    fn desired_state(&self) -> anyhow::Result<UserState> {
+        Ok(UserState {
             name: self.name.to_owned(),
             uid: self.uid,
             home_dir: self.home_dir.to_owned(),
@@ -167,7 +145,7 @@ impl UserToEnsure {
     }
 }
 
-impl Apply for UserToEnsure {
+impl Apply for UserDesiredState {
     fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let current_state = match user_state(&self.name, &self.primary_group, &self.other_groups)? {
             Some(state) => state,
@@ -231,7 +209,7 @@ impl Apply for UserToEnsure {
     }
 }
 
-fn create(state: &UserEnsureState, opts: &Opts) -> anyhow::Result<ApplySummary> {
+fn create(state: &UserState, opts: &Opts) -> anyhow::Result<ApplySummary> {
     let mut cmd = Command::new("/usr/sbin/useradd");
 
     cmd.arg("-c")
@@ -265,13 +243,15 @@ fn user_state(
     user_name: &str,
     group_name: &str,
     other_groups: &Vec<String>,
-) -> anyhow::Result<Option<UserEnsureState>> {
+) -> anyhow::Result<Option<UserState>> {
     match User::from_name(user_name)? {
         Some(user) => {
-            let group = Group::from_name(group_name)?
-                .context(format!("Group '{}' not found for user '{}'", group_name, user_name))?;
-                
-            let ret = UserEnsureState {
+            let group = Group::from_name(group_name)?.context(format!(
+                "Group '{}' not found for user '{}'",
+                group_name, user_name
+            ))?;
+
+            let ret = UserState {
                 name: user.name,
                 uid: user.uid.into(),
                 home_dir: Utf8PathBuf::try_from(user.dir)?,
@@ -291,7 +271,7 @@ impl Apply for UserToRemove {
         match User::from_name(&self.name)? {
             Some(_) => {
                 if NOT_ALLOWED_TO_REMOVE.contains(&self.name.as_str()) {
-                    eprintln!("Not allowed to remove {}", self.name);
+                    eprintln!("Not allowed to remove user {}", self.name);
                     return Ok(ONE_RESOURCE_ONE_ERROR);
                 }
 
