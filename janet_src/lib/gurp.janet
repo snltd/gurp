@@ -20,7 +20,10 @@
   (->>
     (struct/with-proto
       (proto resource-type)
-      :_id (string "/" (dyn :role-dyn) "/" resource-type "/" resource-name)
+      :_id (string "/" (dyn :role-dyn "NO-ROLE")
+                   "/" resource-type
+                   "/" (get (table ;resource-spec) :label
+                            (string/replace-all "/" "_" resource-name)))
       :role (dyn :role-dyn)
       :name resource-name
       :action action
@@ -104,8 +107,8 @@
 
              (if (keyword? referenced-val)
                (resolve-reference referenced-val seen)
-             referenced-val))
-         val)))
+               referenced-val))
+           val)))
 
   (defn resolve-resource [res]
     (var out @{})

@@ -11,52 +11,48 @@
   (role basenode
         (pkg/ensure "helix")
         (pkg/remove "go")
-        (file/ensure "basenode_file"
-                     :path "/tmp/basenode.txt"
+        (file/ensure "/tmp/basenode.txt"
                      :content "some words")
-        (directory/ensure "merp"
-                          :path "/tmp/merp"
+        (directory/ensure "/tmp/merp"
                           :owner "tester"
                           :group "tester"
                           :mode "0755")
-        (directory/remove "junk"
-                          :path "/tmp/junk"))
+        (directory/remove "/tmp/junk"))
   (defn basenode
     []
     (setdyn :role-dyn (string (quote basenode)))
-    (collect-resources (pkg/ensure "helix") (pkg/remove "go") (file/ensure "basenode_file" :path "/tmp/basenode.txt" :content "some words") (directory/ensure "merp" :path "/tmp/merp" :owner "tester" :group "tester" :mode "0755") (directory/remove "junk" :path "/tmp/junk"))))
+    (collect-resources (pkg/ensure "helix") (pkg/remove "go") (file/ensure "/tmp/basenode.txt" :content "some words") (directory/ensure "/tmp/merp" :owner "tester" :group "tester" :mode "0755") (directory/remove "/tmp/junk"))))
 
 (deftest "remove-pkg-resource"
-  (test (pkg/remove "helix")
-        {:pkg {:_id "//pkg/helix"
-                   :action :remove
-                   :name "helix"}}))
+  (test (pkg/remove "/ooce/editor/helix")
+        {:pkg {:_id "/NO-ROLE/pkg/_ooce_editor_helix"
+               :action :remove
+               :name "/ooce/editor/helix"}}))
 
 (deftest "ensure-resources"
   (setdyn :role-dyn (string "test-role"))
 
   (test "gibbus"
         "gibbus")
-  (test (file/ensure "my-file"
-                     :path "/my/file"
+  (test (file/ensure "/my/file"
                      :owner "rob")
-        {:file {:_id "/test-role/file/my-file"
-                :action :ensure
-                :group "root"
-                :name "my-file"
-                :owner "rob"
-                :path "/my/file"
-                :role "test-role"}})
+    {:file {:_id "/test-role/file/_my_file"
+            :action :ensure
+            :group "root"
+            :name "/my/file"
+            :owner "rob"
+            :role "test-role"}})
 
-  (test (directory/ensure "deep-dir"
-                          :path "/my/deep/nested/directory/needs/recursion"
+  (test (directory/ensure "/my/deep/nested/directory/needs/recursion"
+                          :label "deep-dir"
                           :owner "daemon")
         {:directory {:_id "/test-role/directory/deep-dir"
                      :action :ensure
                      :group "root"
+                     :label "deep-dir"
                      :name "deep-dir"
                      :owner "daemon"
-                     :path "/my/deep/nested/directory/needs/recursion"
+                     :name "/my/deep/nested/directory/needs/recursion"
                      :role "test-role"}})
 
   (setdyn :role-dyn nil))
@@ -90,17 +86,17 @@
                            :role "devtools"
                            :source "git-config"}]
                   :pkg @[{:_id "/basenode/pkg/helix"
-                              :action :ensure
-                              :name "helix"
-                              :role "basenode"}
-                             {:_id "/devtools/pkg/rust"
-                              :action :ensure
-                              :name "rust"
-                              :role "devtools"}
-                             {:_id "/devtools/pkg/git"
-                              :action :ensure
-                              :name "git"
-                              :role "devtools"}]}
+                          :action :ensure
+                          :name "helix"
+                          :role "basenode"}
+                         {:_id "/devtools/pkg/rust"
+                          :action :ensure
+                          :name "rust"
+                          :role "devtools"}
+                         {:_id "/devtools/pkg/git"
+                          :action :ensure
+                          :name "git"
+                          :role "devtools"}]}
          :remove {:directory @[{:_id "/basenode/directory/junk"
                                 :action :remove
                                 :group "root"
@@ -109,6 +105,6 @@
                                 :path "/tmp/junk"
                                 :role "basenode"}]
                   :pkg @[{:_id "/basenode/pkg/go"
-                              :action :remove
-                              :name "go"
-                              :role "basenode"}]}}))
+                          :action :remove
+                          :name "go"
+                          :role "basenode"}]}}))

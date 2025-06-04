@@ -5,13 +5,12 @@
 
 (role role-a
       (pkg/ensure "helix")
-      (file/ensure "a1"
-                   :path "/tmp/a1"
+      (file/ensure "/tmp/a1"
+                   :label "a1"
                    :owner "tester"
                    :content "blah"))
 (role role-b
-      (file/ensure "b1"
-                   :path "/tmp/b1"
+      (file/ensure "/tmp/b1"
                    :owner :/role-a/file/a2/owner
                    :content "blah-blah"))
 

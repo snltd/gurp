@@ -4,28 +4,25 @@
 (role devtools
       (pkg/ensure "rust")
       (pkg/ensure "git")
-      (file/ensure "hx_config"
-                   :owner :/devtools/file/git_config/owner
-                   :path "/tmp/hx-config.txt"
+      (file/ensure "/tmp/hx-config.txt"
+                   :owner :/devtools/file/git-config/owner
                    :source "hx-config")
-      (file/ensure "git_config"
+      (file/ensure "/tmp/git-config.txt"
+                   :label "git-config"
                    :owner :/basenode/directory/merp/owner
-                   :path "/tmp/git-config.txt"
                    :source "git-config"))
 
 (role basenode
       (pkg/ensure "helix")
       (pkg/remove "go")
-      (file/ensure "basenode_file"
-                   :path "/tmp/basenode.txt"
-                   :content (string "file on " (this-host)))
-      (directory/ensure "merp"
-                        :path "/tmp/merp"
+      (file/ensure "/tmp/basenode.txt"
+                   :content "some words")
+      (directory/ensure "/tmp/merp"
+                        :label "merp"
                         :owner "rob"
                         :group "sysadmin"
                         :mode "0755")
-      (directory/remove "junk"
-                        :path "/tmp/junk"))
+      (directory/remove "/tmp/junk"))
 
 (host "end-to-end"
       (basenode)
@@ -37,33 +34,31 @@
      :resources {:ensure {:directory @[{:_id "/basenode/directory/merp"
                                         :action :ensure
                                         :group "sysadmin"
+                                        :label "merp"
                                         :mode "0755"
-                                        :name "merp"
+                                        :name "/tmp/merp"
                                         :owner "rob"
-                                        :path "/tmp/merp"
                                         :role "basenode"}]
-                          :file @[{:_id "/basenode/file/basenode_file"
+                          :file @[{:_id "/basenode/file/_tmp_basenode.txt"
                                    :action :ensure
-                                   :content "file on end-to-end"
+                                   :content "some words"
                                    :group "root"
-                                   :name "basenode_file"
+                                   :name "/tmp/basenode.txt"
                                    :owner "root"
-                                   :path "/tmp/basenode.txt"
                                    :role "basenode"}
-                                  {:_id "/devtools/file/hx_config"
+                                  {:_id "/devtools/file/_tmp_hx-config.txt"
                                    :action :ensure
                                    :group "root"
-                                   :name "hx_config"
+                                   :name "/tmp/hx-config.txt"
                                    :owner "rob"
-                                   :path "/tmp/hx-config.txt"
                                    :role "devtools"
                                    :source "hx-config"}
-                                  {:_id "/devtools/file/git_config"
+                                  {:_id "/devtools/file/git-config"
                                    :action :ensure
                                    :group "root"
-                                   :name "git_config"
+                                   :label "git-config"
+                                   :name "/tmp/git-config.txt"
                                    :owner "rob"
-                                   :path "/tmp/git-config.txt"
                                    :role "devtools"
                                    :source "git-config"}]
                           :pkg @[{:_id "/basenode/pkg/helix"
@@ -78,12 +73,11 @@
                                   :action :ensure
                                   :name "git"
                                   :role "devtools"}]}
-                 :remove {:directory @[{:_id "/basenode/directory/junk"
+                 :remove {:directory @[{:_id "/basenode/directory/_tmp_junk"
                                         :action :remove
                                         :group "root"
-                                        :name "junk"
+                                        :name "/tmp/junk"
                                         :owner "root"
-                                        :path "/tmp/junk"
                                         :role "basenode"}]
                           :pkg @[{:_id "/basenode/pkg/go"
                                   :action :remove
