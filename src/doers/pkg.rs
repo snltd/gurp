@@ -13,6 +13,7 @@ use crate::common::constants::{
     NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
 };
 use crate::common::output::Output;
+use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplySummary, Opts, Resource};
 use crate::utils::janet_helpers::JanetExt;
 use crate::{debug, warn};
