@@ -10,6 +10,7 @@ use anyhow::Context;
 use camino::Utf8PathBuf;
 use janetrs::{Janet, JanetArray};
 use nix::unistd::{Gid, Group, Uid, User};
+use paste::paste;
 use std::fs;
 use std::os::unix;
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
@@ -64,41 +65,9 @@ impl TryFrom<&Janet> for GurpDirectory {
     }
 }
 
-pub fn unpack_ensure_list(
-    resource_list: &JanetArray,
-    _opts: &Opts,
-) -> anyhow::Result<Vec<Resource>> {
-    resource_list
-        .iter()
-        .map(|r| {
-            let dir = GurpDirectory::try_from(r)?;
-            Ok(Resource::Directory(dir))
-        })
-        .collect()
-}
-
-pub fn unpack_remove_list(
-    resource_list: &JanetArray,
-    _opts: &Opts,
-) -> anyhow::Result<Vec<Resource>> {
-    resource_list
-        .iter()
-        .map(|r| {
-            let dir = GurpDirectory::try_from(r)?;
-            Ok(Resource::Directory(dir))
-        })
-        .collect()
-}
-
-impl Apply for GurpDirectory {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        let output = Output::new(&self.doer, opts);
-        match self.action {
-            Action::Ensure => self.apply_ensure(opts, &output),
-            Action::Remove => self.apply_remove(opts, &output),
-        }
-    }
-}
+crate::unpack_fn!(ensure_list, Directory, GurpDirectory);
+crate::unpack_fn!(remove_list, Directory, GurpDirectory);
+crate::impl_apply!(GurpDirectory);
 
 impl GurpDirectory {
     fn apply_ensure(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {

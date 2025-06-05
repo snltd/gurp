@@ -12,6 +12,7 @@ use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
 use janetrs::{Janet, JanetArray};
 use nix::unistd::{Group, User};
+use paste::paste;
 use std::process::Command;
 
 // THINGS TO KNOW
@@ -19,32 +20,6 @@ use std::process::Command;
 // limitation of usermod(1m). I may fix it, or I may not.
 // We do not create the user's home dir. Deal with that yourself.
 // We can create non-primary groups for a new user, but not change them for an existing one.
-
-pub fn unpack_ensure_list(
-    resource_list: &JanetArray,
-    _opts: &Opts,
-) -> anyhow::Result<Vec<Resource>> {
-    resource_list
-        .iter()
-        .map(|r| {
-            let dir = GurpUser::try_from(r)?;
-            Ok(Resource::User(dir))
-        })
-        .collect()
-}
-
-pub fn unpack_remove_list(
-    resource_list: &JanetArray,
-    _opts: &Opts,
-) -> anyhow::Result<Vec<Resource>> {
-    resource_list
-        .iter()
-        .map(|r| {
-            let dir = GurpUser::try_from(r)?;
-            Ok(Resource::User(dir))
-        })
-        .collect()
-}
 
 pub struct GurpUser {
     pub action: Action,
@@ -96,15 +71,9 @@ impl TryFrom<&Janet> for GurpUser {
     }
 }
 
-impl Apply for GurpUser {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        let output = Output::new(&self.doer, opts);
-        match self.action {
-            Action::Ensure => self.apply_ensure(opts, &output),
-            Action::Remove => self.apply_remove(opts, &output),
-        }
-    }
-}
+crate::unpack_fn!(ensure_list, User, GurpUser);
+crate::unpack_fn!(remove_list, User, GurpUser);
+crate::impl_apply!(GurpUser);
 
 impl GurpUser {
     fn apply_ensure(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {

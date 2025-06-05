@@ -1,48 +1,3 @@
-/*
-#[macro_export]
-macro_rules! no_change {
-    ($opts:expr) => {
-        verbose!($opts, "[{}/{}] NO CHANGE", $self_.doer, $self_.name);
-    };
-}
-
-#[macro_export]
-macro_rules! not_there {
-    ($opts:expr) => {
-        debug!($opts, "[{}/{}] DOES NOT EXIST", $self_.doer, $self_.name);
-    };
-}
-
-#[macro_export]
-macro_rules! creating {
-    println!("[{}/{}] CREATING", $self_.doer, $self_.name);
-}
-
-#[macro_export]
-macro_rules! change {
-    ($self_:ident, $current:ident, $property:ident) => {
-        let current_val = match $current.$property {
-            Some(val) => val,
-            None => "<none>".to_owned(),
-        };
-
-        let desired_val = match $self_.desired_state.$property {
-            Some(val) => val,
-            None => "<none>".to_owned(),
-        };
-
-        println!(
-            "[{}/{}] CHANGE {} '{}' -> '{}'",
-            $self_.doer,
-            $self_.name,
-            stringify!($property),
-            current_val,
-            desired_val,
-        );
-    };
-}
-*/
-
 #[macro_export]
 macro_rules! info {
     ($opts:expr, $($arg:tt)*) => {
@@ -86,31 +41,39 @@ macro_rules! error {
     };
 }
 
-/*
 #[macro_export]
-macro_rules! generate_unpack_functions {
-    ($resource_type:ident) => {
-        paste::paste! {
-            pub fn unpack_ensure_list(resource_list: &JanetArray) -> anyhow::Result<Vec<Ensure>> {
+macro_rules! unpack_fn {
+    ($suffix:ident, $enum_variant:ident, $ty:ty) => {
+        paste! {
+            pub fn [<unpack_ $suffix>](
+                resource_list: &JanetArray,
+                _opts: &Opts,
+            ) -> anyhow::Result<Vec<Resource>> {
                 resource_list
                     .iter()
                     .map(|r| {
-                        let resource = [<$resource_type ToEnsure>]::try_from(r)?;
-                        Ok(Ensure::$resource_type(resource))
-                    })
-                    .collect()
-            }
-
-            pub fn unpack_remove_list(resource_list: &JanetArray) -> anyhow::Result<Vec<Remove>> {
-                resource_list
-                    .iter()
-                    .map(|r| {
-                        let resource = [<$resource_type ToRemove>]::try_from(r)?;
-                        Ok(Remove::$resource_type(resource))
+                        let val = <$ty>::try_from(r)?;
+                        Ok(Resource::$enum_variant(val))
                     })
                     .collect()
             }
         }
     };
 }
-    */
+
+#[macro_export]
+macro_rules! impl_apply {
+    ($ty:ty) => {
+        paste! {
+            impl Apply for $ty {
+                fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+                    let output = Output::new(&self.doer, opts);
+                    match self.action {
+                        Action::Ensure => self.apply_ensure(opts, &output),
+                        Action::Remove => self.apply_remove(opts, &output),
+                    }
+                }
+            }
+        }
+    };
+}

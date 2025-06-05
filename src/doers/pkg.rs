@@ -13,13 +13,13 @@ use crate::common::constants::{
     NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
 };
 use crate::common::output::Output;
-use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplySummary, Opts, Resource};
 use crate::utils::janet_helpers::JanetExt;
 use crate::{debug, warn};
 use anyhow::Context;
 use colored::Colorize;
 use janetrs::{JanetArray, JanetKeyword};
+use paste::paste;
 use std::process::Command;
 use std::sync::LazyLock;
 
@@ -53,15 +53,7 @@ pub struct GurpPkg {
     pub doer: String,
 }
 
-impl Apply for GurpPkg {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        let output = Output::new(&self.doer, opts);
-        match self.action {
-            Action::Ensure => self.apply_ensure(opts, &output),
-            Action::Remove => self.apply_remove(opts, &output),
-        }
-    }
-}
+crate::impl_apply!(GurpPkg);
 
 impl GurpPkg {
     // Because they're all done in one shot, we consider any number of package changes to be a
