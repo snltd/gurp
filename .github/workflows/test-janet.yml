@@ -1,14 +1,13 @@
 name: Janet Tests
 on:
   - push
-  - pull_request
 jobs:
   janet-tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Build Docker image
+      - name: Build Docker Image
         run: docker build -t janet-tests ./janet_src
       - name: Run Janet Tests
         run: docker run --rm janet-tests
