@@ -1,10 +1,8 @@
-use crate::debug;
-use crate::doers::constants::ONE_RESOURCE_ONE_ERROR;
-use crate::doers::types::{ApplySummary, HostConfig};
-use crate::utils::janet_helpers as j;
-use crate::utils::parser;
-use crate::utils::reader;
-use crate::utils::types::Opts;
+use crate::common::constants::ONE_RESOURCE_ONE_ERROR;
+use crate::common::traits::{Apply, HasId};
+use crate::common::types::{ApplySummary, HostConfig, Opts};
+use crate::utils::{janet_helpers, parser, reader};
+use crate::{debug, error, info};
 use anyhow::anyhow;
 use camino::Utf8PathBuf;
 use colored::Colorize;
@@ -35,7 +33,7 @@ thread_local! {
 
 // This is the entry point from main
 pub fn apply(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<Janet> {
-    debug!(opts, "Stashing opts object");
+    debug!(opts, "host-apply", "Stashing opts object");
 
     OPTIONS.with(|o| {
         *o.borrow_mut() = Some(Opts {
@@ -50,11 +48,12 @@ pub fn apply(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<Janet> {
 
     debug!(
         opts,
+        "host-apply",
         "Janet host config follows:\n{}",
         reader::format_janet_listing(&host_config)
     );
 
-    let mut client = j::janet_client(opts);
+    let mut client = janet_helpers::janet_client(opts);
 
     client.add_c_fn(CFunOptions::new(
         c"run-machine-configuration",
@@ -77,9 +76,9 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
     let config_elements = janet_config.len() as i32;
 
     if config_elements != 1 {
-        eprintln!(
-            "Expected single host configuration element, got {}",
-            config_elements
+        error!(
+            opts,
+            "handler", "expected single host configuration element, got {}", config_elements
         );
         return Janet::from(false);
     }
@@ -90,32 +89,32 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
 
     let janet_config = &janet_config[0].unwrap();
 
-    debug!(opts, "Extracting Janet config struct");
+    debug!(opts, "handler", "extracting Janet config struct");
 
     let config_struct = match janet_config {
         TaggedJanet::Struct(data) => data,
         other => {
-            eprintln!("Expected Janet struct, got {}", other);
+            error!(opts, "handler", "expected Janet struct, got {}", other);
             return Janet::from(false);
         }
     };
 
-    debug!(opts, "Extracting Janet metadata");
+    debug!(opts, "handler", "extracting Janet metadata");
 
     let janet_metadata = match config_struct.get(Janet::from(":metadata")) {
         Some(md) => md,
         None => {
-            eprintln!("Host config has no metadata");
+            error!(opts, "handler", "host config has no metadata");
             return Janet::from(false);
         }
     };
 
-    debug!(opts, "Extracting Janet resources");
+    debug!(opts, "handler", "extracting Janet resources");
 
     let janet_resources = match config_struct.get(Janet::from(":resources")) {
         Some(md) => md,
         None => {
-            eprintln!("Host config has no resources");
+            error!(opts, "handler", "host config has no resources");
             return Janet::from(false);
         }
     };
@@ -124,24 +123,21 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
         Ok(config) => match ensure_and_remove(&config, &opts) {
             // You'd think a JanetAbstract would be the right thing here, but it gets very
             // complicated. The struct is simple enough to do this.
-            Ok(summary) => j::wrap_summary(&summary),
+            Ok(summary) => janet_helpers::wrap_summary(&summary),
             Err(e) => {
-                eprintln!("ERROR trapped in Janet handler: {}", e);
+                error!(opts, "handler", "running ensure_and_remove: {}", e);
                 Janet::from(false)
             }
         },
         Err(e) => {
-            eprintln!("Failed to generate Rust config: {}", e);
+            error!(opts, "handler", "failed to generate Rust config: {}", e);
             Janet::from(false)
         }
     }
 }
 
 fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySummary> {
-    println!(
-        "{}",
-        format!("Configuring host '{}'", config.metadata.name).bold()
-    );
+    info!(opts, "Configuring host '{}'", config.metadata.name);
 
     let ensure_order = &["pkg", "user", "directory"];
 
@@ -157,13 +153,22 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
                 match resource.apply(opts) {
                     Ok(summary) => summary_total = summary_total + summary,
                     Err(e) => {
-                        eprintln!("ERROR trying to ensure {}: {}", resource.id(), e);
+                        error!(
+                            opts,
+                            "ensure/remove",
+                            "could not ensure {}: {}",
+                            resource.id(),
+                            e
+                        );
                         summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
                     }
                 }
             }
         } else {
-            debug!(opts, "No {} resources to ensure", resource_type);
+            debug!(
+                opts,
+                "ensure/remove", "No {} resources to ensure", resource_type
+            );
         }
     }
 
@@ -175,13 +180,19 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
                 match resource.apply(opts) {
                     Ok(summary) => summary_total = summary_total + summary,
                     Err(e) => {
-                        eprintln!("{} remove ERROR: {}", resource_type, e);
+                        error!(
+                            opts,
+                            "ensure/remove", "could not remove {}: {}", resource_type, e
+                        );
                         summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
                     }
                 }
             }
         } else {
-            debug!(opts, "No {} resources to remove", resource_type);
+            debug!(
+                opts,
+                "ensure/remove", "No {} resources to remove", resource_type
+            );
         }
     }
 

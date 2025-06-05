@@ -65,17 +65,24 @@ macro_rules! verbose {
 
 #[macro_export]
 macro_rules! debug {
-    ($opts:expr, $($arg:tt)*) => {
+    ($opts:expr, $component:literal, $($arg:tt)*) => {
         if $opts.debug {
-            println!($($arg)*);
+            println!("DEBUG [{}] {}", $component, format!($($arg)*));
         }
     };
 }
 
 #[macro_export]
 macro_rules! warn {
-    ($opts:expr, $($arg:tt)*) => {
-        eprint!($($arg)*);
+    ($opts:expr, $component:literal, $($arg:tt)*) => {
+        println!("{}", format!("WARN [{}] {}", $component, format!($($arg)*)).red())
+    };
+}
+
+#[macro_export]
+macro_rules! error {
+    ($opts:expr, $component:literal, $($arg:tt)*) => {
+        eprintln!("{}", format!("ERROR [{}] {}", $component, format!($($arg)*)).bold().red())
     };
 }
 

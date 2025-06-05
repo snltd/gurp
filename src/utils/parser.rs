@@ -1,11 +1,11 @@
-use crate::doers::directory;
-use crate::doers::types::{EnsureResources, RemoveResources};
-use crate::doers::types::{HostConfig, HostMetadata, HostResources};
-use crate::doers::user;
+use crate::common::types::{
+    EnsureResources, HostConfig, HostMetadata, HostResources, Opts, RemoveResources,
+};
+use crate::doers::{directory, pkg, user};
 use crate::utils::janet_helpers::JanetExt;
-use crate::utils::types::Opts;
-use crate::{debug, verbose};
+use crate::{debug, verbose, warn};
 use anyhow::anyhow;
+use colored::Colorize;
 use janetrs::{Janet, JanetKeyword, TaggedJanet};
 use std::collections::HashMap;
 
@@ -27,26 +27,45 @@ fn extract_ensure_resources(
     opts: &Opts,
 ) -> anyhow::Result<EnsureResources> {
     let resources = janet_resources.extract_struct()?;
-    let mut ret: EnsureResources = HashMap::new();
+    let mut ret = HashMap::new();
 
     for (resource_type, resource_list) in resources {
         let resource_type = resource_type.unwrap().to_string();
         let resource_list = resource_list.extract_array()?;
 
-        #[rustfmt::skip]
-        debug!(opts, "Found {} {} resources to ensure", resource_list.len(), resource_type);
+        debug!(
+            opts,
+            "parser/extract",
+            "Found {} {} resource(s) to ensure",
+            resource_list.len(),
+            resource_type
+        );
 
         match resource_type.as_str() {
+            ":pkg" => {
+                ret.insert(
+                    "pkg".to_owned(),
+                    pkg::unpack_ensure_list(&resource_list, opts)?,
+                );
+            }
             ":directory" => {
                 ret.insert(
                     "directory".to_owned(),
-                    directory::unpack_ensure_list(&resource_list)?,
+                    directory::unpack_ensure_list(&resource_list, opts)?,
                 );
             }
             ":user" => {
-                ret.insert("user".to_owned(), user::unpack_ensure_list(&resource_list)?);
+                ret.insert(
+                    "user".to_owned(),
+                    user::unpack_ensure_list(&resource_list, opts)?,
+                );
             }
-            other => eprintln!("{} resources are not implemented", other),
+            other => warn!(
+                opts,
+                "parser/extract/ensure",
+                "'{}' resources are not implemented",
+                other.replacen(':', "", 1)
+            ),
         }
     }
 
@@ -58,26 +77,45 @@ fn extract_remove_resources(
     opts: &Opts,
 ) -> anyhow::Result<RemoveResources> {
     let resources = janet_resources.extract_struct()?;
-    let mut ret: RemoveResources = HashMap::new();
+    let mut ret = HashMap::new();
 
     for (resource_type, resource_list) in resources {
         let resource_type = resource_type.unwrap().to_string();
         let resource_list = resource_list.extract_array()?;
 
-        #[rustfmt::skip]
-        debug!(opts, "Found {} {} resource(s) to ensure", resource_list.len(), resource_type);
+        debug!(
+            opts,
+            "parser/extract",
+            "Found {} {} resource(s) to remove",
+            resource_list.len(),
+            resource_type
+        );
 
         match resource_type.as_str() {
             ":directory" => {
                 ret.insert(
                     "directory".to_owned(),
-                    directory::unpack_remove_list(&resource_list)?,
+                    directory::unpack_remove_list(&resource_list, opts)?,
                 );
             }
             ":user" => {
-                ret.insert("user".to_owned(), user::unpack_remove_list(&resource_list)?);
+                ret.insert(
+                    "user".to_owned(),
+                    user::unpack_remove_list(&resource_list, opts)?,
+                );
             }
-            other => eprintln!("{} resources are not implemented", other),
+            ":pkg" => {
+                ret.insert(
+                    "pkg".to_owned(),
+                    pkg::unpack_remove_list(&resource_list, opts)?,
+                );
+            }
+            other => warn!(
+                opts,
+                "parser/extract/remove",
+                "'{}' resources are not implemented",
+                other.replacen(':', "", 1)
+            ),
         }
     }
 
@@ -85,7 +123,7 @@ fn extract_remove_resources(
 }
 
 fn extract_resources(janet_resources: &Janet, opts: &Opts) -> anyhow::Result<HostResources> {
-    debug!(opts, "Extracting Janet enable/remove struct");
+    debug!(opts, "parser/extract", "Extracting ensure/remove struct");
     let resource_actions = janet_resources.extract_struct()?;
 
     let ensure_resources = match resource_actions.get(JanetKeyword::from("ensure")) {
@@ -111,7 +149,7 @@ fn extract_resources(janet_resources: &Janet, opts: &Opts) -> anyhow::Result<Hos
 }
 
 fn extract_metadata(janet_metadata: &Janet, opts: &Opts) -> anyhow::Result<HostMetadata> {
-    debug!(opts, "Extracting Rust metadata struct");
+    debug!(opts, "parser/extract", "Extracting metadata");
     let rust_metadata = match janet_metadata.unwrap() {
         TaggedJanet::Struct(metadata) => {
             if let Some(name) = metadata.get(JanetKeyword::from("name")) {

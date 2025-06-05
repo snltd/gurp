@@ -1,4 +1,4 @@
-use crate::doers::types::ApplySummary;
+use crate::common::types::ApplySummary;
 use camino::Utf8PathBuf;
 use std::sync::LazyLock;
 
@@ -41,5 +41,12 @@ pub static PROTECTED_DIRS: LazyLock<Vec<Utf8PathBuf>> = LazyLock::new(|| {
         Utf8PathBuf::from("/sbin"),
         Utf8PathBuf::from("/usr"),
         Utf8PathBuf::from("/usr/lib"),
+    ]
+});
+
+pub static PROTECTED_USERS: LazyLock<Vec<&str>> = LazyLock::new(|| {
+    vec![
+        "root", "daemon", "bin", "sys", "adm", "lp", "uucp", "nuucp", "dladm", "netadm", "netcfg",
+        "listen", "gdm", "unknown", "nobody", "noaccess", "nobody4", "pkg5srv",
     ]
 });

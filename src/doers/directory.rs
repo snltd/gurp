@@ -1,25 +1,24 @@
-use crate::doers::constants::{
+use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
     PROTECTED_DIRS,
 };
-use crate::doers::types::{Action, Apply, ApplySummary, Changes, Ensure, Remove};
+use crate::common::output::Output;
+use crate::common::traits::Apply;
+use crate::common::types::{Action, ApplySummary, Changes, Opts, Resource};
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
-use crate::utils::types::Opts;
-use crate::{change, creating, debug, info, no_change, not_there, verbose};
-use anyhow::{Context, anyhow};
+use anyhow::Context;
 use camino::Utf8PathBuf;
-use colored::Colorize;
 use janetrs::{Janet, JanetArray};
 use nix::unistd::{Gid, Group, Uid, User};
 use std::fs;
 use std::os::unix;
-use std::os::unix::fs::MetadataExt;
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
 // THINGS TO KNOW / THINGS TO DO.
 // Creating a directory is `mkdir -p` style.
 // You can only define users and groups by their names. UIDs/GIDs do not work.
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct GurpDirectory {
     pub action: Action,
     pub exists: bool,
@@ -29,7 +28,7 @@ pub struct GurpDirectory {
     pub doer: String,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DirectoryState {
     pub group: String,
     pub mode: String,
@@ -41,8 +40,8 @@ impl TryFrom<&Janet> for GurpDirectory {
 
     fn try_from(value: &Janet) -> anyhow::Result<Self> {
         let data = value.extract_struct()?;
-        let path = data.get_field_pathbuf("path")?;
-        let exists = path.exists();
+        let name = data.get_field_pathbuf("name")?;
+        let exists = name.exists();
         let action = janet_helpers::action_as_enum(&data)?;
 
         let state = match action {
@@ -56,67 +55,55 @@ impl TryFrom<&Janet> for GurpDirectory {
 
         Ok(GurpDirectory {
             action,
-            doer: "directory".to_owned(),
             exists,
             id: data.get_field_string("_id")?,
             name: data.get_field_pathbuf("name")?,
             desired_state: state,
+            doer: "directory".to_owned(),
         })
     }
 }
 
-pub fn unpack_ensure_list(resource_list: &JanetArray) -> anyhow::Result<Vec<Ensure>> {
+pub fn unpack_ensure_list(
+    resource_list: &JanetArray,
+    _opts: &Opts,
+) -> anyhow::Result<Vec<Resource>> {
     resource_list
         .iter()
         .map(|r| {
             let dir = GurpDirectory::try_from(r)?;
-            Ok(Ensure::Directory(dir))
+            Ok(Resource::Directory(dir))
         })
         .collect()
 }
 
-pub fn unpack_remove_list(resource_list: &JanetArray) -> anyhow::Result<Vec<Remove>> {
+pub fn unpack_remove_list(
+    resource_list: &JanetArray,
+    _opts: &Opts,
+) -> anyhow::Result<Vec<Resource>> {
     resource_list
         .iter()
         .map(|r| {
             let dir = GurpDirectory::try_from(r)?;
-            Ok(Remove::Directory(dir))
+            Ok(Resource::Directory(dir))
         })
         .collect()
+}
+
+impl Apply for GurpDirectory {
+    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        let output = Output::new(&self.doer, opts);
+        match self.action {
+            Action::Ensure => self.apply_ensure(opts, &output),
+            Action::Remove => self.apply_remove(opts, &output),
+        }
+    }
 }
 
 impl GurpDirectory {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        match self.action {
-            Action::Ensure => self.apply_ensure(opts),
-            Action::Remove => self.apply_remove(opts),
-        }
-    }
-
-    fn apply_remove(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        if self.exists {
-            if PROTECTED_DIRS.contains(&self.name) {
-                eprintln!("Not allowed to remove {}", self.name);
-                return Ok(ONE_RESOURCE_ONE_ERROR);
-            }
-
-            // info!(opts, "directory {}: REMOVE", self.name);
-
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                fs::remove_dir_all(&self.name)?;
-                Ok(ONE_RESOURCE_ONE_CHANGE)
-            }
-        } else {
-            // not_there!(opts);
-            Ok(ONE_RESOURCE_NO_CHANGE)
-        }
-    }
-
-    fn apply_ensure(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn apply_ensure(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
         if !self.exists {
-            // creating!();
+            output.creating(&self.name);
 
             if opts.noop {
                 return Ok(ONE_RESOURCE_ONE_CHANGE);
@@ -125,46 +112,67 @@ impl GurpDirectory {
             fs::create_dir_all(&self.name)?;
         }
 
-        let path = self.name;
+        let path = &self.name;
         let current = self.current_state()?;
-        let desired = self.desired_state.unwrap();
-        let changes = self.changes(&current, &desired);
+        let desired = self.desired_state.as_ref().unwrap();
+        let changes = self.changes(&current, desired);
 
         if changes.is_empty() {
-            // no_change!(opts);
+            output.no_change(&self.name);
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
         let final_owner = if changes.contains(&"owner") {
-            // change!(self, current_state, owner);
-            desired.owner
+            output.change(&self.name, &current.owner, &desired.owner);
+            &desired.owner
         } else {
-            current.owner
+            &current.owner
         };
 
         let final_group = if changes.contains(&"group") {
-            // change!(self, current_state, group);
-            desired.group
+            output.change(&self.name, &current.group, &desired.group);
+            &desired.group
         } else {
-            current.group
+            &current.group
         };
 
         if changes.contains(&"group") || changes.contains(&"owner") {
-            let user = User::from_name(&final_owner)?
+            let user = User::from_name(final_owner)?
                 .ok_or_else(|| anyhow::anyhow!("No such user '{}'", final_owner))?;
-            let group = Group::from_name(&final_group)?
+            let group = Group::from_name(final_group)?
                 .ok_or_else(|| anyhow::anyhow!("No such group '{}'", final_group))?;
 
-            unix::fs::chown(&path, Some(user.uid.as_raw()), Some(group.gid.as_raw()))?;
+            unix::fs::chown(path, Some(user.uid.as_raw()), Some(group.gid.as_raw()))?;
         }
 
         if changes.contains(&"mode") {
-            // change!(self, current_state, mode);
+            output.change(&self.name, &current.mode, &desired.mode);
             let mode = u32::from_str_radix(&desired.mode, 8)?;
             fs::set_permissions(path, fs::Permissions::from_mode(mode))?;
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
+    }
+
+    fn apply_remove(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+        if self.exists {
+            if PROTECTED_DIRS.contains(&self.name) {
+                output.protected(&self.name);
+                return Ok(ONE_RESOURCE_ONE_ERROR);
+            }
+
+            output.removing(&self.name);
+
+            if opts.noop {
+                Ok(ONE_RESOURCE_NOOP)
+            } else {
+                fs::remove_dir_all(&self.name)?;
+                Ok(ONE_RESOURCE_ONE_CHANGE)
+            }
+        } else {
+            output.not_present(&self.name);
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        }
     }
 
     fn changes<'a>(&self, current: &DirectoryState, desired: &DirectoryState) -> Changes<'a> {
@@ -187,7 +195,7 @@ impl GurpDirectory {
 
     fn current_state(&self) -> anyhow::Result<DirectoryState> {
         let path = &self.name;
-        let metadata = fs::metadata(&path)?;
+        let metadata = fs::metadata(path)?;
 
         // TODO deal with numeric and string users and groups
         //
@@ -221,9 +229,13 @@ mod test {
 
     #[test]
     fn test_directory_remove_apply_does_not_exist() {
-        let dir_does_not_exist = DirectoryToRemove {
+        let dir_does_not_exist = GurpDirectory {
             name: Utf8PathBuf::from("/does/not/exist/dir-to-test"),
+            exists: false,
             id: "/test-role/directory/dir-to-test".to_owned(),
+            action: Action::Remove,
+            desired_state: None,
+            doer: "directory".to_owned(),
         };
 
         assert_eq!(
@@ -234,10 +246,13 @@ mod test {
 
     #[test]
     fn test_directory_remove_apply_not_allowed() {
-        let disallowed_dir = DirectoryToRemove {
-            name: "root".to_owned(),
+        let disallowed_dir = GurpDirectory {
+            name: Utf8PathBuf::from("/"),
             id: "/test-role/directory/root".to_owned(),
-            path: Utf8PathBuf::from("/"),
+            exists: true,
+            action: Action::Remove,
+            desired_state: None,
+            doer: "directory".to_owned(),
         };
 
         assert_eq!(
@@ -252,10 +267,13 @@ mod test {
         let dir = temp.child("test_directory");
         dir.create_dir_all().unwrap();
 
-        let test_dir = DirectoryToRemove {
-            name: "tester".to_owned(),
+        let test_dir = GurpDirectory {
+            name: Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap(),
             id: "/test-role/directory/test_directory".to_owned(),
-            path: Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap(),
+            exists: true,
+            action: Action::Remove,
+            desired_state: None,
+            doer: "directory".to_owned(),
         };
 
         assert!(dir.exists());
@@ -269,10 +287,13 @@ mod test {
         let dir = temp.child("test_directory");
         dir.create_dir_all().unwrap();
 
-        let test_dir = DirectoryToRemove {
-            name: "tester".to_owned(),
+        let test_dir = GurpDirectory {
+            name: Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap(),
             id: "/test-role/directory/test_directory".to_owned(),
-            path: Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap(),
+            exists: true,
+            action: Action::Remove,
+            desired_state: None,
+            doer: "directory".to_owned(),
         };
 
         assert!(dir.exists());
@@ -289,29 +310,37 @@ mod test {
         let dir = temp.child("test_directory");
         dir.create_dir_all().unwrap();
 
-        let dir_exists = DirectoryToEnsure {
+        let dir_exists = GurpDirectory {
+            name: Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap(),
             id: "/test-role/directory/test_directory".to_owned(),
-            group: "sysadmin".to_owned(),
-            mode: "0755".to_owned(),
-            name: "test_directory".to_owned(),
-            owner: "rob".to_owned(),
-            path: Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap(),
+            exists: false,
+            action: Action::Ensure,
+            desired_state: Some(DirectoryState {
+                group: "sysadmin".to_owned(),
+                mode: "0755".to_owned(),
+                owner: "rob".to_owned(),
+            }),
+            doer: "directory".to_owned(),
         };
 
-        let result_option = dir_exists.state().unwrap();
+        let result_option = dir_exists.desired_state;
         let result = result_option.unwrap();
         assert_eq!("0755".to_owned(), result.mode);
 
-        let dir_does_not_exist = DirectoryToEnsure {
+        let dir_does_not_exist = GurpDirectory {
+            name: Utf8PathBuf::from("/no/such/test_directory"),
             id: "/test-role/directory/test_directory".to_owned(),
-            group: "sysadmin".to_owned(),
-            mode: "0755".to_owned(),
-            name: "test_directory".to_owned(),
-            owner: "rob".to_owned(),
-            path: Utf8PathBuf::from("/no/such/test_directory"),
+            exists: false,
+            action: Action::Ensure,
+            desired_state: Some(DirectoryState {
+                group: "sysadmin".to_owned(),
+                mode: "0755".to_owned(),
+                owner: "rob".to_owned(),
+            }),
+            doer: "directory".to_owned(),
         };
 
-        assert!(dir_does_not_exist.state().unwrap().is_none());
+        assert!(dir_does_not_exist.desired_state.is_none());
     }
 
     #[test]
@@ -323,23 +352,26 @@ mod test {
             ":action" => "ensure",
             ":group" => "sysadmin",
             ":mode" => "0755",
-            ":name" => "test_directory",
             ":owner" => "rob",
-            ":path" => "/tmp/merp",
+            ":name" => "/tmp/merp",
         });
 
-        let expected_ensure = DirectoryToEnsure {
+        let expected_ensure = GurpDirectory {
+            name: Utf8PathBuf::from("/tmp/merp"),
             id: "/test-role/directory/test_directory".to_owned(),
-            group: "sysadmin".to_owned(),
-            mode: "0755".to_owned(),
-            name: "test_directory".to_owned(),
-            owner: "rob".to_owned(),
-            path: Utf8PathBuf::from("/tmp/merp"),
+            exists: false,
+            action: Action::Ensure,
+            desired_state: Some(DirectoryState {
+                group: "sysadmin".to_owned(),
+                mode: "0755".to_owned(),
+                owner: "rob".to_owned(),
+            }),
+            doer: "directory".to_owned(),
         };
 
         assert_eq!(
             expected_ensure,
-            DirectoryToEnsure::try_from(&example_dir_ensure).unwrap()
+            GurpDirectory::try_from(&example_dir_ensure).unwrap()
         );
     }
 
@@ -347,21 +379,23 @@ mod test {
     fn test_unpack_remove_directory() {
         init_janet();
         let example_dir_remove = Janet::wrap(janetrs::structs! {
+            ":name" => "/tmp/merp",
             ":_id" => "/test-role/directory/merp",
-            ":name" => "merp",
             ":action" => "remove",
-            ":path" => "/tmp/merp",
         });
 
-        let expected_remove = DirectoryToRemove {
-            name: "merp".to_owned(),
+        let expected_remove = GurpDirectory {
+            name: Utf8PathBuf::from("/tmp/merp"),
             id: "/test-role/directory/merp".to_owned(),
-            path: Utf8PathBuf::from("/tmp/merp"),
+            exists: false,
+            action: Action::Remove,
+            desired_state: None,
+            doer: "directory".to_owned(),
         };
 
         assert_eq!(
             expected_remove,
-            DirectoryToRemove::try_from(&example_dir_remove).unwrap()
+            GurpDirectory::try_from(&example_dir_remove).unwrap()
         );
     }
 }

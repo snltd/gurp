@@ -1,13 +1,14 @@
+mod common;
 mod doers;
 mod test_utils;
 mod utils;
 
+use crate::common::types::{ApplySummary, Opts};
 use crate::doers::host;
-use crate::doers::types::ApplySummary;
 use crate::utils::janet_helpers;
-use crate::utils::types::Opts;
 use camino::Utf8PathBuf;
 use clap::Parser;
+use colored::Colorize;
 use std::time::{Duration, Instant};
 
 #[derive(Parser)]
@@ -54,16 +55,20 @@ fn main() -> anyhow::Result<()> {
         Ok(res) => match res.unwrap() {
             janetrs::TaggedJanet::Struct(_) => match janet_helpers::unwrap_summary(&res) {
                 Ok(summary) => report_results(&summary, elapsed_time, &opts),
-                Err(e) => eprintln!("Failed to unwrap host summary: {}: {}", e, res),
+                Err(e) => error!(
+                    opts,
+                    "main", "Failed to unwrap host summary: {}: {}", e, res
+                ),
             },
             _ => {
+                //false
                 exit_code = 1;
-                eprintln!("ERROR: execution error");
+                error!(opts, "main", "execution error");
             }
         },
         Err(e) => {
             exit_code = 1;
-            eprintln!("ERROR: {}", e);
+            error!(opts, "main/apply", "{}", e);
         }
     }
 

@@ -1,203 +1,156 @@
-use crate::doers::constants::{
+use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
+    PROTECTED_USERS,
 };
-use crate::doers::types::{Apply, ApplySummary, Changes, Ensure, HasId, Remove};
+use crate::common::output::Output;
+use crate::common::traits::Apply;
+use crate::common::types::{Action, ApplySummary, Changes, Opts, Resource};
+use crate::debug;
 use crate::utils::helpers;
-use crate::utils::janet_helpers::{JanetExt, JanetStructExt};
-use crate::utils::types::Opts;
-use crate::{debug, generate_unpack_functions, info, verbose};
-use anyhow::Context;
+use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
+use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
-use colored::Colorize;
 use janetrs::{Janet, JanetArray};
 use nix::unistd::{Group, User};
 use std::process::Command;
-use std::sync::LazyLock;
 
 // THINGS TO KNOW
 // Removing a group from "other-groups" will not remove the user from that group. This is a
 // limitation of usermod(1m). I may fix it, or I may not.
 // We do not create the user's home dir. Deal with that yourself.
+// We can create non-primary groups for a new user, but not change them for an existing one.
 
-static NOT_ALLOWED_TO_REMOVE: LazyLock<Vec<&str>> = LazyLock::new(|| {
-    vec![
-        "root", "daemon", "bin", "sys", "adm", "lp", "uucp", "nuucp", "dladm", "netadm", "netcfg",
-        "listen", "gdm", "unknown", "nobody", "noaccess", "nobody4", "pkg5srv",
-    ]
-});
-
-generate_unpack_functions!(User);
-
-#[derive(Debug, PartialEq)]
-pub struct UserDesiredState {
-    pub id: String,
-    state: UserState,
+pub fn unpack_ensure_list(
+    resource_list: &JanetArray,
+    _opts: &Opts,
+) -> anyhow::Result<Vec<Resource>> {
+    resource_list
+        .iter()
+        .map(|r| {
+            let dir = GurpUser::try_from(r)?;
+            Ok(Resource::User(dir))
+        })
+        .collect()
 }
 
-impl HasId for UserDesiredState {
-    fn id(&self) -> &str {
-        &self.id
-    }
+pub fn unpack_remove_list(
+    resource_list: &JanetArray,
+    _opts: &Opts,
+) -> anyhow::Result<Vec<Resource>> {
+    resource_list
+        .iter()
+        .map(|r| {
+            let dir = GurpUser::try_from(r)?;
+            Ok(Resource::User(dir))
+        })
+        .collect()
 }
 
-impl HasId for UserToRemove {
-    fn id(&self) -> &str {
-        &self.id
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct UserToRemove {
+pub struct GurpUser {
+    pub action: Action,
+    pub exists: bool,
     pub id: String,
     pub name: String,
+    pub desired_state: Option<UserState>,
+    pub doer: String,
 }
 
-#[derive(Debug, PartialEq)]
 pub struct UserState {
-    pub name: String,
     pub uid: u32,
     pub home_dir: Utf8PathBuf,
     pub shell: Utf8PathBuf,
-    pub gcos: String,
+    pub gecos: String,
     pub primary_group: String,
     pub other_groups: Vec<String>,
 }
 
-impl TryFrom<&Janet> for UserDesiredState {
+impl TryFrom<&Janet> for GurpUser {
     type Error = anyhow::Error;
 
-    fn try_from(value: &Janet) -> anyhow::Result<UserDesiredState> {
+    fn try_from(value: &Janet) -> anyhow::Result<Self> {
         let data = value.extract_struct()?;
+        let action = janet_helpers::action_as_enum(&data)?;
+        let name = data.get_field_string("name")?;
+        let exists = User::from_name(&name).ok().is_some();
 
-        Ok(UserDesiredState {
-            id: data.get_field_string("_id")?,
-            state: UserState {
-                name: data.get_field_string("name")?,
+        let state = match action {
+            Action::Ensure => Some(UserState {
                 uid: data.get_field_u32("uid")?,
                 home_dir: data.get_field_pathbuf("home-dir")?,
                 shell: data.get_field_pathbuf("shell")?,
-                gcos: data.get_field_string("gcos")?,
+                gecos: data.get_field_string("gecos")?,
                 primary_group: data.get_field_string("group")?,
                 other_groups: data.get_field_string_tuple("other-groups")?,
-            },
-        })
-    }
-}
-
-impl TryFrom<&Janet> for UserToRemove {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Janet) -> anyhow::Result<UserToRemove> {
-        let data = value.extract_struct()?;
-
-        Ok(UserToRemove {
-            id: data.get_field_string("_id")?,
-            name: data.get_field_string("name")?,
-        })
-    }
-}
-
-fn diff_states<'a>(current: &UserState, desired: &UserState) -> Changes<'a> {
-    let mut to_change = Vec::new();
-
-    if current.uid != desired.uid {
-        to_change.push("uid");
-    }
-
-    if current.home_dir != desired.home_dir {
-        to_change.push("home-dir");
-    }
-
-    if current.shell != desired.shell {
-        to_change.push("shell");
-    }
-
-    if current.gcos != desired.gcos {
-        to_change.push("gcos");
-    }
-
-    if current.primary_group != desired.primary_group {
-        to_change.push("group");
-    }
-
-    if current.other_groups != desired.other_groups {
-        to_change.push("other-groups");
-    }
-
-    to_change
-}
-
-impl UserDesiredState {
-    fn state(&self) -> anyhow::Result<Option<UserState>> {
-        user_state(&self.name, &self.primary_group, &self.other_groups)
-    }
-
-    fn desired_state(&self) -> anyhow::Result<UserState> {
-        Ok(UserState {
-            name: self.name.to_owned(),
-            uid: self.uid,
-            home_dir: self.home_dir.to_owned(),
-            shell: self.shell.to_owned(),
-            gcos: self.gcos.to_owned(),
-            primary_group: self.primary_group.to_owned(),
-            other_groups: self.other_groups.clone(),
-        })
-    }
-}
-
-impl Apply for UserDesiredState {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        let current_state = match user_state(&self.name, &self.primary_group, &self.other_groups)? {
-            Some(state) => state,
-            None => {
-                info!(opts, "Creating user {} [{}]", self.name, self.id);
-                return create(&self.desired_state()?, opts);
-            }
+            }),
+            Action::Remove => None,
         };
 
-        let desired_state = self.desired_state()?;
+        Ok(GurpUser {
+            name,
+            id: data.get_field_string("_id")?,
+            action,
+            exists,
+            desired_state: state,
+            doer: "user".to_owned(),
+        })
+    }
+}
 
-        let changes = diff_states(&current_state, &desired_state);
+impl Apply for GurpUser {
+    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        let output = Output::new(&self.doer, opts);
+        match self.action {
+            Action::Ensure => self.apply_ensure(opts, &output),
+            Action::Remove => self.apply_remove(opts, &output),
+        }
+    }
+}
+
+impl GurpUser {
+    fn apply_ensure(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+        if !self.exists {
+            output.creating(&self.name);
+            return self.create(opts);
+        }
+
+        let current = self.current_state()?;
+        let desired = self.desired_state.as_ref().unwrap();
+        let changes = self.changes(&current, desired);
 
         if changes.is_empty() {
-            verbose!(
-                opts,
-                "user: {} [{}] : no change required",
-                self.name,
-                self.id
-            );
+            output.no_change(&self.name);
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
         let mut cmd = Command::new("/usr/sbin/usermod");
 
-        if changes.contains(&"gcos") {
-            cmd.arg("-c").arg(&desired_state.gcos);
+        if changes.contains(&"gecos") {
+            cmd.arg("-c").arg(&desired.gecos);
         }
 
         if changes.contains(&"home-dir") {
-            cmd.arg("-d").arg(&desired_state.home_dir);
+            cmd.arg("-d").arg(&desired.home_dir);
         }
 
         if changes.contains(&"primary-group") {
-            cmd.arg("-g").arg(&desired_state.primary_group);
+            cmd.arg("-g").arg(&desired.primary_group);
         }
 
         if changes.contains(&"other-groups") {
-            cmd.arg("-G").arg(desired_state.other_groups.join(","));
-        }
+            cmd.arg("-G").arg(desired.other_groups.join(","));
+        } // Doesn't do anything now
 
         if changes.contains(&"shell") {
-            cmd.arg("-s").arg(desired_state.shell);
+            cmd.arg("-s").arg(&desired.shell);
         }
 
         if changes.contains(&"uid") {
-            cmd.arg("-u").arg(desired_state.uid.to_string());
+            cmd.arg("-u").arg(desired.uid.to_string());
         }
 
-        cmd.arg(desired_state.name);
+        cmd.arg(&self.name);
 
-        debug!(opts, "{}", helpers::command_to_string(&cmd));
+        debug!(opts, "doer/user", "{}", helpers::command_to_string(&cmd));
 
         let result = cmd.status()?;
 
@@ -207,96 +160,116 @@ impl Apply for UserDesiredState {
             Ok(ONE_RESOURCE_ONE_ERROR)
         }
     }
-}
 
-fn create(state: &UserState, opts: &Opts) -> anyhow::Result<ApplySummary> {
-    let mut cmd = Command::new("/usr/sbin/useradd");
+    fn apply_remove(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+        if self.exists {
+            if PROTECTED_USERS.contains(&self.name.as_str()) {
+                output.protected(&self.name);
+                return Ok(ONE_RESOURCE_ONE_ERROR);
+            }
 
-    cmd.arg("-c")
-        .arg(&state.gcos)
-        .arg("-g")
-        .arg(&state.primary_group)
-        .arg("-G")
-        .arg(state.other_groups.join(","))
-        .arg("-s")
-        .arg(&state.shell)
-        .arg("-u")
-        .arg(state.uid.to_string())
-        .arg(&state.name);
+            let mut cmd = Command::new("/usr/sbin/userdel");
+            cmd.arg(&self.name);
 
-    debug!(opts, "{}", helpers::command_to_string(&cmd));
+            output.removing(&self.name);
+            debug!(opts, "doer/user", "{}", helpers::command_to_string(&cmd));
 
-    if opts.noop {
-        return Ok(ONE_RESOURCE_ONE_CHANGE);
-    }
+            if opts.noop {
+                Ok(ONE_RESOURCE_NOOP)
+            } else {
+                let result = cmd.status()?;
 
-    let result = cmd.status()?;
-
-    if result.success() {
-        Ok(ONE_RESOURCE_ONE_CHANGE)
-    } else {
-        Ok(ONE_RESOURCE_ONE_ERROR)
-    }
-}
-
-fn user_state(
-    user_name: &str,
-    group_name: &str,
-    other_groups: &Vec<String>,
-) -> anyhow::Result<Option<UserState>> {
-    match User::from_name(user_name)? {
-        Some(user) => {
-            let group = Group::from_name(group_name)?.context(format!(
-                "Group '{}' not found for user '{}'",
-                group_name, user_name
-            ))?;
-
-            let ret = UserState {
-                name: user.name,
-                uid: user.uid.into(),
-                home_dir: Utf8PathBuf::try_from(user.dir)?,
-                shell: Utf8PathBuf::try_from(user.shell)?,
-                gcos: user.gecos.to_string_lossy().to_string(),
-                primary_group: group.name,
-                other_groups: other_groups.clone(),
-            };
-            Ok(Some(ret))
-        }
-        None => Ok(None),
-    }
-}
-
-impl Apply for UserToRemove {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        match User::from_name(&self.name)? {
-            Some(_) => {
-                if NOT_ALLOWED_TO_REMOVE.contains(&self.name.as_str()) {
-                    eprintln!("Not allowed to remove user {}", self.name);
-                    return Ok(ONE_RESOURCE_ONE_ERROR);
-                }
-
-                let mut cmd = Command::new("/usr/sbin/userdel");
-                cmd.arg(&self.name);
-
-                info!(opts, "Removing user {} [{}]", self.name, self.id);
-                debug!(opts, "{}", helpers::command_to_string(&cmd));
-
-                if opts.noop {
-                    Ok(ONE_RESOURCE_NOOP)
+                if result.success() {
+                    Ok(ONE_RESOURCE_ONE_CHANGE)
                 } else {
-                    let result = cmd.status()?;
-
-                    if result.success() {
-                        Ok(ONE_RESOURCE_ONE_CHANGE)
-                    } else {
-                        Ok(ONE_RESOURCE_ONE_ERROR)
-                    }
+                    Ok(ONE_RESOURCE_ONE_ERROR)
                 }
             }
-            None => {
-                debug!(opts, "user {} [{}] does not exist", self.name, self.id,);
-                Ok(ONE_RESOURCE_NO_CHANGE)
+        } else {
+            output.not_present(&self.name);
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        }
+    }
+
+    fn changes<'a>(&self, current: &UserState, desired: &UserState) -> Changes<'a> {
+        let mut to_change = Vec::new();
+
+        if current.uid != desired.uid {
+            to_change.push("uid");
+        }
+
+        if current.home_dir != desired.home_dir {
+            to_change.push("home-dir");
+        }
+
+        if current.shell != desired.shell {
+            to_change.push("shell");
+        }
+
+        if current.gecos != desired.gecos {
+            to_change.push("gecos");
+        }
+
+        if current.primary_group != desired.primary_group {
+            to_change.push("group");
+        }
+
+        if current.other_groups != desired.other_groups {
+            to_change.push("other-groups");
+        } // doesn't do anything now
+
+        to_change
+    }
+
+    fn create(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        let state = self.desired_state.as_ref().unwrap();
+        let mut cmd = Command::new("/usr/sbin/useradd");
+
+        cmd.arg("-c")
+            .arg(&state.gecos)
+            .arg("-g")
+            .arg(&state.primary_group)
+            .arg("-G")
+            .arg(state.other_groups.join(","))
+            .arg("-s")
+            .arg(&state.shell)
+            .arg("-u")
+            .arg(state.uid.to_string())
+            .arg(&self.name);
+
+        debug!(opts, "doer/user", "{}", helpers::command_to_string(&cmd));
+
+        if opts.noop {
+            return Ok(ONE_RESOURCE_ONE_CHANGE);
+        }
+
+        let result = cmd.status()?;
+
+        if result.success() {
+            Ok(ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            Ok(ONE_RESOURCE_ONE_ERROR)
+        }
+    }
+
+    fn current_state(&self) -> anyhow::Result<UserState> {
+        match User::from_name(&self.name)? {
+            Some(user) => {
+                let primary_group = Group::from_gid(user.gid)?.context(format!(
+                    "Group d '{}' not found for user '{}'",
+                    user.gid, self.name
+                ))?;
+
+                Ok(UserState {
+                    uid: user.uid.into(),
+                    home_dir: Utf8PathBuf::try_from(user.dir)?,
+                    shell: Utf8PathBuf::try_from(user.shell)?,
+                    gecos: user.gecos.to_string_lossy().to_string(),
+                    primary_group: primary_group.name,
+                    other_groups: Vec::new(), // we don't do anything with this field
+                })
             }
+            None => Err(anyhow!("Could not find user {}", self.name)),
         }
     }
 }

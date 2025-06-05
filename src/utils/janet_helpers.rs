@@ -1,10 +1,8 @@
+use crate::common::types::{Action, ApplySummary, Opts};
 use crate::debug;
-use crate::doers::types::{Action, ApplySummary};
-use crate::utils::types::Opts;
 use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
-use janetrs::client::JanetClient;
-use janetrs::{Janet, JanetArray, JanetStruct, JanetTuple, TaggedJanet};
+use janetrs::{Janet, JanetArray, JanetStruct, JanetTuple, TaggedJanet, client::JanetClient};
 
 // We need to pass an ApplySummary through the Rust->Janet->Rust boundary. These two symmetrical
 // functions are far simpler than faffing about with JanetAbstract.
@@ -35,7 +33,7 @@ pub fn unwrap_summary(summary: &Janet) -> anyhow::Result<ApplySummary> {
 }
 
 pub fn janet_client(opts: &Opts) -> JanetClient {
-    debug!(opts, "Initialising janet client");
+    debug!(opts, "janet/client", "Initialising janet client");
     JanetClient::init_with_default_env().expect("Failed to create Janet client")
 }
 
