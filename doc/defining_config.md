@@ -68,8 +68,7 @@ you'll need to `(use)` them.
 Resources are all defined in the same way. `(resource-type/ensure)` or
 `(resource-type/remove)`, a string name, and pairs of symbol keys and string
 values. The `:keyword "string"` format is the way we idiomatically define
-key-value pairs in Janet. You don't need commas, but Janet sees them as
-whitespace, so you could put them in if you wanted to.
+key-value pairs in Janet. You can't use commas.
 
 Note that the `:owner` of the directory is a Janet keyword. This is a reference
 which will be followed, and make the owner of the directory the same as that of

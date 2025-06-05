@@ -1,7 +1,7 @@
 (def- default-protos
   {:file {:owner "root"
           :group "root"}
-   :user {:shell "/bin/zsh",
+   :user {:shell "/bin/zsh"
           :primary-group "staff" }
    :directory {:owner "root"
                :group "root"}})
