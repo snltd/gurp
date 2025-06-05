@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::utils::types::Opts;
+use crate::common::types::Opts;
 use camino::Utf8PathBuf;
 use std::env::current_dir;
 

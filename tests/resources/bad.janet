@@ -1,10 +1,5 @@
 (host "serv"
-  :modules [
-    physical
-    "common"
-    "omnios_server"
-    "file_store"
-    "samba"
-    "telegraf"
-    "zfs_snapshot"
-  ])
+    (physical)
+    (common)
+    (omnios_server)
+    "zfs_snapshot")

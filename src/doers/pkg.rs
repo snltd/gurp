@@ -9,16 +9,18 @@
 // what can and cannot be done, so runs `pkg(1)` in the most efficient way
 // possible. `pkg(1)` is rather a slow tool.
 
-use crate::doers::constants::{
+use crate::common::constants::{
     NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
 };
-use crate::doers::types::{Apply, ApplySummary, Ensure, HasId, Remove};
+use crate::common::output::Output;
+use crate::common::traits::Apply;
+use crate::common::types::{Action, ApplySummary, Opts, Resource};
 use crate::utils::janet_helpers::JanetExt;
-use crate::utils::types::Opts;
-use crate::{debug, info, verbose, warn};
+use crate::{debug, warn};
+use anyhow::Context;
 use colored::Colorize;
-use janetrs::JanetArray;
-use janetrs::JanetKeyword;
+use janetrs::{JanetArray, JanetKeyword};
+use paste::paste;
 use std::process::Command;
 use std::sync::LazyLock;
 
@@ -45,39 +47,29 @@ struct GlobalPkgs {
     installed: Vec<PkgName>,
 }
 
-#[derive(Debug)]
-pub struct PkgsToEnsure {
+pub struct GurpPkg {
+    pub action: Action,
     pub id: String,
     pub pkg_list: Vec<String>,
+    pub doer: String,
 }
 
-impl HasId for PkgsToEnsure {
-    fn id(&self) -> &str {
-        &self.id
-    }
-}
+crate::impl_apply!(GurpPkg);
 
-#[derive(Debug)]
-pub struct PkgsToRemove {
-    pub id: String,
-    pub pkg_list: Vec<String>,
-}
-
-impl Apply for PkgsToEnsure {
+impl GurpPkg {
     // Because they're all done in one shot, we consider any number of package changes to be a
     // single change. You could _MAYBE_ justify this as saying "it's one change to the package
     // state" but I know in my heart that's cheating. I might make it smarter in the future.
     //
-    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn apply_ensure(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
         if self.pkg_list.is_empty() {
-            verbose!(opts, "No pkgs to install");
+            output.no_change("pkgs");
             return Ok(NO_RESOURCES_TO_CHANGE);
         }
 
-        info!(opts, "pkg: installing {}", self.pkg_list.join(", "));
+        output.creating(self.pkg_list.join(", "));
 
         let mut cmd = Command::new("/bin/pkg");
-
         cmd.arg("install");
         cmd.arg("-q");
 
@@ -94,19 +86,16 @@ impl Apply for PkgsToEnsure {
             Ok(ONE_RESOURCE_ONE_ERROR)
         }
     }
-}
 
-impl Apply for PkgsToRemove {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn apply_remove(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
         if self.pkg_list.is_empty() {
-            verbose!(opts, "No pkgs to remove");
+            output.no_change("pkgs");
             return Ok(NO_RESOURCES_TO_CHANGE);
         }
 
-        info!(opts, "pkg: removing {}", self.pkg_list.join(", "));
+        output.removing(self.pkg_list.join(", "));
 
         let mut cmd = Command::new("/bin/pkg");
-
         cmd.arg("uninstall");
         cmd.arg("-q");
 
@@ -126,38 +115,49 @@ impl Apply for PkgsToRemove {
 }
 
 // Receive a list of pkgs, but return a single element vec which will be applied.
-pub fn unpack_ensure_list(resource_list: &JanetArray, opts: &Opts) -> anyhow::Result<Vec<Ensure>> {
+pub fn unpack_ensure_list(
+    resource_list: &JanetArray,
+    opts: &Opts,
+) -> anyhow::Result<Vec<Resource>> {
     let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
 
     let mut install_list = Vec::new();
 
-    for candidate_struct in resource_list {
-        let candidate_struct = candidate_struct.extract_struct()?;
-        if let Some(candidate) = candidate_struct.get(JanetKeyword::from("name")) {
-            let candidate = candidate.unwrap().to_string();
+    for candidate in resource_list {
+        let candidate_struct = candidate
+            .extract_struct()
+            .context("Failed to extract package struct")?;
+        let name = candidate_struct
+            .get(JanetKeyword::from("name"))
+            .context("Package struct missing 'name' field")?
+            .to_string();
 
-            if global_pkgs.installed.contains(&candidate) {
-                debug!(opts, "pkg: {} already installed", candidate);
-                continue;
-            }
+        if global_pkgs.installed.contains(&name) {
+            debug!(opts, "doer/pkg", "pkg {} already installed", name);
+            continue;
+        }
 
-            if global_pkgs.available.contains(&candidate) {
-                debug!(opts, "pkg: {} scheduled for install", candidate);
-                install_list.push(candidate);
-            } else {
-                warn!(opts, "pkg: {} not available", candidate);
-            }
+        if global_pkgs.available.contains(&name) {
+            debug!(opts, "doer/pkg", "pkg {} scheduled for install", name);
+            install_list.push(name);
+        } else {
+            warn!(opts, "doer/pkg", "pkg {} not available", name);
         }
     }
 
-    Ok(vec![Ensure::Pkgs(PkgsToEnsure {
+    Ok(vec![Resource::Pkg(GurpPkg {
         id: "/aggr/pkg/all".to_owned(),
+        action: Action::Ensure,
         pkg_list: install_list,
+        doer: "pkg".to_owned(),
     })])
 }
-//
+
 // Receive a list of pkgs, but return a single element vec which will be applied.
-pub fn unpack_remove_list(resource_list: &JanetArray, opts: &Opts) -> anyhow::Result<Vec<Remove>> {
+pub fn unpack_remove_list(
+    resource_list: &JanetArray,
+    opts: &Opts,
+) -> anyhow::Result<Vec<Resource>> {
     let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
 
     let mut remove_list = Vec::new();
@@ -168,17 +168,19 @@ pub fn unpack_remove_list(resource_list: &JanetArray, opts: &Opts) -> anyhow::Re
             let candidate = candidate.unwrap().to_string();
 
             if global_pkgs.installed.contains(&candidate) {
-                debug!(opts, "pkg: {} scheduled for removal", candidate);
+                debug!(opts, "doer/pkg", "pkg: {} scheduled for removal", candidate);
                 remove_list.push(candidate);
             } else {
-                debug!(opts, "pkg: {} is not installed", candidate);
+                debug!(opts, "doer/pkg", "pkg: {} is not installed", candidate);
             }
         }
     }
 
-    Ok(vec![Remove::Pkgs(PkgsToRemove {
+    Ok(vec![Resource::Pkg(GurpPkg {
         id: "/aggr/pkg/all".to_owned(),
+        action: Action::Remove,
         pkg_list: remove_list,
+        doer: "pkg".to_owned(),
     })])
 }
 
@@ -217,11 +219,4 @@ mod test {
         assert_eq!(613, result.installed.len());
         assert_eq!(521, result.available.len());
     }
-    // #[test]
-    // fn test_pkgs_to_add() {
-    //     ["helix" "janet" "oozone"]
-    //     ["helix" "rust" "zcage"]
-    //     ["helix" "janet" "vim" "flac" "lame"])
-    //   @["janet"])
-    //   }
 }
