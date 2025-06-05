@@ -8,21 +8,22 @@ other Github thing, but mainly this is for thinking out loud.
   to end up shelling out for everything. I also don't want to maintain my own
   fork of Janet.~~ [x]
 
-- Use a complete Rust back-end. State will be described in Janet, and compiled
+- ~~Use a complete Rust back-end. State will be described in Janet, and compiled
   into a final structure of some kind by an embedded interpreter. Rust will then
-  process said structure, and enforce it. [:check-mark:]
+  process said structure, and enforce it.~~ Done.
 
-- Bake the necessary Janet function and macro definitions into the Rust
+- ~~Bake the necessary Janet function and macro definitions into the Rust
   executable, and inject them into the user's config. The downside of this is
   that it will not be possible for a user to use a Janet REPL to create and
-  debug config.
+  debug config.~~ Done.
 
-- Add a `--local-libs` option to tell `gurp` (I'm going to have to think of a
+- ~~Add a `--local-libs` option to tell `gurp` (I'm going to have to think of a
   proper name) to use Janet macros and functions stored locally, obviating the
-  problem above. Also a command to dump the baked-in ones as a starting point.
+  problem above. Also a command to dump the baked-in ones as a starting point.~~
+  Done.
 
-- Why did I have a `:vars` structure? Bin that, and let the user import their
-  own vars as native Janet, and deal with them however they wish. :check-mark:]
+- ~~Why did I have a `:vars` structure? Bin that, and let the user import their
+  own vars as native Janet, and deal with them however they wish.~~ Removed.
 
 - Maybe one day allow Janet "doers"? I'm not sure how hard/sensible/necessary
   this is, but it might be fun.
@@ -38,13 +39,13 @@ other Github thing, but mainly this is for thinking out loud.
   Janet->Rust functions for each type means I can have complete control over
   them. I prefer that approach. Ripped out all the JSON stuff. [x]
 
-- Up to now, Janet was making a map, with keys being resource types, and values
-  being lists of that resource. This can be troublesome to work with, so I'm
-  going to have it produce an array of resources. [:check-mark:]
+- ~~Up to now, Janet was making a map, with keys being resource types, and
+  values being lists of that resource. This can be troublesome to work with, so
+  I'm going to have it produce an array of resources.~~ Did this. Found it was
+  worse, so went back.
 
-- Use Janet table prototypes to fill in default values for resources. We'll have
-  our own hard-coded value, but let the user supply their own somehow.
-  [:check-mark:]
+- ~~Use Janet table prototypes to fill in default values for resources. We'll
+  have our own hard-coded value,~~ but let the user supply their own somehow.
 
 - Add an option to load in a Janet struct rather than making one from Janet
   source. This means you'd only need two files on a box to configure it. Or
@@ -80,8 +81,9 @@ other Github thing, but mainly this is for thinking out loud.
 - This is going to run _fast_. I'm still not averse to the CfEngine approach of
   running multiple times, with each run converging towards required state.
 
-- Packages need to be grouped so we only make a single call to the package
-  manager. Adding packages is going to be a huge chunk of the execution time.
+- ~~Packages need to be grouped so we only make a single call to the package
+  manager. Adding packages is going to be a huge chunk of the execution time.~~
+  Done.
 
 - I've over-thought dependencies to a point where it's stopped me dead. I'm
   going to go with a very crude approach and once the thing roughly works
@@ -108,3 +110,5 @@ other Github thing, but mainly this is for thinking out loud.
 - A `globals` struct in the Janet, at the same level as `metadata` and
   `resources` that lets the user configure things which will apply to all
   modules. `pkg` opts and stuff.
+
+- A command/option to display hardcoded default values for resource properties.

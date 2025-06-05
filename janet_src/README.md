@@ -9,4 +9,8 @@ Tests require
 [Judge](https://github.com/ianthehenry/judge). They will run on any operating
 system.
 
-To test, just run `judge`, or use the `Dockerfile`.
+To test, just run `judge`, or use the `Dockerfile` if your system supports it.
+
+```
+$ docker run $(docker build -q .)
+```
