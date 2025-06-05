@@ -305,72 +305,31 @@ mod test {
     }
 
     #[test]
-    fn test_directory_ensure_state() {
-        let temp = TempDir::new().unwrap();
-        let dir = temp.child("test_directory");
-        dir.create_dir_all().unwrap();
-
-        let dir_exists = GurpDirectory {
-            name: Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap(),
-            id: "/test-role/directory/test_directory".to_owned(),
-            exists: false,
-            action: Action::Ensure,
-            desired_state: Some(DirectoryState {
-                group: "sysadmin".to_owned(),
-                mode: "0755".to_owned(),
-                owner: "rob".to_owned(),
-            }),
-            doer: "directory".to_owned(),
-        };
-
-        let result_option = dir_exists.desired_state;
-        let result = result_option.unwrap();
-        assert_eq!("0755".to_owned(), result.mode);
-
-        let dir_does_not_exist = GurpDirectory {
-            name: Utf8PathBuf::from("/no/such/test_directory"),
-            id: "/test-role/directory/test_directory".to_owned(),
-            exists: false,
-            action: Action::Ensure,
-            desired_state: Some(DirectoryState {
-                group: "sysadmin".to_owned(),
-                mode: "0755".to_owned(),
-                owner: "rob".to_owned(),
-            }),
-            doer: "directory".to_owned(),
-        };
-
-        assert!(dir_does_not_exist.desired_state.is_none());
-    }
-
-    #[test]
     fn test_unpack_ensure_directory() {
         init_janet();
 
         let example_dir_ensure = Janet::wrap(janetrs::structs! {
             ":_id" => "/test-role/directory/test_directory",
-            ":action" => "ensure",
+            ":action" => ":ensure",
             ":group" => "sysadmin",
             ":mode" => "0755",
             ":owner" => "rob",
             ":name" => "/tmp/merp",
         });
 
-        let expected_ensure = GurpDirectory {
-            name: Utf8PathBuf::from("/tmp/merp"),
-            id: "/test-role/directory/test_directory".to_owned(),
-            exists: false,
-            action: Action::Ensure,
-            desired_state: Some(DirectoryState {
-                group: "sysadmin".to_owned(),
-                mode: "0755".to_owned(),
-                owner: "rob".to_owned(),
-            }),
-            doer: "directory".to_owned(),
-        };
-
         assert_eq!(
-            expected_ensure,
+            GurpDirectory {
+                name: Utf8PathBuf::from("/tmp/merp"),
+                id: "/test-role/directory/test_directory".to_owned(),
+                exists: false,
+                action: Action::Ensure,
+                desired_state: Some(DirectoryState {
+                    group: "sysadmin".to_owned(),
+                    mode: "0755".to_owned(),
+                    owner: "rob".to_owned(),
+                }),
+                doer: "directory".to_owned(),
+            },
             GurpDirectory::try_from(&example_dir_ensure).unwrap()
         );
     }
@@ -381,20 +340,18 @@ mod test {
         let example_dir_remove = Janet::wrap(janetrs::structs! {
             ":name" => "/tmp/merp",
             ":_id" => "/test-role/directory/merp",
-            ":action" => "remove",
+            ":action" => ":remove",
         });
 
-        let expected_remove = GurpDirectory {
-            name: Utf8PathBuf::from("/tmp/merp"),
-            id: "/test-role/directory/merp".to_owned(),
-            exists: false,
-            action: Action::Remove,
-            desired_state: None,
-            doer: "directory".to_owned(),
-        };
-
         assert_eq!(
-            expected_remove,
+            GurpDirectory {
+                name: Utf8PathBuf::from("/tmp/merp"),
+                id: "/test-role/directory/merp".to_owned(),
+                exists: false,
+                action: Action::Remove,
+                desired_state: None,
+                doer: "directory".to_owned(),
+            },
             GurpDirectory::try_from(&example_dir_remove).unwrap()
         );
     }
