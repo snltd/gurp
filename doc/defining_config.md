@@ -56,7 +56,7 @@ you'll need to `(use)` them.
       (file/ensure "/etc/application/config.txt"
                    :label "app-config"
                    :owner "root"
-                   :content "config values")
+                   :content (string "config values for " (this-host)))
       (directory/ensure "/etc/application"
                         :owner :/my-role/file/app-config/owner
                         :group "engineering"
@@ -84,6 +84,10 @@ name. You can use that pattern in your references, but to save you having to
 even deal with that, you can, follow the above example and add a `:label`, then
 refer to that.
 
+We have dynamically constructed a value for the content of the file. `(string)`
+concatenates its arguments, and `(this-host)` is a `gurp` builtin which expands
+to the name you set in your `(host)` definition.
+
 ## Variables
 
 Because it aims to be as stupid and unsophisticated as possible, `gurp` does not
@@ -103,8 +107,7 @@ tables, structs, arrays, tuples, whatever works for you.
 ```clojure
 # vars.janet
 (def packages
-    {
-      :editors [vim neovim helix]
+    { :editors [vim neovim helix]
       :languages [rust ruby33] } )
 ```
 

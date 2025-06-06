@@ -112,3 +112,6 @@ other Github thing, but mainly this is for thinking out loud.
   modules. `pkg` opts and stuff.
 
 - A command/option to display hardcoded default values for resource properties.
+
+- ~~The `host` macro should somehow expose the host name, so it can be used in,
+  for instance, variable lookups.~~ Done.
