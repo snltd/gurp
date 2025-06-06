@@ -63,8 +63,14 @@
   "Given a user name and specification, return a user remove struct"
   (generic-resource :user :remove name specs))
 
+(defn this-host
+  "Returns the name of the host, set by a dyn in the host macro"
+  []
+  (dyn :host-dyn))
+
 (defmacro host [host-name & host-definition]
   "The top-level wrapper used to define a host to be configured"
+   (setdyn :host-dyn (string host-name))
   ~(defn machine-config
      []
      {:metadata {:name ,host-name}
