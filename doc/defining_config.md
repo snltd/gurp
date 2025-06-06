@@ -56,7 +56,7 @@ you'll need to `(use)` them.
       (file/ensure "/etc/application/config.txt"
                    :label "app-config"
                    :owner "root"
-                   :content (string "config values for " (this-host))
+                   :content (string "config values for " (this-host)))
       (directory/ensure "/etc/application"
                         :owner :/my-role/file/app-config/owner
                         :group "engineering"
@@ -107,8 +107,7 @@ tables, structs, arrays, tuples, whatever works for you.
 ```clojure
 # vars.janet
 (def packages
-    {
-      :editors [vim neovim helix]
+    { :editors [vim neovim helix]
       :languages [rust ruby33] } )
 ```
 
