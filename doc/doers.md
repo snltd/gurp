@@ -57,6 +57,22 @@ To make sure a directory does not exist,
 This will not remove any empty ancestors, but **will** remove the contents of
 the directory.
 
+### File
+
+Files are mostly created like directories:
+
+```clojure
+(file/ensure "/path/to/file"
+             :mode "0750"
+             :owner "user-name"
+             :group "group-name"
+             :content "some content")
+```
+
+But the big difference is that files need some content. You can specify literal
+content with `:content`, or you can use `:from`, which tells `gurp` to copy a
+file.
+
 ### User
 
 User resources are managed by shelling out to the `useradd(1m)`, `usermod(1m)`,

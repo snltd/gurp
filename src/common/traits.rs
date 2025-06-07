@@ -7,6 +7,7 @@ pub trait Apply {
 impl Apply for Resource {
     fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         match self {
+            Resource::File(inner) => inner.apply(opts),
             Resource::Directory(inner) => inner.apply(opts),
             Resource::User(inner) => inner.apply(opts),
             Resource::Pkg(inner) => inner.apply(opts),
@@ -22,6 +23,7 @@ pub trait HasId {
 impl HasId for Resource {
     fn id(&self) -> String {
         match self {
+            Resource::File(inner) => inner.id.clone(),
             Resource::Directory(inner) => inner.id.clone(),
             Resource::User(inner) => inner.id.clone(),
             Resource::Pkg(inner) => inner.id.clone(),
@@ -29,3 +31,4 @@ impl HasId for Resource {
         }
     }
 }
+

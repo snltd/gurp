@@ -1,4 +1,5 @@
 use crate::doers::directory::GurpDirectory;
+use crate::doers::file::GurpFile;
 use crate::doers::file_line::GurpFileLine;
 use crate::doers::pkg::GurpPkg;
 use crate::doers::user::GurpUser;
@@ -19,6 +20,7 @@ pub enum Resource {
     User(GurpUser),
     Pkg(GurpPkg),
     FileLine(GurpFileLine),
+    File(GurpFile),
 }
 
 #[derive(Debug, PartialEq, Eq)]

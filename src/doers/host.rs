@@ -139,7 +139,7 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
 fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySummary> {
     info!(opts, "Configuring host '{}'", config.metadata.name);
 
-    let ensure_order = &["pkg", "user", "directory"];
+    let ensure_order = &["pkg", "user", "directory", "file"];
 
     let mut summary_total = ApplySummary {
         resources: 0,
@@ -172,7 +172,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
         }
     }
 
-    let remove_order = &["directory", "user", "pkg"];
+    let remove_order = &["file", "directory", "user", "pkg"];
 
     for resource_type in remove_order {
         if let Some(resources) = config.resources.remove.get(*resource_type) {
