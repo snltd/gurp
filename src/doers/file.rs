@@ -276,12 +276,11 @@ impl GurpFile {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::spec_helper::{defopts, defopts_noop, init_janet};
+    use crate::test_utils::spec_helper::{defopts, defopts_noop, init_janet, my_group, my_user};
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use camino::Utf8PathBuf;
-    use users;
-    // use users::{get_current_gid, get_current_uid, get_group_by_gid, get_user_by_uid};
+    use nix::unistd::{getgid, getuid};
 
     #[test]
     fn test_file_remove_apply_does_not_exist() {
@@ -427,19 +426,14 @@ mod test {
         let temp = TempDir::new().unwrap();
         let file_to_create = temp.join("test-file");
 
-        let uid = users::get_current_uid();
-        let gid = users::get_current_gid();
-        let user = users::get_user_by_uid(uid).unwrap();
-        let group = users::get_group_by_gid(gid).unwrap();
-
         let example_file_ensure = Janet::wrap(janetrs::structs! {
             ":_id" => "/test-role/file/test-file",
             ":action" => ":ensure",
             ":content" => "some-content",
-            ":group" => group.name().to_string_lossy().to_string().as_str(),
+            ":group" => my_group().as_str(),
             ":mode" => "0600",
             ":name" => file_to_create.to_string_lossy().to_string().as_str(),
-            ":owner" => user.name().to_string_lossy().to_string().as_str(),
+            ":owner" => my_user().as_str(),
         });
 
         let gurp_file = GurpFile::try_from(&example_file_ensure).unwrap();
@@ -465,19 +459,14 @@ mod test {
             .unwrap();
         let file_to_create = temp.join("test-file");
 
-        let uid = users::get_current_uid();
-        let gid = users::get_current_gid();
-        let user = users::get_user_by_uid(uid).unwrap();
-        let group = users::get_group_by_gid(gid).unwrap();
-
         let example_file_ensure = Janet::wrap(janetrs::structs! {
             ":_id" => "/test-role/file/test-file",
             ":action" => ":ensure",
             ":content" => "the-right-stuff",
-            ":group" => group.name().to_string_lossy().to_string().as_str(),
+            ":group" => my_group().as_str(),
             ":mode" => "0400",
             ":name" => file_to_create.to_string_lossy().to_string().as_str(),
-            ":owner" => user.name().to_string_lossy().to_string().as_str(),
+            ":owner" => my_user().as_str(),
         });
 
         let gurp_file = GurpFile::try_from(&example_file_ensure).unwrap();

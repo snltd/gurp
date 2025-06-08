@@ -48,6 +48,19 @@ pub fn init_janet() {
     }
 }
 
+#[cfg(test)]
+use nix::unistd::{Group, User, getgid, getuid};
+
+#[cfg(test)]
+pub fn my_user() -> String {
+    User::from_uid(getuid()).unwrap().unwrap().name
+}
+
+#[cfg(test)]
+pub fn my_group() -> String {
+    Group::from_gid(getgid()).unwrap().unwrap().name
+}
+
 // #[cfg(test)]
 // use assert_fs::TempDir;
 // #[cfg(test)]
