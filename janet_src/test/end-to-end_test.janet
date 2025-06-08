@@ -43,12 +43,14 @@
                                    :action :ensure
                                    :content "some words"
                                    :group "root"
+                                   :mode "0644"
                                    :name "/tmp/basenode.txt"
                                    :owner "root"
                                    :role "basenode"}
                                   {:_id "/devtools/file/_tmp_hx-config.txt"
                                    :action :ensure
                                    :group "root"
+                                   :mode "0644"
                                    :name "/tmp/hx-config.txt"
                                    :owner "rob"
                                    :role "devtools"
@@ -57,6 +59,7 @@
                                    :action :ensure
                                    :group "root"
                                    :label "git-config"
+                                   :mode "0644"
                                    :name "/tmp/git-config.txt"
                                    :owner "rob"
                                    :role "devtools"
@@ -76,6 +79,7 @@
                  :remove {:directory @[{:_id "/basenode/directory/_tmp_junk"
                                         :action :remove
                                         :group "root"
+                                        :mode "0755"
                                         :name "/tmp/junk"
                                         :owner "root"
                                         :role "basenode"}]
