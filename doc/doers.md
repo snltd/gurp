@@ -39,8 +39,8 @@ Directories are defined like this.
                   :group "group-name")
 ```
 
-At the moment `:owner` and `:group` must be strings: numeric IDs are not
-supported. `mode` is a four-character octal string.
+`:owner` and `:group` can be names or numeric IDs, but either way, quote them.
+`mode` is a four-character octal string.
 
 If you do not supply an `:owner` or `:group`, they will default to `root`.
 

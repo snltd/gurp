@@ -5,18 +5,18 @@ use crate::common::constants::{
 use crate::common::output::Output;
 use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplySummary, Changes, Opts, Resource};
+use crate::common::users_and_groups;
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
-use anyhow::{Context, anyhow};
+use anyhow::anyhow;
 use blake3::Hash;
 use camino::Utf8PathBuf;
 use janetrs::{Janet, JanetArray};
-use nix::unistd::{Gid, Group, Uid, User};
+use nix::unistd::{Gid, Uid};
 use paste::paste;
 use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
-use std::os::unix;
-use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use std::os::unix::fs::MetadataExt;
 
 // THINGS TO KNOW / THINGS TO DO.
 // You can only define users and groups by their names. UIDs/GIDs do not work.
@@ -33,9 +33,9 @@ pub struct GurpFile {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct FileState {
-    pub group: String,
+    pub gid: Gid,
     pub mode: String,
-    pub owner: String,
+    pub uid: Uid,
     pub content: Option<String>,
     pub from: Option<Utf8PathBuf>,
     pub hash: Option<Hash>,
@@ -53,27 +53,30 @@ impl TryFrom<&Janet> for GurpFile {
         let content = data
             .get(Janet::keyword("content".into()))
             .map(|c| c.to_string());
+
         let from = data
             .get(Janet::keyword("from".into()))
             .map(|c| Utf8PathBuf::from(c.to_string()));
 
-        if action == Action::Ensure && content.is_none() && from.is_none() {
-            return Err(anyhow!("file must have :content or :from"));
-        }
-
-        if action == Action::Ensure && content.is_some() && from.is_some() {
-            return Err(anyhow!("file cannot have both :content and :from"));
-        }
-
         let state = match action {
-            Action::Ensure => Some(FileState {
-                group: data.get_field_string("group")?,
-                mode: data.get_field_string("mode")?,
-                owner: data.get_field_string("owner")?,
-                from,
-                content,
-                hash: None,
-            }),
+            Action::Ensure => {
+                if content.is_none() && from.is_none() {
+                    return Err(anyhow!("file must have :content or :from"));
+                }
+
+                if content.is_some() && from.is_some() {
+                    return Err(anyhow!("file cannot have both :content and :from"));
+                }
+
+                Some(FileState {
+                    gid: users_and_groups::group_from(&data.get_field_string("group")?)?,
+                    mode: data.get_field_string("mode")?,
+                    uid: users_and_groups::owner_from(&data.get_field_string("owner")?)?,
+                    from,
+                    content,
+                    hash: None,
+                })
+            }
             Action::Remove => None,
         };
 
@@ -119,48 +122,15 @@ impl GurpFile {
             self.write_contents_to_file(desired)?;
         }
 
-        let final_owner = if changes.contains(&"owner") {
-            output.change(&self.name, &current.owner, &desired.owner);
-            &desired.owner
-        } else {
-            &current.owner
-        };
-
-        let final_group = if changes.contains(&"group") {
-            output.change(&self.name, &current.group, &desired.group);
-            &desired.group
-        } else {
-            &current.group
-        };
-
         if changes.contains(&"group") || changes.contains(&"owner") {
-            let user = User::from_name(final_owner)?
-                .ok_or_else(|| anyhow::anyhow!("No such user '{}'", final_owner))?;
-            let group = Group::from_name(final_group)?
-                .ok_or_else(|| anyhow::anyhow!("No such group '{}'", final_group))?;
-
-            self.set_user(path, user, group)?;
+            users_and_groups::set_user(path, desired.uid, desired.gid)?;
         }
 
         if changes.contains(&"mode") {
-            output.change(&self.name, &current.mode, &desired.mode);
-            let mode = u32::from_str_radix(&desired.mode, 8)?;
-            self.set_mode(path, mode)?;
+            users_and_groups::set_mode(path, &current.mode, &desired.mode)?;
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
-    }
-
-    fn set_user(&self, path: &Utf8PathBuf, user: User, group: Group) -> anyhow::Result<()> {
-        Ok(unix::fs::chown(
-            path,
-            Some(user.uid.as_raw()),
-            Some(group.gid.as_raw()),
-        )?)
-    }
-
-    fn set_mode(&self, path: &Utf8PathBuf, mode: u32) -> anyhow::Result<()> {
-        Ok(fs::set_permissions(path, fs::Permissions::from_mode(mode))?)
     }
 
     fn apply_remove(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
@@ -202,11 +172,11 @@ impl GurpFile {
             }
         }
 
-        if current.group != desired.group {
+        if current.gid != desired.gid {
             to_change.push("group");
         }
 
-        if current.owner != desired.owner {
+        if current.uid != desired.uid {
             to_change.push("owner");
         }
 
@@ -218,22 +188,12 @@ impl GurpFile {
     }
 
     fn current_state(&self) -> anyhow::Result<FileState> {
-        let path = &self.name;
-        let metadata = fs::metadata(path)?;
+        let path = &self.name.as_path();
+        let metadata = nix::sys::stat::stat(path.as_std_path())?;
 
-        // TODO deal with numeric and string users and groups
-        //
-        let mode = format!("{:04o}", metadata.mode() & 0o777);
-        let uid = metadata.uid();
-        let gid = metadata.gid();
-
-        let owner = User::from_uid(Uid::from_raw(uid))?
-            .context(format!("cannot get owner for file {}", path))?
-            .name;
-
-        let group = Group::from_gid(Gid::from_raw(gid))?
-            .context(format!("cannot get group for file {}", path))?
-            .name;
+        let mode = format!("{:04o}", metadata.st_mode & 0o777);
+        let uid = metadata.st_uid.into();
+        let gid = metadata.st_gid.into();
 
         // If we have just created the file ourselves, this will still be false, so we know there's
         // no need to check the contents: they have to be right, and it's a potentially expensive
@@ -247,8 +207,8 @@ impl GurpFile {
         };
 
         Ok(FileState {
-            group: group.to_owned(),
-            owner: owner.to_owned(),
+            gid,
+            uid,
             mode: mode.to_owned(),
             content: None,
             from: None,
@@ -280,7 +240,6 @@ mod test {
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use camino::Utf8PathBuf;
-    use nix::unistd::{getgid, getuid};
 
     #[test]
     fn test_file_remove_apply_does_not_exist() {
@@ -370,10 +329,10 @@ mod test {
             ":_id" => "/test-role/file/test-file",
             ":action" => ":ensure",
             ":content" => "some-content",
-            ":group" => "sysadmin",
+            ":group" => "14",
             ":mode" => "0755",
             ":name" => "/tmp/merp",
-            ":owner" => "rob",
+            ":owner" => "264",
         });
 
         assert_eq!(
@@ -385,10 +344,10 @@ mod test {
                 desired_state: Some(FileState {
                     content: Some("some-content".to_owned()),
                     from: None,
-                    group: "sysadmin".to_owned(),
+                    gid: 14.into(),
                     hash: None,
                     mode: "0755".to_owned(),
-                    owner: "rob".to_owned(),
+                    uid: 264.into(),
                 }),
                 doer: "file".to_owned(),
             },

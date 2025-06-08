@@ -5,15 +5,14 @@ use crate::common::constants::{
 use crate::common::output::Output;
 use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplySummary, Changes, Opts, Resource};
+use crate::common::users_and_groups;
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
-use anyhow::Context;
 use camino::Utf8PathBuf;
 use janetrs::{Janet, JanetArray};
-use nix::unistd::{Gid, Group, Uid, User};
+use nix::unistd::{Gid, Uid};
 use paste::paste;
 use std::fs;
-use std::os::unix;
-use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use std::os::unix::fs::MetadataExt;
 
 // THINGS TO KNOW / THINGS TO DO.
 // Creating a directory is `mkdir -p` style.
@@ -31,9 +30,9 @@ pub struct GurpDirectory {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct DirectoryState {
-    pub group: String,
+    pub gid: Gid,
     pub mode: String,
-    pub owner: String,
+    pub uid: Uid,
 }
 
 impl TryFrom<&Janet> for GurpDirectory {
@@ -47,9 +46,9 @@ impl TryFrom<&Janet> for GurpDirectory {
 
         let state = match action {
             Action::Ensure => Some(DirectoryState {
-                group: data.get_field_string("group")?,
+                gid: users_and_groups::group_from(&data.get_field_string("group")?)?,
                 mode: data.get_field_string("mode")?,
-                owner: data.get_field_string("owner")?,
+                uid: users_and_groups::owner_from(&data.get_field_string("owner")?)?,
             }),
             Action::Remove => None,
         };
@@ -91,33 +90,12 @@ impl GurpDirectory {
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
-        let final_owner = if changes.contains(&"owner") {
-            output.change(&self.name, &current.owner, &desired.owner);
-            &desired.owner
-        } else {
-            &current.owner
-        };
-
-        let final_group = if changes.contains(&"group") {
-            output.change(&self.name, &current.group, &desired.group);
-            &desired.group
-        } else {
-            &current.group
-        };
-
         if changes.contains(&"group") || changes.contains(&"owner") {
-            let user = User::from_name(final_owner)?
-                .ok_or_else(|| anyhow::anyhow!("No such user '{}'", final_owner))?;
-            let group = Group::from_name(final_group)?
-                .ok_or_else(|| anyhow::anyhow!("No such group '{}'", final_group))?;
-
-            unix::fs::chown(path, Some(user.uid.as_raw()), Some(group.gid.as_raw()))?;
+            users_and_groups::set_user(path, desired.uid, desired.gid)?;
         }
 
         if changes.contains(&"mode") {
-            output.change(&self.name, &current.mode, &desired.mode);
-            let mode = u32::from_str_radix(&desired.mode, 8)?;
-            fs::set_permissions(path, fs::Permissions::from_mode(mode))?;
+            users_and_groups::set_mode(path, &current.mode, &desired.mode)?;
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -147,11 +125,11 @@ impl GurpDirectory {
     fn changes<'a>(&self, current: &DirectoryState, desired: &DirectoryState) -> Changes<'a> {
         let mut to_change = Vec::new();
 
-        if current.group != desired.group {
+        if current.gid != desired.gid {
             to_change.push("group");
         }
 
-        if current.owner != desired.owner {
+        if current.uid != desired.uid {
             to_change.push("owner");
         }
 
@@ -166,24 +144,10 @@ impl GurpDirectory {
         let path = &self.name;
         let metadata = fs::metadata(path)?;
 
-        // TODO deal with numeric and string users and groups
-        //
-        let mode = format!("{:04o}", metadata.mode() & 0o777);
-        let uid = metadata.uid();
-        let gid = metadata.gid();
-
-        let owner = User::from_uid(Uid::from_raw(uid))?
-            .context(format!("cannot get owner for directory {}", path))?
-            .name;
-
-        let group = Group::from_gid(Gid::from_raw(gid))?
-            .context(format!("cannot get group for directory {}", path))?
-            .name;
-
         Ok(DirectoryState {
-            group: group.to_owned(),
-            owner: owner.to_owned(),
-            mode: mode.to_owned(),
+            uid: metadata.uid().into(),
+            gid: metadata.gid().into(),
+            mode: format!("{:04o}", metadata.mode() & 0o777).to_owned(),
         })
     }
 }
@@ -293,9 +257,9 @@ mod test {
                 exists: false,
                 action: Action::Ensure,
                 desired_state: Some(DirectoryState {
-                    group: "sysadmin".to_owned(),
+                    gid: 14.into(),
                     mode: "0755".to_owned(),
-                    owner: "rob".to_owned(),
+                    uid: 264.into(),
                 }),
                 doer: "directory".to_owned(),
             },
