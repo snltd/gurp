@@ -4,23 +4,21 @@
 # These files should all end up with the same owner
 
 (role role-a
-      (file/ensure "a1"
-                   :path "/tmp/a1"
+      (file/ensure "/tmp/a1"
                    :group "sysadmin"
+                   :label "a1"
                    :owner "tester"
                    :content "blah"))
 (role role-b
-      (file/ensure "b1"
-                   :path "/tmp/b1"
+      (file/ensure "/tmp/b1"
                    :group :/role-a/file/a1/group
                    :owner :/role-a/file/a1/owner
                    :content "blah-blah")
-      (file/ensure "b2"
-                   :path "/tmp/b2"
+      (file/ensure "/tmp/b2"
                    :owner :/role-a/file/a1/owner
+                   :label "b2"
                    :content "blah-blah-blah")
-      (file/ensure "b3"
-                   :path "/tmp/b3"
+      (file/ensure "/tmp/b3"
                    :owner :/role-b/file/b2/owner
                    :content "blah-blah-blah"))
 
@@ -30,36 +28,34 @@
 
 (deftest "references-should-all-resolve"
   (test (machine-config)
-    {:metadata {:name "circular-dependency"}
-     :resources {:ensure {:file @[{:_id "/role-a/file/a1"
-                                   :action :ensure
-                                   :content "blah"
-                                   :group "sysadmin"
-                                   :name "a1"
-                                   :owner "tester"
-                                   :path "/tmp/a1"
-                                   :role "role-a"}
-                                  {:_id "/role-b/file/b1"
-                                   :action :ensure
-                                   :content "blah-blah"
-                                   :group "sysadmin"
-                                   :name "b1"
-                                   :owner "tester"
-                                   :path "/tmp/b1"
-                                   :role "role-b"}
-                                  {:_id "/role-b/file/b2"
-                                   :action :ensure
-                                   :content "blah-blah-blah"
-                                   :group "root"
-                                   :name "b2"
-                                   :owner "tester"
-                                   :path "/tmp/b2"
-                                   :role "role-b"}
-                                  {:_id "/role-b/file/b3"
-                                   :action :ensure
-                                   :content "blah-blah-blah"
-                                   :group "root"
-                                   :name "b3"
-                                   :owner "tester"
-                                   :path "/tmp/b3"
-                                   :role "role-b"}]}}}))
+        {:metadata {:name "circular-dependency"}
+         :resources {:ensure {:file @[{:_id "/role-a/file/a1"
+                                       :action :ensure
+                                       :content "blah"
+                                       :group "sysadmin"
+                                       :label "a1"
+                                       :name "/tmp/a1"
+                                       :owner "tester"
+                                       :role "role-a"}
+                                      {:_id "/role-b/file/_tmp_b1"
+                                       :action :ensure
+                                       :content "blah-blah"
+                                       :group "sysadmin"
+                                       :name "/tmp/b1"
+                                       :owner "tester"
+                                       :role "role-b"}
+                                      {:_id "/role-b/file/b2"
+                                       :action :ensure
+                                       :content "blah-blah-blah"
+                                       :group "root"
+                                       :label "b2"
+                                       :name "/tmp/b2"
+                                       :owner "tester"
+                                       :role "role-b"}
+                                      {:_id "/role-b/file/_tmp_b3"
+                                       :action :ensure
+                                       :content "blah-blah-blah"
+                                       :group "root"
+                                       :name "/tmp/b3"
+                                       :owner "tester"
+                                       :role "role-b"}]}}}))
