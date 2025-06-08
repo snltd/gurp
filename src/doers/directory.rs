@@ -244,9 +244,9 @@ mod test {
         let example_dir_ensure = Janet::wrap(janetrs::structs! {
             ":_id" => "/test-role/directory/test_directory",
             ":action" => ":ensure",
-            ":group" => "sysadmin",
+            ":group" => "bin",
             ":mode" => "0755",
-            ":owner" => "rob",
+            ":owner" => "root",
             ":name" => "/tmp/merp",
         });
 
@@ -257,9 +257,9 @@ mod test {
                 exists: false,
                 action: Action::Ensure,
                 desired_state: Some(DirectoryState {
-                    gid: 14.into(),
+                    gid: 2.into(),
                     mode: "0755".to_owned(),
-                    uid: 264.into(),
+                    uid: 0.into(),
                 }),
                 doer: "directory".to_owned(),
             },
