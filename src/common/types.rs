@@ -1,4 +1,5 @@
 use crate::doers::directory::GurpDirectory;
+use crate::doers::file_line::GurpFileLine;
 use crate::doers::pkg::GurpPkg;
 use crate::doers::user::GurpUser;
 use camino::Utf8PathBuf;
@@ -17,6 +18,7 @@ pub enum Resource {
     Directory(GurpDirectory),
     User(GurpUser),
     Pkg(GurpPkg),
+    FileLine(GurpFileLine),
 }
 
 #[derive(Debug, PartialEq, Eq)]

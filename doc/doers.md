@@ -23,6 +23,9 @@ action-specific, and outlined below. The name is generally the same thing the OS
 uses to identify that resource, so for a file it would be the path; for a user,
 the username.
 
+All doers do the bare minimum needed to build my systems. If you want more, open
+an issue or a PR.
+
 ## The Doers
 
 ### Directory
@@ -87,3 +90,30 @@ version pinning.
 
 If you run gurp with `--noop`, `pkg(1)` will be executed, but with the `-n`
 flag. Therefore it can cause a noop run to fail.
+
+### File-line
+
+This makes sure that the given lines are, or are not, in the given file. If the
+file does not exist, the doer will fail, so you may have to manage the file with
+a `(file)` resource. This seems more efficient than duplicating all the `(file)`
+functionality here. Files are created before lines are managed, so the
+dependency is implicit.
+
+Like all doers, `(file-line)` is very stupid. If the line does not exist it will
+be appended to the file. If it does, it's left where it is. Removing a line will
+add a newline to the end of the file, if there isn't one already, and appended
+lines have a newline forced at the front, in case there wasn't one at the end of
+the file.
+
+You can only manage one line per resource, because if we do add things like
+`:line-number`, or `:before` or whatever, it'll be a lot more straightforward.
+
+```clojure
+(file-line/ensure "/path/to/file"
+                  :line "this is the line I want")
+```
+
+```clojure
+(file-line/remove "/path/to/file"
+                  :line "this is the first line I do not want")
+```
