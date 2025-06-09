@@ -63,7 +63,7 @@ impl TryFrom<&Janet> for GurpFileLine {
             id: data.get_field_string("_id")?,
             name: data.get_field_pathbuf("name")?,
             desired_state: state,
-            doer: "file_line".to_owned(),
+            doer: "file-line".to_owned(),
         })
     }
 }
@@ -71,9 +71,10 @@ impl TryFrom<&Janet> for GurpFileLine {
 impl GurpFileLine {
     fn apply_ensure(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
         if self.exists {
+            output.no_change(&self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
         } else {
-            output.creating("appending line");
+            output.creating(&self.name);
 
             if opts.noop {
                 Ok(ONE_RESOURCE_NOOP)
@@ -87,9 +88,10 @@ impl GurpFileLine {
 
     fn apply_remove(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
         if !self.exists {
+            output.no_change(&self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
         } else {
-            output.creating("removing line");
+            output.removing(&self.name);
 
             if opts.noop {
                 Ok(ONE_RESOURCE_NOOP)

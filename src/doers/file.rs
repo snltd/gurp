@@ -158,13 +158,9 @@ impl GurpFile {
         let mut to_change = Vec::new();
 
         if let Some(current_hash) = current.hash {
-            println!("have current.hash");
-            println!("{:?}", current.hash);
             if let Some(content) = &desired.content {
-                println!("have desired content");
                 let content_hash = blake3::hash(content.as_bytes());
                 if content_hash != current_hash {
-                    println!("content needs changing");
                     to_change.push("content");
                 }
             } else {
@@ -200,7 +196,6 @@ impl GurpFile {
         // operation.
         //
         let hash = if self.exists {
-            println!("getting hash for extant file");
             Some(self.file_hash()?)
         } else {
             None
