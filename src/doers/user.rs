@@ -36,7 +36,7 @@ pub struct UserState {
     pub shell: Utf8PathBuf,
     pub gecos: String,
     pub primary_group: String,
-    pub other_groups: Vec<String>,
+    // pub other_groups: Vec<String>,
 }
 
 impl TryFrom<&Janet> for GurpUser {
@@ -55,7 +55,7 @@ impl TryFrom<&Janet> for GurpUser {
                 shell: data.get_field_pathbuf("shell")?,
                 gecos: data.get_field_string("gecos")?,
                 primary_group: data.get_field_string("group")?,
-                other_groups: data.get_field_string_tuple("other-groups")?,
+                // other_groups: data.get_field_string_tuple("other-groups")?,
             }),
             Action::Remove => None,
         };
@@ -86,6 +86,8 @@ impl GurpUser {
         let desired = self.desired_state.as_ref().unwrap();
         let changes = self.changes(&current, desired);
 
+        debug!(opts, "doer/user", "changes {:?}", changes);
+
         if changes.is_empty() {
             output.no_change(&self.name);
             return Ok(ONE_RESOURCE_NO_CHANGE);
@@ -94,14 +96,29 @@ impl GurpUser {
         let mut cmd = Command::new("/usr/sbin/usermod");
 
         if changes.contains(&"gecos") {
+            output.change(
+                format!("{}::gecos", self.name),
+                &current.gecos,
+                &desired.gecos,
+            );
             cmd.arg("-c").arg(&desired.gecos);
         }
 
         if changes.contains(&"home-dir") {
+            output.change(
+                format!("{}::home-dir", self.name),
+                &current.home_dir,
+                &desired.home_dir,
+            );
             cmd.arg("-d").arg(&desired.home_dir);
         }
 
         if changes.contains(&"primary-group") {
+            output.change(
+                format!("{}::primary-group", self.name),
+                &current.primary_group,
+                &desired.primary_group,
+            );
             cmd.arg("-g").arg(&desired.primary_group);
         }
 
@@ -110,10 +127,16 @@ impl GurpUser {
         // } // Doesn't do anything now
 
         if changes.contains(&"shell") {
+            output.change(
+                format!("{}::shell", self.name),
+                &current.shell,
+                &desired.shell,
+            );
             cmd.arg("-s").arg(&desired.shell);
         }
 
         if changes.contains(&"uid") {
+            output.change(format!("{}::uid", self.name), &current.uid, &desired.uid);
             cmd.arg("-u").arg(desired.uid.to_string());
         }
 
@@ -180,12 +203,12 @@ impl GurpUser {
         }
 
         if current.primary_group != desired.primary_group {
-            to_change.push("group");
+            to_change.push("primary-group");
         }
 
-        if current.other_groups != desired.other_groups {
-            to_change.push("other-groups");
-        } // doesn't do anything now
+        // if current.other_groups != desired.other_groups {
+        // to_change.push("other-groups");
+        // } // doesn't do anything now
 
         to_change
     }
@@ -198,8 +221,8 @@ impl GurpUser {
             .arg(&state.gecos)
             .arg("-g")
             .arg(&state.primary_group)
-            .arg("-G")
-            .arg(state.other_groups.join(","))
+            // .arg("-G")
+            // .arg(state.other_groups.join(","))
             .arg("-s")
             .arg(&state.shell)
             .arg("-u")
@@ -235,7 +258,7 @@ impl GurpUser {
                     shell: Utf8PathBuf::try_from(user.shell)?,
                     gecos: user.gecos.to_string_lossy().to_string(),
                     primary_group: primary_group.name,
-                    other_groups: Vec::new(), // we don't do anything with this field
+                    // other_groups: Vec::new(), // we don't do anything with this field
                 })
             }
             None => Err(anyhow!("Could not find user {}", self.name)),

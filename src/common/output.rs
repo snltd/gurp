@@ -25,7 +25,7 @@ impl Output {
         println!("[{}::{}] REMOVING", self.doer, item_name);
     }
 
-    pub fn change<T: Display, U: Display>(&self, item_name: T, from: U, to: U) {
+    pub fn change<T: Display, U: Display>(&self, item_name: T, from: &U, to: &U) {
         println!(
             "[{}::{}] CHANGE '{}' -> '{}'",
             self.doer, item_name, from, to

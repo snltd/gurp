@@ -68,7 +68,7 @@ fn extract_ensure_resources(
             }
             ":file-line" => {
                 ret.insert(
-                    "user".to_owned(),
+                    "file-line".to_owned(),
                     file_line::unpack_ensure_list(&resource_list, opts)?,
                 );
             }
@@ -130,7 +130,7 @@ fn extract_remove_resources(
             }
             ":file-line" => {
                 ret.insert(
-                    "pkg".to_owned(),
+                    "file-line".to_owned(),
                     file_line::unpack_remove_list(&resource_list, opts)?,
                 );
             }
