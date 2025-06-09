@@ -50,6 +50,14 @@
   "Given a file name and specification, return a file remove struct"
   (generic-resource :file :ensure name specs))
 
+(defn file-line/ensure [name & specs]
+  "Given a file name and a line pattern, make sure the file contains the line"
+  (generic-resource :file-line :ensure name specs))
+
+(defn file-line/remove [name & specs]
+  "Given a file name and specification, make sure the file does not contain the line"
+  (generic-resource :file-line :ensure name specs))
+
 (defn directory/ensure [name & specs]
   "Given a directory name and specification, return a directory ensure struct"
   (generic-resource :directory :ensure name specs))

@@ -1,7 +1,7 @@
 use crate::common::types::{
     EnsureResources, HostConfig, HostMetadata, HostResources, Opts, RemoveResources,
 };
-use crate::doers::{directory, pkg, user};
+use crate::doers::{directory, file_line, pkg, user};
 use crate::utils::janet_helpers::JanetExt;
 use crate::{debug, verbose, warn};
 use anyhow::anyhow;
@@ -60,6 +60,12 @@ fn extract_ensure_resources(
                     user::unpack_ensure_list(&resource_list, opts)?,
                 );
             }
+            ":file-line" => {
+                ret.insert(
+                    "user".to_owned(),
+                    file_line::unpack_ensure_list(&resource_list, opts)?,
+                );
+            }
             other => warn!(
                 opts,
                 "parser/extract/ensure",
@@ -108,6 +114,12 @@ fn extract_remove_resources(
                 ret.insert(
                     "pkg".to_owned(),
                     pkg::unpack_remove_list(&resource_list, opts)?,
+                );
+            }
+            ":file-line" => {
+                ret.insert(
+                    "pkg".to_owned(),
+                    file_line::unpack_remove_list(&resource_list, opts)?,
                 );
             }
             other => warn!(
