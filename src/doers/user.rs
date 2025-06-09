@@ -46,7 +46,7 @@ impl TryFrom<&Janet> for GurpUser {
         let data = value.extract_struct()?;
         let action = janet_helpers::action_as_enum(&data)?;
         let name = data.get_field_string("name")?;
-        let exists = User::from_name(&name).ok().is_some();
+        let exists = User::from_name(&name)?.is_some();
 
         let state = match action {
             Action::Ensure => Some(UserState {
@@ -105,9 +105,9 @@ impl GurpUser {
             cmd.arg("-g").arg(&desired.primary_group);
         }
 
-        if changes.contains(&"other-groups") {
-            cmd.arg("-G").arg(desired.other_groups.join(","));
-        } // Doesn't do anything now
+        // if changes.contains(&"other-groups") {
+        // cmd.arg("-G").arg(desired.other_groups.join(","));
+        // } // Doesn't do anything now
 
         if changes.contains(&"shell") {
             cmd.arg("-s").arg(&desired.shell);

@@ -44,6 +44,9 @@ pub static PROTECTED_DIRS: LazyLock<Vec<Utf8PathBuf>> = LazyLock::new(|| {
     ]
 });
 
+pub static PROTECTED_FILES: LazyLock<Vec<Utf8PathBuf>> =
+    LazyLock::new(|| vec![Utf8PathBuf::from("/bin/ps")]);
+
 pub static PROTECTED_USERS: LazyLock<Vec<&str>> = LazyLock::new(|| {
     vec![
         "root", "daemon", "bin", "sys", "adm", "lp", "uucp", "nuucp", "dladm", "netadm", "netcfg",

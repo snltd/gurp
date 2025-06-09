@@ -39,6 +39,7 @@
     {:file {:_id "/test-role/file/_my_file"
             :action :ensure
             :group "root"
+            :mode "0644"
             :name "/my/file"
             :owner "rob"
             :role "test-role"}})
@@ -46,14 +47,14 @@
   (test (directory/ensure "/my/deep/nested/directory/needs/recursion"
                           :label "deep-dir"
                           :owner "daemon")
-        {:directory {:_id "/test-role/directory/deep-dir"
-                     :action :ensure
-                     :group "root"
-                     :label "deep-dir"
-                     :name "deep-dir"
-                     :owner "daemon"
-                     :name "/my/deep/nested/directory/needs/recursion"
-                     :role "test-role"}})
+    {:directory {:_id "/test-role/directory/deep-dir"
+                 :action :ensure
+                 :group "root"
+                 :label "deep-dir"
+                 :mode "0755"
+                 :name "/my/deep/nested/directory/needs/recursion"
+                 :owner "daemon"
+                 :role "test-role"}})
 
   (setdyn :role-dyn nil))
 
