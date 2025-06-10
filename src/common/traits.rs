@@ -12,6 +12,7 @@ impl Apply for Resource {
             Resource::User(inner) => inner.apply(opts),
             Resource::Pkg(inner) => inner.apply(opts),
             Resource::FileLine(inner) => inner.apply(opts),
+            Resource::Cron(inner) => inner.apply(opts),
         }
     }
 }
@@ -28,7 +29,7 @@ impl HasId for Resource {
             Resource::User(inner) => inner.id.clone(),
             Resource::Pkg(inner) => inner.id.clone(),
             Resource::FileLine(inner) => inner.id.clone(),
+            Resource::Cron(inner) => inner.id.clone(),
         }
     }
 }
-

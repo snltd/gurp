@@ -2,8 +2,14 @@
   {:file {:owner "root"
           :mode "0644"
           :group "root"}
+   :cron {:hour "*"
+          :minute "*"
+          :day-of-month "*"
+          :day-of-week "*"
+          :month-of-year "*"
+          :user "root"}
    :user {:shell "/bin/zsh"
-          :primary-group "staff" }
+          :primary-group "staff"}
    :directory {:owner "root"
                :mode "0755"
                :group "root"}})
@@ -91,7 +97,7 @@
 
 (defmacro host [host-name & host-definition]
   "The top-level wrapper used to define a host to be configured"
-   (setdyn :host-dyn (string host-name))
+  (setdyn :host-dyn (string host-name))
   ~(defn machine-config
      []
      {:metadata {:name ,host-name}
