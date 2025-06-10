@@ -97,12 +97,13 @@ Package support is, for now at least, as basic as it can be. You can make sure a
 package is installed or not installed with one of
 
 ```clojure
-(pkg/ensure "/ooce/developer/rust")
-(pkg/remove "/ooce/developer/go-124" )
+(pkg/ensure "ooce/developer/rust")
+(pkg/remove "ooce/developer/go-124" )
 ```
 
 Gurp currently only supports ipkg packages, and does not provide for upgrades or
-version pinning.
+version pinning. You have to specify the package name as shown above; it's the
+format you see if you run `pkg list -a`.
 
 If you run gurp with `--noop`, `pkg(1)` will be executed, but with the `-n`
 flag. Therefore it can cause a noop run to fail.

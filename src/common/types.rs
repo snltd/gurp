@@ -1,3 +1,4 @@
+use crate::doers::cron::GurpCron;
 use crate::doers::directory::GurpDirectory;
 use crate::doers::file::GurpFile;
 use crate::doers::file_line::GurpFileLine;
@@ -21,6 +22,7 @@ pub enum Resource {
     Pkg(GurpPkg),
     FileLine(GurpFileLine),
     File(GurpFile),
+    Cron(GurpCron),
 }
 
 #[derive(Debug, PartialEq, Eq)]
