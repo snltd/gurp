@@ -1,17 +1,14 @@
 use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
+    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
 };
 use crate::common::output::Output;
 use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplySummary, Opts, Resource};
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
-use anyhow::anyhow;
-use camino::Utf8PathBuf;
 use janetrs::{Janet, JanetArray};
 use paste::paste;
-use std::fs;
 use std::io::Write;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 const TAG_LINE: &str = "gurp managed id";
 
@@ -74,12 +71,18 @@ impl TryFrom<&Janet> for GurpCron {
 }
 
 impl GurpCron {
-    fn apply_ensure(&self, _opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+    fn apply_ensure(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
         let content = self.current_crontab()?;
         match self.ensured_crontab(&content)? {
             Some(crontab) => {
                 println!("WRITE CRONTAB {}", crontab);
-                Ok(ONE_RESOURCE_ONE_CHANGE)
+                if opts.noop {
+                    Ok(ONE_RESOURCE_NOOP)
+                } else if self.write_crontab(&content)? {
+                    Ok(ONE_RESOURCE_ONE_CHANGE)
+                } else {
+                    Ok(ONE_RESOURCE_ONE_ERROR)
+                }
             }
             None => {
                 output.no_change(&self.name);
@@ -164,8 +167,24 @@ impl GurpCron {
         let content = self.current_crontab()?;
         match self.removed_crontab(&content)? {
             Some(crontab) => {
-                println!("WRITE CRONTAB {}", crontab);
-                Ok(ONE_RESOURCE_ONE_CHANGE)
+                if crontab.is_empty() {
+                    if opts.noop {
+                        Ok(ONE_RESOURCE_NOOP)
+                    } else if self.empty_crontab()? {
+                        Ok(ONE_RESOURCE_ONE_CHANGE)
+                    } else {
+                        Ok(ONE_RESOURCE_ONE_ERROR)
+                    }
+                } else {
+                    println!("WRITE CRONTAB {}", crontab);
+                    if opts.noop {
+                        Ok(ONE_RESOURCE_NOOP)
+                    } else if self.write_crontab(&content)? {
+                        Ok(ONE_RESOURCE_ONE_CHANGE)
+                    } else {
+                        Ok(ONE_RESOURCE_ONE_ERROR)
+                    }
+                }
             }
             None => {
                 output.no_change(&self.name);
@@ -183,15 +202,30 @@ impl GurpCron {
 
         Ok(String::from_utf8(cmd.stdout)?)
     }
+
+    fn write_crontab(&self, content: &str) -> anyhow::Result<bool> {
+        let mut child = Command::new("crontab").stdin(Stdio::piped()).spawn()?;
+
+        if let Some(stdin) = child.stdin.as_mut() {
+            stdin.write_all(content.as_bytes())?;
+        }
+
+        let status = child.wait()?;
+        Ok(status.success())
+    }
+
+    fn empty_crontab(&self) -> anyhow::Result<bool> {
+        // Because writing an empty one does nothing.
+        let mut cmd = Command::new("crontab");
+        cmd.arg("-u").arg(&self.user).arg("-r");
+        let result = cmd.status()?;
+        Ok(result.success())
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::spec_helper::{defopts, defopts_noop, init_janet};
-    use assert_fs::TempDir;
-    use assert_fs::prelude::*;
-    use janetrs::{Janet, structs};
 
     #[test]
     fn test_ensured_crontab_change() {
