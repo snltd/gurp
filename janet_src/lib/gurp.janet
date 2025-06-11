@@ -84,11 +84,11 @@
 
 (defn cron/ensure [name & specs]
   "Given a name and specification, return a cron ensure struct"
-  (generic-resource :name :ensure name specs))
+  (generic-resource :cron :ensure name specs))
 
 (defn cron/remove [name & specs]
   "Given a name and specification, return a cron remove struct"
-  (generic-resource :name :remove name specs))
+  (generic-resource :cron :remove name specs))
 
 (defn this-host
   "Returns the name of the host, set by a dyn in the host macro"

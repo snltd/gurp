@@ -4,19 +4,25 @@ use crate::common::constants::{
 use crate::common::output::Output;
 use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplySummary, Opts, Resource};
+use crate::utils::helpers;
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
+use crate::{debug, error};
+use anyhow::anyhow;
+use colored::Colorize;
 use janetrs::{Janet, JanetArray};
 use paste::paste;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
-const TAG_LINE: &str = "gurp managed id";
+const TAG_LINE: &str = "# gurp managed ID";
+const CRONTAB_BIN: &str = "/bin/crontab";
 
 // THINGS TO KNOW / THINGS TO DO.
+// We use crontab(1) to apply changes. That checks values are valid, so we won't bother.
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct GurpCron {
     pub action: Action,
-    // pub exists: bool,
     pub id: String,
     pub name: String,
     pub user: String,
@@ -43,8 +49,6 @@ impl TryFrom<&Janet> for GurpCron {
 
     fn try_from(value: &Janet) -> anyhow::Result<Self> {
         let data = value.extract_struct()?;
-
-        // I'm not going to verify the numbers. MVP and all that.
         let action = janet_helpers::action_as_enum(&data)?;
         let state = match action {
             Action::Ensure => Some(CronState {
@@ -61,27 +65,59 @@ impl TryFrom<&Janet> for GurpCron {
         Ok(GurpCron {
             action,
             user: data.get_field_string("user")?,
-            // exists,
             id: data.get_field_string("_id")?,
             name: data.get_field_string("name")?,
             desired_state: state,
-            doer: "file-line".to_owned(),
+            doer: "cron".to_owned(),
         })
     }
 }
 
 impl GurpCron {
     fn apply_ensure(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
-        let content = self.current_crontab()?;
+        let content = self.current_crontab(opts)?;
         match self.ensured_crontab(&content)? {
-            Some(crontab) => {
-                println!("WRITE CRONTAB {}", crontab);
+            Some(new_crontab) => {
+                output.change_name_only(&self.name);
+                debug!(opts, "doer/cron", "new crontab follows\n{}", new_crontab);
                 if opts.noop {
                     Ok(ONE_RESOURCE_NOOP)
-                } else if self.write_crontab(&content)? {
-                    Ok(ONE_RESOURCE_ONE_CHANGE)
                 } else {
-                    Ok(ONE_RESOURCE_ONE_ERROR)
+                    self.write_crontab(&new_crontab, opts)
+                }
+            }
+            None => {
+                output.no_change(&self.name);
+                Ok(ONE_RESOURCE_NO_CHANGE)
+            }
+        }
+    }
+
+    fn apply_remove(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+        let content = self.current_crontab(opts)?;
+        match self.removed_crontab(&content)? {
+            // If you try to write an empty file, crontab(1) will reject it. If we take out the
+            // managed resource and there's nothing left, we have to *remove* the crontab.
+            Some(new_crontab) => {
+                output.removing(&self.name);
+                if new_crontab.is_empty() {
+                    debug!(opts, "doer/cron", "new {} crontab is empty", self.user);
+                    if opts.noop {
+                        Ok(ONE_RESOURCE_NOOP)
+                    } else {
+                        debug!(opts, "doer/cron", "removing {} crontab", self.user);
+                        self.empty_crontab(opts)
+                    }
+                } else {
+                    debug!(
+                        opts,
+                        "doer/cron", "new {} crontab follows\n{}", self.user, new_crontab
+                    );
+                    if opts.noop {
+                        Ok(ONE_RESOURCE_NOOP)
+                    } else {
+                        self.write_crontab(&new_crontab, opts)
+                    }
                 }
             }
             None => {
@@ -101,12 +137,12 @@ impl GurpCron {
 
         let mut seen_identifier = false;
         let mut new_crontab: Vec<String> = Vec::new();
-        let mut found_identifier = false;
+        let mut insert_here = false;
 
         for l in content.lines() {
-            if found_identifier {
-                found_identifier = false;
+            if insert_here {
                 seen_identifier = true;
+                insert_here = false;
 
                 if l == required_line {
                     return Ok(None);
@@ -117,7 +153,7 @@ impl GurpCron {
             }
 
             if l == identifier {
-                found_identifier = true;
+                insert_here = true;
             }
 
             new_crontab.push(l.to_string());
@@ -135,26 +171,26 @@ impl GurpCron {
 
     fn removed_crontab(&self, content: &str) -> anyhow::Result<Option<String>> {
         let identifier = format!("{} {}", TAG_LINE, &self.id);
-        let mut seen_identifier = false;
+        let mut changed = false;
         let mut new_crontab: Vec<String> = Vec::new();
-        let mut found_identifier = false;
+        let mut remove_here = false;
 
         for l in content.lines() {
-            if found_identifier {
-                found_identifier = false;
-                seen_identifier = true;
+            if remove_here {
+                remove_here = false;
+                changed = true;
                 continue;
             }
 
             if l == identifier {
-                found_identifier = true;
+                remove_here = true;
                 continue;
             }
 
             new_crontab.push(l.to_string());
         }
 
-        if seen_identifier {
+        if changed {
             Ok(Some(
                 new_crontab.iter().map(|l| format!("{}\n", l)).collect(),
             ))
@@ -163,127 +199,109 @@ impl GurpCron {
         }
     }
 
-    fn apply_remove(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
-        let content = self.current_crontab()?;
-        match self.removed_crontab(&content)? {
-            Some(crontab) => {
-                if crontab.is_empty() {
-                    if opts.noop {
-                        Ok(ONE_RESOURCE_NOOP)
-                    } else if self.empty_crontab()? {
-                        Ok(ONE_RESOURCE_ONE_CHANGE)
-                    } else {
-                        Ok(ONE_RESOURCE_ONE_ERROR)
-                    }
-                } else {
-                    println!("WRITE CRONTAB {}", crontab);
-                    if opts.noop {
-                        Ok(ONE_RESOURCE_NOOP)
-                    } else if self.write_crontab(&content)? {
-                        Ok(ONE_RESOURCE_ONE_CHANGE)
-                    } else {
-                        Ok(ONE_RESOURCE_ONE_ERROR)
-                    }
-                }
-            }
-            None => {
-                output.no_change(&self.name);
-                Ok(ONE_RESOURCE_NO_CHANGE)
-            }
-        }
+    fn current_crontab(&self, opts: &Opts) -> anyhow::Result<String> {
+        let mut cmd = Command::new(CRONTAB_BIN);
+        cmd.arg("-u").arg(&self.user).arg("-l");
+        debug!(opts, "doer/cron", "{}", helpers::command_to_string(&cmd));
+        let result = cmd.output()?;
+        Ok(String::from_utf8(result.stdout)?)
     }
 
-    fn current_crontab(&self) -> anyhow::Result<String> {
-        let cmd = Command::new("/bin/crontab")
+    fn write_crontab(&self, content: &str, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        let mut cmd = Command::new(CRONTAB_BIN)
             .arg("-u")
             .arg(&self.user)
-            .arg("-l")
-            .output()?;
+            .stdin(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?;
 
-        Ok(String::from_utf8(cmd.stdout)?)
-    }
+        debug!(opts, "doer/cron", "{} -u {}", CRONTAB_BIN, self.user);
 
-    fn write_crontab(&self, content: &str) -> anyhow::Result<bool> {
-        let mut child = Command::new("crontab").stdin(Stdio::piped()).spawn()?;
-
-        if let Some(stdin) = child.stdin.as_mut() {
+        if let Some(stdin) = cmd.stdin.as_mut() {
+            debug!(opts, "doer/cron", "Writing: {}", content);
             stdin.write_all(content.as_bytes())?;
         }
 
-        let status = child.wait()?;
-        Ok(status.success())
+        let output = cmd.wait_with_output()?;
+
+        if output.status.success() {
+            debug!(opts, "doer/cron", "crontab updated successfully");
+            Ok(ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            let stderr_msg = String::from_utf8_lossy(&output.stderr);
+            Err(anyhow!("crontab write failed: {}", stderr_msg))
+        }
     }
 
-    fn empty_crontab(&self) -> anyhow::Result<bool> {
-        // Because writing an empty one does nothing.
-        let mut cmd = Command::new("crontab");
+    fn empty_crontab(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        let mut cmd = Command::new(CRONTAB_BIN);
         cmd.arg("-u").arg(&self.user).arg("-r");
+        debug!(opts, "doer/cron", "{}", helpers::command_to_string(&cmd));
         let result = cmd.status()?;
-        Ok(result.success())
+        if result.success() {
+            Ok(ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            error!(opts, "doer/cron", "Failed to empty {} crontab", self.user);
+            Ok(ONE_RESOURCE_ONE_ERROR)
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use indoc::indoc;
 
     #[test]
     fn test_ensured_crontab_change() {
-        let id = "/test-role/cron/test";
-        let old_crontab = format!(
-            "1 2 3 4 5 do_thing\n\
-             {} {}\n\
-             5 4 3 2 1 wrong_command\n\
-             2 2 3 4 5 do_other_thing\n\
-             ",
-            TAG_LINE, id
-        );
+        let old_crontab = indoc! {"
+            1 2 3 4 5 do_thing
+            # gurp managed ID /test-role/cron/test
+            5 4 3 2 1 wrong_command
+            2 2 3 4 5 do_other_thing
+            "};
 
-        let expected_crontab = format!(
-            "1 2 3 4 5 do_thing\n\
-             {} {}\n\
-             4 1,12 * * 1-5 /bin/command >/var/log/file\n\
-             2 2 3 4 5 do_other_thing\n\
-             ",
-            TAG_LINE, id
-        );
+        let expected_crontab = indoc! {"
+            1 2 3 4 5 do_thing
+            # gurp managed ID /test-role/cron/test
+            4 1,12 * * 1-5 /bin/command >/var/log/file
+            2 2 3 4 5 do_other_thing
+            "}
+        .to_owned();
+
         assert_eq!(
             Some(expected_crontab),
-            common_ensure().ensured_crontab(&old_crontab).unwrap()
+            common_ensure().ensured_crontab(old_crontab).unwrap()
         );
     }
 
     #[test]
     fn test_ensured_crontab_already_there() {
-        let id = "/test-role/cron/test";
-        let old_crontab = format!(
-            "1 2 3 4 5 do_thing\n\
-             {} {}\n\
-             4 1,12 * * 1-5 /bin/command >/var/log/file\n\
-             2 2 3 4 5 do_other_thing\n\
-             ",
-            TAG_LINE, id
-        );
+        let old_crontab = indoc! {"
+            1 2 3 4 5 do_thing
+            # gurp managed ID /test-role/cron/test
+            4 1,12 * * 1-5 /bin/command >/var/log/file
+            2 2 3 4 5 do_other_thing
+            "};
 
-        assert_eq!(None, common_ensure().ensured_crontab(&old_crontab).unwrap());
+        assert_eq!(None, common_ensure().ensured_crontab(old_crontab).unwrap());
     }
-
-    const TEST_ID: &str = "/test-role/cron/test";
 
     #[test]
     fn test_ensured_crontab_add() {
-        let old_crontab = "1 2 3 4 5 do_thing\n\
-                           2 2 3 4 5 do_other_thing\n\
-                           ";
+        let old_crontab = indoc! {"
+             1 2 3 4 5 do_thing
+             2 2 3 4 5 do_other_thing
+             "};
 
-        let expected_crontab = format!(
-            "1 2 3 4 5 do_thing\n\
-             2 2 3 4 5 do_other_thing\n\
-             {} {}\n\
-             4 1,12 * * 1-5 /bin/command >/var/log/file\n\
-             ",
-            TAG_LINE, TEST_ID
-        );
+        let expected_crontab = indoc! {"
+            1 2 3 4 5 do_thing
+            2 2 3 4 5 do_other_thing
+            # gurp managed ID /test-role/cron/test
+            4 1,12 * * 1-5 /bin/command >/var/log/file
+            "
+        }
+        .to_owned();
 
         assert_eq!(
             Some(expected_crontab),
@@ -293,33 +311,33 @@ mod test {
 
     #[test]
     fn test_removed_crontab_change() {
-        let id = "/test-role/cron/test";
+        let old_crontab = indoc! {"
+            1 2 3 4 5 do_thing
+            # gurp managed ID /test-role/cron/test
+            4 1,12 * * 1-5 /bin/command >/var/log/file
+            2 2 3 4 5 do_other_thing
+            "
+        };
 
-        let old_crontab = format!(
-            "1 2 3 4 5 do_thing\n\
-             {} {}\n\
-             4 1,12 * * 1-5 /bin/command >/var/log/file\n\
-             2 2 3 4 5 do_other_thing\n\
-             ",
-            TAG_LINE, id
-        );
-
-        let expected_crontab = "1 2 3 4 5 do_thing\n\
-             2 2 3 4 5 do_other_thing\n\
-             "
+        let expected_crontab = indoc! {"
+            1 2 3 4 5 do_thing
+            2 2 3 4 5 do_other_thing
+            "
+        }
         .to_owned();
 
         assert_eq!(
             Some(expected_crontab),
-            common_remove().removed_crontab(&old_crontab).unwrap()
+            common_remove().removed_crontab(old_crontab).unwrap()
         );
     }
 
     #[test]
     fn test_removed_crontab_not_there() {
-        let old_crontab = "1 2 3 4 5 do_thing\n\
-             2 2 3 4 5 do_other_thing\n\
-             ";
+        let old_crontab = indoc! {"
+            1 2 3 4 5 do_thing
+            2 2 3 4 5 do_other_thing
+        "};
 
         assert_eq!(None, common_remove().removed_crontab(old_crontab).unwrap());
     }
@@ -327,7 +345,7 @@ mod test {
     fn common_ensure() -> GurpCron {
         GurpCron {
             action: Action::Ensure,
-            id: TEST_ID.to_owned(),
+            id: "/test-role/cron/test".to_owned(),
             name: "Test job".to_owned(),
             user: "rob".to_owned(),
             desired_state: Some(CronState {
@@ -345,7 +363,7 @@ mod test {
     fn common_remove() -> GurpCron {
         GurpCron {
             action: Action::Remove,
-            id: TEST_ID.to_owned(),
+            id: "/test-role/cron/test".to_owned(),
             name: "Test job".to_owned(),
             user: "rob".to_owned(),
             desired_state: None,
