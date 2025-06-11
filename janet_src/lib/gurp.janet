@@ -95,6 +95,11 @@
   []
   (dyn :host-dyn))
 
+(defn this-host-k
+  "Returns the name of the host as a keyword, set by a dyn in the host macro"
+  []
+  (keyword (this-host)))
+
 (defmacro host [host-name & host-definition]
   "The top-level wrapper used to define a host to be configured"
   (setdyn :host-dyn (string host-name))
@@ -191,3 +196,8 @@
      []
      (setdyn :role-dyn (string ',role-name))
      (collect-resources ,;role-definition)))
+
+(defmacro section
+  # A no-op which might help you write readable definitions
+  [name & body]
+  ['do ;body])
