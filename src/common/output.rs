@@ -32,6 +32,10 @@ impl Output {
         );
     }
 
+    pub fn change_name_only<T: Display>(&self, item_name: T) {
+        println!("[{}::{}] CHANGE", self.doer, item_name);
+    }
+
     pub fn no_change<T: Display>(&self, item_name: T) {
         println!("[{}::{}] NO CHANGE", self.doer, item_name);
     }

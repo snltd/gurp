@@ -2,8 +2,14 @@
   {:file {:owner "root"
           :mode "0644"
           :group "root"}
+   :cron {:hour "*"
+          :minute "*"
+          :day-of-month "*"
+          :day-of-week "*"
+          :month-of-year "*"
+          :user "root"}
    :user {:shell "/bin/zsh"
-          :primary-group "staff" }
+          :primary-group "staff"}
    :directory {:owner "root"
                :mode "0755"
                :group "root"}})
@@ -76,14 +82,27 @@
   "Given a user name and specification, return a user remove struct"
   (generic-resource :user :remove name specs))
 
+(defn cron/ensure [name & specs]
+  "Given a name and specification, return a cron ensure struct"
+  (generic-resource :cron :ensure name specs))
+
+(defn cron/remove [name & specs]
+  "Given a name and specification, return a cron remove struct"
+  (generic-resource :cron :remove name specs))
+
 (defn this-host
   "Returns the name of the host, set by a dyn in the host macro"
   []
   (dyn :host-dyn))
 
+(defn this-host-k
+  "Returns the name of the host as a keyword, set by a dyn in the host macro"
+  []
+  (keyword (this-host)))
+
 (defmacro host [host-name & host-definition]
   "The top-level wrapper used to define a host to be configured"
-   (setdyn :host-dyn (string host-name))
+  (setdyn :host-dyn (string host-name))
   ~(defn machine-config
      []
      {:metadata {:name ,host-name}
@@ -177,3 +196,8 @@
      []
      (setdyn :role-dyn (string ',role-name))
      (collect-resources ,;role-definition)))
+
+(defmacro section
+  # A no-op which might help you write readable definitions
+  [name & body]
+  ['do ;body])

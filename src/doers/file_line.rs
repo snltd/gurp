@@ -20,6 +20,7 @@ use std::io::Write;
 // Appended lines have a \n at the beginning and end.
 // Removing a line puts a newline on the end of the file if there wasn't one already.
 // We always read the file. There's no caching or anyhing.
+// Files are not backed up.
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct GurpFileLine {

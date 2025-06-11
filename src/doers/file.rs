@@ -20,6 +20,7 @@ use std::os::unix::fs::MetadataExt;
 
 // THINGS TO KNOW / THINGS TO DO.
 // You can only define users and groups by their names. UIDs/GIDs do not work.
+// Files are not backed up
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct GurpFile {
