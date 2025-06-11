@@ -134,3 +134,44 @@ You can only manage one line per resource, because if we do add things like
 (file-line/remove "/path/to/file"
                   :line "this is the first line I do not want")
 ```
+
+### Cron
+
+Here's a fully explicit definition of a cron job.
+
+```clojure
+(cron/ensure "identifying-name"
+             :hour "6,12"
+             :minute "4"
+             :day-of-month "*"
+             :day-of-week "*"
+             :month-of-year "*"
+             :user "root"
+             :command "/usr/bin/thing >/var/log/file")
+```
+
+If you omit any of the time fields, they will default to `"*"`. `:user` defaults
+to `root`, and if you omit `:command`, you'll get an error. You can put numbers
+or strings in there.
+
+Like all other config management tools, `gurp` precedes managed lines in the
+crontab with an identifying string. That string contains the resource ID which,
+you may recall, includes the role, resource-type and identifying-name.
+
+As illumos doesn't have the kind of `cron.d` support that some other OSes have,
+`gurp` has to use the user's proper crontab, which it does by shelling out to
+`/bin/crontab`. This gives you `crontab`'s standard value checking: `gurp`
+doesn't check any values itself.
+
+The doer doesn't do any kind of user or `cron.allow` management, so you'll have
+to use other methods to make sure your user is allowed to run the job you
+define.
+
+To remove a cron job you already defined:
+
+```clojure
+(cron/remove "identifying-name")
+```
+
+There's currently no way to assert that a system-defined job does or does not
+exist.

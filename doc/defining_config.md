@@ -10,11 +10,16 @@ definition functions. A couple of things to bear in mind.
 
 - Janet does not hoist functions. You can't refer to something until you've
   defined it.
+- The Janet is compiled into a definition, which is then used to assert state.
+  That means you could check some condition which is true when `gurp` compiles
+  your Janet, but not true when `gurp` tries to assert state. For instance, your
+  code could check for the presence of something it creates itself.
+- Yes, parentheses. Deal with it.
 
 ## Host Definition
 
-A host definition starts with a `host` definition. This definition references
-three modules.
+A host definition starts with a `host` definition. Obviously, I suppose. This
+definition references three modules.
 
 ```clojure
 (host "example-host"
@@ -27,9 +32,9 @@ The host name isn't used for anything other than logging. It won't change the
 actual hostname.
 
 Note that we didn't need to `include` or `use` any library file to get access to
-the `host`. Gurp has a hardcoded library file, in which the `host` macro is
-defined. It is automatically injected at the top of your code. If you run `gurp`
-with `--debug` you will see the full augmented file which is compiled.
+`host`. Gurp has a hardcoded library file which is automatically injects at the
+top of your code, and it contains the `host` macro. If you run `gurp` with
+`--debug` you will see the full augmented file.
 
 ## Roles
 
@@ -95,6 +100,15 @@ have attribute hierarchies or any kind of inbuilt variable management. It's up
 to you to use Janet. Use `(let)`, use `(def)`, use `(var)`, use prototyped
 tables, structs, arrays, tuples, whatever works for you.
 
+First, a vars file with a struct.
+
+```clojure
+# vars.janet
+(def packages
+    { :editors ["vim" "neovim" "helix"]
+      :languages ["rust" "ruby33"]})
+```
+
 ```clojure
 # host.janet
 (import "./vars")
@@ -104,17 +118,66 @@ tables, structs, arrays, tuples, whatever works for you.
     (pkg/ensure (string "/ooce/editor/" pkg))))
 ```
 
+Next, a vars file where we use the built in `(this-host-k)` macro to get our
+value. If you prefer, you can make the keys strings and use `(this-host)`.
+
 ```clojure
 # vars.janet
 (def packages
-    { :editors [vim neovim helix]
-      :languages [rust ruby33] } )
+  { :host-a ["vim" "ruby"]
+    :host-b ["helix" "rust"]})
+```
+
+```clojure
+# host.janet
+(import "./vars")
+
+(role "my-role"
+  (each pkg (get vars/packages (this-host))
+    (pkg/ensure (string "/ooce/editor/" pkg))))
+```
+
+Now, lexical scoping with a Janet `let`.
+
+```clojure
+(let [log_dir "/var/log"]
+  (directory/ensure log_dir :mode "0775" :group "loggers")
+  (cron/ensure "log-rotate"
+               :minute 0
+               :hour 0
+               :command (arg-list "/bin/log-rotator" log_dir)))
 ```
 
 Isn't that more civilised than shoehorning weirdness into YAML and counting
 indents?
 
+## Default/Fallback Values
+
 Some resources have default values. We do this by means of
 [Janet table prototypes](https://janet-lang.org/docs/prototypes.html). At the
 moment, these are hardcoded into `gurp`, but by the time we're finished you will
 also be able to supply your own.
+
+## Sections
+
+The `gurp` library includes a `(section)` macro. It does nothing, but allows you
+to visually associate related resources. Let's combine a section with a Janet
+`let` binding.
+
+```clojure
+(file/ensure "/some/file/not-to-do-with-logging")
+
+(section "logging-setup"
+    (directory/ensure "/var/log/dir" :mode "0775" :group "loggers")
+    (cron/ensure "log-rotate"
+                 :minute 0
+                 :hour 0
+                 :command (arg-list "/bin/log-rotator" "/var/log/dir")))
+
+(directory/ensure "/some/dir/also-not-to-do-with-logging")
+```
+
+I should have mentioned `(arg-list)` earlier. It's another `gurp` macro which
+joins its arguments with spaces. It's nicer than using `(string)` and having to
+remember to add leading and trailing spaces, and less typing than
+`(string/format)`.
