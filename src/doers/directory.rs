@@ -71,7 +71,7 @@ crate::impl_apply!(GurpDirectory);
 impl GurpDirectory {
     fn apply_ensure(
         &self,
-        _apply_context: ApplyContext,
+        _apply_context: &ApplyContext,
         opts: &Opts,
         output: &Output,
     ) -> anyhow::Result<ApplySummary> {
@@ -108,7 +108,7 @@ impl GurpDirectory {
 
     fn apply_remove(
         &self,
-        _apply_context: ApplyContext,
+        _apply_context: &ApplyContext,
         opts: &Opts,
         output: &Output,
     ) -> anyhow::Result<ApplySummary> {
@@ -165,7 +165,7 @@ impl GurpDirectory {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::spec_helper::{defopts, defopts_noop, init_janet};
+    use crate::test_utils::spec_helper::{defcontext, defopts, defopts_noop, init_janet};
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use camino::Utf8PathBuf;
@@ -183,7 +183,7 @@ mod test {
 
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,
-            dir_does_not_exist.apply(&defopts()).unwrap()
+            dir_does_not_exist.apply(&defcontext(), &defopts()).unwrap()
         );
     }
 
@@ -200,7 +200,7 @@ mod test {
 
         assert_eq!(
             ONE_RESOURCE_ONE_ERROR,
-            disallowed_dir.apply(&defopts()).unwrap()
+            disallowed_dir.apply(&defcontext(), &defopts()).unwrap()
         );
     }
 
@@ -220,7 +220,10 @@ mod test {
         };
 
         assert!(dir.exists());
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, test_dir.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            test_dir.apply(&defcontext(), &defopts()).unwrap()
+        );
         assert!(!dir.exists());
     }
 
@@ -242,7 +245,7 @@ mod test {
         assert!(dir.exists());
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,
-            test_dir.apply(&defopts_noop()).unwrap()
+            test_dir.apply(&defcontext(), &defopts_noop()).unwrap()
         );
         assert!(dir.exists());
     }

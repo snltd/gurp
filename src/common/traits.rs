@@ -1,11 +1,11 @@
-use crate::common::types::{ApplySummary, ChangedIds, Opts, Resource};
+use crate::common::types::{ApplyContext, ApplySummary, Opts, Resource};
 
 pub trait Apply {
     fn apply(&self, apply_context: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary>;
 }
 
 impl Apply for Resource {
-    fn apply(&self, context: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn apply(&self, apply_context: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
         match self {
             Resource::File(inner) => inner.apply(apply_context, opts),
             Resource::Directory(inner) => inner.apply(apply_context, opts),

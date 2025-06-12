@@ -180,10 +180,9 @@ exist.
 
 `Svc` manages the state of SMF services, `Smf` is used to define them.
 
-
 ```clojure
 (svc/ensure "svc:/vendor/category/servce:default"
-             :state "enabled"
+             :state "online"
              :restarted-by ["/role/resource-type/name-or-label"]
              :reloaded-by ["/role/resource-type/name-or-label"]
              )
@@ -192,10 +191,11 @@ exist.
 Because `gurp` ends up shelling out to `svcs` and `svcadm`, the name can be any
 valid FMRI.
 
-`:state` can only be `enabled` or `disabled`. You must give a state.
+`:state` can only be `online` or `disabled`. If you do not supply a state, it
+defaults to `online`.
 
 `:restarted-by` and `:reloaded-by` are optional arrays of resource IDs. If
-`gurp` makes a change to any of those resources in the run, it will restart or
+`gurp` makes a change to any listed resource during its run, it will restart or
 reload the service.
 
 There is no `(svc/disable)`.

@@ -63,7 +63,7 @@ impl GurpPkg {
     //
     fn apply_ensure(
         &self,
-        _apply_context: ApplyContext,
+        _apply_context: &ApplyContext,
         opts: &Opts,
         output: &Output,
     ) -> anyhow::Result<ApplySummary> {
@@ -94,7 +94,7 @@ impl GurpPkg {
 
     fn apply_remove(
         &self,
-        _apply_context: ApplyContext,
+        _apply_context: &ApplyContext,
         opts: &Opts,
         output: &Output,
     ) -> anyhow::Result<ApplySummary> {

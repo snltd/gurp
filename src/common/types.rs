@@ -75,5 +75,5 @@ pub struct HostResources {
 pub type ChangedIds = HashSet<String>;
 
 pub struct ApplyContext {
-    changed_ids: ChangedIds,
+    pub changed_ids: ChangedIds,
 }

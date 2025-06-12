@@ -99,7 +99,7 @@ crate::impl_apply!(GurpFile);
 impl GurpFile {
     fn apply_ensure(
         &self,
-        _apply_context: ApplyContext,
+        _apply_context: &ApplyContext,
         opts: &Opts,
         output: &Output,
     ) -> anyhow::Result<ApplySummary> {
@@ -141,7 +141,7 @@ impl GurpFile {
 
     fn apply_remove(
         &self,
-        _apply_context: ApplyContext,
+        _apply_context: &ApplyContext,
         opts: &Opts,
         output: &Output,
     ) -> anyhow::Result<ApplySummary> {
@@ -242,7 +242,9 @@ impl GurpFile {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::spec_helper::{defopts, defopts_noop, init_janet, my_group, my_user};
+    use crate::test_utils::spec_helper::{
+        defcontext, defopts, defopts_noop, init_janet, my_group, my_user,
+    };
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use camino::Utf8PathBuf;
@@ -260,7 +262,9 @@ mod test {
 
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,
-            file_does_not_exist.apply(&defopts()).unwrap()
+            file_does_not_exist
+                .apply(&defcontext(), &defopts())
+                .unwrap()
         );
     }
 
@@ -277,7 +281,7 @@ mod test {
 
         assert_eq!(
             ONE_RESOURCE_ONE_ERROR,
-            disallowed_file.apply(&defopts()).unwrap()
+            disallowed_file.apply(&defcontext(), &defopts()).unwrap()
         );
     }
 
@@ -299,7 +303,7 @@ mod test {
         assert!(file.exists());
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
-            test_file.apply(&defopts()).unwrap()
+            test_file.apply(&defcontext(), &defopts()).unwrap()
         );
         assert!(!file.exists());
     }
@@ -322,7 +326,7 @@ mod test {
         assert!(file.exists());
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,
-            test_file.apply(&defopts_noop()).unwrap()
+            test_file.apply(&defcontext(), &defopts_noop()).unwrap()
         );
         assert!(file.exists());
     }
@@ -402,7 +406,7 @@ mod test {
         });
 
         let gurp_file = GurpFile::try_from(&example_file_ensure).unwrap();
-        gurp_file.apply(&defopts()).unwrap();
+        gurp_file.apply(&defcontext(), &defopts()).unwrap();
 
         assert!(file_to_create.exists());
         assert_eq!(
@@ -435,7 +439,7 @@ mod test {
         });
 
         let gurp_file = GurpFile::try_from(&example_file_ensure).unwrap();
-        gurp_file.apply(&defopts()).unwrap();
+        gurp_file.apply(&defcontext(), &defopts()).unwrap();
 
         assert!(file_to_create.exists());
         assert_eq!(

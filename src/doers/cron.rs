@@ -76,7 +76,7 @@ impl TryFrom<&Janet> for GurpCron {
 impl GurpCron {
     fn apply_ensure(
         &self,
-        _apply_context: ApplyContext,
+        _apply_context: &ApplyContext,
         opts: &Opts,
         output: &Output,
     ) -> anyhow::Result<ApplySummary> {
@@ -100,7 +100,7 @@ impl GurpCron {
 
     fn apply_remove(
         &self,
-        _apply_context: ApplyContext,
+        _apply_context: &ApplyContext,
         opts: &Opts,
         output: &Output,
     ) -> anyhow::Result<ApplySummary> {

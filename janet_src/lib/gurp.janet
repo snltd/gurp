@@ -2,6 +2,9 @@
   {:file {:owner "root"
           :mode "0644"
           :group "root"}
+   :svc {:state "online"
+         :restarted-by []
+         :reloaded-by []}
    :cron {:hour "*"
           :minute "*"
           :day-of-month "*"
@@ -121,7 +124,6 @@
      []
      {:metadata {:name ,host-name}
       :resources (group-by-action-and-type (flatten (tuple ,;host-definition)))}))
-
 
 (defn group-by-action-and-type [data]
   "Turns an array of resources into a struct of structs, and resolves references."

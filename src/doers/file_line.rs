@@ -72,7 +72,7 @@ impl TryFrom<&Janet> for GurpFileLine {
 impl GurpFileLine {
     fn apply_ensure(
         &self,
-        _apply_context: ApplyContext,
+        _apply_context: &ApplyContext,
         opts: &Opts,
         output: &Output,
     ) -> anyhow::Result<ApplySummary> {
@@ -94,7 +94,7 @@ impl GurpFileLine {
 
     fn apply_remove(
         &self,
-        _apply_context: ApplyContext,
+        _apply_context: &ApplyContext,
         opts: &Opts,
         output: &Output,
     ) -> anyhow::Result<ApplySummary> {
@@ -125,7 +125,7 @@ impl GurpFileLine {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::spec_helper::{defopts, defopts_noop, init_janet};
+    use crate::test_utils::spec_helper::{defcontext, defopts, defopts_noop, init_janet};
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use janetrs::{Janet, structs};
@@ -164,7 +164,7 @@ mod test {
 
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
-            gurp_file.apply(&defopts()).unwrap()
+            gurp_file.apply(&defcontext(), &defopts()).unwrap()
         );
         assert_eq!(
             "line_1\nline_2\nline_3\nline_4\n".to_owned(),
@@ -191,7 +191,10 @@ mod test {
 
         let gurp_file = GurpFileLine::try_from(&example_file_ensure).unwrap();
 
-        assert_eq!(ONE_RESOURCE_NOOP, gurp_file.apply(&defopts_noop()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_NOOP,
+            gurp_file.apply(&defcontext(), &defopts_noop()).unwrap()
+        );
         assert_eq!(
             "line_1\nline_2\nline_3".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
@@ -217,7 +220,10 @@ mod test {
 
         let gurp_file = GurpFileLine::try_from(&example_file_ensure).unwrap();
 
-        assert_eq!(ONE_RESOURCE_NO_CHANGE, gurp_file.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_NO_CHANGE,
+            gurp_file.apply(&defcontext(), &defopts()).unwrap()
+        );
         assert_eq!(
             "line_1\nline_2\nline_3".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
@@ -245,7 +251,7 @@ mod test {
 
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
-            gurp_file.apply(&defopts()).unwrap()
+            gurp_file.apply(&defcontext(), &defopts()).unwrap()
         );
         assert_eq!(
             "line_1\nline_3\n".to_owned(),
@@ -272,7 +278,10 @@ mod test {
 
         let gurp_file = GurpFileLine::try_from(&example_file_ensure).unwrap();
 
-        assert_eq!(ONE_RESOURCE_NOOP, gurp_file.apply(&defopts_noop()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_NOOP,
+            gurp_file.apply(&defcontext(), &defopts_noop()).unwrap()
+        );
         assert_eq!(
             "line_1\nline_2\nline_3".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
