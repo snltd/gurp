@@ -25,6 +25,10 @@ impl Output {
         println!("[{}::{}] REMOVING", self.doer, item_name);
     }
 
+    pub fn action<T: Display>(&self, item_name: T, action: &str) {
+        println!("[{}::{}] {}", self.doer, item_name, action);
+    }
+
     pub fn change<T: Display, U: Display>(&self, item_name: T, from: &U, to: &U) {
         println!(
             "[{}::{}] CHANGE '{}' -> '{}'",

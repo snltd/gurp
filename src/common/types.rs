@@ -3,9 +3,10 @@ use crate::doers::directory::GurpDirectory;
 use crate::doers::file::GurpFile;
 use crate::doers::file_line::GurpFileLine;
 use crate::doers::pkg::GurpPkg;
+use crate::doers::svc::GurpSvc;
 use crate::doers::user::GurpUser;
 use camino::Utf8PathBuf;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::Add;
 
 #[derive(Clone)]
@@ -23,6 +24,7 @@ pub enum Resource {
     FileLine(GurpFileLine),
     File(GurpFile),
     Cron(GurpCron),
+    Svc(GurpSvc),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -68,4 +70,10 @@ pub type RemoveResources = HashMap<String, Vec<Resource>>;
 pub struct HostResources {
     pub ensure: EnsureResources,
     pub remove: RemoveResources,
+}
+
+pub type ChangedIds = HashSet<String>;
+
+pub struct ApplyContext {
+    pub changed_ids: ChangedIds,
 }

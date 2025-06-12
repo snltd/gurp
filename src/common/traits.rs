@@ -1,18 +1,19 @@
-use crate::common::types::{ApplySummary, Opts, Resource};
+use crate::common::types::{ApplyContext, ApplySummary, Opts, Resource};
 
 pub trait Apply {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary>;
+    fn apply(&self, apply_context: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary>;
 }
 
 impl Apply for Resource {
-    fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn apply(&self, apply_context: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
         match self {
-            Resource::File(inner) => inner.apply(opts),
-            Resource::Directory(inner) => inner.apply(opts),
-            Resource::User(inner) => inner.apply(opts),
-            Resource::Pkg(inner) => inner.apply(opts),
-            Resource::FileLine(inner) => inner.apply(opts),
-            Resource::Cron(inner) => inner.apply(opts),
+            Resource::File(inner) => inner.apply(apply_context, opts),
+            Resource::Directory(inner) => inner.apply(apply_context, opts),
+            Resource::User(inner) => inner.apply(apply_context, opts),
+            Resource::Pkg(inner) => inner.apply(apply_context, opts),
+            Resource::FileLine(inner) => inner.apply(apply_context, opts),
+            Resource::Cron(inner) => inner.apply(apply_context, opts),
+            Resource::Svc(inner) => inner.apply(apply_context, opts),
         }
     }
 }
@@ -30,6 +31,7 @@ impl HasId for Resource {
             Resource::Pkg(inner) => inner.id.clone(),
             Resource::FileLine(inner) => inner.id.clone(),
             Resource::Cron(inner) => inner.id.clone(),
+            Resource::Svc(inner) => inner.id.clone(),
         }
     }
 }

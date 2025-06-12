@@ -2,6 +2,9 @@
   {:file {:owner "root"
           :mode "0644"
           :group "root"}
+   :svc {:state "online"
+         :restarted-by []
+         :reloaded-by []}
    :cron {:hour "*"
           :minute "*"
           :day-of-month "*"
@@ -90,6 +93,10 @@
   "Given a name and specification, return a cron remove struct"
   (generic-resource :cron :remove name specs))
 
+(defn svc/ensure [name & specs]
+  "Given a name and state, return a svc ensure struct"
+  (generic-resource :svc :ensure name specs))
+
 (defn this-host
   "Returns the name of the host, set by a dyn in the host macro"
   []
@@ -100,6 +107,16 @@
   []
   (keyword (this-host)))
 
+(defn this-role
+  "Returns the name of the role, set by a dyn in the role macro"
+  []
+  (dyn :role-dyn))
+
+(defn this-role-k
+  "Returns the name of the role as a keyword, set by a dyn in the role macro"
+  []
+  (keyword (this-role)))
+
 (defmacro host [host-name & host-definition]
   "The top-level wrapper used to define a host to be configured"
   (setdyn :host-dyn (string host-name))
@@ -107,7 +124,6 @@
      []
      {:metadata {:name ,host-name}
       :resources (group-by-action-and-type (flatten (tuple ,;host-definition)))}))
-
 
 (defn group-by-action-and-type [data]
   "Turns an array of resources into a struct of structs, and resolves references."

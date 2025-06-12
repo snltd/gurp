@@ -1,7 +1,7 @@
 use crate::common::types::{
     EnsureResources, HostConfig, HostMetadata, HostResources, Opts, RemoveResources,
 };
-use crate::doers::{cron, directory, file, file_line, pkg, user};
+use crate::doers::{cron, directory, file, file_line, pkg, svc, user};
 use crate::utils::janet_helpers::JanetExt;
 use crate::{debug, verbose, warn};
 use anyhow::anyhow;
@@ -76,6 +76,12 @@ fn extract_ensure_resources(
                 ret.insert(
                     "file-line".to_owned(),
                     file_line::unpack_ensure_list(&resource_list, opts)?,
+                );
+            }
+            ":svc" => {
+                ret.insert(
+                    "svc".to_owned(),
+                    svc::unpack_ensure_list(&resource_list, opts)?,
                 );
             }
             other => warn!(

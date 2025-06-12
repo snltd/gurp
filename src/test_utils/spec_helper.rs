@@ -1,6 +1,10 @@
 #[cfg(test)]
+use crate::common::types::ApplyContext;
+#[cfg(test)]
 use crate::common::types::Opts;
 use camino::Utf8PathBuf;
+#[cfg(test)]
+use std::collections::HashSet;
 use std::env::current_dir;
 
 #[cfg(test)]
@@ -38,6 +42,13 @@ pub fn defopts_noop() -> Opts {
         noop: true,
         verbose: false,
         gurp_lib_path: None,
+    }
+}
+
+#[cfg(test)]
+pub fn defcontext() -> ApplyContext {
+    ApplyContext {
+        changed_ids: HashSet::new(),
     }
 }
 

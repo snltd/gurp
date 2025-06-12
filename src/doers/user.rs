@@ -4,7 +4,7 @@ use crate::common::constants::{
 };
 use crate::common::output::Output;
 use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplySummary, Changes, Opts, Resource};
+use crate::common::types::{Action, ApplyContext, ApplySummary, Changes, Opts, Resource};
 use crate::debug;
 use crate::utils::helpers;
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
@@ -76,7 +76,7 @@ crate::unpack_fn!(remove_list, User, GurpUser);
 crate::impl_apply!(GurpUser);
 
 impl GurpUser {
-    fn apply_ensure(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+    fn apply_ensure(&self, _apply_context: &ApplyContext, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
         if !self.exists {
             output.creating(&self.name);
             return self.create(opts);
@@ -153,7 +153,7 @@ impl GurpUser {
         }
     }
 
-    fn apply_remove(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+    fn apply_remove(&self, _apply_context: &ApplyContext, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
         if self.exists {
             if PROTECTED_USERS.contains(&self.name.as_str()) {
                 output.protected(&self.name);
