@@ -3,7 +3,7 @@ use crate::common::constants::{
 };
 use crate::common::output::Output;
 use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplySummary, Opts, Resource};
+use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
 use anyhow::anyhow;
 use camino::Utf8PathBuf;
@@ -70,7 +70,12 @@ impl TryFrom<&Janet> for GurpFileLine {
 }
 
 impl GurpFileLine {
-    fn apply_ensure(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+    fn apply_ensure(
+        &self,
+        _apply_context: ApplyContext,
+        opts: &Opts,
+        output: &Output,
+    ) -> anyhow::Result<ApplySummary> {
         if self.exists {
             output.no_change(&self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
@@ -87,7 +92,12 @@ impl GurpFileLine {
         }
     }
 
-    fn apply_remove(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+    fn apply_remove(
+        &self,
+        _apply_context: ApplyContext,
+        opts: &Opts,
+        output: &Output,
+    ) -> anyhow::Result<ApplySummary> {
         if !self.exists {
             output.no_change(&self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)

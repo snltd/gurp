@@ -66,11 +66,11 @@ macro_rules! impl_apply {
     ($ty:ty) => {
         paste! {
             impl Apply for $ty {
-                fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-                    let output = Output::new(&self.doer, opts);
+                fn apply(&self, apply_context: $crate::common::types::ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
+                    let output = Output::new(&self.doer,  opts);
                     match self.action {
-                        Action::Ensure => self.apply_ensure(opts, &output),
-                        Action::Remove => self.apply_remove(opts, &output),
+                        Action::Ensure => self.apply_ensure(apply_context, opts, &output),
+                        Action::Remove => self.apply_remove(apply_context, opts, &output),
                     }
                 }
             }

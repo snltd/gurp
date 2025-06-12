@@ -175,3 +175,27 @@ To remove a cron job you already defined:
 
 There's currently no way to assert that a system-defined job does or does not
 exist.
+
+## Svc
+
+`Svc` manages the state of SMF services, `Smf` is used to define them.
+
+
+```clojure
+(svc/ensure "svc:/vendor/category/servce:default"
+             :state "enabled"
+             :restarted-by ["/role/resource-type/name-or-label"]
+             :reloaded-by ["/role/resource-type/name-or-label"]
+             )
+```
+
+Because `gurp` ends up shelling out to `svcs` and `svcadm`, the name can be any
+valid FMRI.
+
+`:state` can only be `enabled` or `disabled`. You must give a state.
+
+`:restarted-by` and `:reloaded-by` are optional arrays of resource IDs. If
+`gurp` makes a change to any of those resources in the run, it will restart or
+reload the service.
+
+There is no `(svc/disable)`.

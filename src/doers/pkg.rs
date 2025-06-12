@@ -14,7 +14,7 @@ use crate::common::constants::{
 };
 use crate::common::output::Output;
 use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplySummary, Opts, Resource};
+use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
 use crate::utils::janet_helpers::JanetExt;
 use crate::{debug, warn};
 use anyhow::Context;
@@ -61,7 +61,12 @@ impl GurpPkg {
     // single change. You could _MAYBE_ justify this as saying "it's one change to the package
     // state" but I know in my heart that's cheating. I might make it smarter in the future.
     //
-    fn apply_ensure(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+    fn apply_ensure(
+        &self,
+        _apply_context: ApplyContext,
+        opts: &Opts,
+        output: &Output,
+    ) -> anyhow::Result<ApplySummary> {
         if self.pkg_list.is_empty() {
             output.no_change("pkgs");
             return Ok(NO_RESOURCES_TO_CHANGE);
@@ -87,7 +92,12 @@ impl GurpPkg {
         }
     }
 
-    fn apply_remove(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+    fn apply_remove(
+        &self,
+        _apply_context: ApplyContext,
+        opts: &Opts,
+        output: &Output,
+    ) -> anyhow::Result<ApplySummary> {
         if self.pkg_list.is_empty() {
             output.no_change("pkgs");
             return Ok(NO_RESOURCES_TO_CHANGE);

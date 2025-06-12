@@ -4,7 +4,7 @@ use crate::common::constants::{
 };
 use crate::common::output::Output;
 use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplySummary, Changes, Opts, Resource};
+use crate::common::types::{Action, ApplyContext, ApplySummary, Changes, Opts, Resource};
 use crate::common::users_and_groups;
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
 use camino::Utf8PathBuf;
@@ -69,7 +69,12 @@ crate::unpack_fn!(remove_list, Directory, GurpDirectory);
 crate::impl_apply!(GurpDirectory);
 
 impl GurpDirectory {
-    fn apply_ensure(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+    fn apply_ensure(
+        &self,
+        _apply_context: ApplyContext,
+        opts: &Opts,
+        output: &Output,
+    ) -> anyhow::Result<ApplySummary> {
         if !self.exists {
             output.creating(&self.name);
 
@@ -101,7 +106,12 @@ impl GurpDirectory {
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
-    fn apply_remove(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+    fn apply_remove(
+        &self,
+        _apply_context: ApplyContext,
+        opts: &Opts,
+        output: &Output,
+    ) -> anyhow::Result<ApplySummary> {
         if self.exists {
             if PROTECTED_DIRS.contains(&self.name) {
                 output.protected(&self.name);

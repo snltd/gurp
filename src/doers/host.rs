@@ -1,6 +1,6 @@
 use crate::common::constants::ONE_RESOURCE_ONE_ERROR;
 use crate::common::traits::{Apply, HasId};
-use crate::common::types::{ApplySummary, HostConfig, Opts};
+use crate::common::types::{ApplySummary, ChangedIds, HostConfig, Opts};
 use crate::utils::{janet_helpers, parser, reader};
 use crate::{debug, error, info};
 use anyhow::anyhow;
@@ -8,6 +8,7 @@ use camino::Utf8PathBuf;
 use colored::Colorize;
 use janetrs::{Janet, TaggedJanet, env::CFunOptions};
 use std::cell::RefCell;
+use std::collections::HashSet;
 
 thread_local! {
     static OPTIONS: RefCell<Option<Opts>> = const { RefCell::new(None) };
@@ -139,7 +140,15 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
 fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySummary> {
     info!(opts, "Configuring host '{}'", config.metadata.name);
 
-    let ensure_order = &["pkg", "user", "cron", "directory", "file", "file-line"];
+    let ensure_order = &[
+        "pkg",
+        "user",
+        "cron",
+        "directory",
+        "file",
+        "file-line",
+        "svc",
+    ];
 
     let mut summary_total = ApplySummary {
         resources: 0,
@@ -147,11 +156,18 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
         errors: 0,
     };
 
+    let mut changed_ids: ChangedIds = HashSet::new();
+
     for resource_type in ensure_order {
         if let Some(resources) = config.resources.ensure.get(*resource_type) {
             for resource in resources {
-                match resource.apply(opts) {
-                    Ok(summary) => summary_total = summary_total + summary,
+                match resource.apply(opts, None) {
+                    Ok(summary) => {
+                        summary_total = summary_total + summary;
+                        if summary.changes > 0 {
+                            changed_ids.insert(resource.id());
+                        }
+                    }
                     Err(e) => {
                         error!(
                             opts,
@@ -177,7 +193,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     for resource_type in remove_order {
         if let Some(resources) = config.resources.remove.get(*resource_type) {
             for resource in resources {
-                match resource.apply(opts) {
+                match resource.apply(opts, None) {
                     Ok(summary) => summary_total = summary_total + summary,
                     Err(e) => {
                         error!(
@@ -194,6 +210,22 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
                 "ensure/remove", "No {} resources to remove", resource_type
             );
         }
+    }
+
+    // We deal with services last, and differently.
+    //
+    if let Some(svcs) = config.resources.ensure.get("svc") {
+        for svc in svcs {
+            match svc.apply(opts, Some(changed_ids)) {
+                Ok(summary) => summary_total = summary_total + summary,
+                Err(e) => {
+                    error!(opts, "ensure", "could not ensure svc: {}", e);
+                    summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
+                }
+            }
+        }
+    } else {
+        debug!(opts, "ensure", "No svc resources to ensure");
     }
 
     Ok(summary_total)

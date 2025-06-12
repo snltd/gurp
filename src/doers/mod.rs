@@ -4,4 +4,5 @@ pub mod file;
 pub mod file_line;
 pub mod host;
 pub mod pkg;
+pub mod svc;
 pub mod user;

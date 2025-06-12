@@ -90,6 +90,10 @@
   "Given a name and specification, return a cron remove struct"
   (generic-resource :cron :remove name specs))
 
+(defn svc/ensure [name & specs]
+  "Given a name and state, return a svc ensure struct"
+  (generic-resource :svc :ensure name specs))
+
 (defn this-host
   "Returns the name of the host, set by a dyn in the host macro"
   []
@@ -99,6 +103,16 @@
   "Returns the name of the host as a keyword, set by a dyn in the host macro"
   []
   (keyword (this-host)))
+
+(defn this-role
+  "Returns the name of the role, set by a dyn in the role macro"
+  []
+  (dyn :role-dyn))
+
+(defn this-role-k
+  "Returns the name of the role as a keyword, set by a dyn in the role macro"
+  []
+  (keyword (this-role)))
 
 (defmacro host [host-name & host-definition]
   "The top-level wrapper used to define a host to be configured"

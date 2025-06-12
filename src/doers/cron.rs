@@ -3,7 +3,7 @@ use crate::common::constants::{
 };
 use crate::common::output::Output;
 use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplySummary, Opts, Resource};
+use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
 use crate::utils::helpers;
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
 use crate::{debug, error};
@@ -74,7 +74,12 @@ impl TryFrom<&Janet> for GurpCron {
 }
 
 impl GurpCron {
-    fn apply_ensure(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+    fn apply_ensure(
+        &self,
+        _apply_context: ApplyContext,
+        opts: &Opts,
+        output: &Output,
+    ) -> anyhow::Result<ApplySummary> {
         let content = self.current_crontab(opts)?;
         match self.ensured_crontab(&content)? {
             Some(new_crontab) => {
@@ -93,7 +98,12 @@ impl GurpCron {
         }
     }
 
-    fn apply_remove(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+    fn apply_remove(
+        &self,
+        _apply_context: ApplyContext,
+        opts: &Opts,
+        output: &Output,
+    ) -> anyhow::Result<ApplySummary> {
         let content = self.current_crontab(opts)?;
         match self.removed_crontab(&content)? {
             // If you try to write an empty file, crontab(1) will reject it. If we take out the

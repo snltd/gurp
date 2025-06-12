@@ -4,7 +4,7 @@ use crate::common::constants::{
 };
 use crate::common::output::Output;
 use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplySummary, Changes, Opts, Resource};
+use crate::common::types::{Action, ApplyContext, ApplySummary, Changes, Opts, Resource};
 use crate::common::users_and_groups;
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
 use anyhow::anyhow;
@@ -97,7 +97,12 @@ crate::unpack_fn!(remove_list, File, GurpFile);
 crate::impl_apply!(GurpFile);
 
 impl GurpFile {
-    fn apply_ensure(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+    fn apply_ensure(
+        &self,
+        _apply_context: ApplyContext,
+        opts: &Opts,
+        output: &Output,
+    ) -> anyhow::Result<ApplySummary> {
         let desired = self.desired_state.as_ref().unwrap();
 
         if !self.exists {
@@ -134,7 +139,12 @@ impl GurpFile {
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
-    fn apply_remove(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
+    fn apply_remove(
+        &self,
+        _apply_context: ApplyContext,
+        opts: &Opts,
+        output: &Output,
+    ) -> anyhow::Result<ApplySummary> {
         if self.exists {
             if PROTECTED_FILES.contains(&self.name) {
                 output.protected(&self.name);
