@@ -27,6 +27,10 @@
     (table/to-struct)
     (struct resource-type)))
 
+(defn misc/ensure [& specs]
+  "Sets miscellaneous system properties"
+  (generic-resource :misc :ensure "GENERIC" specs))
+
 (defn pkg/ensure [name &]
   "Given a a pkg name, return a pkg ensure struct. In OmniOS, the
   pkg version is effectively part of the name, so there are no parameters"

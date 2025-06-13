@@ -143,7 +143,15 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
 fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySummary> {
     info!(opts, "Configuring host '{}'", config.metadata.name);
 
-    let ensure_order = &["pkg", "user", "cron", "directory", "file", "file-line"];
+    let ensure_order = &[
+        "pkg",
+        "user",
+        "cron",
+        "directory",
+        "file",
+        "file-line",
+        "misc",
+    ];
 
     let mut summary_total = ApplySummary {
         resources: 0,

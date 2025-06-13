@@ -14,6 +14,7 @@ impl Apply for Resource {
             Resource::FileLine(inner) => inner.apply(apply_context, opts),
             Resource::Cron(inner) => inner.apply(apply_context, opts),
             Resource::Svc(inner) => inner.apply(apply_context, opts),
+            Resource::Misc(inner) => inner.apply(apply_context, opts),
         }
     }
 }
@@ -32,6 +33,7 @@ impl HasId for Resource {
             Resource::FileLine(inner) => inner.id.clone(),
             Resource::Cron(inner) => inner.id.clone(),
             Resource::Svc(inner) => inner.id.clone(),
+            Resource::Misc(inner) => inner.id.clone(),
         }
     }
 }

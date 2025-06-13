@@ -68,6 +68,7 @@ impl JanetExt for Janet {
 
 pub trait JanetStructExt {
     fn get_field(&self, field: &str) -> anyhow::Result<Janet>;
+    fn get_field_string_opt(&self, field: &str) -> Option<String>;
     fn get_field_string(&self, field: &str) -> anyhow::Result<String>;
     fn get_field_pathbuf(&self, field: &str) -> anyhow::Result<Utf8PathBuf>;
     fn get_field_u32(&self, field: &str) -> anyhow::Result<u32>;
@@ -96,6 +97,11 @@ impl JanetStructExt for JanetStruct<'_> {
 
     fn get_field_string(&self, field: &str) -> anyhow::Result<String> {
         Ok(self.get_field(field)?.unwrap().to_string())
+    }
+
+    fn get_field_string_opt(&self, field: &str) -> Option<String> {
+        self.get(Janet::keyword(field.into()))
+            .map(|s| s.unwrap().to_string())
     }
 
     // This is needed in one particular case. We wrap our final ApplySummary in a Janet at
