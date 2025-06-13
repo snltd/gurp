@@ -1,6 +1,6 @@
 use crate::common::types::{Action, ApplySummary, Opts};
 use crate::debug;
-use anyhow::{Context, anyhow};
+use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
 use janetrs::{Janet, JanetArray, JanetStruct, JanetTuple, TaggedJanet, client::JanetClient};
 
@@ -45,48 +45,30 @@ pub trait JanetExt {
 
 impl JanetExt for Janet {
     fn extract_struct(&self) -> anyhow::Result<JanetStruct> {
-        let extracted = self.unwrap();
-
-        let data = match extracted {
-            TaggedJanet::Struct(data) => data,
-            _ => {
-                return Err(anyhow!(format!("did not find struct in {:?}", self)));
-            }
-        };
-
-        Ok(data)
+        match self.unwrap() {
+            TaggedJanet::Struct(data) => Ok(data),
+            _ => bail!("did not find struct in {:?}", self),
+        }
     }
 
     fn extract_array(&self) -> anyhow::Result<JanetArray> {
-        let extracted = self.unwrap();
-
-        let array = match extracted {
-            TaggedJanet::Array(array) => array,
-            _ => {
-                return Err(anyhow!(format!("did not find array in {:?}", self)));
-            }
-        };
-
-        Ok(array)
+        match self.unwrap() {
+            TaggedJanet::Array(data) => Ok(data),
+            _ => bail!("did not find array in {:?}", self),
+        }
     }
 
     fn extract_tuple(&self) -> anyhow::Result<JanetTuple> {
-        let extracted = self.unwrap();
-
-        let array = match extracted {
-            TaggedJanet::Tuple(array) => array,
-            _ => {
-                return Err(anyhow!(format!("did not find tuple in {:?}", self)));
-            }
-        };
-
-        Ok(array)
+        match self.unwrap() {
+            TaggedJanet::Tuple(data) => Ok(data),
+            _ => bail!("did not find tuple in {:?}", self),
+        }
     }
 }
 
 pub trait JanetStructExt {
+    fn get_field(&self, field: &str) -> anyhow::Result<Janet>;
     fn get_field_string(&self, field: &str) -> anyhow::Result<String>;
-    // fn get_field_bool(&self, field: &str) -> anyhow::Result<bool>;
     fn get_field_pathbuf(&self, field: &str) -> anyhow::Result<Utf8PathBuf>;
     fn get_field_u32(&self, field: &str) -> anyhow::Result<u32>;
     fn get_field_u32_string_key(&self, field: &str) -> anyhow::Result<u32>;
@@ -94,33 +76,26 @@ pub trait JanetStructExt {
 }
 
 impl JanetStructExt for JanetStruct<'_> {
-    fn get_field_u32(&self, field: &str) -> anyhow::Result<u32> {
-        let j_val = self
-            .get(Janet::keyword(field.into()))
-            .context(format!(
+    fn get_field(&self, field: &str) -> anyhow::Result<Janet> {
+        match self.get(Janet::keyword(field.into())) {
+            Some(val) => Ok(Janet::wrap(val)),
+            None => bail!(
                 "no '{}' field in {:?}",
                 Janet::keyword(field.into()),
                 self.keys()
-            ))?
-            .unwrap();
+            ),
+        }
+    }
 
-        match j_val {
+    fn get_field_u32(&self, field: &str) -> anyhow::Result<u32> {
+        match self.get_field(field)?.unwrap() {
             TaggedJanet::Number(n) => Ok(n as u32),
-            other => Err(anyhow!("Expected number, found {}", other)),
+            other => bail!("Expected number, found {}", other),
         }
     }
 
     fn get_field_string(&self, field: &str) -> anyhow::Result<String> {
-        let ret = self
-            .get(Janet::keyword(field.into()))
-            .context(format!(
-                "no '{}' field in {:?}",
-                Janet::keyword(field.into()),
-                self
-            ))?
-            .to_string();
-
-        Ok(ret)
+        Ok(self.get_field(field)?.unwrap().to_string())
     }
 
     // This is needed in one particular case. We wrap our final ApplySummary in a Janet at
@@ -130,6 +105,7 @@ impl JanetStructExt for JanetStruct<'_> {
     // not work in this circumstance because keywords effectively map to a memory address, so
     // :resources in the first interpreter is not the same as :resources in the second. But,
     // "resources" is the same wherever you are. So we use string keys in that one circumstance.
+    //
     //
     fn get_field_u32_string_key(&self, field: &str) -> anyhow::Result<u32> {
         let j_val = self
@@ -143,40 +119,16 @@ impl JanetStructExt for JanetStruct<'_> {
 
         match j_val {
             TaggedJanet::Number(n) => Ok(n as u32),
-            other => Err(anyhow!("Expected number, found {}", other)),
+            other => bail!("Expected number, found {}", other),
         }
     }
-
-    /*
-    fn get_field_bool(&self, field: &str) -> anyhow::Result<bool> {
-        let value = self
-            .get(Janet::keyword(field.into()))
-            .context(format!("directory has no {}", field))?;
-
-        if value == Janet::from(true) {
-            Ok(true)
-        } else if value == Janet::from(false) {
-            Ok(false)
-        } else {
-            Err(anyhow!(format!("Cannot turn {} into bool", value)))
-        }
-    }
-    */
 
     fn get_field_pathbuf(&self, field: &str) -> anyhow::Result<Utf8PathBuf> {
-        let path = Utf8PathBuf::from(
-            self.get(Janet::keyword(field.into()))
-                .context(format!(
-                    "no '{}' field in {:?}",
-                    Janet::keyword(field.into()),
-                    self
-                ))?
-                .to_string(),
-        );
+        let path = Utf8PathBuf::from(self.get_field(field)?.unwrap().to_string());
 
         // Relative paths will never be okay. Relative to what?
         if path.is_relative() {
-            return Err(anyhow!("Path is relative: {}", path));
+            bail!("Path is relative: {}", path);
         }
 
         Ok(path)
@@ -186,12 +138,7 @@ impl JanetStructExt for JanetStruct<'_> {
         use crate::utils::janet_helpers::JanetExt;
 
         let ret = self
-            .get(Janet::keyword(field.into()))
-            .context(format!(
-                "no '{}' field in {:?}",
-                Janet::keyword(field.into()),
-                self
-            ))?
+            .get_field(field)?
             .extract_tuple()?
             .iter()
             .filter_map(|item| match item.unwrap() {
@@ -208,18 +155,16 @@ pub fn action_as_enum(janet_data: &JanetStruct) -> anyhow::Result<Action> {
     match janet_data.get_field_string("action")?.as_str() {
         ":ensure" => Ok(Action::Ensure),
         ":remove" => Ok(Action::Remove),
-        other => Err(anyhow!(
-            "Action must be :ensure or :remove. Got '{}'",
-            other
-        )),
+        other => bail!("Action must be :ensure or :remove. Got '{}'", other),
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::test_utils::spec_helper::init_janet;
-
     use super::*;
+    use crate::test_utils::spec_helper::init_janet;
+    use janetrs::JanetKeyword;
+    use janetrs::structs;
 
     #[test]
     fn test_wrap_and_unwrap_summary() {
@@ -232,7 +177,19 @@ mod test {
         };
 
         let wrapped_summary = wrap_summary(&original_summary);
-
         assert_eq!(original_summary, unwrap_summary(&wrapped_summary).unwrap());
+    }
+
+    #[test]
+    fn test_extract_struct() {
+        init_janet();
+        let inner = structs! { ":name" => "test_name"};
+        let has_struct = Janet::wrap(&inner);
+        assert_eq!(inner, has_struct.extract_struct().unwrap());
+        assert!(
+            Janet::wrap(JanetKeyword::from("not-a-struct"))
+                .extract_struct()
+                .is_err()
+        );
     }
 }
