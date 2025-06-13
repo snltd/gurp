@@ -6,9 +6,10 @@ mod test {
 
     #[test]
     #[ignore]
-    fn test_no_args() {
+    fn test_apply_no_args() {
         Command::cargo_bin("gurp")
             .unwrap()
+            .arg("apply")
             .assert()
             .failure()
             .stderr(predicate::str::contains(
@@ -18,10 +19,11 @@ mod test {
 
     #[test]
     #[ignore]
-    fn test_missing_file() {
+    fn test_apply_missing_file() {
         Command::cargo_bin("gurp")
             .unwrap()
-            .arg("/no/such/dir")
+            .arg("apply")
+            .arg("/no/such/file.janet")
             .assert()
             .failure()
             .stderr("ERROR [main/apply] No such file or directory (os error 2)\n");
@@ -32,6 +34,7 @@ mod test {
     fn test_bad_janet() {
         Command::cargo_bin("gurp")
             .unwrap()
+            .arg("apply")
             .arg(fixture("bad.janet"))
             .assert()
             .failure()

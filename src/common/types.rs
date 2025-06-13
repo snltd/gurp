@@ -5,16 +5,16 @@ use crate::doers::file_line::GurpFileLine;
 use crate::doers::pkg::GurpPkg;
 use crate::doers::svc::GurpSvc;
 use crate::doers::user::GurpUser;
-use camino::Utf8PathBuf;
 use std::collections::{HashMap, HashSet};
 use std::ops::Add;
+
+pub type ExitCode = u8;
 
 #[derive(Clone)]
 pub struct Opts {
     pub debug: bool,
     pub noop: bool,
     pub verbose: bool,
-    pub gurp_lib_path: Option<Utf8PathBuf>,
 }
 
 pub enum Resource {
