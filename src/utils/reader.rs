@@ -43,7 +43,7 @@ pub fn read_and_enrich_host_config(
         gurp_lib
             .lines()
             .skip(1)
-            .map(|s| s.to_owned())
+            .map(|s| format!("{}\n", s).to_owned())
             .collect::<String>()
             .as_str(),
     );

@@ -2,6 +2,7 @@ use crate::doers::cron::GurpCron;
 use crate::doers::directory::GurpDirectory;
 use crate::doers::file::GurpFile;
 use crate::doers::file_line::GurpFileLine;
+use crate::doers::misc::GurpMisc;
 use crate::doers::pkg::GurpPkg;
 use crate::doers::svc::GurpSvc;
 use crate::doers::user::GurpUser;
@@ -25,6 +26,7 @@ pub enum Resource {
     File(GurpFile),
     Cron(GurpCron),
     Svc(GurpSvc),
+    Misc(GurpMisc),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -40,6 +42,16 @@ pub struct ApplySummary {
     pub resources: u32,
     pub changes: u32,
     pub errors: u32,
+}
+
+impl Default for ApplySummary {
+    fn default() -> Self {
+        Self {
+            resources: 0,
+            changes: 0,
+            errors: 0,
+        }
+    }
 }
 
 impl Add for ApplySummary {

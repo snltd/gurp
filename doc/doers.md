@@ -18,7 +18,7 @@ are.) Their format is
   :key-2 "value-2")
 ```
 
-There are two actions, `ensure` and `remove`. The keys are resource- and
+The two most common actions are `ensure` and `remove`. The keys are resource- and
 action-specific, and outlined below. The name is generally the same thing the OS
 uses to identify that resource, so for a file it would be the path; for a user,
 the username.
@@ -199,3 +199,18 @@ defaults to `online`.
 reload the service.
 
 There is no `(svc/disable)`.
+
+## Misc
+
+There are certain tasks I used to manage with shell-script bodges. The `misc`
+doer is where I turn them into proper, reliable code.
+
+Currently the only thing the `misc` doer does is set the NFS domain. Note that
+you don't give a resource name to this doer: it wouldn't make sense. 
+
+```clojure
+(misc/ensure
+             :nfs-domain "lan.id264.net")
+```
+
+There is no `(misc/remove)`.

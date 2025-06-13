@@ -144,9 +144,11 @@ impl GurpSvc {
         let output = cmd.output()?;
 
         if output.status.success() {
-            Ok(String::from_utf8(output.stdout)?.trim().to_owned())
+            Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
         } else {
-            Err(anyhow!(String::from_utf8(output.stderr)?))
+            Err(anyhow!(
+                String::from_utf8_lossy(&output.stderr).into_owned()
+            ))
         }
     }
 }
