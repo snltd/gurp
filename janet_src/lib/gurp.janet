@@ -202,18 +202,23 @@
   (each k (keys ret) (put ret k (table/to-struct (get ret k))))
   (table/to-struct ret))
 
-
 (defn collect-resources
   [& resource-structs]
   (array ;resource-structs))
 
 (defmacro role [role-name & role-definition]
+  "Holder for role definitions"
   ~(defn ,role-name
      []
      (setdyn :role-dyn (string ',role-name))
      (collect-resources ,;role-definition)))
 
 (defmacro section
-  # A no-op which might help you write readable definitions
+  "A no-op which might help you write readable definitions"
   [name & body]
   ['do ;body])
+
+(defn this
+  "A convenient way to reference a resource in the current role"
+  [& args]
+  (string/join (tuple "" (this-role) ;args) "/"))

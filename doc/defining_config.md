@@ -81,13 +81,15 @@ the file. References can refer to other references, and `gurp` is able to detect
 unresolvable loops and dangling references.
 
 Typically a reference takes the form
-`role-name/resource-type/resource-name/resource-property`. Internally every
+`/role-name/resource-type/resource-name/resource-property`. Internally every
 resource gets an ID constructed in that way, and you will see them in execution
 output. But, the slash-separation could be confusing when referring to file
 paths, so `gurp` converts slashes to underscores in the id resource property
-name. You can use that pattern in your references, but to save you having to
-even deal with that, you can, follow the above example and add a `:label`, then
-refer to that.
+name. You can use that pattern in your references, but it's usually clearer
+to follow the above example and add a `:label`, then refer to that.
+
+There's even a convenience function `(this)`, which lets you refer to a
+resource in the same role by writing `(this "file" "app-config" "owner")`.
 
 We have dynamically constructed a value for the content of the file. `(string)`
 concatenates its arguments, and `(this-host)` is a `gurp` builtin which expands
