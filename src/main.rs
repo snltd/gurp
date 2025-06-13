@@ -36,6 +36,12 @@ enum Commands {
         #[arg(required = true)]
         host_config_file: Utf8PathBuf,
     },
+    /// Show Janet builtins
+    Show {
+        /// Thing to show: one of library, defaults
+        #[arg(required = true)]
+        thing: String,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -52,6 +58,7 @@ fn main() -> anyhow::Result<()> {
             gurp_lib_path,
             host_config_file,
         } => commands::apply::run(&host_config_file, &gurp_lib_path, &global_opts),
+        Commands::Show { thing } => commands::show::run(&thing),
     };
 
     std::process::exit(exit_code as i32);

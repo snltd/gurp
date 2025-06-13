@@ -1,11 +1,10 @@
+use crate::common::constants::{GURP_DEFAULTS, GURP_LIB};
 use crate::common::types::Opts;
 use crate::debug;
 use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
 
 // Wherein we read and prep the user-supplied Janet code
-
-const GURP_LIB: &str = include_str!("../../janet_src/lib/gurp.janet");
 
 // We can inject our own Janet code into what the user gives us, that way the user doesn't
 // have to work out include paths, and doesn't even have to have the gurp library. You can
@@ -39,7 +38,15 @@ pub fn read_and_enrich_host_config(
     };
 
     let mut ret = format!("(setdyn *syspath* \"{}\")\n\n", host_config_dir);
-    ret.push_str(gurp_lib);
+    ret.push_str(GURP_DEFAULTS);
+    ret.push_str(
+        gurp_lib
+            .lines()
+            .skip(1)
+            .map(|s| s.to_owned())
+            .collect::<String>()
+            .as_str(),
+    );
     ret.push('\n');
     ret.push_str(&janet_host_config);
     ret.push_str("\n(run-machine-configuration (machine-config))");

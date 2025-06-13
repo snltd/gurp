@@ -2,6 +2,9 @@ use crate::common::types::ApplySummary;
 use camino::Utf8PathBuf;
 use std::sync::LazyLock;
 
+pub const GURP_LIB: &str = include_str!("../../janet_src/lib/gurp.janet");
+pub const GURP_DEFAULTS: &str = include_str!("../../janet_src/lib/defaults.janet");
+
 pub const ONE_RESOURCE_ONE_CHANGE: ApplySummary = ApplySummary {
     resources: 1,
     changes: 1,
