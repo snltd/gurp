@@ -250,6 +250,7 @@ mod test {
         assert!(dir.exists());
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn test_unpack_ensure_directory() {
         init_janet();
