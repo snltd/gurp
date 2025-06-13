@@ -1,4 +1,0 @@
-(host "tester"
-  :modules [
-    "missing"
-  ])

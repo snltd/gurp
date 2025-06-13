@@ -33,7 +33,11 @@ thread_local! {
 // into a single action.
 
 // This is the entry point from main
-pub fn apply(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<Janet> {
+pub fn apply(
+    host_file: &Utf8PathBuf,
+    gurp_lib_path: &Option<Utf8PathBuf>,
+    opts: &Opts,
+) -> anyhow::Result<Janet> {
     debug!(opts, "host-apply", "Stashing opts object");
 
     OPTIONS.with(|o| {
@@ -41,11 +45,10 @@ pub fn apply(host_file: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<Janet> {
             debug: opts.debug,
             noop: opts.noop,
             verbose: opts.verbose,
-            gurp_lib_path: opts.gurp_lib_path.clone(),
         });
     });
 
-    let host_config = reader::read_and_enrich_host_config(host_file, opts)?;
+    let host_config = reader::read_and_enrich_host_config(host_file, gurp_lib_path, opts)?;
 
     debug!(
         opts,

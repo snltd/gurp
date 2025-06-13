@@ -19,6 +19,7 @@ const GURP_LIB: &str = include_str!("../../janet_src/lib/gurp.janet");
 //
 pub fn read_and_enrich_host_config(
     host_file_path: &Utf8PathBuf,
+    gurp_lib_path: &Option<Utf8PathBuf>,
     opts: &Opts,
 ) -> anyhow::Result<String> {
     let janet_host_config = std::fs::read_to_string(host_file_path)?;
@@ -32,7 +33,7 @@ pub fn read_and_enrich_host_config(
         .parent()
         .context(format!("cannot find parent of {}", host_file_path))?;
 
-    let gurp_lib = match &opts.gurp_lib_path {
+    let gurp_lib = match gurp_lib_path {
         Some(path) => &load_lib_from_disk(path, opts)?,
         None => GURP_LIB,
     };
