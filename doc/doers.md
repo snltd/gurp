@@ -80,7 +80,8 @@ and `userdel(1m)` commands, so it shares their behaviour, and might fail if
 trying to modify certain properties of a logged-in user.
 
 Only the essentials are covered. The default shell is `/bin/zsh` and the default
-`primary-group` is `staff`. Everything else must be specified.
+`primary-group` is `staff`. Everything except `:passwowrd-hash` must be
+specified. To unlock an account, use a hash of `NP`.
 
 ```clojure
 (user/ensure "rdf"
@@ -88,8 +89,13 @@ Only the essentials are covered. The default shell is `/bin/zsh` and the default
              :primary-group "sysadmin"
              :home-dir "/export/rob/rdf"
              :other-groups ["wheel"]
+             :password-hash "s0mECr4zyHa$h"
              :shell "/bin/zsh")
 ```
+
+The user is added to `:other-groups` when it is created, but `gurp` currently
+lacks the ability to change that value on subsequent runs. There's an issue, so
+it will get done at some point.
 
 ### Package
 
