@@ -209,7 +209,6 @@ fn make_manifest(def: &SmfDefinition) -> String {
 mod test {
     use super::*;
     use crate::test_utils::spec_helper::load_fixture;
-    // use minidom::Element;
     use pretty_assertions::assert_eq;
     use xml::reader::{EventReader, XmlEvent};
 
@@ -246,8 +245,6 @@ mod test {
 
         let result = make_manifest(&test_svc);
         let expected = load_fixture("util/smf_helper/telegraf.xml");
-        // let result_xml: Vec<XmlEvent> = EventReader::from_str(&result).into_iter().collect():
-        // let expected_xml: Vec<XmlEvent> = EventReader::from_str(&expected).into_iter().collect();
         let result_xml = parse_xml(&result);
         let expected_xml = parse_xml(&expected);
 
@@ -257,29 +254,4 @@ mod test {
     fn parse_xml(content: &str) -> Result<Vec<XmlEvent>, xml::reader::Error> {
         EventReader::from_str(content).into_iter().collect()
     }
-
-    /*
-    use xmltree::Element;
-
-    fn normalize(xml: &str) -> Element {
-        Element::parse(xml.as_bytes()).expect("valid XML")
-    }
-
-    fn elements_equal(a: &Element, b: &Element) -> bool {
-        a.name == b.name
-            && a.attributes == b.attributes
-            && a.get_text() == b.get_text()
-            && a.children.len() == b.children.len()
-            && a.children
-                .iter()
-                .zip(&b.children)
-                .all(|(ac, bc)| match (ac, bc) {
-                    (xmltree::XMLNode::Element(e1), xmltree::XMLNode::Element(e2)) => {
-                        elements_equal(e1, e2)
-                    }
-                    (xmltree::XMLNode::Text(t1), xmltree::XMLNode::Text(t2)) => t1 == t2,
-                    _ => false,
-                })
-    }
-    */
 }
