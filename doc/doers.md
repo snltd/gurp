@@ -223,19 +223,33 @@ There is no `(misc/remove)`.
 
 ## SMF
 
+The `Smf` doer lets you define (limited) SMF services as Janet code. It supports
+just the things I needed up to now.
+
 ```clojure
-(smf/ensure "service-name"
-             :description "what this does"
-             :fmri "vendor/service"
-             :single-instance true # defaults to true
-             :
+(smf/ensure "telegraf"
+       :description "Run Telegraf agent"
+       :fmri "sysdef/telegraf"
+       :start-method {
+         :exec "/bin/sleep 1200"
+         :timeout 60
+         :context {                                                                               
+           :user "telegraf"
+           :group "daemon"
+           :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"}}
+       :stop-method {
+         :exec ":kill"
+         :timeout 10 }
+       :refresh-method {
+         :exec ":kill -THAW"
+         :timeout 60 })
 ```
 
 If you don't supply a `:stop-method` you'll get a standard `:kill` that times
-out after ten seconds.
+out after ten seconds. Start timeouts default to 60 seconds.
 
 It isn't possible to have SMF tell you what manifest was imported, and even
 comparing an export with the thing you just imported shows differences. So,
 `gurp` generates an SMF manifest, writes it to disk, and will delete and
 reimport a manifest if it sees a difference between that and the thing you
-request.
+request. This will, of course, clobber any changes you've made.
