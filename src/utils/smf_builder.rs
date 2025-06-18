@@ -1,8 +1,8 @@
+use crate::common::types::{SmfDefinition, SmfDefinitionDependencySvc, SmfDefinitionExecMethod};
 use xmlwriter::{Options, XmlWriter};
 
 pub struct SmfBuilder {
     xml: XmlWriter,
-    fingerprint: u64,
 }
 
 impl SmfBuilder {
@@ -17,10 +17,7 @@ impl SmfBuilder {
         xml.write_attribute("type", "manifest");
         xml.write_attribute("name", &def.name);
 
-        SmfBuilder {
-            xml,
-            fingerprint: fingerprint(def),
-        }
+        Self { xml }
     }
 
     pub fn add_service<F>(&mut self, name: &str, f: F)
@@ -30,9 +27,7 @@ impl SmfBuilder {
         self.xml.start_element("service");
         self.xml.write_attribute("name", name);
         self.xml.write_attribute("type", "service");
-        // I want to be able to store the hash fingerprint in this version field so I can quickly
-        // see if the manifest will change
-        self.xml.write_attribute("version", &self.fingerprint);
+        self.xml.write_attribute("version", &1);
 
         let mut svc = ServiceBuilder { xml: &mut self.xml };
         f(&mut svc);
@@ -50,7 +45,7 @@ pub struct ServiceBuilder<'a> {
     xml: &'a mut XmlWriter,
 }
 
-impl<'a> ServiceBuilder<'a> {
+impl ServiceBuilder<'_> {
     pub fn enable_default_instance(&mut self, enabled: bool) {
         self.xml.start_element("create_default_instance");
         self.xml.write_attribute("enabled", &enabled);
@@ -122,49 +117,7 @@ impl<'a> ServiceBuilder<'a> {
     }
 }
 
-#[derive(Hash)]
-struct SmfDefinitionExecMethodContext {
-    user: String,
-    group: Option<String>,
-    privileges: Option<String>,
-}
-
-#[derive(Hash)]
-struct SmfDefinitionExecMethod {
-    exec: String,
-    timeout: u32,
-    context: Option<SmfDefinitionExecMethodContext>,
-}
-
-#[derive(Hash)]
-struct SmfDefinitionDependencySvc {
-    name: String,
-    restart_on: String,
-    fmri: String,
-}
-
-#[derive(Hash)]
-struct SmfDefinition {
-    name: String,
-    description: String,
-    fmri: String,
-    default_enabled: bool,
-    single_instance: bool,
-    start_method: Option<SmfDefinitionExecMethod>,
-    stop_method: Option<SmfDefinitionExecMethod>,
-    refresh_method: Option<SmfDefinitionExecMethod>,
-}
-
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-
-pub fn fingerprint<T: Hash>(t: &T) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    t.hash(&mut hasher);
-    hasher.finish()
-}
-
-fn make_manifest(def: &SmfDefinition) -> String {
+pub fn make_manifest(def: &SmfDefinition) -> String {
     let mut builder = SmfBuilder::new(def);
 
     builder.add_service(&def.fmri, |svc| {
@@ -200,7 +153,9 @@ fn make_manifest(def: &SmfDefinition) -> String {
     });
 
     let mut ret = "<?xml version='1.0'?>\n".to_owned();
-    ret.push_str("<!DOCTYPE service_bundle SYSTEM '/usr/share/lib/xml/dtd/service_bundle.dtd.1'>");
+    ret.push_str(
+        "<!DOCTYPE service_bundle SYSTEM '/usr/share/lib/xml/dtd/service_bundle.dtd.1'>\n",
+    );
     ret.push_str(&builder.finish());
     ret
 }
@@ -208,9 +163,10 @@ fn make_manifest(def: &SmfDefinition) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::common::types::SmfDefinitionExecMethodContext;
     use crate::test_utils::spec_helper::load_fixture;
+    use crate::utils::helpers;
     use pretty_assertions::assert_eq;
-    use xml::reader::{EventReader, XmlEvent};
 
     #[test]
     fn test_make_manifest() {
@@ -245,13 +201,9 @@ mod test {
 
         let result = make_manifest(&test_svc);
         let expected = load_fixture("util/smf_helper/telegraf.xml");
-        let result_xml = parse_xml(&result);
-        let expected_xml = parse_xml(&expected);
+        let result_xml = helpers::parse_xml(&result);
+        let expected_xml = helpers::parse_xml(&expected);
 
         assert_eq!(&expected_xml, &result_xml);
-    }
-
-    fn parse_xml(content: &str) -> Result<Vec<XmlEvent>, xml::reader::Error> {
-        EventReader::from_str(content).into_iter().collect()
     }
 }

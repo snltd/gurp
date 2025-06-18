@@ -73,7 +73,7 @@ impl GurpMisc {
         let mut aggr = ApplySummary::default();
 
         if let Some(domain) = &self.desired_state.nfs_domain {
-            aggr = aggr + self.ensure_nfs_domain(&domain, opts, output);
+            aggr = aggr + self.ensure_nfs_domain(domain, opts, output);
         }
 
         Ok(aggr)

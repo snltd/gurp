@@ -150,6 +150,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
         "directory",
         "file",
         "file-line",
+        "smf",
         "misc",
     ];
 

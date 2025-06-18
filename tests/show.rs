@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod test {
     use assert_cmd::Command;
-    use gurp::test_utils::spec_helper::fixture;
     use predicates::prelude::*;
 
     #[test]

@@ -1,4 +1,5 @@
 use std::process::Command;
+use xml::reader::{EventReader, XmlEvent};
 
 pub fn command_to_string(cmd: &Command) -> String {
     let program = cmd.get_program().to_string_lossy();
@@ -8,4 +9,8 @@ pub fn command_to_string(cmd: &Command) -> String {
         .collect::<Vec<_>>()
         .join(" ");
     format!("{program} {args}")
+}
+
+pub fn parse_xml(content: &str) -> Result<Vec<XmlEvent>, xml::reader::Error> {
+    EventReader::from_str(content).into_iter().collect()
 }

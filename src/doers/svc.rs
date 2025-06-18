@@ -1,18 +1,14 @@
 use crate::common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use crate::common::output::Output;
+use crate::common::svcs;
 use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
 use crate::debug;
-use crate::utils::helpers;
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
 use anyhow::anyhow;
 use janetrs::{Janet, JanetArray};
 use paste::paste;
 use std::collections::HashSet;
-use std::process::{Command, Stdio};
-
-const SVCADM_BIN: &str = "/usr/sbin/svcadm";
-const SVCS_BIN: &str = "/bin/svcs";
 
 // THINGS TO KNOW / THINGS TO DO.
 // There's no svc/remove, only svc/ensure.
@@ -73,7 +69,7 @@ impl GurpSvc {
         opts: &Opts,
         output: &Output,
     ) -> anyhow::Result<ApplySummary> {
-        let current_state = self.current_state(opts)?;
+        let current_state = svcs::current_state(&self.name, opts)?;
 
         debug!(
             opts,
@@ -83,11 +79,11 @@ impl GurpSvc {
         if current_state == self.desired_state {
             if !apply_context.changed_ids.is_disjoint(&self.restarters) {
                 output.action(&self.name, "RESTARTING");
-                self.run_svcadm("restart", opts)?;
+                svcs::run_svcadm(&self.name, "restart", opts)?;
                 Ok(ONE_RESOURCE_ONE_CHANGE)
             } else if !apply_context.changed_ids.is_disjoint(&self.reloaders) {
                 output.action(&self.name, "RELOADING");
-                self.run_svcadm("reload", opts)?;
+                svcs::run_svcadm(&self.name, "reload", opts)?;
                 Ok(ONE_RESOURCE_ONE_CHANGE)
             } else {
                 output.no_change(&self.name);
@@ -95,60 +91,8 @@ impl GurpSvc {
             }
         } else {
             output.change(&self.name, &current_state, &self.desired_state);
-            self.set_state(&current_state, opts)?;
+            svcs::set_state(&self.name, &current_state, &self.desired_state, opts)?;
             Ok(ONE_RESOURCE_ONE_CHANGE)
-        }
-    }
-
-    fn set_state(&self, current_state: &str, opts: &Opts) -> anyhow::Result<String> {
-        let action = if current_state == "maintenance" {
-            debug!(opts, "doer/svc", "Trying to clear {}", self.name);
-            "clear"
-        } else if self.desired_state == "online" {
-            "enable"
-        } else if self.desired_state == "disabled" {
-            "disable"
-        } else {
-            return Err(anyhow!(
-                "unknown or unsupported state: {}",
-                self.desired_state
-            ));
-        };
-
-        self.run_svcadm(action, opts)
-    }
-
-    fn run_svcadm(&self, action: &str, opts: &Opts) -> anyhow::Result<String> {
-        let mut cmd = Command::new(SVCADM_BIN);
-        cmd.arg(action).arg(&self.name).stderr(Stdio::piped());
-
-        debug!(opts, "doer/svc", "{}", helpers::command_to_string(&cmd));
-        let output = cmd.output()?;
-
-        if output.status.success() {
-            Ok(String::from_utf8(output.stdout)?)
-        } else {
-            Err(anyhow!(String::from_utf8(output.stderr)?))
-        }
-    }
-
-    fn current_state(&self, opts: &Opts) -> anyhow::Result<String> {
-        let mut cmd = Command::new(SVCS_BIN);
-        cmd.arg("-Ho")
-            .arg("state")
-            .arg(&self.name)
-            .stderr(Stdio::piped());
-
-        debug!(opts, "doer/svc", "{}", helpers::command_to_string(&cmd));
-
-        let output = cmd.output()?;
-
-        if output.status.success() {
-            Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
-        } else {
-            Err(anyhow!(
-                String::from_utf8_lossy(&output.stderr).into_owned()
-            ))
         }
     }
 }

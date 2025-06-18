@@ -84,6 +84,18 @@
   "Given a name and state, return a svc ensure struct"
   (generic-resource :svc :ensure name specs))
 
+(defn smf/ensure [name & specs]
+  "Given a name and a manifest description, return an smf ensure struct"
+  (var out @{})
+  (def res (generic-resource :smf :ensure name specs))
+  (def z (get res :smf))
+
+  (each k (keys z)
+    (def v (get z k))
+    (put out k
+         (if (struct? v) (table/to-struct (merge (proto k) v)) v)))
+  {:smf (table/to-struct out)})
+
 (defn this-host
   "Returns the name of the host, set by a dyn in the host macro"
   []
