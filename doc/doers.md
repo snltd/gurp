@@ -18,10 +18,10 @@ are.) Their format is
   :key-2 "value-2")
 ```
 
-The two most common actions are `ensure` and `remove`. The keys are resource- and
-action-specific, and outlined below. The name is generally the same thing the OS
-uses to identify that resource, so for a file it would be the path; for a user,
-the username.
+The two most common actions are `ensure` and `remove`. The keys are resource-
+and action-specific, and outlined below. The name is generally the same thing
+the OS uses to identify that resource, so for a file it would be the path; for a
+user, the username.
 
 All doers do the bare minimum needed to build my systems. If you want more, open
 an issue or a PR.
@@ -212,7 +212,7 @@ There are certain tasks I used to manage with shell-script bodges. The `misc`
 doer is where I turn them into proper, reliable code.
 
 Currently the only thing the `misc` doer does is set the NFS domain. Note that
-you don't give a resource name to this doer: it wouldn't make sense. 
+you don't give a resource name to this doer: it wouldn't make sense.
 
 ```clojure
 (misc/ensure
@@ -220,3 +220,36 @@ you don't give a resource name to this doer: it wouldn't make sense.
 ```
 
 There is no `(misc/remove)`.
+
+## SMF
+
+The `Smf` doer lets you define (limited) SMF services as Janet code. It supports
+just the things I needed up to now.
+
+```clojure
+(smf/ensure "telegraf"
+       :description "Run Telegraf agent"
+       :fmri "sysdef/telegraf"
+       :start-method {
+         :exec "/bin/sleep 1200"
+         :timeout 60
+         :context {                                                                               
+           :user "telegraf"
+           :group "daemon"
+           :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"}}
+       :stop-method {
+         :exec ":kill"
+         :timeout 10 }
+       :refresh-method {
+         :exec ":kill -THAW"
+         :timeout 60 })
+```
+
+If you don't supply a `:stop-method` you'll get a standard `:kill` that times
+out after ten seconds. Start timeouts default to 60 seconds.
+
+It isn't possible to have SMF tell you what manifest was imported, and even
+comparing an export with the thing you just imported shows differences. So,
+`gurp` generates an SMF manifest, writes it to disk, and will delete and
+reimport a manifest if it sees a difference between that and the thing you
+request. This will, of course, clobber any changes you've made.

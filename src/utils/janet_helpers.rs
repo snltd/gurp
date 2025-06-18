@@ -3,6 +3,7 @@ use crate::debug;
 use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
 use janetrs::{Janet, JanetArray, JanetStruct, JanetTuple, TaggedJanet, client::JanetClient};
+use std::fmt::Write;
 
 // We need to pass an ApplySummary through the Rust->Janet->Rust boundary. These two symmetrical
 // functions are far simpler than faffing about with JanetAbstract.
@@ -72,8 +73,10 @@ pub trait JanetStructExt {
     fn get_field_string(&self, field: &str) -> anyhow::Result<String>;
     fn get_field_pathbuf(&self, field: &str) -> anyhow::Result<Utf8PathBuf>;
     fn get_field_u32(&self, field: &str) -> anyhow::Result<u32>;
+    fn get_field_bool(&self, field: &str) -> anyhow::Result<bool>;
     fn get_field_u32_string_key(&self, field: &str) -> anyhow::Result<u32>;
     fn get_field_string_tuple(&self, field: &str) -> anyhow::Result<Vec<String>>;
+    fn get_field_struct_opt(&self, field: &str) -> Option<JanetStruct>;
 }
 
 impl JanetStructExt for JanetStruct<'_> {
@@ -85,6 +88,28 @@ impl JanetStructExt for JanetStruct<'_> {
                 Janet::keyword(field.into()),
                 self.keys()
             ),
+        }
+    }
+
+    fn get_field_struct_opt(&self, field: &str) -> Option<JanetStruct> {
+        match self.get(Janet::keyword(field.into())) {
+            Some(j) => match j.unwrap() {
+                TaggedJanet::Struct(s) => Some(s),
+                _ => None,
+            },
+            None => None,
+        }
+    }
+
+    fn get_field_bool(&self, field: &str) -> anyhow::Result<bool> {
+        let value = self.get_field(field)?;
+
+        if value == Janet::from(true) {
+            Ok(true)
+        } else if value == Janet::from(false) {
+            Ok(false)
+        } else {
+            bail!("cannot turn {} into a bool", value)
         }
     }
 
@@ -162,6 +187,41 @@ pub fn action_as_enum(janet_data: &JanetStruct) -> anyhow::Result<Action> {
         ":ensure" => Ok(Action::Ensure),
         ":remove" => Ok(Action::Remove),
         other => bail!("Action must be :ensure or :remove. Got '{}'", other),
+    }
+}
+
+pub fn pretty_janet(j: &Janet, indent: usize) -> String {
+    let pad = "  ".repeat(indent);
+    match j.unwrap() {
+        TaggedJanet::Keyword(k) => format!("{}", k),
+        TaggedJanet::String(s) => format!("{:?}", s),
+        TaggedJanet::Boolean(b) => format!("{}", b),
+        TaggedJanet::Number(n) => format!("{}", n),
+        TaggedJanet::Array(arr) => {
+            let elems = arr
+                .iter()
+                .map(|x| pretty_janet(x, indent + 1))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("[{}]", elems)
+        }
+        TaggedJanet::Struct(s) => {
+            let mut out = String::new();
+            writeln!(&mut out, "{{").unwrap();
+            for (k, v) in s.iter() {
+                writeln!(
+                    &mut out,
+                    "{}  {} {}",
+                    pad,
+                    pretty_janet(k, 0),
+                    pretty_janet(v, indent + 1)
+                )
+                .unwrap();
+            }
+            write!(&mut out, "{}}}", pad).unwrap();
+            out
+        }
+        _ => format!("{:?}", j),
     }
 }
 

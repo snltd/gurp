@@ -5,5 +5,6 @@ pub mod file_line;
 pub mod host;
 pub mod misc;
 pub mod pkg;
+pub mod smf;
 pub mod svc;
 pub mod user;
