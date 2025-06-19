@@ -1,30 +1,30 @@
-[![Test Rust](https://github.com/snltd/gurp/actions/workflows/test-rust.yml/badge.svg)](https://github.com/snltd/gurp/actions/workflows/test-rust.yml)
+[![Rust Tests](https://github.com/snltd/gurp/actions/workflows/test-rust.yml/badge.svg)](https://github.com/snltd/gurp/actions/workflows/test-rust.yml)
 [![Janet Tests](https://github.com/snltd/gurp/actions/workflows/test-janet.yml/badge.svg)](https://github.com/snltd/gurp/actions/workflows/test-janet.yml)
 
 # gurp
 
 ## What?
 
-Gurp is an almost certainly doomed attempt to write an illumos configuration
-management tool driven by Lisp.
+Gurp is an illumos configuration management tool.
 
 ## Why?
 
-I run illumos, and I want some kind of config management. Chef is too heavy,
-Puppet doesn't really support illumos any more, CfEngine is too much work, and
-Ansible is Ansible.
+I run illumos, and I want config management. Chef is too heavy; Puppet doesn't
+really support illumos any more, even with Oracle's providers; CfEngine is too
+much work; and Ansible is Ansible.
 
 ## How?
 
-A user writes machine configurations using a thin
-[Janet](https://janet-lang.org/) DSL. Resources such as Unix users, SMF
-services, or ZFS datasets have their properties described as Janet tables, but
-can, of course, be wrapped in, or contain, arbitrary Janet code. Resources may
-reference properties of other resources.
+A user defines machine configurations in a thin [Janet](https://janet-lang.org/)
+DSL. Resources such as Unix users, SMF services, or ZFS datasets are described
+as Janet structs, but can, of course, be wrapped in, or contain, arbitrary code.
+Resources may reference properties of other resources.
 
 ## When?
 
-Maybe sometime, maybe not. It's very much an experimental side-project.
+Maybe sometime, maybe not. It's very much an experimental side-project. It's
+getting somewhere close to working now though. See issues for things not yet
+covered.
 
 ## Who?
 

@@ -36,25 +36,25 @@
         "gibbus")
   (test (file/ensure "/my/file"
                      :owner "rob")
-    {:file {:_id "/test-role/file/_my_file"
-            :action :ensure
-            :group "root"
-            :mode "0644"
-            :name "/my/file"
-            :owner "rob"
-            :role "test-role"}})
+        {:file {:_id "/test-role/file/_my_file"
+                :action :ensure
+                :group "root"
+                :mode "0644"
+                :name "/my/file"
+                :owner "rob"
+                :role "test-role"}})
 
   (test (directory/ensure "/my/deep/nested/directory/needs/recursion"
                           :label "deep-dir"
                           :owner "daemon")
-    {:directory {:_id "/test-role/directory/deep-dir"
-                 :action :ensure
-                 :group "root"
-                 :label "deep-dir"
-                 :mode "0755"
-                 :name "/my/deep/nested/directory/needs/recursion"
-                 :owner "daemon"
-                 :role "test-role"}})
+        {:directory {:_id "/test-role/directory/deep-dir"
+                     :action :ensure
+                     :group "root"
+                     :label "deep-dir"
+                     :mode "0755"
+                     :name "/my/deep/nested/directory/needs/recursion"
+                     :owner "daemon"
+                     :role "test-role"}})
 
   (setdyn :role-dyn nil))
 
@@ -115,11 +115,36 @@
   (test (this "file" "the-label" "owner") "/basenode/file/the-label/owner")
   (test (this "file" "the-label") "/basenode/file/the-label")
   (setdyn :role-dyn nil))
-  
-(test-macro 
+
+(test-macro
   (section "test-section"
-    (svc/ensure "cron")
-    (directory/ensure "/tmp/test"))
+           (svc/ensure "cron")
+           (directory/ensure "/tmp/test"))
   (do
     (svc/ensure "cron")
     (directory/ensure "/tmp/test")))
+
+(deftest "templates"
+  (test
+    (template-out
+      "I {{ sentiment }} {{ language }}"
+      {:sentiment "like" :language "Janet"})
+    "I like Janet")
+
+  (test
+    (template-out
+      "I {{sentiment    }} {{ language}} too"
+      {:sentiment "like" :language "Rust"})
+    "I like Rust too")
+
+  (test-error
+    (template-out
+      "I {{ sentiment }} {{ language }} though"
+      {:sentiment "don't much care for" :oops "things like" :language "YAML"})
+    "unused vars")
+
+  (test-error
+    (template-out
+      "I also {{ sentiment }} {{ verb }} {{ amount }} of {{ language }}"
+      {:sentiment "enjoy" :language "Ruby"})
+    "unpopulated fields in template: {{ verb }}, {{ amount }}"))

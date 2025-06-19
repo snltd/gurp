@@ -27,82 +27,97 @@
     (table/to-struct)
     (struct resource-type)))
 
-(defn misc/ensure [& specs]
+(defn misc/ensure
   "Sets miscellaneous system properties"
+  [& specs]
   (generic-resource :misc :ensure "GENERIC" specs))
 
-(defn pkg/ensure [name &]
+(defn pkg/ensure
   "Given a a pkg name, return a pkg ensure struct. In OmniOS, the
   pkg version is effectively part of the name, so there are no parameters"
+  [name &]
   (generic-resource :pkg :ensure name []))
 
-(defn pkg/remove [name &]
+(defn pkg/remove
   "Given a pkg name, return a pkg remove struct"
+  [name &]
   (generic-resource :pkg :remove name []))
 
-(defn file/ensure [name & specs]
+(defn file/ensure
   "Given a file name and specification, return a file ensure struct"
+  [name & specs]
   (generic-resource :file :ensure name specs))
 
-(defn file/remove [name & specs]
+(defn file/remove
   "Given a file name and specification, return a file remove struct"
+  [name & specs]
   (generic-resource :file :ensure name specs))
 
-(defn file-line/ensure [name & specs]
+(defn file-line/ensure
   "Given a file name and a line pattern, make sure the file contains the line"
+  [name & specs]
   (generic-resource :file-line :ensure name specs))
 
-(defn file-line/remove [name & specs]
-  "Given a file name and specification, make sure the file does not contain the line"
+(defn file-line/remove
+  "Given a file name and a line pattern, make sure the file does not contain the line"
+  [name & specs]
   (generic-resource :file-line :ensure name specs))
 
-(defn directory/ensure [name & specs]
+(defn directory/ensure
   "Given a directory name and specification, return a directory ensure struct"
+  [name & specs]
   (generic-resource :directory :ensure name specs))
 
-(defn directory/remove [name & specs]
+(defn directory/remove
   "Given a directory name and specification, return a directory remove struct"
+  [name & specs]
   (generic-resource :directory :remove name specs))
 
-(defn user/ensure [name & specs]
+(defn user/ensure
   "Given a user name and specification, return a user ensure struct"
+  [name & specs]
   (generic-resource :user :ensure name specs))
 
-(defn user/remove [name & specs]
+(defn user/remove
   "Given a user name and specification, return a user remove struct"
+  [name & specs]
   (generic-resource :user :remove name specs))
 
-(defn cron/ensure [name & specs]
+(defn cron/ensure
   "Given a name and specification, return a cron ensure struct"
+  [name & specs]
   (generic-resource :cron :ensure name specs))
 
-(defn cron/remove [name & specs]
+(defn cron/remove
   "Given a name and specification, return a cron remove struct"
+  [name & specs]
   (generic-resource :cron :remove name specs))
 
-(defn svc/ensure [name & specs]
+(defn svc/ensure
   "Given a name and state, return a svc ensure struct"
+  [name & specs]
   (generic-resource :svc :ensure name specs))
 
-(defn smf/ensure [name & specs]
+(defn smf/ensure
   "Given a name and a manifest description, return an smf ensure struct"
-  (var out @{})
+  [name & specs]
   (def res (generic-resource :smf :ensure name specs))
-  (def z (get res :smf))
 
-  (each k (keys z)
-    (def v (get z k))
-    (put out k
+  # Protos don't nest, so we need to do a little bit of work on the sub-structs
+  (var result @{})
+  (loop [[k v] :pairs (res :smf)]
+    (put result k
          (if (struct? v) (table/to-struct (merge (proto k) v)) v)))
-  {:smf (table/to-struct out)})
+
+  {:smf (table/to-struct result)})
 
 (defn this-host
-  "Returns the name of the host, set by a dyn in the host macro"
+  "Returns the name of the host, which is set by a dyn in the host macro"
   []
   (dyn :host-dyn))
 
 (defn this-host-k
-  "Returns the name of the host as a keyword, set by a dyn in the host macro"
+  "Returns the name of the host as a keyword. This is set by a dyn in the host macro"
   []
   (keyword (this-host)))
 
@@ -116,18 +131,20 @@
   []
   (keyword (this-role)))
 
-(defmacro host [host-name & host-definition]
+(defmacro host
   "The top-level wrapper used to define a host to be configured"
+  [host-name & host-definition]
   (setdyn :host-dyn (string host-name))
   ~(defn machine-config
      []
      {:metadata {:name ,host-name}
       :resources (group-by-action-and-type (flatten (tuple ,;host-definition)))}))
 
-(defn group-by-action-and-type [data]
+(defn group-by-action-and-type
   "Turns an array of resources into a struct of structs, and resolves references."
+  [data]
 
-  (def flat-data (flatten (map values data)))
+  (def flat-data (mapcat values data))
 
   (var resolve-reference nil)
   (set resolve-reference
@@ -137,7 +154,7 @@
                  chunks (string/split "/" val last-sep)
                  id (first chunks)
                  field (keyword (last chunks))
-                 referenced-struct (find (fn [a] (= id (get a :_id))) flat-data)]
+                 referenced-struct (find |(= id (get $ :_id)) flat-data)]
 
              (if (nil? referenced-struct)
                (error (string/format "Referenced resource '%s' not found" id)))
@@ -147,7 +164,7 @@
 
              (array/push seen id)
 
-             (def referenced-val (get referenced-struct field))
+             (def referenced-val (referenced-struct field))
 
              (if (keyword? referenced-val)
                (resolve-reference referenced-val seen)
@@ -155,58 +172,37 @@
            val)))
 
   (defn resolve-resource [res]
-    (var out @{})
-    (each k (keys res)
-      (put out k
-           (if (= k :action) (get res k)
-             (resolve-reference (get res k) @[]))))
-    (table/to-struct out))
+    (struct
+      ;(mapcat |
+               [$ (if (= $ :action) (res $) (resolve-reference (res $) @[]))]
+               (keys res))))
 
   (defn collate [aggr item]
     (each resource-type (keys item)
-      (let [resource-raw (get item resource-type)
+      (let [resource-raw (item resource-type)
             resource (resolve-resource resource-raw)
-            action (get resource :action)]
+            action (resource :action)]
         (when action
-          (unless (get aggr action)
+          (if-not (aggr action)
             (put aggr action @{}))
           (put aggr action
-               (let [curr-map (get aggr action)
+               (let [curr-map (aggr action)
                      curr-list (get curr-map resource-type @[])]
                  (put curr-map resource-type (array/concat curr-list [resource]))
                  curr-map))))) aggr)
 
   (var ret (reduce collate @{} data))
-  (each k (keys ret) (put ret k (table/to-struct (get ret k))))
-  (table/to-struct ret))
-
-
-(defn _group-by-action-and-type [data]
-  "Turns an array of resources into a struct of structs"
-  (defn collate [aggr item]
-    (each resource-type (keys item)
-      (let [resource (get item resource-type)
-            action (get resource :action)]
-        (when action
-          (unless (get aggr action)
-            (put aggr action @{}))
-          (put aggr action
-               (let [curr-map (get aggr action)
-                     curr-list (get curr-map resource-type @[])]
-                 (put curr-map resource-type (array/concat curr-list [resource]))
-                 curr-map)))))
-    aggr)
-
-  (var ret (reduce collate @{} data))
-  (each k (keys ret) (put ret k (table/to-struct (get ret k))))
+  (each k (keys ret) (put ret k (table/to-struct (ret k))))
   (table/to-struct ret))
 
 (defn collect-resources
+  "Helper function for the role macro"
   [& resource-structs]
   (array ;resource-structs))
 
-(defmacro role [role-name & role-definition]
+(defmacro role
   "Holder for role definitions"
+  [role-name & role-definition]
   ~(defn ,role-name
      []
      (setdyn :role-dyn (string ',role-name))
@@ -221,3 +217,32 @@
   "A convenient way to reference a resource in the current role"
   [& args]
   (string/join (tuple "" (this-role) ;args) "/"))
+
+(defn template-out
+  "Takes a template with vars in {{ brackets }} and a table of vars to values.
+  Returns a string or an error"
+  [template vars]
+
+  (def peg
+    ~{:main (some (choice :subst 1))
+      :subst (capture (* :open :value :close))
+      :open (* "{{" (any :s))
+      :close (* (any :s) "}}")
+      :value (/ (capture (some :w)) ,|(vars (keyword $)))})
+
+  (def find->replace (table ;(reverse (peg/match peg template))))
+  (var result template)
+
+  (loop [[str-f str-r] :pairs find->replace]
+    (set result (string/replace-all str-f str-r result)))
+
+  (def leftovers (peg/match peg result))
+
+  (if-not (empty? leftovers)
+    (error (string "unpopulated fields in template: "
+                   (string/join (filter |(not (nil? $)) leftovers) ", "))))
+
+  (if-not (= (length find->replace) (length vars))
+    (error "unused vars"))
+
+  result)

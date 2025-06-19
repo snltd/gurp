@@ -69,15 +69,33 @@ Files are mostly created like directories:
              :content "some content")
 ```
 
-But the big difference is that files need some content. You can specify literal
-content with `:content`, or you can use `:from`, which tells `gurp` to copy a
-file.
+The difference is that files need some content. At the moment you have to
+provide the file's contents inline. This may change at some point, but so far I
+haven't needed to copy very large or binary files.
+
+If you want to keep your file separate, Janet can read a file from local storage
+with `(slurp)`, and you can also embed your content in the role file itself with
+a `(def)` and reference that.
+
+You can template files with `(template-out)`. This takes two arguments: the
+first is a template, with variable keys denoted like `{{ this }}`. You also have
+to provide a struct or table mapping those keys to values. For instance:
+
+```clojure
+(template-out "{{ prog }} is my new favourite {{ os }} tool"
+              { :prog "gurp"
+                :os "illumos" })
+```
+
+You can, of course, `(slurp)` the file off disk, and/or programmatically
+generate your values. If your vars don't line up, `gurp` will error and tell you
+why.
 
 ### User
 
-User resources are managed by shelling out to the `useradd(1m)`, `usermod(1m)`,
-and `userdel(1m)` commands, so it shares their behaviour, and might fail if
-trying to modify certain properties of a logged-in user.
+User resources are mostly managed by shelling out to the `useradd(1m)`,
+`usermod(1m)`, and `userdel(1m)` commands, so it shares their behaviour, and
+might fail if trying to modify certain properties of a logged-in user.
 
 Only the essentials are covered. The default shell is `/bin/zsh` and the default
 `primary-group` is `staff`. Everything except `:passwowrd-hash` must be
@@ -97,6 +115,9 @@ The user is added to `:other-groups` when it is created, but `gurp` currently
 lacks the ability to change that value on subsequent runs. There's an issue, so
 it will get done at some point.
 
+For `password-hash`, `gurp` has to manually manipulate `/etc/shadow`. There's no
+other way to do it.
+
 ### Package
 
 Package support is, for now at least, as basic as it can be. You can make sure a
@@ -107,11 +128,11 @@ package is installed or not installed with one of
 (pkg/remove "ooce/developer/go-124" )
 ```
 
-Gurp currently only supports ipkg packages, and does not provide for upgrades or
-version pinning. You have to specify the package name as shown above; it's the
-format you see if you run `pkg list -a`.
+`gurp` currently only supports ipkg packages, and does not provide for upgrades
+or version pinning. You have to specify the package name as shown above; it's
+the format you see if you run `pkg list -a`.
 
-If you run gurp with `--noop`, `pkg(1)` will be executed, but with the `-n`
+If you run `gurp` with `--noop`, `pkg(1)` will be executed, but with the `-n`
 flag. Therefore it can cause a noop run to fail.
 
 ### File-line
@@ -125,8 +146,8 @@ dependency is implicit.
 Like all doers, `(file-line)` is very stupid. If the line does not exist it will
 be appended to the file. If it does, it's left where it is. Removing a line will
 add a newline to the end of the file, if there isn't one already, and appended
-lines have a newline forced at the front, in case there wasn't one at the end of
-the file.
+lines have a newline forced at the front, in case there wasn't already one at
+the end of the file.
 
 You can only manage one line per resource, because if we do add things like
 `:line-number`, or `:before` or whatever, it'll be a lot more straightforward.
@@ -190,8 +211,7 @@ exist.
 (svc/ensure "svc:/vendor/category/servce:default"
              :state "online"
              :restarted-by ["/role/resource-type/name-or-label"]
-             :reloaded-by ["/role/resource-type/name-or-label"]
-             )
+             :reloaded-by ["/role/resource-type/name-or-label"])
 ```
 
 Because `gurp` ends up shelling out to `svcs` and `svcadm`, the name can be any
