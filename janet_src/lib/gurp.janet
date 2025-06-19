@@ -246,3 +246,22 @@
     (error "unused vars"))
 
   result)
+
+(defmacro indoc
+  "Removes common leading spaces from multiline strings"
+  [name str]
+  ~(def ,name (string
+                (if-not (string? ,str)
+                  (error "indoc: expected a string literal"))
+                (->
+                  (->>
+                    ,str
+                    (string/split "\n")
+                    (filter |(not (empty? (string/trim $))))
+                    (map |(peg/find :S $))
+                    (min-of)
+                    (string/repeat " ")
+                    (string "\n"))
+                  (string/split (string "\n" ,str))
+                  (string/join "\n")
+                  (string/trim)))))
