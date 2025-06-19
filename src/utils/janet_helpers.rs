@@ -225,12 +225,42 @@ pub fn pretty_janet(j: &Janet, indent: usize) -> String {
     }
 }
 
+use std::collections::HashMap;
+
+// Very crudely convert a Janet Struct into a HashMap. Keys must by strings or symbols, values
+// must be scalar. Anything not meeting these rules is silently passed over.
+pub fn struct_to_hash(j_struct: &JanetStruct) -> HashMap<String, String> {
+    let mut ret = HashMap::new();
+
+    for (k, v) in j_struct {
+        let hash_key = match k.unwrap() {
+            TaggedJanet::Keyword(k) => k.to_string().trim_start_matches(':').to_owned(),
+            TaggedJanet::String(k) => k.to_string(),
+            _ => continue,
+        };
+
+        let hash_value = match v.unwrap() {
+            TaggedJanet::Keyword(v) => v.to_string(),
+            TaggedJanet::String(v) => v.to_string(),
+            TaggedJanet::Number(v) => v.to_string(),
+            TaggedJanet::Boolean(v) => v.to_string(),
+            _ => continue,
+        };
+
+        ret.insert(hash_key, hash_value);
+    }
+
+    ret
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::test_utils::spec_helper::init_janet;
     use janetrs::JanetKeyword;
+    use janetrs::array;
     use janetrs::structs;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_wrap_and_unwrap_summary() {
@@ -256,6 +286,30 @@ mod test {
             Janet::wrap(JanetKeyword::from("not-a-struct"))
                 .extract_struct()
                 .is_err()
+        );
+    }
+
+    #[test]
+    fn test_struct_to_hash() {
+        init_janet();
+        let arr = array![1, 2, 3];
+
+        let j_struct = structs! {
+            ":key-1" => "string-val-1",
+            ":key-2" => 2,
+            ":key-3" => ":keyword-val-3",
+            ":key-4" => arr,
+            ":key-5" => true,
+        };
+
+        assert_eq!(
+            HashMap::from([
+                ("key-1".to_owned(), "string-val-1".to_owned()),
+                ("key-2".to_owned(), "2".to_owned()),
+                ("key-3".to_owned(), ":keyword-val-3".to_owned()),
+                ("key-5".to_owned(), "true".to_owned()),
+            ]),
+            struct_to_hash(&j_struct)
         );
     }
 }
