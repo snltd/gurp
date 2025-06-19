@@ -48,6 +48,12 @@ fn extract_ensure_resources(
                     pkg::unpack_ensure_list(&resource_list, opts)?,
                 );
             }
+            ":zfs" => {
+                ret.insert(
+                    "zfs".to_owned(),
+                    zfs::unpack_ensure_list(&resource_list, opts)?,
+                );
+            }
             ":directory" => {
                 ret.insert(
                     "directory".to_owned(),
@@ -138,6 +144,12 @@ fn extract_remove_resources(
                 ret.insert(
                     "file".to_owned(),
                     file::unpack_remove_list(&resource_list, opts)?,
+                );
+            }
+            ":zfs" => {
+                ret.insert(
+                    "zfs".to_owned(),
+                    zfs::unpack_remove_list(&resource_list, opts)?,
                 );
             }
             ":user" => {
