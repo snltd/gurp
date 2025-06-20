@@ -1,7 +1,7 @@
 use crate::common::types::{
     EnsureResources, HostConfig, HostMetadata, HostResources, Opts, RemoveResources,
 };
-use crate::doers::{cron, directory, file, file_line, misc, pkg, smf, svc, user};
+use crate::doers::{cron, directory, file, file_line, misc, pkg, smf, svc, user, zfs};
 use crate::utils::janet_helpers::JanetExt;
 use crate::{debug, verbose, warn};
 use anyhow::anyhow;

@@ -205,6 +205,14 @@ pub fn pretty_janet(j: &Janet, indent: usize) -> String {
         TaggedJanet::String(s) => format!("{:?}", s),
         TaggedJanet::Boolean(b) => format!("{}", b),
         TaggedJanet::Number(n) => format!("{}", n),
+        TaggedJanet::Tuple(tup) => {
+            let elems = tup
+                .iter()
+                .map(|x| pretty_janet(x, indent + 1))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("[{}]", elems)
+        }
         TaggedJanet::Array(arr) => {
             let elems = arr
                 .iter()

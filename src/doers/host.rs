@@ -91,6 +91,13 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
         .with(|o| o.borrow().clone())
         .expect("Failed to recover options");
 
+    debug!(
+        opts,
+        "host/ensure-remove",
+        "Parsed Janet config follows:\n{}",
+        janet_helpers::pretty_janet(&janet_config[0], 4)
+    );
+
     let janet_config = &janet_config[0].unwrap();
 
     debug!(opts, "handler", "extracting Janet config struct");
@@ -144,6 +151,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     info!(opts, "Configuring host '{}'", config.metadata.name);
 
     let ensure_order = &[
+        "zfs",
         "pkg",
         "user",
         "cron",
@@ -195,7 +203,16 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
         }
     }
 
-    let remove_order = &["file-line", "file", "directory", "cron", "user", "pkg"];
+    let remove_order = &[
+        "file-line",
+        "file",
+        "directory",
+        "cron",
+        "user",
+        "smf",
+        "pkg",
+        "zfs",
+    ];
 
     for resource_type in remove_order {
         if let Some(resources) = config.resources.remove.get(*resource_type) {
