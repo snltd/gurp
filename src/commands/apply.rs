@@ -27,18 +27,18 @@ pub fn run(
                 Err(e) => {
                     error!(
                         opts,
-                        "main", "Failed to unwrap host summary: {}: {}", e, res
+                        "apply/run", "Failed to unwrap host summary: {}: {}", e, res
                     );
                     1
                 }
             },
             _ => {
-                error!(opts, "main", "execution error");
+                error!(opts, "apply/run", "Janet execution error");
                 1
             }
         },
         Err(e) => {
-            error!(opts, "main/apply", "{}", e);
+            error!(opts, "apply/run", "{}", e);
             1
         }
     }
