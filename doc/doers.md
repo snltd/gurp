@@ -12,7 +12,7 @@ definiion.
 Resource definitions look like Janet function calls. (Because that is what they
 are.) Their format is
 
-```clojure
+```janet
 (resource-type/action "resource-name"
   :key-1 "value-1"
   :key-2 "value-2")
@@ -32,7 +32,7 @@ an issue or a PR.
 
 Directories are defined like this.
 
-```clojure
+```janet
 (directory/ensure "/path/to/directory"
                   :mode "0750"
                   :owner "user-name"
@@ -50,7 +50,7 @@ whatever user `gurp` runs as, and created with its `umask`.
 
 To make sure a directory does not exist,
 
-```clojure
+```janet
 (directory/remove "/path/to/directory")
 ```
 
@@ -61,7 +61,7 @@ the directory.
 
 Files are mostly created like directories:
 
-```clojure
+```janet
 (file/ensure "/path/to/file"
              :mode "0750"
              :owner "user-name"
@@ -81,7 +81,7 @@ You can template files with `(template-out)`. This takes two arguments: the
 first is a template, with variable keys denoted like `{{ this }}`. You also have
 to provide a struct or table mapping those keys to values. For instance:
 
-```clojure
+```janet
 (template-out "{{ prog }} is my new favourite {{ os }} tool"
               { :prog "gurp"
                 :os "illumos" })
@@ -101,7 +101,7 @@ Only the essentials are covered. The default shell is `/bin/zsh` and the default
 `primary-group` is `staff`. Everything except `:passwowrd-hash` must be
 specified. To unlock an account, use a hash of `NP`.
 
-```clojure
+```janet
 (user/ensure "rdf"
              :gcos "My Real Name"
              :primary-group "sysadmin"
@@ -123,7 +123,7 @@ other way to do it.
 Package support is, for now at least, as basic as it can be. You can make sure a
 package is installed or not installed with one of
 
-```clojure
+```janet
 (pkg/ensure "ooce/developer/rust")
 (pkg/remove "ooce/developer/go-124" )
 ```
@@ -152,12 +152,12 @@ the end of the file.
 You can only manage one line per resource, because if we do add things like
 `:line-number`, or `:before` or whatever, it'll be a lot more straightforward.
 
-```clojure
+```janet
 (file-line/ensure "/path/to/file"
                   :line "this is the line I want")
 ```
 
-```clojure
+```janet
 (file-line/remove "/path/to/file"
                   :line "this is the first line I do not want")
 ```
@@ -166,7 +166,7 @@ You can only manage one line per resource, because if we do add things like
 
 Here's a fully explicit definition of a cron job.
 
-```clojure
+```janet
 (cron/ensure "identifying-name"
              :hour "6,12"
              :minute "4"
@@ -196,7 +196,7 @@ define.
 
 To remove a cron job you already defined:
 
-```clojure
+```janet
 (cron/remove "identifying-name")
 ```
 
@@ -207,7 +207,7 @@ exist.
 
 `Svc` manages the state of SMF services, `Smf` is used to define them.
 
-```clojure
+```janet
 (svc/ensure "svc:/vendor/category/servce:default"
              :state "online"
              :restarted-by ["/role/resource-type/name-or-label"]
@@ -234,7 +234,7 @@ doer is where I turn them into proper, reliable code.
 Currently the only thing the `misc` doer does is set the NFS domain. Note that
 you don't give a resource name to this doer: it wouldn't make sense.
 
-```clojure
+```janet
 (misc/ensure
              :nfs-domain "lan.id264.net")
 ```
@@ -246,7 +246,7 @@ There is no `(misc/remove)`.
 The `Smf` doer lets you define (limited) SMF services as Janet code. It supports
 just the things I needed up to now.
 
-```clojure
+```janet
 (smf/ensure "telegraf"
        :description "Run Telegraf agent"
        :fmri "sysdef/telegraf"

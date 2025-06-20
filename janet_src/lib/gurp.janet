@@ -276,7 +276,12 @@
                   (string/join "\n")
                   (string/trim)))))
 
-  (defn pathcat
-    "Joins tokens to make a path"
-    [& chunks]
-    (string/join (map |(string/trim $ "/") (tuple "" ;chunks)) "/"))
+(defn pathcat
+  "Joins tokens to make a path"
+  [& chunks]
+  (string/join (map |(string/trim $ "/") (tuple "" ;chunks)) "/"))
+
+(defn argcat
+  "Joins arguments to make a command"
+  [& chunks]
+  (string/join (tuple ;chunks) " "))
