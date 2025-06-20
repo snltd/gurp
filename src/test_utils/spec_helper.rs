@@ -31,6 +31,7 @@ pub fn defopts() -> Opts {
         debug: false,
         noop: false,
         verbose: false,
+        no_colour: true,
     }
 }
 
@@ -40,6 +41,7 @@ pub fn defopts_noop() -> Opts {
         debug: false,
         noop: true,
         verbose: false,
+        no_colour: true,
     }
 }
 

@@ -18,6 +18,7 @@ pub struct Opts {
     pub debug: bool,
     pub noop: bool,
     pub verbose: bool,
+    pub no_colour: bool,
 }
 
 pub enum Resource {

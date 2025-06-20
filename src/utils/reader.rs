@@ -52,7 +52,11 @@ pub fn read_and_enrich_host_config(
     ret.push_str(&janet_host_config);
 
     if compile_only {
-        ret.push_str("\n(output-machine-configuration (machine-config))");
+        if opts.no_colour {
+            ret.push_str("\n(prinf \"%m\" (machine-config))");
+        } else {
+            ret.push_str("\n(prinf \"%M\" (machine-config))");
+        }
     } else {
         ret.push_str("\n(run-machine-configuration (machine-config))");
     }

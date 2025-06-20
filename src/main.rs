@@ -20,6 +20,9 @@ struct Cli {
     /// Say what would happen, without actually doing it
     #[arg(short, long, global = true)]
     noop: bool,
+    /// Don't colour things which can be coloured
+    #[arg(short = 'N', long, global = true)]
+    no_colour: bool,
     #[command(subcommand)]
     command: Commands,
 } // might not need the global. Will there be subcommands?
@@ -61,6 +64,7 @@ fn main() -> anyhow::Result<()> {
         debug: cli.debug,
         noop: cli.noop,
         verbose: cli.verbose,
+        no_colour: cli.no_colour,
     };
 
     let exit_code = match cli.command {

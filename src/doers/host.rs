@@ -45,6 +45,7 @@ pub fn apply(
             debug: opts.debug,
             noop: opts.noop,
             verbose: opts.verbose,
+            no_colour: opts.no_colour,
         });
     });
 
