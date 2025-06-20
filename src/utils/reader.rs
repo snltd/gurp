@@ -20,6 +20,7 @@ pub fn read_and_enrich_host_config(
     host_file_path: &Utf8PathBuf,
     gurp_lib_path: &Option<Utf8PathBuf>,
     opts: &Opts,
+    compile_only: bool,
 ) -> anyhow::Result<String> {
     let janet_host_config = std::fs::read_to_string(host_file_path)?;
     debug!(
@@ -49,7 +50,13 @@ pub fn read_and_enrich_host_config(
     );
     ret.push('\n');
     ret.push_str(&janet_host_config);
-    ret.push_str("\n(run-machine-configuration (machine-config))");
+
+    if compile_only {
+        ret.push_str("\n(output-machine-configuration (machine-config))");
+    } else {
+        ret.push_str("\n(run-machine-configuration (machine-config))");
+    }
+
     Ok(ret)
 }
 
