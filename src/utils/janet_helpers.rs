@@ -39,27 +39,27 @@ pub fn janet_client(opts: &Opts) -> JanetClient {
 }
 
 pub trait JanetExt {
-    fn extract_struct(&self) -> anyhow::Result<JanetStruct>;
-    fn extract_array(&self) -> anyhow::Result<JanetArray>;
-    fn extract_tuple(&self) -> anyhow::Result<JanetTuple>;
+    fn extract_array<'a>(&'a self) -> anyhow::Result<JanetArray<'a>>;
+    fn extract_tuple<'a>(&'a self) -> anyhow::Result<JanetTuple<'a>>;
+    fn extract_struct<'a>(&'a self) -> anyhow::Result<JanetStruct<'a>>;
 }
 
 impl JanetExt for Janet {
-    fn extract_struct(&self) -> anyhow::Result<JanetStruct> {
+    fn extract_struct<'a>(&'a self) -> anyhow::Result<JanetStruct<'a>> {
         match self.unwrap() {
             TaggedJanet::Struct(data) => Ok(data),
             _ => bail!("did not find struct in {:?}", self),
         }
     }
 
-    fn extract_array(&self) -> anyhow::Result<JanetArray> {
+    fn extract_array<'a>(&'a self) -> anyhow::Result<JanetArray<'a>> {
         match self.unwrap() {
             TaggedJanet::Array(data) => Ok(data),
             _ => bail!("did not find array in {:?}", self),
         }
     }
 
-    fn extract_tuple(&self) -> anyhow::Result<JanetTuple> {
+    fn extract_tuple<'a>(&'a self) -> anyhow::Result<JanetTuple<'a>> {
         match self.unwrap() {
             TaggedJanet::Tuple(data) => Ok(data),
             _ => bail!("did not find tuple in {:?}", self),

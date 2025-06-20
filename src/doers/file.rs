@@ -16,7 +16,6 @@ use paste::paste;
 use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
-use std::os::unix::fs::MetadataExt;
 
 // THINGS TO KNOW / THINGS TO DO.
 // You can only define users and groups by their names. UIDs/GIDs do not work.
@@ -248,6 +247,7 @@ mod test {
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use camino::Utf8PathBuf;
+    use std::os::unix::fs::MetadataExt;
 
     #[test]
     fn test_file_remove_apply_does_not_exist() {
