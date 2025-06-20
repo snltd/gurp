@@ -16,7 +16,6 @@ use paste::paste;
 use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
-use std::os::unix::fs::MetadataExt;
 
 // THINGS TO KNOW / THINGS TO DO.
 // You can only define users and groups by their names. UIDs/GIDs do not work.
