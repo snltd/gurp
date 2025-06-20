@@ -20,6 +20,9 @@ struct Cli {
     /// Say what would happen, without actually doing it
     #[arg(short, long, global = true)]
     noop: bool,
+    /// Don't colour things which can be coloured
+    #[arg(short = 'N', long, global = true)]
+    no_colour: bool,
     #[command(subcommand)]
     command: Commands,
 } // might not need the global. Will there be subcommands?
@@ -28,6 +31,16 @@ struct Cli {
 enum Commands {
     /// Configure the host with the supplied configuration
     Apply {
+        /// Specify a gurp Janet library, in preference to the built-in
+        #[arg(short = 'L', long = "gurp-lib", global = true)]
+        gurp_lib_path: Option<Utf8PathBuf>,
+
+        /// Host configuration file
+        #[arg(required = true)]
+        host_config_file: Utf8PathBuf,
+    },
+    /// Compile the Janet description and dump it to stdout
+    Compile {
         /// Specify a gurp Janet library, in preference to the built-in
         #[arg(short = 'L', long = "gurp-lib", global = true)]
         gurp_lib_path: Option<Utf8PathBuf>,
@@ -51,6 +64,7 @@ fn main() -> anyhow::Result<()> {
         debug: cli.debug,
         noop: cli.noop,
         verbose: cli.verbose,
+        no_colour: cli.no_colour,
     };
 
     let exit_code = match cli.command {
@@ -58,6 +72,10 @@ fn main() -> anyhow::Result<()> {
             gurp_lib_path,
             host_config_file,
         } => commands::apply::run(&host_config_file, &gurp_lib_path, &global_opts),
+        Commands::Compile {
+            gurp_lib_path,
+            host_config_file,
+        } => commands::compile::run(&host_config_file, &gurp_lib_path, &global_opts),
         Commands::Show { thing } => commands::show::run(&thing),
     };
 

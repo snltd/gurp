@@ -45,10 +45,11 @@ pub fn apply(
             debug: opts.debug,
             noop: opts.noop,
             verbose: opts.verbose,
+            no_colour: opts.no_colour,
         });
     });
 
-    let host_config = reader::read_and_enrich_host_config(host_file, gurp_lib_path, opts)?;
+    let host_config = reader::read_and_enrich_host_config(host_file, gurp_lib_path, opts, false)?;
 
     debug!(
         opts,
