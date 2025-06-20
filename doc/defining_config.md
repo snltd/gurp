@@ -21,7 +21,7 @@ definition functions. A couple of things to bear in mind.
 A host definition starts with a `host` definition. Obviously, I suppose. This
 definition references three modules.
 
-```clojure
+```janet
 (host "example-host"
   (basenode)
   (user-tools)
@@ -54,7 +54,7 @@ The include path is automagically manipulated so roles will be found at the same
 level as your host definition file. If you want to reference them elsewhere,
 you'll need to `(use)` them.
 
-```clojure
+```janet
 (role "my-role"
       (pkg/ensure "/ooce/developer/rust")
       (pkg/remove "/ooce/developer/go")
@@ -85,11 +85,11 @@ Typically a reference takes the form
 resource gets an ID constructed in that way, and you will see them in execution
 output. But, the slash-separation could be confusing when referring to file
 paths, so `gurp` converts slashes to underscores in the id resource property
-name. You can use that pattern in your references, but it's usually clearer
-to follow the above example and add a `:label`, then refer to that.
+name. You can use that pattern in your references, but it's usually clearer to
+follow the above example and add a `:label`, then refer to that.
 
-There's even a convenience function `(this)`, which lets you refer to a
-resource in the same role by writing `(this "file" "app-config" "owner")`.
+There's even a convenience function `(this)`, which lets you refer to a resource
+in the same role by writing `(this "file" "app-config" "owner")`.
 
 We have dynamically constructed a value for the content of the file. `(string)`
 concatenates its arguments, and `(this-host)` is a `gurp` builtin which expands
@@ -104,14 +104,14 @@ tables, structs, arrays, tuples, whatever works for you.
 
 First, a vars file with a struct.
 
-```clojure
+```janet
 # vars.janet
 (def packages
     { :editors ["vim" "neovim" "helix"]
       :languages ["rust" "ruby33"]})
 ```
 
-```clojure
+```janet
 # host.janet
 (import "./vars")
 
@@ -123,14 +123,14 @@ First, a vars file with a struct.
 Next, a vars file where we use the built in `(this-host-k)` macro to get our
 value. If you prefer, you can make the keys strings and use `(this-host)`.
 
-```clojure
+```janet
 # vars.janet
 (def packages
   { :host-a ["vim" "ruby"]
     :host-b ["helix" "rust"]})
 ```
 
-```clojure
+```janet
 # host.janet
 (import "./vars")
 
@@ -141,14 +141,18 @@ value. If you prefer, you can make the keys strings and use `(this-host)`.
 
 Now, lexical scoping with a Janet `let`.
 
-```clojure
+```janet
 (let [log_dir "/var/log"]
   (directory/ensure log_dir :mode "0775" :group "loggers")
   (cron/ensure "log-rotate"
                :minute 0
                :hour 0
-               :command (arg-list "/bin/log-rotator" log_dir)))
+               :command (argcat "/bin/log-rotator" log_dir)))
 ```
+
+And, of course, your "variables" don't have to be static variables. They can be
+helper functions, or the result of some action bound in a `(def)`. You could
+even stick a `(macro)` or two in there.
 
 Isn't that more civilised than shoehorning weirdness into YAML and counting
 indents?
@@ -160,26 +164,33 @@ Some resources have default values. We do this by means of
 moment, these are hardcoded into `gurp`, but by the time we're finished you will
 also be able to supply your own.
 
+You can see the default values by running `gurp show defaults`.
+
+## Comments
+
+`gurp` doesn't provide any way to comment things, but you can of course use
+Janet comments, which are prefixed with a `#`, or enclosed in a `(comment)`.
+
 ## Sections
 
 The `gurp` library includes a `(section)` macro. It does nothing, but allows you
-to visually associate related resources. Let's combine a section with a Janet
-`let` binding.
+to visually associate related resources.
 
-```clojure
+```janet
 (file/ensure "/some/file/not-to-do-with-logging")
 
 (section "logging-setup"
+    # in which we set up our log rotation stuff
     (directory/ensure "/var/log/dir" :mode "0775" :group "loggers")
     (cron/ensure "log-rotate"
                  :minute 0
                  :hour 0
-                 :command (arg-list "/bin/log-rotator" "/var/log/dir")))
+                 :command (argcat "/bin/log-rotator" "/var/log/dir")))
 
 (directory/ensure "/some/dir/also-not-to-do-with-logging")
 ```
 
-I should have mentioned `(arg-list)` earlier. It's another `gurp` macro which
+I should have mentioned `(argcat)` earlier. It's another `gurp` macro which
 joins its arguments with spaces. It's nicer than using `(string)` and having to
 remember to add leading and trailing spaces, and less typing than
-`(string/format)`.
+`(string/format)`. There's also `(pathcat)`, which joins with slashes.

@@ -148,7 +148,7 @@
     "unpopulated fields in template: {{ verb }}, {{ amount }}"))
 
 (test-macro
-    (indoc merp `
+  (indoc merp `
       this file
 
        should be
@@ -163,10 +163,14 @@
       chubb`)
     "gibbus\n   and\nchubb"))
 
-  (deftest "pathcat"
-    (def var1 "/opt/site")
-    (def var2 "lib")
-    (test (pathcat var1 "/chunk-a" var2 "chunk-b" "file.tar")
-      "/opt/site/chunk-a/lib/chunk-b/file.tar")
-    (test (pathcat "/opt/site/chunk-a/lib/chunk-b/file.tar")
-      "/opt/site/chunk-a/lib/chunk-b/file.tar"))
+(deftest "pathcat"
+  (def var1 "/opt/site")
+  (def var2 "lib")
+  (test (pathcat var1 "/chunk-a" var2 "chunk-b" "file.tar")
+        "/opt/site/chunk-a/lib/chunk-b/file.tar")
+  (test (pathcat "/opt/site/chunk-a/lib/chunk-b/file.tar")
+        "/opt/site/chunk-a/lib/chunk-b/file.tar"))
+
+(deftest argcat
+  (test (argcat "/bin/cat" "file1" "file2") "/bin/cat file1 file2")
+  (test (argcat "judge" "test.janet") "judge test.janet"))
