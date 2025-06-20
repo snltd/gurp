@@ -247,6 +247,7 @@ mod test {
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use camino::Utf8PathBuf;
+    use std::os::unix::fs::MetadataExt;
 
     #[test]
     fn test_file_remove_apply_does_not_exist() {
