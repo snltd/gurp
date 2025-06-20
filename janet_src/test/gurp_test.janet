@@ -164,3 +164,11 @@
          and
       chubb`)
     "gibbus\n   and\nchubb"))
+
+  (deftest "pathcat"
+    (def var1 "/opt/site")
+    (def var2 "lib")
+    (test (pathcat var1 "/chunk-a" var2 "chunk-b" "file.tar")
+      "/opt/site/chunk-a/lib/chunk-b/file.tar")
+    (test (pathcat "/opt/site/chunk-a/lib/chunk-b/file.tar")
+      "/opt/site/chunk-a/lib/chunk-b/file.tar"))

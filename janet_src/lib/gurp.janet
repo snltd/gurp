@@ -265,3 +265,8 @@
                   (string/split (string "\n" ,str))
                   (string/join "\n")
                   (string/trim)))))
+
+  (defn pathcat
+    "Joins tokens to make a path"
+    [& chunks]
+    (string/join (map |(string/trim $ "/") (tuple "" ;chunks)) "/"))
