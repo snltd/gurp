@@ -1,0 +1,6 @@
+(def site-dir "/opt/site")
+(def site-bin (string site-dir "/bin"))
+(def site-etc (string site-dir "/etc"))
+(def site-smf-manifest (string site-dir "/lib/smf/manifest"))
+(def site-smf-method (string site-dir "/lib/smf/method"))
+(def cron-log-dir "/var/log/cron_jobs")

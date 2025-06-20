@@ -26,7 +26,7 @@ mod test {
             .arg("/no/such/file.janet")
             .assert()
             .failure()
-            .stderr("ERROR [main/apply] No such file or directory (os error 2)\n");
+            .stderr("ERROR [apply/run] No such file or directory (os error 2)\n");
     }
 
     #[test]
@@ -39,7 +39,7 @@ mod test {
             .assert()
             .failure()
             .stderr(predicate::str::ends_with(
-                "ERROR [main/apply] Failed to compile code\n",
+                "ERROR [apply/run] Failed to compile code\n",
             ));
     }
 }

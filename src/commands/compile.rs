@@ -1,11 +1,8 @@
-use crate::common::types::{ApplySummary, ExitCode, Opts};
-use crate::doers::host;
+use crate::common::types::{ExitCode, Opts};
 use crate::error;
-use crate::utils::{janet_helpers, parser, reader};
+use crate::utils::{janet_helpers, reader};
 use camino::Utf8PathBuf;
 use colored::Colorize;
-use janetrs::{Janet, TaggedJanet, env::CFunOptions};
-use std::time::{Duration, Instant};
 
 pub fn run(
     host_file: &Utf8PathBuf,
@@ -16,7 +13,7 @@ pub fn run(
         match reader::read_and_enrich_host_config(host_file, gurp_lib_path, global_opts, true) {
             Ok(config) => config,
             Err(e) => {
-                error!(opts, "compile/run", "Failed to compile: {}", e);
+                error!(opts, "compile/run", "Reader error: {}", e);
                 return 1;
             }
         };
@@ -25,7 +22,7 @@ pub fn run(
     match client.run(host_config) {
         Ok(_) => 0,
         Err(e) => {
-            error!(opts, "compile/run", "Failed to compile: {}", e);
+            error!(opts, "compile/run", "Janet execution error: {}", e);
             1
         }
     }
