@@ -208,7 +208,7 @@
 (defn collect-resources
   "Helper function for the role macro"
   [& resource-structs]
-  (array ;resource-structs))
+  (flatten (array ;resource-structs)))
 
 (defmacro role
   "Holder for role definitions"
@@ -221,7 +221,7 @@
 (defmacro section
   "A no-op which might help you write readable definitions"
   [name & body]
-  ['do ;body])
+  ~(array ,;body))
 
 (defn this
   "A convenient way to reference a resource in the current role"
