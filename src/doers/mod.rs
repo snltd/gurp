@@ -8,3 +8,4 @@ pub mod pkg;
 pub mod smf;
 pub mod svc;
 pub mod user;
+pub mod zfs;

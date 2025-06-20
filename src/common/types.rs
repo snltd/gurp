@@ -7,6 +7,7 @@ use crate::doers::pkg::GurpPkg;
 use crate::doers::smf::GurpSmf;
 use crate::doers::svc::GurpSvc;
 use crate::doers::user::GurpUser;
+use crate::doers::zfs::GurpZfs;
 use std::collections::{HashMap, HashSet};
 use std::ops::Add;
 
@@ -29,6 +30,7 @@ pub enum Resource {
     Svc(GurpSvc),
     Misc(GurpMisc),
     Smf(GurpSmf),
+    Zfs(GurpZfs),
 }
 
 #[derive(Debug, PartialEq, Eq)]

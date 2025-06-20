@@ -76,6 +76,7 @@ pub trait JanetStructExt {
     fn get_field_bool(&self, field: &str) -> anyhow::Result<bool>;
     fn get_field_u32_string_key(&self, field: &str) -> anyhow::Result<u32>;
     fn get_field_string_tuple(&self, field: &str) -> anyhow::Result<Vec<String>>;
+    fn get_field_struct(&self, field: &str) -> anyhow::Result<JanetStruct>;
     fn get_field_struct_opt(&self, field: &str) -> Option<JanetStruct>;
 }
 
@@ -88,6 +89,13 @@ impl JanetStructExt for JanetStruct<'_> {
                 Janet::keyword(field.into()),
                 self.keys()
             ),
+        }
+    }
+
+    fn get_field_struct(&self, field: &str) -> anyhow::Result<JanetStruct> {
+        match self.get_field(field)?.unwrap() {
+            TaggedJanet::Struct(s) => Ok(s),
+            other => bail!("Expected struct, found {}", other),
         }
     }
 
@@ -197,6 +205,14 @@ pub fn pretty_janet(j: &Janet, indent: usize) -> String {
         TaggedJanet::String(s) => format!("{:?}", s),
         TaggedJanet::Boolean(b) => format!("{}", b),
         TaggedJanet::Number(n) => format!("{}", n),
+        TaggedJanet::Tuple(tup) => {
+            let elems = tup
+                .iter()
+                .map(|x| pretty_janet(x, indent + 1))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("[{}]", elems)
+        }
         TaggedJanet::Array(arr) => {
             let elems = arr
                 .iter()

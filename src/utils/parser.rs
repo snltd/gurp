@@ -1,7 +1,7 @@
 use crate::common::types::{
     EnsureResources, HostConfig, HostMetadata, HostResources, Opts, RemoveResources,
 };
-use crate::doers::{cron, directory, file, file_line, misc, pkg, smf, svc, user};
+use crate::doers::{cron, directory, file, file_line, misc, pkg, smf, svc, user, zfs};
 use crate::utils::janet_helpers::JanetExt;
 use crate::{debug, verbose, warn};
 use anyhow::anyhow;
@@ -46,6 +46,12 @@ fn extract_ensure_resources(
                 ret.insert(
                     "pkg".to_owned(),
                     pkg::unpack_ensure_list(&resource_list, opts)?,
+                );
+            }
+            ":zfs" => {
+                ret.insert(
+                    "zfs".to_owned(),
+                    zfs::unpack_ensure_list(&resource_list, opts)?,
                 );
             }
             ":directory" => {
@@ -138,6 +144,12 @@ fn extract_remove_resources(
                 ret.insert(
                     "file".to_owned(),
                     file::unpack_remove_list(&resource_list, opts)?,
+                );
+            }
+            ":zfs" => {
+                ret.insert(
+                    "zfs".to_owned(),
+                    zfs::unpack_remove_list(&resource_list, opts)?,
                 );
             }
             ":user" => {

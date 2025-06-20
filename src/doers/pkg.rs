@@ -130,6 +130,9 @@ pub fn unpack_ensure_list(
     opts: &Opts,
 ) -> anyhow::Result<Vec<Resource>> {
     let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
+    println!("==============================");
+    println!("{:?}", resource_list);
+    println!("==============================");
 
     let mut install_list = Vec::new();
 
@@ -154,6 +157,11 @@ pub fn unpack_ensure_list(
             warn!(opts, "doer/pkg", "pkg {} not available", name);
         }
     }
+
+    debug!(
+        opts,
+        "doer/pkg", "ensure pkg list follows:\n{:?}", install_list
+    );
 
     Ok(vec![Resource::Pkg(GurpPkg {
         id: "/aggr/pkg/all".to_owned(),

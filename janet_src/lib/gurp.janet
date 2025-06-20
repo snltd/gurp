@@ -111,6 +111,16 @@
 
   {:smf (table/to-struct result)})
 
+(defn zfs/ensure
+  "Given a zfs dataset name and specification, return a zfs ensure struct"
+  [name & specs]
+  (generic-resource :zfs :ensure name specs))
+
+(defn zfs/remove
+  "Given a zfs dataset name and specification, return a zfs remove struct"
+  [name & specs]
+  (generic-resource :zfs :remove name specs))
+
 (defn this-host
   "Returns the name of the host, which is set by a dyn in the host macro"
   []
