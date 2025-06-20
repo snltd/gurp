@@ -120,9 +120,7 @@
   (section "test-section"
            (svc/ensure "cron")
            (directory/ensure "/tmp/test"))
-  (do
-    (svc/ensure "cron")
-    (directory/ensure "/tmp/test")))
+  (array (svc/ensure "cron") (directory/ensure "/tmp/test")))
 
 (deftest "templates"
   (test
