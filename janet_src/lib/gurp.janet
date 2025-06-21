@@ -61,7 +61,17 @@
 (defn file/remove
   "Given a file name and specification, return a file remove struct"
   [name & specs]
-  (generic-resource :file :ensure name specs))
+  (generic-resource :file :remove name specs))
+
+(defn symlink/ensure
+  "Given a symlink name and specification, return a symlink ensure struct"
+  [name & specs]
+  (generic-resource :symlink :ensure name specs))
+
+(defn symlink/remove
+  "Given a symlink name and specification, return a symlink remove struct"
+  [name & specs]
+  (generic-resource :symlink :remove name specs))
 
 (defn file-line/ensure
   "Given a file name and a line pattern, make sure the file contains the line"
@@ -71,7 +81,7 @@
 (defn file-line/remove
   "Given a file name and a line pattern, make sure the file does not contain the line"
   [name & specs]
-  (generic-resource :file-line :ensure name specs))
+  (generic-resource :file-line :remove name specs))
 
 (defn directory/ensure
   "Given a directory name and specification, return a directory ensure struct"
