@@ -159,6 +159,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
         "cron",
         "directory",
         "file",
+        "symlink",
         "file-line",
         "smf",
         "misc",
@@ -207,6 +208,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
 
     let remove_order = &[
         "file-line",
+        "symlink",
         "file",
         "directory",
         "cron",

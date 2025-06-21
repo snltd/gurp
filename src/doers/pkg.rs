@@ -10,7 +10,6 @@ use crate::{debug, error, warn};
 use anyhow::{Context, bail};
 use colored::Colorize;
 use janetrs::{JanetArray, JanetKeyword};
-use nix::NixPath;
 use paste::paste;
 use std::process::Command;
 use std::sync::LazyLock;

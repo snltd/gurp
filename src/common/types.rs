@@ -7,6 +7,7 @@ use crate::doers::misc::GurpMisc;
 use crate::doers::pkg::GurpPkg;
 use crate::doers::smf::GurpSmf;
 use crate::doers::svc::GurpSvc;
+use crate::doers::symlink::GurpSymlink;
 use crate::doers::user::GurpUser;
 use crate::doers::zfs::GurpZfs;
 use std::collections::{HashMap, HashSet};
@@ -34,6 +35,7 @@ pub enum Resource {
     Smf(GurpSmf),
     Zfs(GurpZfs),
     Gem(GurpGem),
+    Symlink(GurpSymlink),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -83,6 +85,7 @@ pub struct HostResources {
 
 pub type ChangedIds = HashSet<String>;
 
+#[derive(Default)]
 pub struct ApplyContext {
     pub changed_ids: ChangedIds,
 }

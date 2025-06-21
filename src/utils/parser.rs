@@ -1,7 +1,9 @@
 use crate::common::types::{
     EnsureResources, HostConfig, HostMetadata, HostResources, Opts, RemoveResources,
 };
-use crate::doers::{cron, directory, file, file_line, gem, misc, pkg, smf, svc, user, zfs};
+use crate::doers::{
+    cron, directory, file, file_line, gem, misc, pkg, smf, svc, symlink, user, zfs,
+};
 use crate::utils::janet_helpers::JanetExt;
 use crate::{debug, verbose, warn};
 use anyhow::anyhow;
@@ -108,6 +110,12 @@ fn extract_ensure_resources(
                     svc::unpack_ensure_list(&resource_list, opts)?,
                 );
             }
+            ":symlink" => {
+                ret.insert(
+                    "symlink".to_owned(),
+                    symlink::unpack_ensure_list(&resource_list, opts)?,
+                );
+            }
             other => warn!(
                 opts,
                 "parser/extract/ensure",
@@ -186,6 +194,12 @@ fn extract_remove_resources(
                 ret.insert(
                     "smf".to_owned(),
                     smf::unpack_remove_list(&resource_list, opts)?,
+                );
+            }
+            ":symlink" => {
+                ret.insert(
+                    "symlink".to_owned(),
+                    symlink::unpack_remove_list(&resource_list, opts)?,
                 );
             }
             ":file-line" => {
