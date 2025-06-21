@@ -273,3 +273,52 @@ comparing an export with the thing you just imported shows differences. So,
 `gurp` generates an SMF manifest, writes it to disk, and will delete and
 reimport a manifest if it sees a difference between that and the thing you
 request. This will, of course, clobber any changes you've made.
+
+## Symlink
+
+This creates and removes symbolic links. Hard links aren't supported. The name
+of the resource is the path of the link, and the only parameter is `:source`,
+which is the think you will link to.
+
+```janet
+(symlink/ensure "/my/link" :source "/my/file")
+(symlink/remove "/my/other/link")
+```
+
+If the `:source` doesn't exist, you get an error. Files are ensured before
+links, so you can make a file and link to it. If the link exists and points to
+the wrong file, it will be removed and re-created, and if it exists but is not a
+link, that's an error.
+
+## Gem
+
+`gem` is an embarrassingly underpowered way to install a Ruby gem. It can only
+install from rubygems.org, and you can only specify the gem name. No options.
+Not even the version. Documentation is not installed, and the only `gem` binary
+supported is `/opt/ooce/bin/gem`.
+
+```janet
+(gem/ensure "wavefront-cli")
+(gem/remove "nokogiri")
+```
+
+I took this approach because a) it's all I need, and b) installing gems can be
+an extremely slow process. As it stands it collects together the names of the
+missing gems, and installs them all with a single `gem` invocation.
+
+## ZFS
+
+This manages ZFS filesystems. Again, it is as simple as it could possibly be.
+The name is the filesystem name, and any other parameters are applied though
+`zfs set`. There's no checking your parameters are valid, so if you get them
+wrong the first you'll know about it is when you get an error from `zfs(8)`.
+
+It can't create volumes (as in `-V size`).
+
+```janet
+(zfs/ensure "tank/my_volume"
+  :mountpoint "/data/u01"
+  :compression "gzip-9"
+  :setuid "off")
+(zfs/remove "tanks/that_stupid_other_dataset")
+```
