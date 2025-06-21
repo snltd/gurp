@@ -2,6 +2,7 @@ pub mod cron;
 pub mod directory;
 pub mod file;
 pub mod file_line;
+pub mod gem;
 pub mod host;
 pub mod misc;
 pub mod pkg;

@@ -2,6 +2,7 @@ use crate::doers::cron::GurpCron;
 use crate::doers::directory::GurpDirectory;
 use crate::doers::file::GurpFile;
 use crate::doers::file_line::GurpFileLine;
+use crate::doers::gem::GurpGem;
 use crate::doers::misc::GurpMisc;
 use crate::doers::pkg::GurpPkg;
 use crate::doers::smf::GurpSmf;
@@ -32,6 +33,7 @@ pub enum Resource {
     Misc(GurpMisc),
     Smf(GurpSmf),
     Zfs(GurpZfs),
+    Gem(GurpGem),
 }
 
 #[derive(Debug, PartialEq, Eq)]

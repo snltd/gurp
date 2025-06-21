@@ -1,3 +1,21 @@
+use crate::common::constants::{
+    NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
+};
+use crate::common::output::Output;
+use crate::common::traits::Apply;
+use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
+use crate::utils::helpers;
+use crate::utils::janet_helpers::JanetExt;
+use crate::{debug, error, warn};
+use anyhow::{Context, bail};
+use colored::Colorize;
+use janetrs::{JanetArray, JanetKeyword};
+use nix::NixPath;
+use paste::paste;
+use std::process::Command;
+use std::sync::LazyLock;
+
+// THINGS TO KNOW / THINGS TO DO.
 // You specify pkgs by name, so `ooce/editor/helix` rather than
 // `pkg://sysdef/ooce/editor/helix@25.1-151052.0:20250108t110907Z`. This means you
 // can't request specific versions. I might change this, but I never pin to
@@ -9,24 +27,9 @@
 // what can and cannot be done, so runs `pkg(1)` in the most efficient way
 // possible. `pkg(1)` is rather a slow tool.
 
-use crate::common::constants::{
-    NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
-};
-use crate::common::output::Output;
-use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
-use crate::utils::janet_helpers::JanetExt;
-use crate::{debug, warn};
-use anyhow::Context;
-use colored::Colorize;
-use janetrs::{JanetArray, JanetKeyword};
-use paste::paste;
-use std::process::Command;
-use std::sync::LazyLock;
-
 // A chunk of text from pkg(1). This is expensive, so do it once and parse the output twice.
 fn pkg_output() -> anyhow::Result<String> {
-    let cmd = Command::new("/bin/pkg")
+    let cmd = Command::new(PKG_BIN)
         .arg("list")
         .arg("-aH")
         .arg("-o")
@@ -35,6 +38,8 @@ fn pkg_output() -> anyhow::Result<String> {
 
     Ok(String::from_utf8(cmd.stdout)?)
 }
+
+const PKG_BIN: &str = "/bin/pkg";
 
 type PkgName = String;
 
@@ -74,21 +79,36 @@ impl GurpPkg {
 
         output.creating(self.pkg_list.join(", "));
 
-        let mut cmd = Command::new("/bin/pkg");
+        let mut cmd = Command::new(PKG_BIN);
         cmd.arg("install");
-        cmd.arg("-q");
 
         if opts.noop {
             cmd.arg("-n");
         }
 
         cmd.args(&self.pkg_list);
-        let result = cmd.status()?;
+        debug!(opts, "doer/pkg", "{}", helpers::command_to_string(&cmd));
+        let output = cmd.output()?;
 
-        if result.success() {
+        if output.status.success() {
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
-            Ok(ONE_RESOURCE_ONE_ERROR)
+            // It doesn't always write to stderr on an error
+            let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+
+            let error_message = if stderr.is_empty() {
+                let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+                stdout
+                    .lines()
+                    .collect::<Vec<_>>()
+                    .last()
+                    .map_or("no output", |v| v)
+                    .to_owned()
+            } else {
+                stderr.to_owned()
+            };
+
+            bail!(error_message)
         }
     }
 
@@ -105,7 +125,7 @@ impl GurpPkg {
 
         output.removing(self.pkg_list.join(", "));
 
-        let mut cmd = Command::new("/bin/pkg");
+        let mut cmd = Command::new(PKG_BIN);
         cmd.arg("uninstall");
         cmd.arg("-q");
 
@@ -114,6 +134,7 @@ impl GurpPkg {
         }
 
         cmd.args(&self.pkg_list);
+        debug!(opts, "doer/pkg", "{}", helpers::command_to_string(&cmd));
         let result = cmd.status()?;
 
         if result.success() {
