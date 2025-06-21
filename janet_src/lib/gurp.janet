@@ -43,6 +43,16 @@
   [name &]
   (generic-resource :pkg :remove name []))
 
+(defn gem/ensure
+  "Given a a gem name, return a gem ensure struct"
+  [name &]
+  (generic-resource :gem :ensure name []))
+
+(defn gem/remove
+  "Given a gem name, return a gem remove struct"
+  [name &]
+  (generic-resource :gem :remove name []))
+
 (defn file/ensure
   "Given a file name and specification, return a file ensure struct"
   [name & specs]

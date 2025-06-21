@@ -154,6 +154,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     let ensure_order = &[
         "zfs",
         "pkg",
+        "gem",
         "user",
         "cron",
         "directory",
@@ -211,6 +212,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
         "cron",
         "user",
         "smf",
+        "gem",
         "pkg",
         "zfs",
     ];

@@ -17,6 +17,7 @@ impl Apply for Resource {
             Resource::Misc(inner) => inner.apply(apply_context, opts),
             Resource::Smf(inner) => inner.apply(apply_context, opts),
             Resource::Zfs(inner) => inner.apply(apply_context, opts),
+            Resource::Gem(inner) => inner.apply(apply_context, opts),
         }
     }
 }
@@ -38,6 +39,7 @@ impl HasId for Resource {
             Resource::Misc(inner) => inner.id.clone(),
             Resource::Smf(inner) => inner.id.clone(),
             Resource::Zfs(inner) => inner.id.clone(),
+            Resource::Gem(inner) => inner.id.clone(),
         }
     }
 }
