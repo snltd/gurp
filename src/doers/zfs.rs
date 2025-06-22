@@ -1,13 +1,10 @@
 use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
-use crate::common::output::Output;
 use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
-use crate::debug;
 use crate::utils::helpers;
-use crate::utils::janet_helpers::JanetExt;
-use crate::utils::janet_helpers::{self, JanetStructExt};
+use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
 use anyhow::bail;
 use janetrs::{Janet, JanetArray};
 use paste::paste;
@@ -26,14 +23,13 @@ static CURRENT_ZFS_OUTPUT: LazyLock<Vec<String>> =
 
 // A chunk of text from zfs(8).
 fn zfs_output() -> anyhow::Result<Vec<String>> {
-    let cmd = Command::new(ZFS_BIN)
-        .arg("list")
-        .arg("-H")
-        .arg("-o")
-        .arg("name")
-        .output()?;
+    let mut cmd = Command::new(ZFS_BIN);
+    cmd.arg("list").arg("-H").arg("-o").arg("name");
 
-    Ok(String::from_utf8_lossy(&cmd.stdout)
+    tracing::debug!(command = helpers::command_to_string(&cmd));
+    let result = cmd.output()?;
+
+    Ok(String::from_utf8_lossy(&result.stdout)
         .lines()
         .map(|s| s.to_owned())
         .collect())
@@ -45,7 +41,6 @@ pub struct GurpZfs {
     pub id: String,
     pub name: String,
     pub desired_state: Option<ZfsState>,
-    pub doer: String,
 }
 
 type ZfsState = HashMap<String, String>;
@@ -73,7 +68,6 @@ impl TryFrom<&Janet> for GurpZfs {
             action,
             exists,
             desired_state: state,
-            doer: "zfs".to_owned(),
         })
     }
 }
@@ -84,18 +78,20 @@ crate::impl_apply!(GurpZfs);
 
 impl GurpZfs {
     fn current_state(&self) -> anyhow::Result<ZfsState> {
-        let cmd = Command::new(ZFS_BIN)
-            .arg("get")
+        let mut ret = HashMap::new();
+        let mut cmd = Command::new(ZFS_BIN);
+        cmd.arg("get")
             .arg("-pH")
             .arg("-o")
             .arg("property,value")
             .arg("all")
-            .arg(&self.name)
-            .output()?;
+            .arg(&self.name);
 
-        let mut ret = HashMap::new();
+        tracing::debug!(command = helpers::command_to_string(&cmd));
 
-        for l in String::from_utf8_lossy(&cmd.stdout).lines() {
+        let result = cmd.output()?;
+
+        for l in String::from_utf8_lossy(&result.stdout).lines() {
             let bits: Vec<_> = l.split_whitespace().collect();
 
             if bits.len() != 2 {
@@ -112,7 +108,6 @@ impl GurpZfs {
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
-        output: &Output,
     ) -> anyhow::Result<ApplySummary> {
         if self.exists {
             if let Some(state) = self.desired_state.as_ref() {
@@ -121,21 +116,27 @@ impl GurpZfs {
                 let mut cmd = Command::new(ZFS_BIN);
                 cmd.arg("set");
 
-                for (k, v) in state {
-                    if let Some(current_val) = current_state.get(k) {
-                        if current_val == v {
-                            debug!(opts, "doer/zfs", "{} already {}", k, v);
+                for (property, desired_value) in state {
+                    if let Some(current_value) = current_state.get(property) {
+                        if current_value == desired_value {
+                            tracing::debug!("{}: already {}", property, desired_value);
                         } else {
-                            output.change(&self.name, current_val, v);
+                            tracing::info!(
+                                "change zfs {}: [{}] {} -> {}",
+                                property,
+                                self.name,
+                                current_value,
+                                desired_value,
+                            );
                             run_cmd = true;
-                            cmd.arg(format!("{}={}", k, v));
+                            cmd.arg(format!("{}={}", property, desired_value));
                         }
                     }
                 }
 
                 if run_cmd {
                     cmd.arg(&self.name);
-                    debug!(opts, "doer/zfs", "{}", helpers::command_to_string(&cmd));
+                    tracing::debug!(command = helpers::command_to_string(&cmd));
 
                     let output = cmd.output()?;
 
@@ -145,14 +146,14 @@ impl GurpZfs {
                         bail!(String::from_utf8_lossy(&output.stderr).into_owned())
                     }
                 } else {
-                    output.no_change(&self.name);
+                    tracing::info!("no change: {}", self.name);
                     Ok(ONE_RESOURCE_NO_CHANGE)
                 }
             } else {
                 Ok(ONE_RESOURCE_NO_CHANGE)
             }
         } else {
-            self.create_filesystem(opts, output)
+            self.create_filesystem(opts)
         }
     }
 
@@ -160,24 +161,23 @@ impl GurpZfs {
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
-        output: &Output,
     ) -> anyhow::Result<ApplySummary> {
         if self.exists {
-            output.removing(&self.name);
+            tracing::info!("removing filesystem: {}", self.name);
 
             if opts.noop {
                 Ok(ONE_RESOURCE_NOOP)
             } else {
-                self.remove_filesystem(opts)
+                self.remove_filesystem()
             }
         } else {
-            output.not_present(&self.name);
+            tracing::debug!("not present: {}", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
         }
     }
 
-    fn create_filesystem(&self, opts: &Opts, output: &Output) -> anyhow::Result<ApplySummary> {
-        output.creating(&self.name);
+    fn create_filesystem(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        tracing::info!("creating filesystem: {}", self.name);
 
         let mut cmd = Command::new(ZFS_BIN);
         cmd.arg("create");
@@ -192,9 +192,7 @@ impl GurpZfs {
         }
 
         cmd.arg(&self.name).stderr(Stdio::piped());
-
-        debug!(opts, "doer/zfs", "{}", helpers::command_to_string(&cmd));
-
+        tracing::debug!(command = helpers::command_to_string(&cmd));
         let output = cmd.output()?;
 
         if output.status.success() {
@@ -208,15 +206,14 @@ impl GurpZfs {
         }
     }
 
-    fn remove_filesystem(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn remove_filesystem(&self) -> anyhow::Result<ApplySummary> {
         let mut cmd = Command::new(ZFS_BIN);
         cmd.arg("destroy")
             .arg("-r")
             .arg(&self.name)
             .stderr(Stdio::piped());
 
-        debug!(opts, "doer/zfs", "{}", helpers::command_to_string(&cmd));
-
+        tracing::debug!(command = helpers::command_to_string(&cmd));
         let output = cmd.output()?;
 
         if output.status.success() {

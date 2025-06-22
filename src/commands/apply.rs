@@ -1,9 +1,7 @@
 use crate::common::types::{ApplySummary, ExitCode, Opts};
 use crate::doers::host;
-use crate::error;
 use crate::utils::janet_helpers;
 use camino::Utf8PathBuf;
-use colored::Colorize;
 use std::time::{Duration, Instant};
 
 pub fn run(
@@ -23,33 +21,32 @@ pub fn run(
     match apply_result {
         Ok(res) => match res.unwrap() {
             janetrs::TaggedJanet::Struct(_) => match janet_helpers::unwrap_summary(&res) {
-                Ok(summary) => report_results(&summary, elapsed_time, global_opts),
+                Ok(summary) => report_results(&summary, elapsed_time),
                 Err(e) => {
-                    error!(
-                        opts,
-                        "apply/run", "Failed to unwrap host summary: {}: {}", e, res
-                    );
+                    tracing::error!("failed to unwrap host summary: {}: {}", e, res);
                     1
                 }
             },
             _ => {
-                error!(opts, "apply/run", "Janet execution error");
+                tracing::error!("Janet execution error");
                 1
             }
         },
         Err(e) => {
-            error!(opts, "apply/run", "{}", e);
+            tracing::error!("run error: {}", e);
             1
         }
     }
 }
 
 // TODO this should be able to produce machine parseable output, and also send to Wavefront.
-fn report_results(summary_total: &ApplySummary, elapsed_time: Duration, _opts: &Opts) -> ExitCode {
-    println!("Run time: {:.3?}", elapsed_time);
-    println!(
+fn report_results(summary_total: &ApplySummary, elapsed_time: Duration) -> ExitCode {
+    tracing::info!("Run time: {:.3?}", elapsed_time);
+    tracing::info!(
         "resources: {}  changes: {}  errors: {}",
-        summary_total.resources, summary_total.changes, summary_total.errors
+        summary_total.resources,
+        summary_total.changes,
+        summary_total.errors
     );
 
     if summary_total.errors > 0 { 1 } else { 0 }

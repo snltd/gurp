@@ -1,7 +1,6 @@
 use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
-use crate::common::output::Output;
 use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
@@ -29,7 +28,6 @@ pub struct GurpFileLine {
     pub id: String,
     pub name: Utf8PathBuf, // The Path
     pub desired_state: FileLineState,
-    pub doer: String,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -64,7 +62,6 @@ impl TryFrom<&Janet> for GurpFileLine {
             id: data.get_field_string("_id")?,
             name: data.get_field_pathbuf("name")?,
             desired_state: state,
-            doer: "file-line".to_owned(),
         })
     }
 }
@@ -74,13 +71,12 @@ impl GurpFileLine {
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
-        output: &Output,
     ) -> anyhow::Result<ApplySummary> {
         if self.exists {
-            output.no_change(&self.name);
+            tracing::info!("no change: {}", &self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
         } else {
-            output.creating(&self.name);
+            tracing::info!("creating: {}", &self.name);
 
             if opts.noop {
                 Ok(ONE_RESOURCE_NOOP)
@@ -96,13 +92,12 @@ impl GurpFileLine {
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
-        output: &Output,
     ) -> anyhow::Result<ApplySummary> {
         if !self.exists {
-            output.no_change(&self.name);
+            tracing::info!("no change: {}", &self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
         } else {
-            output.removing(&self.name);
+            tracing::info!("removing: {}", &self.name);
 
             if opts.noop {
                 Ok(ONE_RESOURCE_NOOP)

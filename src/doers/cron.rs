@@ -1,14 +1,11 @@
 use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
+    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
-use crate::common::output::Output;
 use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
 use crate::utils::helpers;
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
-use crate::{debug, error};
-use anyhow::anyhow;
-use colored::Colorize;
+use anyhow::bail;
 use janetrs::{Janet, JanetArray};
 use paste::paste;
 use std::io::Write;
@@ -27,7 +24,6 @@ pub struct GurpCron {
     pub name: String,
     pub user: String,
     pub desired_state: Option<CronState>,
-    pub doer: String,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -40,8 +36,8 @@ pub struct CronState {
     pub command: String,
 }
 
-crate::unpack_fn!(ensure_list, Cron, GurpCron);
-crate::unpack_fn!(remove_list, Cron, GurpCron);
+crate::unpack_fn!(ensure_list, Cron, GurpCron, box);
+crate::unpack_fn!(remove_list, Cron, GurpCron, box);
 crate::impl_apply!(GurpCron);
 
 impl TryFrom<&Janet> for GurpCron {
@@ -68,7 +64,6 @@ impl TryFrom<&Janet> for GurpCron {
             id: data.get_field_string("_id")?,
             name: data.get_field_string("name")?,
             desired_state: state,
-            doer: "cron".to_owned(),
         })
     }
 }
@@ -78,21 +73,20 @@ impl GurpCron {
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
-        output: &Output,
     ) -> anyhow::Result<ApplySummary> {
-        let content = self.current_crontab(opts)?;
+        let content = self.current_crontab()?;
         match self.ensured_crontab(&content)? {
             Some(new_crontab) => {
-                output.change_name_only(&self.name);
-                debug!(opts, "doer/cron", "new crontab follows\n{}", new_crontab);
+                tracing::info!("changing: {}", self.name);
+                tracing::debug!("new crontab follows\n{}", new_crontab);
                 if opts.noop {
                     Ok(ONE_RESOURCE_NOOP)
                 } else {
-                    self.write_crontab(&new_crontab, opts)
+                    self.write_crontab(&new_crontab)
                 }
             }
             None => {
-                output.no_change(&self.name);
+                tracing::info!("no change: {}", &self.name);
                 Ok(ONE_RESOURCE_NO_CHANGE)
             }
         }
@@ -102,36 +96,32 @@ impl GurpCron {
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
-        output: &Output,
     ) -> anyhow::Result<ApplySummary> {
-        let content = self.current_crontab(opts)?;
+        let content = self.current_crontab()?;
         match self.removed_crontab(&content)? {
             // If you try to write an empty file, crontab(1) will reject it. If we take out the
             // managed resource and there's nothing left, we have to *remove* the crontab.
             Some(new_crontab) => {
-                output.removing(&self.name);
+                tracing::info!("removing: {}", self.name);
                 if new_crontab.is_empty() {
-                    debug!(opts, "doer/cron", "new {} crontab is empty", self.user);
+                    tracing::debug!("new {} crontab is empty", self.user);
                     if opts.noop {
                         Ok(ONE_RESOURCE_NOOP)
                     } else {
-                        debug!(opts, "doer/cron", "removing {} crontab", self.user);
-                        self.empty_crontab(opts)
+                        tracing::debug!("removing crontab: {}", self.user);
+                        self.empty_crontab()
                     }
                 } else {
-                    debug!(
-                        opts,
-                        "doer/cron", "new {} crontab follows\n{}", self.user, new_crontab
-                    );
+                    tracing::debug!("new {} crontab follows\n{}", self.user, new_crontab);
                     if opts.noop {
                         Ok(ONE_RESOURCE_NOOP)
                     } else {
-                        self.write_crontab(&new_crontab, opts)
+                        self.write_crontab(&new_crontab)
                     }
                 }
             }
             None => {
-                output.no_change(&self.name);
+                tracing::info!("no change: {}", &self.name);
                 Ok(ONE_RESOURCE_NO_CHANGE)
             }
         }
@@ -209,15 +199,15 @@ impl GurpCron {
         }
     }
 
-    fn current_crontab(&self, opts: &Opts) -> anyhow::Result<String> {
+    fn current_crontab(&self) -> anyhow::Result<String> {
         let mut cmd = Command::new(CRONTAB_BIN);
         cmd.arg("-u").arg(&self.user).arg("-l");
-        debug!(opts, "doer/cron", "{}", helpers::command_to_string(&cmd));
+        tracing::debug!(command = helpers::command_to_string(&cmd));
         let result = cmd.output()?;
         Ok(String::from_utf8(result.stdout)?)
     }
 
-    fn write_crontab(&self, content: &str, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn write_crontab(&self, content: &str) -> anyhow::Result<ApplySummary> {
         let mut cmd = Command::new(CRONTAB_BIN)
             .arg("-u")
             .arg(&self.user)
@@ -225,34 +215,32 @@ impl GurpCron {
             .stderr(Stdio::piped())
             .spawn()?;
 
-        debug!(opts, "doer/cron", "{} -u {}", CRONTAB_BIN, self.user);
+        tracing::debug!(command = "{} -u {}", CRONTAB_BIN, self.user);
 
         if let Some(stdin) = cmd.stdin.as_mut() {
-            debug!(opts, "doer/cron", "Writing: {}", content);
+            tracing::debug!("{}: writing: {}", &self.name, content);
             stdin.write_all(content.as_bytes())?;
         }
 
         let output = cmd.wait_with_output()?;
 
         if output.status.success() {
-            debug!(opts, "doer/cron", "crontab updated successfully");
+            tracing::debug!("{}: crontab updated successfully", self.name);
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
-            let stderr_msg = String::from_utf8_lossy(&output.stderr);
-            Err(anyhow!("crontab write failed: {}", stderr_msg))
+            bail!(String::from_utf8_lossy(&output.stderr).into_owned())
         }
     }
 
-    fn empty_crontab(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn empty_crontab(&self) -> anyhow::Result<ApplySummary> {
         let mut cmd = Command::new(CRONTAB_BIN);
         cmd.arg("-u").arg(&self.user).arg("-r");
-        debug!(opts, "doer/cron", "{}", helpers::command_to_string(&cmd));
+        tracing::debug!(command = helpers::command_to_string(&cmd));
         let result = cmd.status()?;
         if result.success() {
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
-            error!(opts, "doer/cron", "Failed to empty {} crontab", self.user);
-            Ok(ONE_RESOURCE_ONE_ERROR)
+            bail!("Failed to empty {} crontab", self.user)
         }
     }
 }
@@ -366,7 +354,6 @@ mod test {
                 day_of_week: "1-5".to_owned(),
                 command: "/bin/command >/var/log/file".to_owned(),
             }),
-            doer: "cron".to_owned(),
         }
     }
 
@@ -377,7 +364,6 @@ mod test {
             name: "Test job".to_owned(),
             user: "rob".to_owned(),
             desired_state: None,
-            doer: "cron".to_owned(),
         }
     }
 }

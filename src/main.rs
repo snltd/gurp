@@ -7,6 +7,7 @@ mod utils;
 use crate::common::types::Opts;
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
+use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
 #[clap(version, about = "Configures hosts, or might do one day", long_about = None)]
@@ -58,6 +59,9 @@ enum Commands {
 }
 
 fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
     let cli = Cli::parse();
 
     let global_opts = Opts {
@@ -79,5 +83,6 @@ fn main() -> anyhow::Result<()> {
         Commands::Show { thing } => commands::show::run(&thing),
     };
 
+    tracing::debug!("exiting {}", exit_code);
     std::process::exit(exit_code as i32);
 }

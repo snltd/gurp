@@ -2,7 +2,6 @@ use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
     PROTECTED_FILES,
 };
-use crate::common::output::Output;
 use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplyContext, ApplySummary, Changes, Opts, Resource};
 use crate::common::users_and_groups;
@@ -28,7 +27,6 @@ pub struct GurpFile {
     pub id: String,
     pub name: Utf8PathBuf, // The Path
     pub desired_state: Option<FileState>,
-    pub doer: String,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -86,7 +84,6 @@ impl TryFrom<&Janet> for GurpFile {
             id: data.get_field_string("_id")?,
             name: data.get_field_pathbuf("name")?,
             desired_state: state,
-            doer: "file".to_owned(),
         })
     }
 }
@@ -100,12 +97,11 @@ impl GurpFile {
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
-        output: &Output,
     ) -> anyhow::Result<ApplySummary> {
         let desired = self.desired_state.as_ref().unwrap();
 
         if !self.exists {
-            output.creating(&self.name);
+            tracing::info!("creating: {}", self.name);
 
             if opts.noop {
                 return Ok(ONE_RESOURCE_ONE_CHANGE);
@@ -119,19 +115,34 @@ impl GurpFile {
         let changes = self.changes(&current, desired);
 
         if changes.is_empty() {
-            output.no_change(&self.name);
+            tracing::info!("no change: {}", self.name);
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
         if changes.contains(&"content") {
+            tracing::info!("change content: {}", self.name);
             self.write_contents_to_file(desired)?;
         }
 
         if changes.contains(&"group") || changes.contains(&"owner") {
+            tracing::info!(
+                "change owner:group : {} {}:{} -> {}:{}",
+                self.name,
+                current.uid,
+                current.gid,
+                desired.uid,
+                desired.gid
+            );
             users_and_groups::set_user(path, desired.uid, desired.gid)?;
         }
 
         if changes.contains(&"mode") {
+            tracing::info!(
+                "change mode: {} {} -> {}",
+                self.name,
+                current.mode,
+                desired.mode,
+            );
             users_and_groups::set_mode(path, &current.mode, &desired.mode)?;
         }
 
@@ -142,15 +153,14 @@ impl GurpFile {
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
-        output: &Output,
     ) -> anyhow::Result<ApplySummary> {
         if self.exists {
             if PROTECTED_FILES.contains(&self.name) {
-                output.protected(&self.name);
+                tracing::warn!("protected resource: {}", self.name);
                 return Ok(ONE_RESOURCE_ONE_ERROR);
             }
 
-            output.removing(&self.name);
+            tracing::info!("removing: {}", self.name);
 
             if opts.noop {
                 Ok(ONE_RESOURCE_NOOP)
@@ -159,7 +169,7 @@ impl GurpFile {
                 Ok(ONE_RESOURCE_ONE_CHANGE)
             }
         } else {
-            output.not_present(&self.name);
+            tracing::debug!("not present: {}", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
         }
     }
@@ -174,7 +184,7 @@ impl GurpFile {
                     to_change.push("content");
                 }
             } else {
-                eprintln!("TODO: implement non-content writing");
+                tracing::error!("TODO: implement non-content writing");
             }
         }
 
@@ -190,10 +200,12 @@ impl GurpFile {
             to_change.push("mode");
         }
 
+        tracing::debug!("to change for {}: {}", self.name, to_change.join(", "));
         to_change
     }
 
     fn current_state(&self) -> anyhow::Result<FileState> {
+        tracing::debug!("getting state: {}", &self.name);
         let path = &self.name.as_path();
         let metadata = nix::sys::stat::stat(path.as_std_path())?;
 
@@ -257,7 +269,6 @@ mod test {
             id: "/test-role/file/file-to-test".to_owned(),
             action: Action::Remove,
             desired_state: None,
-            doer: "file".to_owned(),
         };
 
         assert_eq!(
@@ -276,7 +287,6 @@ mod test {
             exists: true,
             action: Action::Remove,
             desired_state: None,
-            doer: "file".to_owned(),
         };
 
         assert_eq!(
@@ -297,7 +307,6 @@ mod test {
             exists: true,
             action: Action::Remove,
             desired_state: None,
-            doer: "file".to_owned(),
         };
 
         assert!(file.exists());
@@ -320,7 +329,6 @@ mod test {
             exists: true,
             action: Action::Remove,
             desired_state: None,
-            doer: "file".to_owned(),
         };
 
         assert!(file.exists());
@@ -359,7 +367,6 @@ mod test {
                     mode: "0755".to_owned(),
                     uid: 264.into(),
                 }),
-                doer: "file".to_owned(),
             },
             GurpFile::try_from(&example_file_ensure).unwrap()
         );
@@ -382,7 +389,6 @@ mod test {
                 exists: false,
                 action: Action::Remove,
                 desired_state: None,
-                doer: "file".to_owned(),
             },
             GurpFile::try_from(&example_file_remove).unwrap()
         );

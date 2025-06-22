@@ -1,11 +1,11 @@
-use crate::common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
-use crate::common::output::Output;
+use crate::common::constants::{
+    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
+};
 use crate::common::svcs;
 use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
-use crate::debug;
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
-use anyhow::anyhow;
+use anyhow::bail;
 use janetrs::{Janet, JanetArray};
 use paste::paste;
 use std::collections::HashSet;
@@ -19,7 +19,6 @@ pub struct GurpSvc {
     pub id: String,
     pub name: String,
     pub desired_state: String,
-    pub doer: String,
     pub restarters: HashSet<String>,
     pub reloaders: HashSet<String>,
 }
@@ -34,7 +33,7 @@ impl TryFrom<&Janet> for GurpSvc {
         let action = janet_helpers::action_as_enum(&data)?;
 
         if action != Action::Ensure {
-            return Err(anyhow!("svcs can only be ensured"));
+            bail!("svcs can only be ensured");
         }
 
         Ok(GurpSvc {
@@ -50,15 +49,13 @@ impl TryFrom<&Janet> for GurpSvc {
                 .get_field_string_tuple("reloaded-by")?
                 .into_iter()
                 .collect(),
-            doer: "svc".to_owned(),
         })
     }
 }
 
 impl Apply for GurpSvc {
     fn apply(&self, apply_context: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        let output = Output::new(&self.doer, opts);
-        self.apply_ensure(apply_context, opts, &output)
+        self.apply_ensure(apply_context, opts)
     }
 }
 
@@ -67,32 +64,56 @@ impl GurpSvc {
         &self,
         apply_context: &ApplyContext,
         opts: &Opts,
-        output: &Output,
     ) -> anyhow::Result<ApplySummary> {
-        let current_state = svcs::current_state(&self.name, opts)?;
+        let current_state = svcs::current_state(&self.name)?;
 
-        debug!(
-            opts,
-            "doer/svc", "changed resources: {:?}", apply_context.changed_ids
+        tracing::debug!(
+            "changed resources: {}",
+            apply_context
+                .changed_ids
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
         );
 
         if current_state == self.desired_state {
             if !apply_context.changed_ids.is_disjoint(&self.restarters) {
-                output.action(&self.name, "RESTARTING");
-                svcs::run_svcadm(&self.name, "restart", opts)?;
-                Ok(ONE_RESOURCE_ONE_CHANGE)
+                tracing::info!("{}: restarting service", self.name);
+                if opts.noop {
+                    Ok(ONE_RESOURCE_NOOP)
+                } else {
+                    svcs::run_svcadm(&self.name, "restart")?;
+                    Ok(ONE_RESOURCE_ONE_CHANGE)
+                }
             } else if !apply_context.changed_ids.is_disjoint(&self.reloaders) {
-                output.action(&self.name, "RELOADING");
-                svcs::run_svcadm(&self.name, "reload", opts)?;
-                Ok(ONE_RESOURCE_ONE_CHANGE)
+                tracing::info!("{}: reloading service", self.name);
+                if opts.noop {
+                    Ok(ONE_RESOURCE_NOOP)
+                } else {
+                    svcs::run_svcadm(&self.name, "reload")?;
+                    Ok(ONE_RESOURCE_ONE_CHANGE)
+                }
+            } else if opts.noop {
+                Ok(ONE_RESOURCE_NOOP)
             } else {
-                output.no_change(&self.name);
+                tracing::info!("{}: no change", self.name);
                 Ok(ONE_RESOURCE_NO_CHANGE)
             }
         } else {
-            output.change(&self.name, &current_state, &self.desired_state);
-            svcs::set_state(&self.name, &current_state, &self.desired_state, opts)?;
-            Ok(ONE_RESOURCE_ONE_CHANGE)
+            tracing::info!(
+                "change {} state: {} -> {}",
+                self.name,
+                current_state,
+                self.desired_state
+            );
+
+            if opts.noop {
+                Ok(ONE_RESOURCE_NOOP)
+            } else {
+                svcs::set_state(&self.name, &current_state, &self.desired_state)?;
+                Ok(ONE_RESOURCE_ONE_CHANGE)
+            }
         }
     }
 }
