@@ -15,9 +15,10 @@ use std::process::{Command, Stdio};
 
 // THINGS TO KNOW / THINGS TO DO.
 // This might be a bad idea. Hardcoded ways to do a bunch of certain things that I want to do.
-// There's no misc/remove, only misc/ensure
+// There's no misc/remove, only misc/ensure, at least for now.
 
-const SHARECTL_CMD: &str = "/usr/sbin/sharectl";
+const SHARECTL_BIN: &str = "/usr/sbin/sharectl";
+const SMBADM_BIN: &str = "/usr/sbin/smbadm";
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct GurpMisc {
@@ -27,9 +28,13 @@ pub struct GurpMisc {
     pub doer: String,
 }
 
+type NfsDomain = String;
+type Username = String;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct MiscState {
-    pub nfs_domain: Option<String>,
+    pub nfs_domain: Option<NfsDomain>,
+    pub enable_smb: Option<Username>,
 }
 
 crate::unpack_fn!(ensure_list, Misc, GurpMisc);
@@ -50,6 +55,7 @@ impl TryFrom<&Janet> for GurpMisc {
             id: data.get_field_string("_id")?,
             desired_state: MiscState {
                 nfs_domain: data.get_field_string_opt("nfs-domain"),
+                enable_smb: data.get_field_string_opt("enable-smb"),
             },
             doer: "misc".to_owned(),
         })
@@ -76,7 +82,70 @@ impl GurpMisc {
             aggr = aggr + self.ensure_nfs_domain(domain, opts, output);
         }
 
+        if let Some(user) = &self.desired_state.enable_smb {
+            aggr = aggr
+                + match self.enable_smb_share(user, opts, output) {
+                    Ok(summary) => summary,
+                    Err(e) => {
+                        error!(opts, "doer/misc", "smbadm check: {}", e);
+                        ONE_RESOURCE_ONE_ERROR
+                    }
+                };
+        }
+
         Ok(aggr)
+    }
+
+    fn enable_smb_share(
+        &self,
+        username: &str,
+        opts: &Opts,
+        output: &Output,
+    ) -> anyhow::Result<ApplySummary> {
+        let mut get_status_cmd = Command::new(SMBADM_BIN);
+        // smbadm lookup rob | grep NONE_MAPPED
+        get_status_cmd.arg("lookup").arg(username);
+
+        debug!(
+            opts,
+            "doer/misc",
+            "{}",
+            helpers::command_to_string(&get_status_cmd)
+        );
+
+        match get_status_cmd.output() {
+            // if it returns 0 and doesn't say "NONE_MAPPED" then I think it's configured
+            Ok(txt) => {
+                if !String::from_utf8_lossy(&txt.stdout).contains("NONE_MAPPED") {
+                    output.no_change(format!("SMB config for {}", username));
+                    return Ok(ONE_RESOURCE_NO_CHANGE);
+                }
+            }
+            // I'm not sure whether or not an error here means we shouldn't continue. I don't think
+            // it does
+            Err(_) => {
+                debug!(opts, "doer/misc", "error running smbadm lookup; continuing");
+            }
+        }
+
+        output.creating(format!("smb user {}", username));
+
+        // If we're still here, we can enable the user
+        //
+        let mut enable_cmd = Command::new(SMBADM_BIN);
+        enable_cmd.arg("enable-user").arg(username);
+
+        debug!(
+            opts,
+            "doer/misc",
+            "{}",
+            helpers::command_to_string(&enable_cmd)
+        );
+
+        match get_status_cmd.output() {
+            Ok(_) => Ok(ONE_RESOURCE_ONE_CHANGE),
+            Err(e) => Err(anyhow!(e)),
+        }
     }
 
     fn ensure_nfs_domain(
@@ -85,7 +154,7 @@ impl GurpMisc {
         opts: &Opts,
         output: &Output,
     ) -> ApplySummary {
-        let mut get_cmd = Command::new(SHARECTL_CMD);
+        let mut get_cmd = Command::new(SHARECTL_BIN);
         get_cmd
             .arg("get")
             .arg("-p")
@@ -136,7 +205,7 @@ impl GurpMisc {
             return ONE_RESOURCE_NOOP;
         }
 
-        let mut set_cmd = Command::new(SHARECTL_CMD);
+        let mut set_cmd = Command::new(SHARECTL_BIN);
         set_cmd
             .arg("set")
             .arg("-p")
