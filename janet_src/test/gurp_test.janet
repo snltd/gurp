@@ -171,6 +171,10 @@
   (test (pathcat "/opt/site/chunk-a/lib/chunk-b/file.tar")
         "/opt/site/chunk-a/lib/chunk-b/file.tar"))
 
+(deftest "zfscat"
+  (def big-pool "big")
+  (test (zfscat big-pool "export" "flac") "big/export/flac"))
+  
 (deftest argcat
   (test (argcat "/bin/cat" "file1" "file2") "/bin/cat file1 file2")
   (test (argcat "judge" "test.janet") "judge test.janet"))
