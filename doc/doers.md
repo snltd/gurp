@@ -231,12 +231,17 @@ There is no `(svc/disable)`.
 There are certain tasks I used to manage with shell-script bodges. The `misc`
 doer is where I turn them into proper, reliable code.
 
-Currently the only thing the `misc` doer does is set the NFS domain. Note that
-you don't give a resource name to this doer: it wouldn't make sense.
+The first thing the `misc` doer does is set the NFS domain. Note that you don't
+give a resource name to this doer: it wouldn't make sense.
 
 ```janet
-(misc/ensure
-             :nfs-domain "lan.id264.net")
+(misc/ensure :nfs-domain "lan.id264.net")
+```
+
+You can also use this doer to enable SMB shares for a user:
+
+```janet
+(misc/ensure :enable-smb "rob")
 ```
 
 There is no `(misc/remove)`.
