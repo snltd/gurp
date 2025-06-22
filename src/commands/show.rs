@@ -6,8 +6,8 @@ pub fn run(thing: &str) -> ExitCode {
     match thing {
         "library" => show_library(),
         "defaults" => show_defaults(),
-        _ => {
-            eprintln!("That's not a thing I can show you");
+        other => {
+            tracing::error!("{} is not a thing I can show you", other);
             1
         }
     }

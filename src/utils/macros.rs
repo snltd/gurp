@@ -1,24 +1,4 @@
 #[macro_export]
-macro_rules! info {
-    ($opts:expr, $($arg:tt)*) => {
-        if $opts.verbose || $opts.noop || $opts.debug {
-            println!("{}", format!($($arg)*).bold());
-        } else {
-            println!($($arg)*);
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! verbose {
-    ($opts:expr, $($arg:tt)*) => {
-        if $opts.verbose || $opts.noop || $opts.debug {
-            println!($($arg)*);
-        }
-    };
-}
-
-#[macro_export]
 macro_rules! debug {
     ($opts:expr, $component:literal, $($arg:tt)*) => {
         if $opts.debug {
@@ -28,21 +8,24 @@ macro_rules! debug {
 }
 
 #[macro_export]
-macro_rules! warn {
-    ($opts:expr, $component:literal, $($arg:tt)*) => {
-        println!("{}", format!("WARN [{}] {}", $component, format!($($arg)*)).red())
-    };
-}
-
-#[macro_export]
-macro_rules! error {
-    ($opts:expr, $component:literal, $($arg:tt)*) => {
-        eprintln!("{}", format!("ERROR [{}] {}", $component, format!($($arg)*)).bold().red())
-    };
-}
-
-#[macro_export]
 macro_rules! unpack_fn {
+    ($suffix:ident, $enum_variant:ident, $ty:ty, box) => {
+        paste! {
+            pub fn [<unpack_ $suffix>](
+                resource_list: &JanetArray,
+                _opts: &Opts,
+            ) -> anyhow::Result<Vec<Resource>> {
+                resource_list
+                    .iter()
+                    .map(|r| {
+                        let val = <$ty>::try_from(r)?;
+                        Ok(Resource::$enum_variant(Box::new(val)))
+                    })
+                    .collect()
+            }
+        }
+    };
+
     ($suffix:ident, $enum_variant:ident, $ty:ty) => {
         paste! {
             pub fn [<unpack_ $suffix>](
@@ -67,10 +50,9 @@ macro_rules! impl_apply {
         paste! {
             impl Apply for $ty {
                 fn apply(&self, apply_context: &$crate::common::types::ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
-                    let output = Output::new(&self.doer,  opts);
                     match self.action {
-                        Action::Ensure => self.apply_ensure(apply_context, opts, &output),
-                        Action::Remove => self.apply_remove(apply_context, opts, &output),
+                        Action::Ensure => self.apply_ensure(apply_context, opts ),
+                        Action::Remove => self.apply_remove(apply_context, opts ),
                     }
                 }
             }

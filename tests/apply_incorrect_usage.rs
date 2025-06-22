@@ -22,11 +22,14 @@ mod test {
     fn test_apply_missing_file() {
         Command::cargo_bin("gurp")
             .unwrap()
+            .env("GURP_NO_COLOUR", "1")
             .arg("apply")
             .arg("/no/such/file.janet")
             .assert()
             .failure()
-            .stderr("ERROR [apply/run] No such file or directory (os error 2)\n");
+            .stdout(predicate::str::ends_with(
+                "run error: No such file or directory (os error 2)\n",
+            ));
     }
 
     #[test]
@@ -34,12 +37,13 @@ mod test {
     fn test_bad_janet() {
         Command::cargo_bin("gurp")
             .unwrap()
+            .env("GURP_NO_COLOUR", "1")
             .arg("apply")
             .arg(fixture("bad.janet"))
             .assert()
             .failure()
             .stderr(predicate::str::ends_with(
-                "ERROR [apply/run] Failed to compile code\n",
+                "compile error: unknown symbol physical\n",
             ));
     }
 }

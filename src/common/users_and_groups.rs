@@ -35,7 +35,6 @@ pub fn set_user(path: &Utf8PathBuf, uid: Uid, gid: Gid) -> anyhow::Result<()> {
 }
 
 pub fn set_mode(path: &Utf8PathBuf, _current_mode: &str, desired_mode: &str) -> anyhow::Result<()> {
-    // output.change(&self.name, &current_mode, &desired.mode);
     let mode = u32::from_str_radix(desired_mode, 8)?;
     Ok(fs::set_permissions(path, fs::Permissions::from_mode(mode))?)
 }

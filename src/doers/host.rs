@@ -1,11 +1,10 @@
 use crate::common::constants::ONE_RESOURCE_ONE_ERROR;
 use crate::common::traits::{Apply, HasId};
 use crate::common::types::{ApplyContext, ApplySummary, ChangedIds, HostConfig, Opts};
+use crate::debug;
 use crate::utils::{janet_helpers, parser, reader};
-use crate::{debug, error, info};
 use anyhow::anyhow;
 use camino::Utf8PathBuf;
-use colored::Colorize;
 use janetrs::{Janet, TaggedJanet, env::CFunOptions};
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -38,7 +37,7 @@ pub fn apply(
     gurp_lib_path: &Option<Utf8PathBuf>,
     opts: &Opts,
 ) -> anyhow::Result<Janet> {
-    debug!(opts, "host-apply", "Stashing opts object");
+    tracing::debug!("Stashing opts object");
 
     OPTIONS.with(|o| {
         *o.borrow_mut() = Some(Opts {
@@ -58,7 +57,7 @@ pub fn apply(
         reader::format_janet_listing(&host_config)
     );
 
-    let mut client = janet_helpers::janet_client(opts);
+    let mut client = janet_helpers::janet_client();
 
     client.add_c_fn(CFunOptions::new(
         c"run-machine-configuration",
@@ -70,7 +69,7 @@ pub fn apply(
         // Here we return from doing all the work of configuring the host
         Ok(summary) => Ok(summary),
         Err(e) => {
-            println!("Returning ERR from host apply");
+            tracing::debug!("returning err from host apply");
             Err(anyhow!(e))
         }
     }
@@ -81,9 +80,9 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
     let config_elements = janet_config.len() as i32;
 
     if config_elements != 1 {
-        error!(
-            opts,
-            "handler", "expected single host configuration element, got {}", config_elements
+        tracing::error!(
+            "expected single host configuration element, got {}",
+            config_elements
         );
         return Janet::from(false);
     }
@@ -101,32 +100,32 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
 
     let janet_config = &janet_config[0].unwrap();
 
-    debug!(opts, "handler", "extracting Janet config struct");
+    tracing::debug!("extracting Janet config struct");
 
     let config_struct = match janet_config {
         TaggedJanet::Struct(data) => data,
         other => {
-            error!(opts, "handler", "expected Janet struct, got {}", other);
+            tracing::error!("expected Janet struct, got {}", other);
             return Janet::from(false);
         }
     };
 
-    debug!(opts, "handler", "extracting Janet metadata");
+    tracing::debug!("extracting Janet metadata");
 
     let janet_metadata = match config_struct.get(Janet::from(":metadata")) {
         Some(md) => md,
         None => {
-            error!(opts, "handler", "host config has no metadata");
+            tracing::error!("host config has no metadata");
             return Janet::from(false);
         }
     };
 
-    debug!(opts, "handler", "extracting Janet resources");
+    tracing::debug!("extracting Janet metadata");
 
     let janet_resources = match config_struct.get(Janet::from(":resources")) {
         Some(md) => md,
         None => {
-            error!(opts, "handler", "host config has no resources");
+            tracing::error!("host config has no resources");
             return Janet::from(false);
         }
     };
@@ -137,19 +136,19 @@ fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
             // complicated. The struct is simple enough to do this.
             Ok(summary) => janet_helpers::wrap_summary(&summary),
             Err(e) => {
-                error!(opts, "handler", "running ensure_and_remove: {}", e);
+                tracing::error!("error in ensure_and_remove: {}", e);
                 Janet::from(false)
             }
         },
         Err(e) => {
-            error!(opts, "handler", "failed to generate Rust config: {}", e);
+            tracing::error!("error generating Rust config: {}", e);
             Janet::from(false)
         }
     }
 }
 
 fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySummary> {
-    info!(opts, "Configuring host '{}'", config.metadata.name);
+    tracing::info!("Configuring host: {}", config.metadata.name);
 
     let ensure_order = &[
         "zfs",
@@ -172,6 +171,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     };
 
     let mut changed_ids: ChangedIds = HashSet::new();
+
     let initial_context = ApplyContext {
         changed_ids: HashSet::new(),
     };
@@ -187,22 +187,13 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
                         }
                     }
                     Err(e) => {
-                        error!(
-                            opts,
-                            "ensure/remove",
-                            "could not ensure {}: {}",
-                            resource.id(),
-                            e
-                        );
+                        tracing::error!("could not ensure {}: {}", resource.id(), e);
                         summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
                     }
                 }
             }
         } else {
-            debug!(
-                opts,
-                "ensure/remove", "No {} resources to ensure", resource_type
-            );
+            tracing::debug!("{}: no resources to ensure", resource_type);
         }
     }
 
@@ -225,19 +216,13 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
                 match resource.apply(&initial_context, opts) {
                     Ok(summary) => summary_total = summary_total + summary,
                     Err(e) => {
-                        error!(
-                            opts,
-                            "ensure/remove", "could not remove {}: {}", resource_type, e
-                        );
+                        tracing::error!("could not remove {}: {}", resource.id(), e);
                         summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
                     }
                 }
             }
         } else {
-            debug!(
-                opts,
-                "ensure/remove", "No {} resources to remove", resource_type
-            );
+            tracing::debug!("{}: no resources to remove", resource_type);
         }
     }
 
@@ -250,13 +235,13 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
             match svc.apply(&svc_context, opts) {
                 Ok(summary) => summary_total = summary_total + summary,
                 Err(e) => {
-                    error!(opts, "ensure", "could not ensure svc: {}", e);
+                    tracing::error!("could not ensure {}: {}", svc.id(), e);
                     summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
                 }
             }
         }
     } else {
-        debug!(opts, "ensure", "No svc resources to ensure");
+        tracing::debug!("svc: no resources to ensure");
     }
 
     Ok(summary_total)

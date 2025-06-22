@@ -1,12 +1,11 @@
 use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
-use crate::common::output::Output;
 use crate::common::svcs;
 use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
 use crate::common::types::{
-    SmfDefinition, SmfDefinitionExecMethod, SmfDefinitionExecMethodContext,
+    Action, ApplyContext, ApplySummary, Opts, Resource, SmfDefinition, SmfDefinitionExecMethod,
+    SmfDefinitionExecMethodContext,
 };
 use crate::debug;
 use crate::utils::helpers;
@@ -29,7 +28,6 @@ pub struct GurpSmf {
     pub id: String,
     pub name: String,
     pub desired_state: Option<SmfDefinition>,
-    pub doer: String,
     pub manifest_path: Utf8PathBuf,
 }
 
@@ -52,7 +50,6 @@ impl TryFrom<&Janet> for GurpSmf {
             name,
             id: data.get_field_string("_id")?,
             desired_state: state,
-            doer: "smf".to_owned(),
         })
     }
 }
@@ -89,8 +86,8 @@ fn unpack_smf(data: &JanetStruct) -> anyhow::Result<SmfDefinition> {
     })
 }
 
-crate::unpack_fn!(ensure_list, Smf, GurpSmf);
-crate::unpack_fn!(remove_list, Smf, GurpSmf);
+crate::unpack_fn!(ensure_list, Smf, GurpSmf, box);
+crate::unpack_fn!(remove_list, Smf, GurpSmf, box);
 crate::impl_apply!(GurpSmf);
 
 impl GurpSmf {
@@ -98,60 +95,52 @@ impl GurpSmf {
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
-        output: &Output,
     ) -> anyhow::Result<ApplySummary> {
         let new_manifest = smf_builder::make_manifest(self.desired_state.as_ref().unwrap());
 
-        if svcs::exists(&self.name, opts)? {
-            debug!(opts, "doer/smf", "service {} exists", &self.name);
+        if svcs::exists(&self.name)? {
+            tracing::debug!("service exists: {}", &self.name);
 
             if self.manifest_path.exists() {
                 let current_manifest = fs::read_to_string(&self.manifest_path)?;
                 let desired_xml = helpers::parse_xml(&new_manifest)?;
                 let current_xml = helpers::parse_xml(&current_manifest)?;
                 if desired_xml == current_xml {
-                    output.no_change(&self.name);
+                    tracing::info!("no change: {}", self.name);
                     return Ok(ONE_RESOURCE_NO_CHANGE);
                 }
             } else {
-                debug!(
-                    opts,
-                    "doer/smf", "service is unmanaged, creating manifest {} ", &self.manifest_path
-                );
+                tracing::debug!("creating manifest: {} ", self.manifest_path);
             }
 
-            output.change_name_only(&self.name);
+            tracing::info!("change service: {}", self.name);
         } else {
-            debug!(opts, "doer/smf", "service {} does not exist", self.name);
-            output.creating(&self.name);
+            tracing::info!("create service: {}", self.name);
         };
 
-        debug!(
-            opts,
-            "doer/smf", "rewriting manifest at {}", self.manifest_path
-        );
+        tracing::debug!("rewriting manifest: {}", self.manifest_path);
 
         if opts.noop {
             Ok(ONE_RESOURCE_NOOP)
         } else {
             debug!(opts, "doer/smf", "SMF manifest follows:\n{}", new_manifest);
             fs::write(&self.manifest_path, &new_manifest)?;
-            self.ensure_service(opts)
+            self.ensure_service()
         }
     }
 
-    fn ensure_service(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        if svcs::exists(&self.name, opts)? {
-            let current_state = svcs::current_state(&self.name, opts)?;
+    fn ensure_service(&self) -> anyhow::Result<ApplySummary> {
+        if svcs::exists(&self.name)? {
+            let current_state = svcs::current_state(&self.name)?;
 
             if current_state != "disabled" {
-                svcs::set_state(&self.name, &current_state, "disabled", opts)?;
+                svcs::set_state(&self.name, &current_state, "disabled")?;
             }
 
-            svcs::run_svccfg("delete", &self.name, opts)?;
+            svcs::run_svccfg("delete", &self.name)?;
         }
 
-        svcs::run_svccfg("import", self.manifest_path.as_str(), opts)?;
+        svcs::run_svccfg("import", self.manifest_path.as_str())?;
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
@@ -160,7 +149,6 @@ impl GurpSmf {
         &self,
         _apply_context: &ApplyContext,
         _opts: &Opts,
-        _output: &Output,
     ) -> anyhow::Result<ApplySummary> {
         todo!()
     }

@@ -1,5 +1,4 @@
-use crate::common::types::{Action, ApplySummary, Opts};
-use crate::debug;
+use crate::common::types::{Action, ApplySummary};
 use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
 use janetrs::{Janet, JanetArray, JanetStruct, JanetTuple, TaggedJanet, client::JanetClient};
@@ -33,33 +32,33 @@ pub fn unwrap_summary(summary: &Janet) -> anyhow::Result<ApplySummary> {
     })
 }
 
-pub fn janet_client(opts: &Opts) -> JanetClient {
-    debug!(opts, "janet/client", "Initialising janet client");
+pub fn janet_client() -> JanetClient {
+    tracing::debug!("Initialising janet client");
     JanetClient::init_with_default_env().expect("Failed to create Janet client")
 }
 
 pub trait JanetExt {
-    fn extract_array<'a>(&'a self) -> anyhow::Result<JanetArray<'a>>;
-    fn extract_tuple<'a>(&'a self) -> anyhow::Result<JanetTuple<'a>>;
-    fn extract_struct<'a>(&'a self) -> anyhow::Result<JanetStruct<'a>>;
+    fn extract_array(&self) -> anyhow::Result<JanetArray>;
+    fn extract_tuple(&self) -> anyhow::Result<JanetTuple>;
+    fn extract_struct(&self) -> anyhow::Result<JanetStruct>;
 }
 
 impl JanetExt for Janet {
-    fn extract_struct<'a>(&'a self) -> anyhow::Result<JanetStruct<'a>> {
+    fn extract_struct(&self) -> anyhow::Result<JanetStruct> {
         match self.unwrap() {
             TaggedJanet::Struct(data) => Ok(data),
             _ => bail!("did not find struct in {:?}", self),
         }
     }
 
-    fn extract_array<'a>(&'a self) -> anyhow::Result<JanetArray<'a>> {
+    fn extract_array(&self) -> anyhow::Result<JanetArray> {
         match self.unwrap() {
             TaggedJanet::Array(data) => Ok(data),
             _ => bail!("did not find array in {:?}", self),
         }
     }
 
-    fn extract_tuple<'a>(&'a self) -> anyhow::Result<JanetTuple<'a>> {
+    fn extract_tuple(&self) -> anyhow::Result<JanetTuple> {
         match self.unwrap() {
             TaggedJanet::Tuple(data) => Ok(data),
             _ => bail!("did not find tuple in {:?}", self),

@@ -1,14 +1,11 @@
 use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
 };
-use crate::common::output::Output;
 use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
 use crate::utils::helpers;
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
-use crate::{debug, error};
-use anyhow::anyhow;
-use colored::Colorize;
+use anyhow::{anyhow, bail};
 use janetrs::{Janet, JanetArray};
 use paste::paste;
 use std::process::{Command, Stdio};
@@ -25,7 +22,6 @@ pub struct GurpMisc {
     pub action: Action,
     pub id: String,
     pub desired_state: MiscState,
-    pub doer: String,
 }
 
 type NfsDomain = String;
@@ -47,7 +43,7 @@ impl TryFrom<&Janet> for GurpMisc {
         let action = janet_helpers::action_as_enum(&data)?;
 
         if action != Action::Ensure {
-            return Err(anyhow!("misc can only be ensured"));
+            bail!("misc can only be ensured");
         }
 
         Ok(GurpMisc {
@@ -57,37 +53,30 @@ impl TryFrom<&Janet> for GurpMisc {
                 nfs_domain: data.get_field_string_opt("nfs-domain"),
                 enable_smb: data.get_field_string_opt("enable-smb"),
             },
-            doer: "misc".to_owned(),
         })
     }
 }
 
 impl Apply for GurpMisc {
     fn apply(&self, apply_context: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        let output = Output::new(&self.doer, opts);
-        self.apply_ensure(apply_context, opts, &output)
+        self.apply_ensure(apply_context, opts)
     }
 }
 
 impl GurpMisc {
-    fn apply_ensure(
-        &self,
-        _c: &ApplyContext,
-        opts: &Opts,
-        output: &Output,
-    ) -> anyhow::Result<ApplySummary> {
+    fn apply_ensure(&self, _c: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let mut aggr = ApplySummary::default();
 
         if let Some(domain) = &self.desired_state.nfs_domain {
-            aggr = aggr + self.ensure_nfs_domain(domain, opts, output);
+            aggr = aggr + self.ensure_nfs_domain(domain, opts);
         }
 
         if let Some(user) = &self.desired_state.enable_smb {
             aggr = aggr
-                + match self.enable_smb_share(user, opts, output) {
+                + match self.enable_smb_share(user) {
                     Ok(summary) => summary,
                     Err(e) => {
-                        error!(opts, "doer/misc", "smbadm check: {}", e);
+                        tracing::error!("smbadm check: {}", e);
                         ONE_RESOURCE_ONE_ERROR
                     }
                 };
@@ -96,51 +85,35 @@ impl GurpMisc {
         Ok(aggr)
     }
 
-    fn enable_smb_share(
-        &self,
-        username: &str,
-        opts: &Opts,
-        output: &Output,
-    ) -> anyhow::Result<ApplySummary> {
+    fn enable_smb_share(&self, username: &str) -> anyhow::Result<ApplySummary> {
         let mut get_status_cmd = Command::new(SMBADM_BIN);
-        // smbadm lookup rob | grep NONE_MAPPED
         get_status_cmd.arg("lookup").arg(username);
 
-        debug!(
-            opts,
-            "doer/misc",
-            "{}",
-            helpers::command_to_string(&get_status_cmd)
-        );
+        tracing::debug!(command = helpers::command_to_string(&get_status_cmd));
 
         match get_status_cmd.output() {
             // if it returns 0 and doesn't say "NONE_MAPPED" then I think it's configured
             Ok(txt) => {
                 if !String::from_utf8_lossy(&txt.stdout).contains("NONE_MAPPED") {
-                    output.no_change(format!("SMB config for {}", username));
+                    tracing::info!("no change: smb config {}", username);
                     return Ok(ONE_RESOURCE_NO_CHANGE);
                 }
             }
             // I'm not sure whether or not an error here means we shouldn't continue. I don't think
             // it does
             Err(_) => {
-                debug!(opts, "doer/misc", "error running smbadm lookup; continuing");
+                tracing::debug!("error running smbadm lookup; continuing");
             }
         }
 
-        output.creating(format!("smb user {}", username));
+        tracing::info!("enabling smb user: {}", username);
 
         // If we're still here, we can enable the user
         //
         let mut enable_cmd = Command::new(SMBADM_BIN);
         enable_cmd.arg("enable-user").arg(username);
 
-        debug!(
-            opts,
-            "doer/misc",
-            "{}",
-            helpers::command_to_string(&enable_cmd)
-        );
+        tracing::debug!(command = helpers::command_to_string(&enable_cmd));
 
         match get_status_cmd.output() {
             Ok(_) => Ok(ONE_RESOURCE_ONE_CHANGE),
@@ -148,12 +121,7 @@ impl GurpMisc {
         }
     }
 
-    fn ensure_nfs_domain(
-        &self,
-        desired_domain: &str,
-        opts: &Opts,
-        output: &Output,
-    ) -> ApplySummary {
+    fn ensure_nfs_domain(&self, desired_domain: &str, opts: &Opts) -> ApplySummary {
         let mut get_cmd = Command::new(SHARECTL_BIN);
         get_cmd
             .arg("get")
@@ -162,17 +130,12 @@ impl GurpMisc {
             .arg("nfs")
             .stderr(Stdio::piped());
 
-        debug!(
-            opts,
-            "doer/misc",
-            "{}",
-            helpers::command_to_string(&get_cmd)
-        );
+        tracing::debug!(command = helpers::command_to_string(&get_cmd));
 
         let sharectl_output = match get_cmd.output() {
             Ok(txt) => txt,
             Err(e) => {
-                error!(opts, "doer/misc", "cannot get NFS domain: {}", e);
+                tracing::error!("cannot get NFS domain: {}", e);
                 return ONE_RESOURCE_ONE_ERROR;
             }
         };
@@ -181,24 +144,21 @@ impl GurpMisc {
         let chunks: Vec<_> = sharectl_string.split('=').collect();
 
         if chunks.len() != 2 {
-            error!(
-                opts,
-                "doer/misc", "unexpected sharectl output: {}", sharectl_string
-            );
+            tracing::error!("unexpected sharectl output: {}", sharectl_string);
             return ONE_RESOURCE_ONE_ERROR;
         }
 
         let current_domain = chunks.last().unwrap().trim();
 
         if current_domain == desired_domain {
-            output.no_change("NFS domain");
+            tracing::info!("no change to NFS domain: {}", current_domain);
             return ONE_RESOURCE_NO_CHANGE;
         }
 
-        output.change(
-            "NFS domain",
-            &current_domain.to_owned(),
-            &desired_domain.to_owned(),
+        tracing::info!(
+            "change NFS domain: {} -> {}",
+            current_domain,
+            desired_domain
         );
 
         if opts.noop {
@@ -213,21 +173,14 @@ impl GurpMisc {
             .arg("nfs")
             .stderr(Stdio::piped());
 
-        debug!(
-            opts,
-            "doer/misc",
-            "{}",
-            helpers::command_to_string(&get_cmd)
-        );
+        tracing::debug!(command = helpers::command_to_string(&get_cmd));
 
         match set_cmd.output() {
             Ok(code) => {
                 if code.status.success() {
                     ONE_RESOURCE_ONE_CHANGE
                 } else {
-                    error!(
-                        opts,
-                        "doer/misc",
+                    tracing::error!(
                         "error setting NFS domain: {}",
                         String::from_utf8_lossy(&code.stderr),
                     );
@@ -235,7 +188,7 @@ impl GurpMisc {
                 }
             }
             Err(e) => {
-                error!(opts, "doer/misc", "error setting NFS domain: {}", e,);
+                tracing::error!("error setting NFS domain: {}", e,);
                 ONE_RESOURCE_ONE_ERROR
             }
         }

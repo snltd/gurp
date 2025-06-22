@@ -5,9 +5,7 @@ use crate::doers::{
     cron, directory, file, file_line, gem, misc, pkg, smf, svc, symlink, user, zfs,
 };
 use crate::utils::janet_helpers::JanetExt;
-use crate::{debug, verbose, warn};
-use anyhow::anyhow;
-use colored::Colorize;
+use anyhow::bail;
 use janetrs::{Janet, JanetKeyword, TaggedJanet};
 use std::collections::HashMap;
 
@@ -19,7 +17,7 @@ pub fn parse_config(
     opts: &Opts,
 ) -> anyhow::Result<HostConfig> {
     Ok(HostConfig {
-        metadata: extract_metadata(janet_metadata, opts)?,
+        metadata: extract_metadata(janet_metadata)?,
         resources: extract_resources(janet_resources, opts)?,
     })
 }
@@ -35,12 +33,10 @@ fn extract_ensure_resources(
         let resource_type = resource_type.unwrap().to_string();
         let resource_list = resource_list.extract_array()?;
 
-        debug!(
-            opts,
-            "parser/extract",
-            "Found {} {} resource(s) to ensure",
+        tracing::debug!(
+            "{}: {} resource(s) to ensure",
+            resource_type,
             resource_list.len(),
-            resource_type
         );
 
         match resource_type.as_str() {
@@ -116,10 +112,8 @@ fn extract_ensure_resources(
                     symlink::unpack_ensure_list(&resource_list, opts)?,
                 );
             }
-            other => warn!(
-                opts,
-                "parser/extract/ensure",
-                "'{}' resources are not implemented",
+            other => tracing::warn!(
+                "{} resources are not implemented",
                 other.replacen(':', "", 1)
             ),
         }
@@ -139,12 +133,10 @@ fn extract_remove_resources(
         let resource_type = resource_type.unwrap().to_string();
         let resource_list = resource_list.extract_array()?;
 
-        debug!(
-            opts,
-            "parser/extract",
-            "Found {} {} resource(s) to remove",
+        tracing::debug!(
+            "{}: {} resource(s) to ensure",
+            resource_type,
             resource_list.len(),
-            resource_type
         );
 
         match resource_type.as_str() {
@@ -208,10 +200,8 @@ fn extract_remove_resources(
                     file_line::unpack_remove_list(&resource_list, opts)?,
                 );
             }
-            other => warn!(
-                opts,
-                "parser/extract/remove",
-                "'{}' resources are not implemented",
+            other => tracing::warn!(
+                "{} resources are not implemented",
                 other.replacen(':', "", 1)
             ),
         }
@@ -221,13 +211,13 @@ fn extract_remove_resources(
 }
 
 fn extract_resources(janet_resources: &Janet, opts: &Opts) -> anyhow::Result<HostResources> {
-    debug!(opts, "parser/extract", "Extracting ensure/remove struct");
+    tracing::debug!("extracting ensure/remove struct");
     let resource_actions = janet_resources.extract_struct()?;
 
     let ensure_resources = match resource_actions.get(JanetKeyword::from("ensure")) {
         Some(resources) => extract_ensure_resources(resources, opts)?,
         None => {
-            verbose!(opts, "No ensure resources found");
+            tracing::info!("no ensure resources found");
             HashMap::new()
         }
     };
@@ -235,7 +225,7 @@ fn extract_resources(janet_resources: &Janet, opts: &Opts) -> anyhow::Result<Hos
     let remove_resources = match resource_actions.get(JanetKeyword::from("remove")) {
         Some(resources) => extract_remove_resources(resources, opts)?,
         None => {
-            verbose!(opts, "No remove resources found");
+            tracing::info!("no remove resources found");
             HashMap::new()
         }
     };
@@ -246,8 +236,8 @@ fn extract_resources(janet_resources: &Janet, opts: &Opts) -> anyhow::Result<Hos
     })
 }
 
-fn extract_metadata(janet_metadata: &Janet, opts: &Opts) -> anyhow::Result<HostMetadata> {
-    debug!(opts, "parser/extract", "Extracting metadata");
+fn extract_metadata(janet_metadata: &Janet) -> anyhow::Result<HostMetadata> {
+    tracing::debug!("extracting metadata");
     let rust_metadata = match janet_metadata.unwrap() {
         TaggedJanet::Struct(metadata) => {
             if let Some(name) = metadata.get(JanetKeyword::from("name")) {
@@ -255,11 +245,11 @@ fn extract_metadata(janet_metadata: &Janet, opts: &Opts) -> anyhow::Result<HostM
                     name: name.unwrap().to_string(),
                 }
             } else {
-                return Err(anyhow!("Did not find 'name' in host metadata"));
+                bail!("did not find 'name' in host metadata");
             }
         }
         _ => {
-            return Err(anyhow!("Expected metadata to be Janet struct"));
+            bail!("expected metadata to be Janet struct");
         }
     };
 
@@ -269,7 +259,7 @@ fn extract_metadata(janet_metadata: &Janet, opts: &Opts) -> anyhow::Result<HostM
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::spec_helper::{defopts, init_janet};
+    use crate::test_utils::spec_helper::init_janet;
     use janetrs::structs;
 
     #[test]
@@ -282,10 +272,10 @@ mod test {
             HostMetadata {
                 name: "test_name".to_owned(),
             },
-            extract_metadata(&good_janet_metadata, &defopts()).unwrap()
+            extract_metadata(&good_janet_metadata).unwrap()
         );
 
         let bad_janet_metadata = Janet::wrap(structs! { ":unknown" => "test_name" });
-        assert!(extract_metadata(&bad_janet_metadata, &defopts()).is_err());
+        assert!(extract_metadata(&bad_janet_metadata).is_err());
     }
 }

@@ -1,13 +1,11 @@
 use crate::common::constants::{
-    NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
+    NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
-use crate::common::output::Output;
 use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
-use crate::debug;
 use crate::utils::helpers;
 use crate::utils::janet_helpers::JanetExt;
-use anyhow::Context;
+use anyhow::{Context, bail};
 use janetrs::{JanetArray, JanetKeyword};
 use paste::paste;
 use std::process::Command;
@@ -36,7 +34,6 @@ pub struct GurpGem {
     pub action: Action,
     pub id: String,
     pub gem_list: Vec<String>,
-    pub doer: String,
 }
 
 crate::impl_apply!(GurpGem);
@@ -50,14 +47,13 @@ impl GurpGem {
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
-        output: &Output,
     ) -> anyhow::Result<ApplySummary> {
         if self.gem_list.is_empty() {
-            output.no_change("gems");
+            tracing::info!("no change: {}", self.gem_list.join(", "));
             return Ok(NO_RESOURCES_TO_CHANGE);
         }
 
-        output.creating(self.gem_list.join(", "));
+        tracing::info!("installing gems: {}", self.gem_list.join(", "));
 
         let mut cmd = Command::new(GEM_BIN);
         cmd.arg("install");
@@ -69,13 +65,13 @@ impl GurpGem {
         }
 
         cmd.args(&self.gem_list);
-        debug!(opts, "doer/gem", "{}", helpers::command_to_string(&cmd));
-        let result = cmd.status()?;
+        tracing::debug!(command = helpers::command_to_string(&cmd));
+        let result = cmd.output()?;
 
-        if result.success() {
+        if result.status.success() {
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
-            Ok(ONE_RESOURCE_ONE_ERROR)
+            bail!(String::from_utf8_lossy(&result.stderr).into_owned())
         }
     }
 
@@ -83,14 +79,13 @@ impl GurpGem {
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
-        output: &Output,
     ) -> anyhow::Result<ApplySummary> {
         if self.gem_list.is_empty() {
-            output.no_change("gems");
+            tracing::info!("no change: {}", self.gem_list.join(", "));
             return Ok(NO_RESOURCES_TO_CHANGE);
         }
 
-        output.removing(self.gem_list.join(", "));
+        tracing::info!("removing gems: {}", self.gem_list.join(", "));
 
         if opts.noop {
             return Ok(ONE_RESOURCE_NOOP);
@@ -103,13 +98,13 @@ impl GurpGem {
         cmd.arg("--all");
         cmd.args(&self.gem_list);
 
-        debug!(opts, "doer/gem", "{}", helpers::command_to_string(&cmd));
-        let result = cmd.status()?;
+        tracing::debug!(command = helpers::command_to_string(&cmd));
+        let result = cmd.output()?;
 
-        if result.success() {
+        if result.status.success() {
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
-            Ok(ONE_RESOURCE_ONE_ERROR)
+            bail!(String::from_utf8_lossy(&result.stderr).into_owned())
         }
     }
 }
@@ -117,7 +112,7 @@ impl GurpGem {
 // Receive a list of gems, but return a single element vec which will be applied.
 pub fn unpack_ensure_list(
     resource_list: &JanetArray,
-    opts: &Opts,
+    _opts: &Opts,
 ) -> anyhow::Result<Vec<Resource>> {
     let installed_gems = parse_gem_output(&CURRENT_GEM_OUTPUT);
     let mut install_list = Vec::new();
@@ -125,38 +120,34 @@ pub fn unpack_ensure_list(
     for candidate in resource_list {
         let candidate_struct = candidate
             .extract_struct()
-            .context("Failed to extract gem struct")?;
+            .context("failed to extract gem struct")?;
         let name = candidate_struct
             .get(JanetKeyword::from("name"))
             .context("gem struct missing 'name' field")?
             .to_string();
 
         if installed_gems.contains(&name) {
-            debug!(opts, "doer/gem", "gem {} already installed", name);
+            tracing::debug!("gem {}: already installed", name);
             continue;
         }
 
-        debug!(opts, "doer/gem", "gem {} scheduled for install", name);
+        tracing::debug!("gem {}: scheduled for install", name);
         install_list.push(name);
     }
 
-    debug!(
-        opts,
-        "doer/gem", "ensure gem list follows:\n{:?}", install_list
-    );
+    tracing::debug!("installing gems: {}", install_list.join(", "));
 
     Ok(vec![Resource::Gem(GurpGem {
         id: "/aggr/gem/all".to_owned(),
         action: Action::Ensure,
         gem_list: install_list,
-        doer: "gem".to_owned(),
     })])
 }
 
 // Receive a list of gems, but return a single element vec which will be applied.
 pub fn unpack_remove_list(
     resource_list: &JanetArray,
-    opts: &Opts,
+    _opts: &Opts,
 ) -> anyhow::Result<Vec<Resource>> {
     let installed_gems = parse_gem_output(&CURRENT_GEM_OUTPUT);
     let mut remove_list = Vec::new();
@@ -164,13 +155,13 @@ pub fn unpack_remove_list(
     for candidate_struct in resource_list {
         let candidate_struct = candidate_struct.extract_struct()?;
         if let Some(candidate) = candidate_struct.get(JanetKeyword::from("name")) {
-            let candidate = candidate.unwrap().to_string();
+            let name = candidate.unwrap().to_string();
 
-            if installed_gems.contains(&candidate) {
-                debug!(opts, "doer/gem", "gem: {} scheduled for removal", candidate);
-                remove_list.push(candidate);
+            if installed_gems.contains(&name) {
+                tracing::debug!("gem {}: scheduled for removal", name);
+                remove_list.push(name);
             } else {
-                debug!(opts, "doer/gem", "gem: {} is not installed", candidate);
+                tracing::debug!("gem {}: not installed", name);
             }
         }
     }
@@ -179,7 +170,6 @@ pub fn unpack_remove_list(
         id: "/aggr/gem/all".to_owned(),
         action: Action::Remove,
         gem_list: remove_list,
-        doer: "gem".to_owned(),
     })])
 }
 

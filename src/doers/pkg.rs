@@ -1,14 +1,11 @@
 use crate::common::constants::{
     NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
 };
-use crate::common::output::Output;
 use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
 use crate::utils::helpers;
 use crate::utils::janet_helpers::JanetExt;
-use crate::{debug, error, warn};
 use anyhow::{Context, bail};
-use colored::Colorize;
 use janetrs::{JanetArray, JanetKeyword};
 use paste::paste;
 use std::process::Command;
@@ -55,7 +52,6 @@ pub struct GurpPkg {
     pub action: Action,
     pub id: String,
     pub pkg_list: Vec<String>,
-    pub doer: String,
 }
 
 crate::impl_apply!(GurpPkg);
@@ -69,14 +65,13 @@ impl GurpPkg {
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
-        output: &Output,
     ) -> anyhow::Result<ApplySummary> {
         if self.pkg_list.is_empty() {
-            output.no_change("pkgs");
+            tracing::info!("no change");
             return Ok(NO_RESOURCES_TO_CHANGE);
         }
 
-        output.creating(self.pkg_list.join(", "));
+        tracing::info!("installing: {}", self.pkg_list.join(", "));
 
         let mut cmd = Command::new(PKG_BIN);
         cmd.arg("install");
@@ -86,7 +81,7 @@ impl GurpPkg {
         }
 
         cmd.args(&self.pkg_list);
-        debug!(opts, "doer/pkg", "{}", helpers::command_to_string(&cmd));
+        tracing::debug!(command = helpers::command_to_string(&cmd));
         let output = cmd.output()?;
 
         if output.status.success() {
@@ -115,14 +110,13 @@ impl GurpPkg {
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
-        output: &Output,
     ) -> anyhow::Result<ApplySummary> {
         if self.pkg_list.is_empty() {
-            output.no_change("pkgs");
+            tracing::info!("no change");
             return Ok(NO_RESOURCES_TO_CHANGE);
         }
 
-        output.removing(self.pkg_list.join(", "));
+        tracing::info!("removing: {}", self.pkg_list.join(", "));
 
         let mut cmd = Command::new(PKG_BIN);
         cmd.arg("uninstall");
@@ -133,7 +127,7 @@ impl GurpPkg {
         }
 
         cmd.args(&self.pkg_list);
-        debug!(opts, "doer/pkg", "{}", helpers::command_to_string(&cmd));
+        tracing::debug!(command = helpers::command_to_string(&cmd));
         let result = cmd.status()?;
 
         if result.success() {
@@ -147,7 +141,7 @@ impl GurpPkg {
 // Receive a list of pkgs, but return a single element vec which will be applied.
 pub fn unpack_ensure_list(
     resource_list: &JanetArray,
-    opts: &Opts,
+    _opts: &Opts,
 ) -> anyhow::Result<Vec<Resource>> {
     let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
     let mut install_list = Vec::new();
@@ -162,35 +156,31 @@ pub fn unpack_ensure_list(
             .to_string();
 
         if global_pkgs.installed.contains(&name) {
-            debug!(opts, "doer/pkg", "pkg {} already installed", name);
+            tracing::debug!("already installed: {}", name);
             continue;
         }
 
         if global_pkgs.available.contains(&name) {
-            debug!(opts, "doer/pkg", "pkg {} scheduled for install", name);
+            tracing::debug!("scheduled for install: {}", name);
             install_list.push(name);
         } else {
-            warn!(opts, "doer/pkg", "pkg {} not available", name);
+            tracing::warn!("not available: {}", name);
         }
     }
 
-    debug!(
-        opts,
-        "doer/pkg", "ensure pkg list follows:\n{:?}", install_list
-    );
+    tracing::debug!("ensure pkg list: {}", install_list.join(" "));
 
     Ok(vec![Resource::Pkg(GurpPkg {
         id: "/aggr/pkg/all".to_owned(),
         action: Action::Ensure,
         pkg_list: install_list,
-        doer: "pkg".to_owned(),
     })])
 }
 
 // Receive a list of pkgs, but return a single element vec which will be applied.
 pub fn unpack_remove_list(
     resource_list: &JanetArray,
-    opts: &Opts,
+    _opts: &Opts,
 ) -> anyhow::Result<Vec<Resource>> {
     let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
 
@@ -202,10 +192,10 @@ pub fn unpack_remove_list(
             let candidate = candidate.unwrap().to_string();
 
             if global_pkgs.installed.contains(&candidate) {
-                debug!(opts, "doer/pkg", "pkg: {} scheduled for removal", candidate);
+                tracing::debug!("scheduled for removal: {}", candidate);
                 remove_list.push(candidate);
             } else {
-                debug!(opts, "doer/pkg", "pkg: {} is not installed", candidate);
+                tracing::debug!("not installed: {}", candidate);
             }
         }
     }
@@ -214,7 +204,6 @@ pub fn unpack_remove_list(
         id: "/aggr/pkg/all".to_owned(),
         action: Action::Remove,
         pkg_list: remove_list,
-        doer: "pkg".to_owned(),
     })])
 }
 
