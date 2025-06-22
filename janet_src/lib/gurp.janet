@@ -301,6 +301,11 @@
   [& chunks]
   (string/join (map |(string/trim $ "/") (tuple "" ;chunks)) "/"))
 
+(defn zfscat
+  "Joins tokens to make a ZFS dataset name"
+  [& chunks]
+  (string/join (map |(string/trim $ "/") (tuple ;chunks)) "/"))
+
 (defn argcat
   "Joins arguments to make a command"
   [& chunks]
