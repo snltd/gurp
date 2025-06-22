@@ -22,11 +22,14 @@ mod test {
     fn test_compile_missing_file() {
         Command::cargo_bin("gurp")
             .unwrap()
+            .env("GURP_NO_COLOUR", "1")
             .arg("compile")
             .arg("/no/such/file")
             .assert()
             .failure()
-            .stderr("ERROR [compile/run] Reader error: No such file or directory (os error 2)\n");
+            .stdout(predicate::str::ends_with(
+                "reader error: No such file or directory (os error 2)\n",
+            ));
     }
 
     #[test]

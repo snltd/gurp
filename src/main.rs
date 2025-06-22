@@ -59,8 +59,10 @@ enum Commands {
 }
 
 fn main() -> anyhow::Result<()> {
+    let use_colour = std::env::var_os("GURP_NO_COLOUR").is_none();
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
+        .with_ansi(use_colour)
         .init();
     let cli = Cli::parse();
 

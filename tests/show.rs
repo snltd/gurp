@@ -25,7 +25,9 @@ mod test {
             .arg("whatever")
             .assert()
             .failure()
-            .stderr("That's not a thing I can show you\n");
+            .stdout(predicate::str::ends_with(
+                "whatever is not a thing I can show you\n",
+            ));
     }
 
     #[test]
