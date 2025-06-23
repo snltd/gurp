@@ -174,7 +174,25 @@
 (deftest "zfscat"
   (def big-pool "big")
   (test (zfscat big-pool "export" "flac") "big/export/flac"))
-  
+
 (deftest argcat
   (test (argcat "/bin/cat" "file1" "file2") "/bin/cat file1 file2")
   (test (argcat "judge" "test.janet") "judge test.janet"))
+
+(deftest fields
+  (test
+    (fields "f1 f2 f3 f4    f5 ") @["f1" "f2" "f3" "f4" "f5"])
+  (test
+    (fields "     f1     f2
+     f3 f4    f5 ")
+    @["f1" "f2" "f3" "f4" "f5"]))
+
+(deftest run-cmd
+  (test (run-cmd "echo hello") "hello")
+  (test (run-cmd "ls -d /usr") "/usr")
+  (test-error
+    (run-cmd "/no/such/thing --verbose")
+    "@[\"/no/such/thing\" \"--verbose\"]: No such file or directory"))
+
+(deftest hostname
+  (test (type (hostname)) :string))

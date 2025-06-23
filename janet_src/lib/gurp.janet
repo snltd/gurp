@@ -310,3 +310,24 @@
   "Joins arguments to make a command"
   [& chunks]
   (string/join (tuple ;chunks) " "))
+
+(defn fields
+  "Returns an array of the whitespace-separated elements in a string"
+  [str]
+  (peg/match ~{:main (some (choice (capture :S+) 1))} str))
+
+(defn run-cmd
+  "Returns stdout of the given command, or an error containting stderr"
+  [cmd]
+  (def proc (os/spawn (fields cmd) :p {:out :pipe :err :pipe}))
+  (:wait proc)
+  (def stdout (:read (proc :out) :all))
+  (if (nil? stdout)
+    (error (string/trim (:read (proc :err) :all)))
+    (string/trim stdout)))
+
+(defn hostname
+  "Returns the name of the current host"
+  []
+  (run-cmd "/bin/uname -n")
+)

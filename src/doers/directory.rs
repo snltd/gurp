@@ -156,7 +156,9 @@ impl GurpDirectory {
             to_change.push("mode");
         }
 
-        tracing::debug!("to change for {}: {}", self.name, to_change.join(", "));
+        if !to_change.is_empty() {
+            tracing::debug!("to change for {}: {}", self.name, to_change.join(", "));
+        }
         to_change
     }
 
