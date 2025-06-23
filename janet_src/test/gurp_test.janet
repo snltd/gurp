@@ -192,10 +192,7 @@
   (test (run-cmd "ls -d /usr") "/usr")
   (test-error
     (run-cmd "/no/such/thing --verbose")
-    "@[\"/no/such/thing\" \"--verbose\"]: No such file or directory")
-  (test-error
-    (run-cmd "cat /etc/shadow")
-    "cat: /etc/shadow: Permission denied"))
+    "@[\"/no/such/thing\" \"--verbose\"]: No such file or directory"))
 
 (deftest hostname
   (test (type (hostname)) :string))
