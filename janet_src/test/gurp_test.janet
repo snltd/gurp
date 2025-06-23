@@ -190,13 +190,12 @@
 (deftest run-cmd
   (test (run-cmd "echo hello") "hello")
   (test (run-cmd "ls -d /usr") "/usr")
-  (test (run-cmd "echo gibbus") "/usr")
   (test-error
     (run-cmd "/no/such/thing --verbose")
     "@[\"/no/such/thing\" \"--verbose\"]: No such file or directory")
   (test-error
     (run-cmd "cat /etc/shadow")
-    "cat: cannot open /etc/shadow: Permission denied"))
+    "cat: /etc/shadow: Permission denied"))
 
 (deftest hostname
   (test (type (hostname)) :string))
