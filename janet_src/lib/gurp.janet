@@ -53,10 +53,34 @@
   [name &]
   (generic-resource :gem :remove name []))
 
+(defn parent
+  [path]
+  (def components
+    (peg/match ~{:main (some (choice (capture (some (if-not "/" 1))) 1))} path))
+
+  (array/pop components)
+  (string "/" (string/join components "/")))
+
+(defn qualify-from-path
+  "We expect files to be in a directory `files/` at the same level as
+  the role file which references those files. This expects a path relative
+  to that directory, and returns the fully qualified path"
+  [path]
+  (string
+    (parent (os/realpath (dyn *current-file*)))
+    "/files/path"))
+
 (defn file/ensure
   "Given a file name and specification, return a file ensure struct"
   [name & specs]
-  (generic-resource :file :ensure name specs))
+  (def result (generic-resource :file :ensure name specs))
+  (var resource (struct/to-table (result :file)))
+
+  (if-let [from-path (resource :from)]
+    (do
+      (set (resource :from) (qualify-from-path from-path))
+      resource)
+    result))
 
 (defn file/remove
   "Given a file name and specification, return a file remove struct"
