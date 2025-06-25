@@ -13,9 +13,11 @@ use std::process::{Command, Stdio};
 // THINGS TO KNOW / THINGS TO DO.
 // This might be a bad idea. Hardcoded ways to do a bunch of certain things that I want to do.
 // There's no misc/remove, only misc/ensure, at least for now.
+// dispadmin only takes the scheduler class.
 
 const SHARECTL_BIN: &str = "/usr/sbin/sharectl";
 const SMBADM_BIN: &str = "/usr/sbin/smbadm";
+const DISPADMIN_BIN: &str = "/usr/sbin/dispadmin";
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct GurpMisc {
@@ -31,6 +33,7 @@ type Username = String;
 pub struct MiscState {
     pub nfs_domain: Option<NfsDomain>,
     pub enable_smb: Option<Username>,
+    pub dispadmin_class: Option<String>,
 }
 
 crate::unpack_fn!(ensure_list, Misc, GurpMisc);
@@ -52,6 +55,7 @@ impl TryFrom<&Janet> for GurpMisc {
             desired_state: MiscState {
                 nfs_domain: data.get_field_string_opt("nfs-domain"),
                 enable_smb: data.get_field_string_opt("enable-smb"),
+                dispadmin_class: data.get_field_string_opt("scheduler-class"),
             },
         })
     }
@@ -68,7 +72,7 @@ impl GurpMisc {
         let mut aggr = ApplySummary::default();
 
         if let Some(domain) = &self.desired_state.nfs_domain {
-            aggr = aggr + self.ensure_nfs_domain(domain, opts);
+            aggr = aggr + self.ensure_nfs_domain(domain, opts)?;
         }
 
         if let Some(user) = &self.desired_state.enable_smb {
@@ -77,6 +81,17 @@ impl GurpMisc {
                     Ok(summary) => summary,
                     Err(e) => {
                         tracing::error!("smbadm check: {}", e);
+                        ONE_RESOURCE_ONE_ERROR
+                    }
+                };
+        }
+
+        if let Some(class) = &self.desired_state.dispadmin_class {
+            aggr = aggr
+                + match self.set_scheduler_class(class, opts) {
+                    Ok(summary) => summary,
+                    Err(e) => {
+                        tracing::error!("dispadmin error: {}", e);
                         ONE_RESOURCE_ONE_ERROR
                     }
                 };
@@ -121,7 +136,7 @@ impl GurpMisc {
         }
     }
 
-    fn ensure_nfs_domain(&self, desired_domain: &str, opts: &Opts) -> ApplySummary {
+    fn ensure_nfs_domain(&self, desired_domain: &str, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let mut get_cmd = Command::new(SHARECTL_BIN);
         get_cmd
             .arg("get")
@@ -132,27 +147,18 @@ impl GurpMisc {
 
         tracing::debug!(command = helpers::command_to_string(&get_cmd));
 
-        let sharectl_output = match get_cmd.output() {
-            Ok(txt) => txt,
-            Err(e) => {
-                tracing::error!("cannot get NFS domain: {}", e);
-                return ONE_RESOURCE_ONE_ERROR;
-            }
-        };
-
+        let sharectl_output = get_cmd.output()?;
         let sharectl_string = String::from_utf8_lossy(&sharectl_output.stdout);
         let chunks: Vec<_> = sharectl_string.split('=').collect();
 
         if chunks.len() != 2 {
-            tracing::error!("unexpected sharectl output: {}", sharectl_string);
-            return ONE_RESOURCE_ONE_ERROR;
+            bail!("unexpected sharectl output: {}", sharectl_string);
         }
 
         let current_domain = chunks.last().unwrap().trim();
 
         if current_domain == desired_domain {
-            tracing::info!("no change to NFS domain: {}", current_domain);
-            return ONE_RESOURCE_NO_CHANGE;
+            bail!("no change to NFS domain: {}", current_domain);
         }
 
         tracing::info!(
@@ -160,10 +166,6 @@ impl GurpMisc {
             current_domain,
             desired_domain
         );
-
-        if opts.noop {
-            return ONE_RESOURCE_NOOP;
-        }
 
         let mut set_cmd = Command::new(SHARECTL_BIN);
         set_cmd
@@ -175,22 +177,72 @@ impl GurpMisc {
 
         tracing::debug!(command = helpers::command_to_string(&get_cmd));
 
-        match set_cmd.output() {
-            Ok(code) => {
-                if code.status.success() {
-                    ONE_RESOURCE_ONE_CHANGE
-                } else {
-                    tracing::error!(
-                        "error setting NFS domain: {}",
-                        String::from_utf8_lossy(&code.stderr),
-                    );
-                    ONE_RESOURCE_ONE_ERROR
-                }
-            }
-            Err(e) => {
-                tracing::error!("error setting NFS domain: {}", e,);
-                ONE_RESOURCE_ONE_ERROR
-            }
+        if opts.noop {
+            return Ok(ONE_RESOURCE_NOOP);
+        }
+
+        let output = set_cmd.output()?;
+
+        if output.status.success() {
+            Ok(ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            bail!(
+                "error setting NFS domain class: {}",
+                String::from_utf8_lossy(&output.stderr),
+            )
+        }
+    }
+
+    fn set_scheduler_class(
+        &self,
+        desired_class: &str,
+        opts: &Opts,
+    ) -> anyhow::Result<ApplySummary> {
+        let mut get_cmd = Command::new(DISPADMIN_BIN);
+        get_cmd.arg("-d").stderr(Stdio::piped());
+
+        tracing::debug!(command = helpers::command_to_string(&get_cmd));
+
+        let dispadmin_output = get_cmd.output()?;
+        let dispadmin_string = String::from_utf8_lossy(&dispadmin_output.stdout);
+        let chunks: Vec<_> = dispadmin_string.split('=').collect();
+
+        if chunks.len() != 2 {
+            bail!("unexpected dispadmin output: {}", dispadmin_string);
+        }
+
+        let current_class = chunks.last().unwrap().trim();
+
+        if current_class == desired_class {
+            tracing::info!("no change to scheduler class: {}", current_class);
+            return Ok(ONE_RESOURCE_NO_CHANGE);
+        }
+
+        tracing::info!(
+            "change scheduler class: {} -> {}",
+            current_class,
+            desired_class
+        );
+
+        let mut set_cmd = Command::new(DISPADMIN_BIN);
+
+        set_cmd.arg("-d").arg(desired_class).stderr(Stdio::piped());
+
+        tracing::debug!(command = helpers::command_to_string(&get_cmd));
+
+        if opts.noop {
+            return Ok(ONE_RESOURCE_NOOP);
+        }
+
+        let output = set_cmd.output()?;
+
+        if output.status.success() {
+            Ok(ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            bail!(
+                "error setting scheduler class: {}",
+                String::from_utf8_lossy(&output.stderr),
+            )
         }
     }
 }
