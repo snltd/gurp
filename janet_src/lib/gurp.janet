@@ -53,6 +53,12 @@
   [name &]
   (generic-resource :gem :remove name []))
 
+(defn pathcat
+  "Joins tokens to make a path"
+  [& chunks]
+  (string/join (map |(string/trim $ "/") (tuple "" ;chunks)) "/"))
+
+
 (defn parent
   [path]
   (def components
@@ -65,10 +71,9 @@
   "We expect files to be in a directory `files/` at the same level as
   the role file which references those files. This expects a path relative
   to that directory, and returns the fully qualified path"
-  [path]
-  (string
-    (parent (os/realpath (dyn *current-file*)))
-    "/files/path"))
+  [file-name]
+  (pathcat
+    (dyn :gurp-config-root) "files" file-name))
 
 (defn file/ensure
   "Given a file name and specification, return a file ensure struct"
@@ -76,10 +81,11 @@
   (def result (generic-resource :file :ensure name specs))
   (var resource (struct/to-table (result :file)))
 
+
   (if-let [from-path (resource :from)]
     (do
       (set (resource :from) (qualify-from-path from-path))
-      resource)
+      {:file resource})
     result))
 
 (defn file/remove
@@ -270,7 +276,7 @@
 (defn this
   "A convenient way to reference a resource in the current role"
   [& args]
-  (string/join (tuple "" (this-role) ;args) "/"))
+  (keyword (string/join (tuple "" (this-role) ;args) "/")))
 
 (defn template-out
   "Takes a template with vars in {{ brackets }} and a table of vars to values.
@@ -319,12 +325,6 @@
                   (string/split (string "\n" ,str))
                   (string/join "\n")
                   (string/trim)))))
-
-(defn pathcat
-  "Joins tokens to make a path"
-  [& chunks]
-  (string/join (map |(string/trim $ "/") (tuple "" ;chunks)) "/"))
-
 (defn zfscat
   "Joins tokens to make a ZFS dataset name"
   [& chunks]
@@ -353,5 +353,4 @@
 (defn hostname
   "Returns the name of the current host"
   []
-  (run-cmd "/bin/uname -n")
-)
+  (run-cmd "/bin/uname -n"))
