@@ -33,7 +33,7 @@ type Username = String;
 pub struct MiscState {
     pub nfs_domain: Option<NfsDomain>,
     pub enable_smb: Option<Username>,
-    pub dispadmin_class: Option<String>,
+    pub scheduler: Option<String>,
 }
 
 crate::unpack_fn!(ensure_list, Misc, GurpMisc);
@@ -55,7 +55,7 @@ impl TryFrom<&Janet> for GurpMisc {
             desired_state: MiscState {
                 nfs_domain: data.get_field_string_opt("nfs-domain"),
                 enable_smb: data.get_field_string_opt("enable-smb"),
-                dispadmin_class: data.get_field_string_opt("scheduler-class"),
+                scheduler: data.get_field_string_opt("scheduler"),
             },
         })
     }
@@ -86,7 +86,7 @@ impl GurpMisc {
                 };
         }
 
-        if let Some(class) = &self.desired_state.dispadmin_class {
+        if let Some(class) = &self.desired_state.scheduler {
             aggr = aggr
                 + match self.set_scheduler_class(class, opts) {
                     Ok(summary) => summary,
@@ -101,6 +101,7 @@ impl GurpMisc {
     }
 
     fn enable_smb_share(&self, username: &str) -> anyhow::Result<ApplySummary> {
+        tracing::debug!("calling misc/enable_smb_share");
         let mut get_status_cmd = Command::new(SMBADM_BIN);
         get_status_cmd.arg("lookup").arg(username);
 
@@ -137,6 +138,7 @@ impl GurpMisc {
     }
 
     fn ensure_nfs_domain(&self, desired_domain: &str, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        tracing::debug!("calling misc/ensure_nfs_domain");
         let mut get_cmd = Command::new(SHARECTL_BIN);
         get_cmd
             .arg("get")
@@ -198,6 +200,7 @@ impl GurpMisc {
         desired_class: &str,
         opts: &Opts,
     ) -> anyhow::Result<ApplySummary> {
+        tracing::debug!("calling misc/set_scheduler_class");
         let mut get_cmd = Command::new(DISPADMIN_BIN);
         get_cmd.arg("-d").stderr(Stdio::piped());
 
@@ -205,13 +208,13 @@ impl GurpMisc {
 
         let dispadmin_output = get_cmd.output()?;
         let dispadmin_string = String::from_utf8_lossy(&dispadmin_output.stdout);
-        let chunks: Vec<_> = dispadmin_string.split('=').collect();
+        let chunks: Vec<_> = dispadmin_string.split_whitespace().collect();
 
-        if chunks.len() != 2 {
+        if chunks.len() < 2 {
             bail!("unexpected dispadmin output: {}", dispadmin_string);
         }
 
-        let current_class = chunks.last().unwrap().trim();
+        let current_class = chunks.first().unwrap().trim();
 
         if current_class == desired_class {
             tracing::info!("no change to scheduler class: {}", current_class);
