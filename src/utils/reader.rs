@@ -35,6 +35,10 @@ pub fn read_and_enrich_host_config(
     };
 
     let mut ret = format!("(setdyn *syspath* \"{}\")\n\n", host_config_dir);
+    ret.push_str(&format!(
+        "(setdyn :gurp-config-root \"{}\")\n\n",
+        host_config_dir
+    ));
     ret.push_str(GURP_DEFAULTS);
     ret.push_str(
         gurp_lib

@@ -1,5 +1,7 @@
 ## Janet Helpers
 
+### Functions/Macros
+
 As well as
 [all of Janet's standard library](https://janet-lang.org/api/index.html), `gurp`
 gives you a few convenience functions and macros.
@@ -31,3 +33,8 @@ gives you a few convenience functions and macros.
 - `(run-cmd)` runs the given command (specified as a single string), and gives
   you either a string of its stdout or an `(error)` of its stderr. Far too basic
   to deal with pipes, but still useful.
+
+### Dynamic Bindings
+
+- `*gurp-config-root*` is bound to the directory which contains your
+  top-level host config file.

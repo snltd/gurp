@@ -71,6 +71,7 @@ pub trait JanetStructExt {
     fn get_field_string_opt(&self, field: &str) -> Option<String>;
     fn get_field_string(&self, field: &str) -> anyhow::Result<String>;
     fn get_field_pathbuf(&self, field: &str) -> anyhow::Result<Utf8PathBuf>;
+    fn get_field_pathbuf_opt(&self, field: &str) -> Option<Utf8PathBuf>;
     fn get_field_u32(&self, field: &str) -> anyhow::Result<u32>;
     fn get_field_bool(&self, field: &str) -> anyhow::Result<bool>;
     fn get_field_u32_string_key(&self, field: &str) -> anyhow::Result<u32>;
@@ -170,6 +171,11 @@ impl JanetStructExt for JanetStruct<'_> {
         }
 
         Ok(path)
+    }
+
+    fn get_field_pathbuf_opt(&self, field: &str) -> Option<Utf8PathBuf> {
+        self.get(Janet::keyword(field.into()))
+            .map(|s| Utf8PathBuf::from(s.unwrap().to_string()))
     }
 
     fn get_field_string_tuple(&self, field: &str) -> anyhow::Result<Vec<String>> {

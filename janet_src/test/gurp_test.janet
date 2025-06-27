@@ -196,3 +196,18 @@
 
 (deftest hostname
   (test (type (hostname)) :string))
+
+(deftest file/ensure
+  (test (file/ensure "/test/file"
+                     :content "THIS IS MY CONTENT")
+        {:file {:_id "/NO-ROLE/file/_test_file"
+                :action :ensure
+                :content "THIS IS MY CONTENT"
+                :group "root"
+                :mode "0644"
+                :name "/test/file"
+                :owner "root"}}))
+
+(deftest parent
+  (test (parent "/") "/")
+  (test (parent "/path/to/file") "/path/to"))

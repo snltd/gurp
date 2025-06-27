@@ -6,7 +6,7 @@ use crate::common::traits::Apply;
 use crate::common::types::{Action, ApplyContext, ApplySummary, Changes, Opts, Resource};
 use crate::common::users_and_groups;
 use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
-use anyhow::anyhow;
+use anyhow::bail;
 use blake3::Hash;
 use camino::Utf8PathBuf;
 use janetrs::{Janet, JanetArray};
@@ -17,7 +17,6 @@ use std::fs;
 use std::io::Write;
 
 // THINGS TO KNOW / THINGS TO DO.
-// You can only define users and groups by their names. UIDs/GIDs do not work.
 // Files are not backed up
 
 #[derive(Debug, PartialEq, Eq)]
@@ -47,23 +46,17 @@ impl TryFrom<&Janet> for GurpFile {
         let name = data.get_field_pathbuf("name")?;
         let exists = name.exists();
         let action = janet_helpers::action_as_enum(&data)?;
-
-        let content = data
-            .get(Janet::keyword("content".into()))
-            .map(|c| c.to_string());
-
-        let from = data
-            .get(Janet::keyword("from".into()))
-            .map(|c| Utf8PathBuf::from(c.to_string()));
+        let content = data.get_field_string_opt("content");
+        let from = data.get_field_pathbuf_opt("from");
 
         let state = match action {
             Action::Ensure => {
                 if content.is_none() && from.is_none() {
-                    return Err(anyhow!("file must have :content or :from"));
+                    bail!("file must have :content or :from");
                 }
 
                 if content.is_some() && from.is_some() {
-                    return Err(anyhow!("file cannot have both :content and :from"));
+                    bail!("file cannot have both :content and :from");
                 }
 
                 Some(FileState {
@@ -112,7 +105,7 @@ impl GurpFile {
 
         let path = &self.name;
         let current = self.current_state()?;
-        let changes = self.changes(&current, desired);
+        let changes = self.changes(&current, desired)?;
 
         if changes.is_empty() {
             tracing::info!("no change: {}", self.name);
@@ -174,17 +167,20 @@ impl GurpFile {
         }
     }
 
-    fn changes<'a>(&self, current: &FileState, desired: &FileState) -> Changes<'a> {
+    fn changes<'a>(&self, current: &FileState, desired: &FileState) -> anyhow::Result<Changes<'a>> {
         let mut to_change = Vec::new();
 
         if let Some(current_hash) = current.hash {
-            if let Some(content) = &desired.content {
-                let content_hash = blake3::hash(content.as_bytes());
-                if content_hash != current_hash {
-                    to_change.push("content");
-                }
+            let desired_hash = if let Some(content) = &desired.content {
+                blake3::hash(content.as_bytes())
+            } else if let Some(from) = &desired.from {
+                blake3::hash(&fs::read(from)?)
             } else {
-                tracing::error!("TODO: implement non-content writing");
+                bail!("have neither from nor content");
+            };
+
+            if desired_hash != current_hash {
+                to_change.push("content");
             }
         }
 
@@ -201,7 +197,7 @@ impl GurpFile {
         }
 
         tracing::debug!("to change for {}: {}", self.name, to_change.join(", "));
-        to_change
+        Ok(to_change)
     }
 
     fn current_state(&self) -> anyhow::Result<FileState> {
@@ -244,8 +240,12 @@ impl GurpFile {
         if let Some(content) = &desired_state.content {
             let mut fh = fs::File::create(&self.name)?;
             Ok(fh.write_all(content.as_bytes())?)
+        } else if let Some(from) = &desired_state.from {
+            tracing::debug!("coping {} -> {}", from, self.name);
+            fs::copy(&from, &self.name)?;
+            Ok(())
         } else {
-            Err(anyhow!("Only content writing is currently supported"))
+            bail!("can write neither from nor content");
         }
     }
 }

@@ -69,15 +69,15 @@ Files are mostly created like directories:
              :content "some content")
 ```
 
-The difference is that files need some content. At the moment you have to
-provide the file's contents inline. This may change at some point, but so far I
-haven't needed to copy very large or binary files.
+The difference is that files need some content. There are two ways to do this.
+First, you can 
+provide the file's contents inline.
 
 If you want to keep your file separate, Janet can read a file from local storage
 with `(slurp)`, and you can also embed your content in the role file itself with
 a `(def)` and reference that.
 
-You can template files with `(template-out)`. This takes two arguments: the
+You can template inline files with `(template-out)`. This takes two arguments: the
 first is a template, with variable keys denoted like `{{ this }}`. You also have
 to provide a struct or table mapping those keys to values. For instance:
 
@@ -90,6 +90,11 @@ to provide a struct or table mapping those keys to values. For instance:
 You can, of course, `(slurp)` the file off disk, and/or programmatically
 generate your values. If your vars don't line up, `gurp` will error and tell you
 why.
+
+The other way to install files, which is meant for binaries for other large files,
+is using `:from` instead of `:content`. `gurp` assumes your files are in
+a `files/` directory which sits at the same level as your initial host config,
+so you only have to supply the file's name.
 
 ### User
 
