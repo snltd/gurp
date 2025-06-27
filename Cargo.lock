@@ -417,6 +417,7 @@ dependencies = [
  "paste",
  "predicates",
  "pretty_assertions",
+ "regex",
  "tracing",
  "tracing-subscriber",
  "xml-rs",

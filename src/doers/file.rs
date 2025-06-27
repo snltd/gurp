@@ -12,6 +12,7 @@ use camino::Utf8PathBuf;
 use janetrs::{Janet, JanetArray};
 use nix::unistd::{Gid, Uid};
 use paste::paste;
+use regex::Regex;
 use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
@@ -34,6 +35,7 @@ pub struct FileState {
     pub mode: String,
     pub uid: Uid,
     pub content: Option<String>,
+    pub ignore_pattern: Option<String>,
     pub from: Option<Utf8PathBuf>,
     pub hash: Option<Hash>,
 }
@@ -61,6 +63,7 @@ impl TryFrom<&Janet> for GurpFile {
 
                 Some(FileState {
                     gid: users_and_groups::group_from(&data.get_field_string("group")?)?,
+                    ignore_pattern: data.get_field_string_opt("ignore-pattern"),
                     mode: data.get_field_string("mode")?,
                     uid: users_and_groups::owner_from(&data.get_field_string("owner")?)?,
                     from,
@@ -167,6 +170,13 @@ impl GurpFile {
         }
     }
 
+    fn filter_content(&self, content: &str, filter: &str) -> anyhow::Result<String> {
+        tracing::debug!("filtering content on '{}'", filter);
+        let rx = Regex::new(filter)?;
+        let ret: String = content.lines().filter(|l| rx.is_match(l)).collect();
+        Ok(ret)
+    }
+
     fn changes<'a>(&self, current: &FileState, desired: &FileState) -> anyhow::Result<Changes<'a>> {
         let mut to_change = Vec::new();
 
@@ -221,6 +231,7 @@ impl GurpFile {
 
         Ok(FileState {
             gid,
+            ignore_pattern: None,
             uid,
             mode: mode.to_owned(),
             content: None,
@@ -241,11 +252,11 @@ impl GurpFile {
             let mut fh = fs::File::create(&self.name)?;
             Ok(fh.write_all(content.as_bytes())?)
         } else if let Some(from) = &desired_state.from {
-            tracing::debug!("coping {} -> {}", from, self.name);
-            fs::copy(&from, &self.name)?;
+            tracing::debug!("copying {} -> {}", from, self.name);
+            fs::copy(from, &self.name)?;
             Ok(())
         } else {
-            bail!("can write neither from nor content");
+            bail!("can write neither :from nor :content");
         }
     }
 }
@@ -361,6 +372,7 @@ mod test {
                 action: Action::Ensure,
                 desired_state: Some(FileState {
                     content: Some("some-content".to_owned()),
+                    ignore_pattern: None,
                     from: None,
                     gid: 14.into(),
                     hash: None,
@@ -422,6 +434,36 @@ mod test {
         let metadata = fs::metadata(file_to_create).unwrap();
         let mode = format!("{:04o}", metadata.mode() & 0o777);
         assert_eq!("0600", mode);
+    }
+
+    #[test]
+    fn test_ignored_line_means_no_change() {
+        init_janet();
+        let temp = TempDir::new().unwrap();
+        temp.child("test-file")
+            .write_str("today is 2015-01-30\nBut this never changes.\nAnd nor does this.")
+            .unwrap();
+        let file_to_create = temp.join("test-file");
+
+        let example_file_ensure = Janet::wrap(janetrs::structs! {
+            ":_id" => "/test-role/file/test-file",
+            ":action" => ":ensure",
+            ":content" => "today is 2025-06-26\nBut this never changes.\nAnd nor does this.",
+            ":group" => my_group().as_str(),
+            ":ignore-pattern" => "^today is",
+            ":mode" => "0400",
+            ":name" => file_to_create.to_string_lossy().to_string().as_str(),
+            ":owner" => my_user().as_str(),
+        });
+
+        let gurp_file = GurpFile::try_from(&example_file_ensure).unwrap();
+        gurp_file.apply(&defcontext(), &defopts()).unwrap();
+
+        assert!(file_to_create.exists());
+        assert_eq!(
+            "today is 2015-01-30\nBut this never changes.\nAnd nor does this.",
+            fs::read_to_string(&file_to_create).unwrap()
+        );
     }
 
     #[test]
