@@ -131,6 +131,16 @@
 
   {:smf (table/to-struct result)})
 
+(defn svcprop/ensure
+  "Given a service property name and specification, return a svcprop ensure struct"
+  [name & specs]
+  (generic-resource :svcprop :ensure name specs))
+
+(defn svcprop/remove
+  "Given a svcprop dataset name and specification, return a svcprop remove struct"
+  [name & specs]
+
+  (generic-resource :zfs :remove name specs))
 (defn zfs/ensure
   "Given a zfs dataset name and specification, return a zfs ensure struct"
   [name & specs]
