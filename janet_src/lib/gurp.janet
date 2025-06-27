@@ -276,7 +276,7 @@
 (defn this
   "A convenient way to reference a resource in the current role"
   [& args]
-  (keyword (string/join (tuple "" (this-role) ;args) "/")))
+  (string/join (tuple "" (this-role) ;args) "/"))
 
 (defn template-out
   "Takes a template with vars in {{ brackets }} and a table of vars to values.
