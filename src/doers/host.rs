@@ -59,93 +59,99 @@ pub fn apply(
 
     let mut client = janet_helpers::janet_client();
 
-    client.add_c_fn(CFunOptions::new(
-        c"run-machine-configuration",
-        machine_config_handler_c,
-    ));
+    // client.add_c_fn(CFunOptions::new(
+    //     c"run-machine-configuration",
+    //     machine_config_handler_c,
+    // ));
 
     // Compile the Janet and kick off the machine configuration by calling the handler defined above.
-    match client.run(host_config) {
-        // Here we return from doing all the work of configuring the host
-        Ok(summary) => Ok(summary),
-        Err(e) => {
-            tracing::debug!("returning err from host apply");
-            Err(anyhow!(e))
-        }
-    }
+    let json = client.run(host_config);
+    println!("{:?}", json.unwrap().unwrap());
+    //     // Here we return from doing all the work of configuring the host
+    //     Ok(summary) => Ok(summary),
+    //     Err(e) => {
+    //         tracing::debug!("returning err from host apply");
+    //         Err(anyhow!(e))
+    //     }
+    // }
+    todo!()
 }
+// #[janetrs::janet_fn(arity(fix(1)))]
+// fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
+//     janet_config.to_owned()
+// }
 
-#[janetrs::janet_fn(arity(fix(1)))]
-fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
-    let config_elements = janet_config.len() as i32;
+// #[janetrs::janet_fn(arity(fix(1)))]
+// fn _machine_config_handler(janet_config: &mut [Janet]) -> Janet {
+//     let config_elements = janet_config.len() as i32;
 
-    if config_elements != 1 {
-        tracing::error!(
-            "expected single host configuration element, got {}",
-            config_elements
-        );
-        return Janet::from(false);
-    }
+//     if config_elements != 1 {
+//         tracing::error!(
+//             "expected single host configuration element, got {}",
+//             config_elements
+//         );
+//         return Janet::from(false);
+//     }
 
-    let opts = OPTIONS
-        .with(|o| o.borrow().clone())
-        .expect("Failed to recover options");
+//     let opts = OPTIONS
+//         .with(|o| o.borrow().clone())
+//         .expect("Failed to recover options");
 
-    debug!(
-        opts,
-        "host/ensure-remove",
-        "Parsed Janet config follows:\n{}",
-        janet_helpers::pretty_janet(&janet_config[0], 4)
-    );
+//     debug!(
+//         opts,
+//         "host/ensure-remove",
+//         "Parsed Janet config follows:\n{}",
+//         janet_helpers::pretty_janet(&janet_config[0], 4)
+//     );
 
-    let janet_config = &janet_config[0].unwrap();
+//     let janet_config = &janet_config[0].unwrap();
 
-    tracing::debug!("extracting Janet config struct");
+//     tracing::debug!("extracting Janet config struct");
 
-    let config_struct = match janet_config {
-        TaggedJanet::Struct(data) => data,
-        other => {
-            tracing::error!("expected Janet struct, got {}", other);
-            return Janet::from(false);
-        }
-    };
+//     let config_struct = match janet_config {
+//         TaggedJanet::Struct(data) => data,
+//         other => {
+//             tracing::error!("expected Janet struct, got {}", other);
+//             return Janet::from(false);
+//         }
+//     };
 
-    tracing::debug!("extracting Janet metadata");
+//     tracing::debug!("extracting Janet metadata");
 
-    let janet_metadata = match config_struct.get(Janet::from(":metadata")) {
-        Some(md) => md,
-        None => {
-            tracing::error!("host config has no metadata");
-            return Janet::from(false);
-        }
-    };
+//     let janet_metadata = match config_struct.get(Janet::from(":metadata")) {
+//         Some(md) => md,
+//         None => {
+//             tracing::error!("host config has no metadata");
+//             return Janet::from(false);
+//         }
+//     };
 
-    tracing::debug!("extracting Janet metadata");
+//     tracing::debug!("extracting Janet metadata");
 
-    let janet_resources = match config_struct.get(Janet::from(":resources")) {
-        Some(md) => md,
-        None => {
-            tracing::error!("host config has no resources");
-            return Janet::from(false);
-        }
-    };
+//     let janet_resources = match config_struct.get(Janet::from(":resources")) {
+//         Some(md) => md,
+//         None => {
+//             tracing::error!("host config has no resources");
+//             return Janet::from(false);
+//         }
+//     };
 
-    match parser::parse_config(janet_metadata, janet_resources, &opts) {
-        Ok(config) => match ensure_and_remove(&config, &opts) {
-            // You'd think a JanetAbstract would be the right thing here, but it gets very
-            // complicated. The struct is simple enough to do this.
-            Ok(summary) => janet_helpers::wrap_summary(&summary),
-            Err(e) => {
-                tracing::error!("error in ensure_and_remove: {}", e);
-                Janet::from(false)
-            }
-        },
-        Err(e) => {
-            tracing::error!("error generating Rust config: {}", e);
-            Janet::from(false)
-        }
-    }
-}
+//     match parser::parse_config(janet_metadata, janet_resources, &opts) {
+//         Ok(config) => match ensure_and_remove(&config, &opts) {
+//             // You'd think a JanetAbstract would be the right thing here, but it gets very
+//             // complicated. The struct is simple enough to do this.
+//             Ok(summary) => janet_helpers::wrap_summary(&summary),
+//             Err(e) => {
+//                 tracing::error!("error in ensure_and_remove: {}", e);
+//                 Janet::from(false)
+//             }
+//         },
+//         Err(e) => {
+//             tracing::error!("error generating Rust config: {}", e);
+//             Janet::from(false)
+//         }
+//     }
+// }
 
 fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySummary> {
     tracing::info!("Configuring host: {}", config.metadata.name);

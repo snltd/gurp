@@ -1,5 +1,6 @@
 (use judge)
 (use ../lib/gurp)
+(use ../lib/encode)
 
 (role devtools
       (pkg/ensure "ooce/developer/rust")

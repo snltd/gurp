@@ -1,4 +1,4 @@
-use crate::common::constants::{GURP_DEFAULTS, GURP_LIB};
+use crate::common::constants::{GURP_DEFAULTS, GURP_LIB, JSON_LIB};
 use crate::common::types::Opts;
 use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
@@ -39,6 +39,7 @@ pub fn read_and_enrich_host_config(
         "(setdyn :gurp-config-root \"{}\")\n\n",
         host_config_dir
     ));
+    ret.push_str(JSON_LIB);
     ret.push_str(GURP_DEFAULTS);
     ret.push_str(
         gurp_lib

@@ -58,7 +58,6 @@
   [& chunks]
   (string/join (map |(string/trim $ "/") (tuple "" ;chunks)) "/"))
 
-
 (defn parent
   [path]
   (def components
@@ -195,10 +194,12 @@
   "The top-level wrapper used to define a host to be configured"
   [host-name & host-definition]
   (setdyn :host-dyn (string host-name))
-  ~(defn machine-config
-     []
+  # ~(defn machine-config
+     # []
+    (encode
      {:metadata {:name ,host-name}
       :resources (group-by-action-and-type (flatten (tuple ,;host-definition)))}))
+      # )
 
 (defn group-by-action-and-type
   "Turns an array of resources into a struct of structs, and resolves references."
