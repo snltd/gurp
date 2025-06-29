@@ -14,34 +14,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::ops::Add;
 
-pub type ExitCode = u8;
-
 #[derive(Clone)]
 pub struct Opts {
     pub debug: bool,
     pub noop: bool,
     pub no_colour: bool,
-}
-
-pub type Changes<'a> = Vec<&'a str>;
-
-#[derive(Debug, Default, PartialEq, Copy, Clone)]
-pub struct ApplySummary {
-    pub resources: u32,
-    pub changes: u32,
-    pub errors: u32,
-}
-
-impl Add for ApplySummary {
-    type Output = ApplySummary;
-
-    fn add(self, other: ApplySummary) -> ApplySummary {
-        ApplySummary {
-            resources: self.resources + other.resources,
-            changes: self.changes + other.changes,
-            errors: self.errors + other.errors,
-        }
-    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -53,6 +30,14 @@ pub struct HostConfig {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct HostMetadata {
     pub name: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct HostResources {
+    #[serde(default)]
+    pub ensure: EnsureResources,
+    #[serde(default)]
+    pub remove: RemoveResources,
 }
 
 #[derive(Default, Deserialize, Debug)]
@@ -107,15 +92,28 @@ pub struct RemoveResources {
     pub zfs: Vec<GurpZfsRemove>,
 }
 
-#[derive(Deserialize, Debug)]
-pub struct HostResources {
-    #[serde(default)]
-    pub ensure: EnsureResources,
-    #[serde(default)]
-    pub remove: RemoveResources,
+pub type Changes<'a> = Vec<&'a str>;
+pub type ChangedIds = HashSet<String>;
+pub type ExitCode = u8;
+
+#[derive(Debug, Default, PartialEq, Copy, Clone)]
+pub struct ApplySummary {
+    pub resources: u32,
+    pub changes: u32,
+    pub errors: u32,
 }
 
-pub type ChangedIds = HashSet<String>;
+impl Add for ApplySummary {
+    type Output = ApplySummary;
+
+    fn add(self, other: ApplySummary) -> ApplySummary {
+        ApplySummary {
+            resources: self.resources + other.resources,
+            changes: self.changes + other.changes,
+            errors: self.errors + other.errors,
+        }
+    }
+}
 
 #[cfg_attr(test, derive(PartialEq))]
 #[derive(Deserialize, Debug, Hash)]
