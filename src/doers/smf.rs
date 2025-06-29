@@ -36,7 +36,7 @@ pub struct GurpSmfRemove {
 impl GurpSmfEnsure {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let new_manifest = smf_builder::make_manifest(&self.desired_state);
-        let manifest_path = &self.manifest_path();
+        let manifest_path = &manifest_path(&self.name);
 
         if svcs::exists(&self.name)? {
             tracing::debug!("service exists: {}", &self.name);
@@ -80,20 +80,52 @@ impl GurpSmfEnsure {
             svcs::run_svccfg("delete", &self.name)?;
         }
 
-        svcs::run_svccfg("import", self.manifest_path().as_str())?;
+        svcs::run_svccfg("import", manifest_path(&self.name).as_str())?;
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
-    }
-
-    fn manifest_path(&self) -> Utf8PathBuf {
-        Utf8PathBuf::from(MANIFEST_DIR).join(format!("gurp-{}.xml", &self.name))
     }
 }
 
 impl GurpSmfRemove {
-    pub fn apply(&self, _opts: &Opts) -> anyhow::Result<ApplySummary> {
-        todo!()
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if svcs::exists(&self.name)? {
+            let current_state = svcs::current_state(&self.name)?;
+
+            if current_state != "disabled" {
+                tracing::info!("svc: {} stopping service", &self.name);
+                if !opts.noop {
+                    svcs::set_state(&self.name, &current_state, "disabled")?;
+                }
+            }
+
+            tracing::info!("svc: {} deleting service", &self.name);
+
+            if !opts.noop {
+                svcs::run_svccfg("delete", &self.name)?;
+            }
+
+            let manifest_path = manifest_path(&self.name);
+            if manifest_path.exists() {
+                tracing::info!("svc: {} deleting manifest {}", &self.name, manifest_path);
+
+                if opts.noop {
+                    return Ok(ONE_RESOURCE_NOOP);
+                } else {
+                    fs::remove_file(manifest_path)?;
+                }
+            } else {
+                tracing::debug!("svc: {} no manifest at {}", &self.name, manifest_path);
+            }
+            Ok(ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            tracing::debug!("svc: {} not present", self.name);
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        }
     }
+}
+
+fn manifest_path(svc_name: &str) -> Utf8PathBuf {
+    Utf8PathBuf::from(MANIFEST_DIR).join(format!("gurp-{svc_name}.xml"))
 }
 
 // #[cfg(test)]
