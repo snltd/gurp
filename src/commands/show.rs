@@ -14,11 +14,11 @@ pub fn run(thing: &str) -> ExitCode {
 }
 
 fn show_library() -> ExitCode {
-    println!("{}", GURP_LIB);
+    println!("{GURP_LIB}");
     0
 }
 
 fn show_defaults() -> ExitCode {
-    println!("{}", GURP_DEFAULTS);
+    println!("{GURP_DEFAULTS}");
     0
 }

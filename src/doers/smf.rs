@@ -2,18 +2,12 @@ use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
 use crate::common::svcs;
-use crate::common::traits::Apply;
-use crate::common::types::{
-    Action, ApplyContext, ApplySummary, Opts, Resource, SmfDefinition, SmfDefinitionExecMethod,
-    SmfDefinitionExecMethodContext,
-};
+use crate::common::types::{ApplyContext, ApplySummary, Opts, SmfDefinition};
 use crate::debug;
 use crate::utils::helpers;
-use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
 use crate::utils::smf_builder;
 use camino::Utf8PathBuf;
-use janetrs::{Janet, JanetArray, JanetStruct};
-use paste::paste;
+use serde::Deserialize;
 use std::fs;
 
 const MANIFEST_DIR: &str = "/opt/site/lib/smf/manifest";
@@ -22,15 +16,25 @@ const MANIFEST_DIR: &str = "/opt/site/lib/smf/manifest";
 // This writes SMF manifest files to disk, and imports them as needed. As of now, the directory
 // is hardcoded.
 
-#[derive(Debug)]
-pub struct GurpSmf {
-    pub action: Action,
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct GurpSmfEnsure {
+    #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
-    pub desired_state: Option<SmfDefinition>,
-    pub manifest_path: Utf8PathBuf,
+    #[serde(flatten)]
+    pub desired_state: SmfDefinition,
 }
 
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct GurpSmfRemove {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
+}
+
+/*
 impl TryFrom<&Janet> for GurpSmf {
     type Error = anyhow::Error;
 
@@ -53,7 +57,8 @@ impl TryFrom<&Janet> for GurpSmf {
         })
     }
 }
-
+*/
+/*
 fn unpack_smf_method(
     data: &JanetStruct,
     method: &str,
@@ -88,21 +93,22 @@ fn unpack_smf(data: &JanetStruct) -> anyhow::Result<SmfDefinition> {
 
 crate::unpack_fn!(ensure_list, Smf, GurpSmf, box);
 crate::unpack_fn!(remove_list, Smf, GurpSmf, box);
-crate::impl_apply!(GurpSmf);
+*/
 
-impl GurpSmf {
-    fn apply_ensure(
+impl GurpSmfEnsure {
+    pub fn apply(
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
     ) -> anyhow::Result<ApplySummary> {
-        let new_manifest = smf_builder::make_manifest(self.desired_state.as_ref().unwrap());
+        let new_manifest = smf_builder::make_manifest(&self.desired_state);
+        let manifest_path = &self.manifest_path();
 
         if svcs::exists(&self.name)? {
             tracing::debug!("service exists: {}", &self.name);
 
-            if self.manifest_path.exists() {
-                let current_manifest = fs::read_to_string(&self.manifest_path)?;
+            if manifest_path.exists() {
+                let current_manifest = fs::read_to_string(manifest_path)?;
                 let desired_xml = helpers::parse_xml(&new_manifest)?;
                 let current_xml = helpers::parse_xml(&current_manifest)?;
                 if desired_xml == current_xml {
@@ -110,7 +116,7 @@ impl GurpSmf {
                     return Ok(ONE_RESOURCE_NO_CHANGE);
                 }
             } else {
-                tracing::debug!("creating manifest: {} ", self.manifest_path);
+                tracing::debug!("creating manifest: {} ", manifest_path);
             }
 
             tracing::info!("change service: {}", self.name);
@@ -118,13 +124,13 @@ impl GurpSmf {
             tracing::info!("create service: {}", self.name);
         };
 
-        tracing::debug!("rewriting manifest: {}", self.manifest_path);
+        tracing::debug!("rewriting manifest: {}", manifest_path);
 
         if opts.noop {
             Ok(ONE_RESOURCE_NOOP)
         } else {
             debug!(opts, "doer/smf", "SMF manifest follows:\n{}", new_manifest);
-            fs::write(&self.manifest_path, &new_manifest)?;
+            fs::write(manifest_path, &new_manifest)?;
             self.ensure_service()
         }
     }
@@ -140,7 +146,7 @@ impl GurpSmf {
             svcs::run_svccfg("delete", &self.name)?;
         }
 
-        svcs::run_svccfg("import", self.manifest_path.as_str())?;
+        svcs::run_svccfg("import", self.manifest_path().as_str())?;
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
@@ -152,83 +158,88 @@ impl GurpSmf {
     ) -> anyhow::Result<ApplySummary> {
         todo!()
     }
-}
 
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::test_utils::spec_helper::init_janet;
-    use janetrs::structs;
-    use pretty_assertions::assert_eq;
-
-    #[test]
-    fn test_unpack_ensure_file() {
-        init_janet();
-
-        let start_context = structs! {
-            ":user" => "telegraf",
-            ":group" => "daemon",
-            ":privileges" => "basic,file_dac_search,sys_admin,proc_owner,proc_zone",
-        };
-
-        let start_method = structs! {
-            ":exec" => "/opt/site/lib/smf/method/telegraf.sh",
-            ":timeout" => 60,
-            ":context" => start_context,
-        };
-
-        let stop_method = structs! {
-            ":exec" => ":kill",
-            ":timeout" => 10,
-        };
-
-        let refresh_method = structs! {
-            ":exec" => ":kill -THAW",
-            ":timeout" => 60,
-        };
-
-        let test_ensure = structs! {
-            ":_id" => "/test-role/smf/test-smf",
-            ":action" => ":ensure",
-            ":name" => "export",
-            ":description" => "Run Telegraf agent",
-            ":fmri" => "sysdef/telegraf",
-            ":default-enabled" => true,
-            ":single-instance" => true,
-            ":start-method" => start_method,
-            ":stop-method" => stop_method,
-            ":refresh-method" => refresh_method,
-        };
-
-        let test_svc = SmfDefinition {
-            name: "export".to_owned(),
-            description: "Run Telegraf agent".to_owned(),
-            fmri: "sysdef/telegraf".to_owned(),
-            single_instance: true,
-            default_enabled: true,
-            start_method: Some(SmfDefinitionExecMethod {
-                exec: "/opt/site/lib/smf/method/telegraf.sh".to_owned(),
-                timeout: 60,
-                context: Some(SmfDefinitionExecMethodContext {
-                    user: "telegraf".to_owned(),
-                    group: Some("daemon".to_owned()),
-                    privileges: Some(
-                        "basic,file_dac_search,sys_admin,proc_owner,proc_zone".to_owned(),
-                    ),
-                }),
-            }),
-            stop_method: Some(SmfDefinitionExecMethod {
-                exec: ":kill".to_owned(),
-                timeout: 10,
-                context: None,
-            }),
-            refresh_method: Some(SmfDefinitionExecMethod {
-                exec: ":kill -THAW".to_owned(),
-                timeout: 60,
-                context: None,
-            }),
-        };
-
-        assert_eq!(test_svc, unpack_smf(&test_ensure).unwrap());
+    fn manifest_path(&self) -> Utf8PathBuf {
+        Utf8PathBuf::from(MANIFEST_DIR).join(format!("gurp-{}.xml", &self.name))
     }
 }
+
+// #[cfg(test)]
+// mod test {
+//     use super::*;
+//     use crate::common::types::{SmfDefinitionExecMethod, SmfDefinitionExecMethodContext};
+//     use crate::test_utils::spec_helper::init_janet;
+//     use janetrs::structs;
+//     use pretty_assertions::assert_eq;
+
+//     #[test]
+//     fn test_unpack_ensure_file() {
+//         init_janet();
+
+//         let start_context = structs! {
+//             ":user" => "telegraf",
+//             ":group" => "daemon",
+//             ":privileges" => "basic,file_dac_search,sys_admin,proc_owner,proc_zone",
+//         };
+
+//         let start_method = structs! {
+//             ":exec" => "/opt/site/lib/smf/method/telegraf.sh",
+//             ":timeout" => 60,
+//             ":context" => start_context,
+//         };
+
+//         let stop_method = structs! {
+//             ":exec" => ":kill",
+//             ":timeout" => 10,
+//         };
+
+//         let refresh_method = structs! {
+//             ":exec" => ":kill -THAW",
+//             ":timeout" => 60,
+//         };
+
+//         let test_ensure = structs! {
+//             ":_id" => "/test-role/smf/test-smf",
+//             ":action" => ":ensure",
+//             ":name" => "export",
+//             ":description" => "Run Telegraf agent",
+//             ":fmri" => "sysdef/telegraf",
+//             ":default-enabled" => true,
+//             ":single-instance" => true,
+//             ":start-method" => start_method,
+//             ":stop-method" => stop_method,
+//             ":refresh-method" => refresh_method,
+//         };
+
+//         let test_svc = SmfDefinition {
+//             name: "export".to_owned(),
+//             description: "Run Telegraf agent".to_owned(),
+//             fmri: "sysdef/telegraf".to_owned(),
+//             single_instance: true,
+//             default_enabled: true,
+//             start_method: Some(SmfDefinitionExecMethod {
+//                 exec: "/opt/site/lib/smf/method/telegraf.sh".to_owned(),
+//                 timeout: 60,
+//                 context: Some(SmfDefinitionExecMethodContext {
+//                     user: "telegraf".to_owned(),
+//                     group: Some("daemon".to_owned()),
+//                     privileges: Some(
+//                         "basic,file_dac_search,sys_admin,proc_owner,proc_zone".to_owned(),
+//                     ),
+//                 }),
+//             }),
+//             stop_method: Some(SmfDefinitionExecMethod {
+//                 exec: ":kill".to_owned(),
+//                 timeout: 10,
+//                 context: None,
+//             }),
+//             refresh_method: Some(SmfDefinitionExecMethod {
+//                 exec: ":kill -THAW".to_owned(),
+//                 timeout: 60,
+//                 context: None,
+//             }),
+//         };
+
+//         assert_eq!(test_svc, unpack_smf(&test_ensure).unwrap());
+//     }
+// }

@@ -1,4 +1,4 @@
-use crate::common::constants::{GURP_DEFAULTS, GURP_LIB, JSON_LIB};
+use crate::common::constants::{GURP_DEFAULTS, GURP_LIB};
 use crate::common::types::Opts;
 use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
@@ -39,7 +39,6 @@ pub fn read_and_enrich_host_config(
         "(setdyn :gurp-config-root \"{}\")\n\n",
         host_config_dir
     ));
-    ret.push_str(JSON_LIB);
     ret.push_str(GURP_DEFAULTS);
     ret.push_str(
         gurp_lib
@@ -52,15 +51,15 @@ pub fn read_and_enrich_host_config(
     ret.push('\n');
     ret.push_str(&janet_host_config);
 
-    if compile_only {
-        if opts.no_colour {
-            ret.push_str("\n(prinf \"%m\" (machine-config))");
-        } else {
-            ret.push_str("\n(prinf \"%M\" (machine-config))");
-        }
-    } else {
-        ret.push_str("\n(run-machine-configuration (machine-config))");
-    }
+    // if compile_only {
+    //     if opts.no_colour {
+    //         ret.push_str("\n(prinf \"%m\" (machine-config))");
+    //     } else {
+    //         ret.push_str("\n(prinf \"%M\" (machine-config))");
+    //     }
+    // } else {
+    //     // ret.push_str("\n(run-machine-configuration (machine-config))");
+    // }
 
     Ok(ret)
 }

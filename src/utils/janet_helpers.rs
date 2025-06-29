@@ -1,7 +1,15 @@
-use crate::common::types::{Action, ApplySummary};
+use janetrs::client::JanetClient;
+
+pub fn janet_client() -> JanetClient {
+    tracing::debug!("Initialising janet client");
+    JanetClient::init_with_default_env().expect("Failed to create Janet client")
+}
+
+// use janetrs::{Janet, TaggedJanet};
+/*
+use crate::common::types::ApplySummary;
 use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
-use janetrs::{Janet, JanetArray, JanetStruct, JanetTuple, TaggedJanet, client::JanetClient};
 use std::fmt::Write;
 
 // We need to pass an ApplySummary through the Rust->Janet->Rust boundary. These two symmetrical
@@ -32,10 +40,6 @@ pub fn unwrap_summary(summary: &Janet) -> anyhow::Result<ApplySummary> {
     })
 }
 
-pub fn janet_client() -> JanetClient {
-    tracing::debug!("Initialising janet client");
-    JanetClient::init_with_default_env().expect("Failed to create Janet client")
-}
 
 pub trait JanetExt {
     fn extract_array(&self) -> anyhow::Result<JanetArray>;
@@ -202,7 +206,9 @@ pub fn action_as_enum(janet_data: &JanetStruct) -> anyhow::Result<Action> {
         other => bail!("Action must be :ensure or :remove. Got '{}'", other),
     }
 }
+*/
 
+/*
 pub fn pretty_janet(j: &Janet, indent: usize) -> String {
     let pad = "  ".repeat(indent);
     match j.unwrap() {
@@ -244,8 +250,10 @@ pub fn pretty_janet(j: &Janet, indent: usize) -> String {
         }
         _ => format!("{:?}", j),
     }
-}
+},
+*/
 
+/*
 use std::collections::HashMap;
 
 // Very crudely convert a Janet Struct into a HashMap. Keys must by strings or symbols, values
@@ -334,3 +342,4 @@ mod test {
         );
     }
 }
+*/

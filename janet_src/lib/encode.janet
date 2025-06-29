@@ -51,85 +51,70 @@
 
 
 (defn encode
-  ```
-  Encodes a native Janet data structure into JSON
-  ```
+  "Encodes a Janet data structure into JSON. Pass :pretty? true for formatted output."
   [data &keys {:pretty? pretty?}]
   (default pretty? false)
   (var res @"")
-  (var first? true)
   (var indent 0)
-  (def close-arr @"")
-  (def close-obj @"")
-  (def kv? @"")
-  (def processing @[data])
-  (while (not (empty? processing))
-    (def item (array/pop processing))
-    (case item
-      close-arr
-      (buffer/push res "]")
 
-      close-obj
-      (buffer/push res "}")
+  (defn push-indent []
+    (when pretty? (buffer/push res "\n" (string/repeat " " indent))))
 
+  (defn encode-internal [value]
+    (cond
+      (nil? value)
+      (buffer/push res "null")
+
+      (boolean? value)
+      (buffer/push res (if value "true" "false"))
+
+      (number? value)
+      (buffer/push res (describe value))
+
+      (string? value)
+      (buffer/push res "\"" (escape value) "\"")
+
+      (bytes? value)
+      (buffer/push res "\"" (escape value) "\"")
+
+      (symbol? value)
+      (buffer/push res "\"" (escape (string value)) "\"")
+
+      (indexed? value)
       (do
-        (if first?
-          (set first? false)
-          (do
+        (buffer/push res "[")
+        (when pretty? (+= indent 2))
+        (var first? true)
+        (each item value
+          (unless first?
             (buffer/push res ",")
-            (when pretty?
-              (buffer/push res "\n" (string/repeat " " indent)))))
-        (cond
-          (= kv? item)
-          (do
-            (set first? true)
-            (def kv (array/pop processing))
-            (array/push processing (kv 1))
-            (buffer/push res `"` (escape (kv 0)) `":`))
+            (push-indent))
+          (when first?
+            (when pretty? (push-indent)))
+          (encode-internal item)
+          (set first? false))
+        (when pretty? (+= indent -2) (push-indent))
+        (buffer/push res "]"))
 
-          (indexed? item)
-          (do
-            (set first? true)
-            (array/push processing close-arr)
-            (def new-length (+ (length processing) (length item)))
-            (array/ensure processing new-length 1)
-            (var i new-length)
-            (each el item
-              (put processing (-- i) el))
-            (buffer/push res "[")
-            (when pretty?
-              (+= indent 2)
-              (buffer/push "\n" (string/repeat " " indent))))
+      (dictionary? value)
+      (do
+        (buffer/push res "{")
+        (when pretty? (+= indent 2))
+        (var first? true)
+        (eachp [k v] value
+          (unless first?
+            (buffer/push res ",")
+            (push-indent))
+          (when first?
+            (when pretty? (push-indent)))
+          (buffer/push res "\"" (escape k) "\":")
+          (when pretty? (buffer/push res " "))
+          (encode-internal v)
+          (set first? false))
+        (when pretty? (+= indent -2) (push-indent))
+        (buffer/push res "}"))
 
-          (dictionary? item)
-          (do
-            (set first? true)
-            (array/push processing close-obj)
-            (eachp kv item
-              (array/push processing kv)
-              (array/push processing kv?))
-            (buffer/push res "{")
-            (when pretty?
-              (+= indent 2)
-              (buffer/push "\n" (string/repeat " " indent))))
+      (error (string "cannot encode " (type value) " to JSON: " value))))
 
-          (= :null item)
-          (buffer/push res "null")
-
-          (and (bytes? item) (not (symbol? item)))
-          (buffer/push res `"` (escape item) `"`)
-
-          (number? item)
-          (buffer/push res (describe item))
-
-          (true? item)
-          (buffer/push res "true")
-
-          (false? item)
-          (buffer/push res "false")
-
-          (nil? item)
-          (buffer/push res "null")
-
-          (error (string "cannot encode " (type item) " '" item "' to JSON"))))))
+  (encode-internal data)
   res)

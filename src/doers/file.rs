@@ -2,16 +2,13 @@ use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
     PROTECTED_FILES,
 };
-use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplyContext, ApplySummary, Changes, Opts, Resource};
+use crate::common::types::{ApplyContext, ApplySummary, Changes, Opts};
 use crate::common::users_and_groups;
-use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
 use anyhow::bail;
 use blake3::Hash;
 use camino::Utf8PathBuf;
-use janetrs::{Janet, JanetArray};
 use nix::unistd::{Gid, Uid};
-use paste::paste;
+use serde::Deserialize;
 use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
@@ -19,25 +16,43 @@ use std::io::Write;
 // THINGS TO KNOW / THINGS TO DO.
 // Files are not backed up
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct GurpFile {
-    pub action: Action,
-    pub exists: bool,
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub struct GurpFileEnsure {
+    #[serde(rename = "_id")]
     pub id: String,
     pub name: Utf8PathBuf, // The Path
-    pub desired_state: Option<FileState>,
+    #[serde(flatten)]
+    pub desired_state: DesiredFileState,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+pub struct DesiredFileState {
+    pub group: String,
+    pub mode: String,
+    pub owner: String,
+    pub content: Option<String>,
+    pub from: Option<Utf8PathBuf>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct FileState {
+pub struct FileState<'a> {
     pub gid: Gid,
     pub mode: String,
     pub uid: Uid,
-    pub content: Option<String>,
+    pub content: Option<&'a String>,
     pub from: Option<Utf8PathBuf>,
     pub hash: Option<Hash>,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct GurpFileRemove {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: Utf8PathBuf, // The Path
+}
+
+/*
 impl TryFrom<&Janet> for GurpFile {
     type Error = anyhow::Error;
 
@@ -80,32 +95,37 @@ impl TryFrom<&Janet> for GurpFile {
         })
     }
 }
+*/
 
-crate::unpack_fn!(ensure_list, File, GurpFile);
-crate::unpack_fn!(remove_list, File, GurpFile);
-crate::impl_apply!(GurpFile);
-
-impl GurpFile {
-    fn apply_ensure(
+impl GurpFileEnsure {
+    pub fn apply(
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
     ) -> anyhow::Result<ApplySummary> {
-        let desired = self.desired_state.as_ref().unwrap();
+        let path = &self.name;
 
-        if !self.exists {
-            tracing::info!("creating: {}", self.name);
+        let desired = FileState {
+            content: self.desired_state.content.as_ref(),
+            from: self.desired_state.from.clone(),
+            uid: users_and_groups::owner_from(&self.desired_state.owner)?,
+            gid: users_and_groups::group_from(&self.desired_state.group)?,
+            mode: self.desired_state.mode.clone(),
+            hash: None,
+        };
+
+        if !path.exists() {
+            tracing::info!("creating: {}", path);
 
             if opts.noop {
                 return Ok(ONE_RESOURCE_ONE_CHANGE);
             }
 
-            self.write_contents_to_file(desired)?;
+            self.write_contents_to_file(&desired)?;
         }
 
-        let path = &self.name;
         let current = self.current_state()?;
-        let changes = self.changes(&current, desired)?;
+        let changes = self.changes(&current, &desired)?;
 
         if changes.is_empty() {
             tracing::info!("no change: {}", self.name);
@@ -114,7 +134,7 @@ impl GurpFile {
 
         if changes.contains(&"content") {
             tracing::info!("change content: {}", self.name);
-            self.write_contents_to_file(desired)?;
+            self.write_contents_to_file(&desired)?;
         }
 
         if changes.contains(&"group") || changes.contains(&"owner") {
@@ -140,31 +160,6 @@ impl GurpFile {
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
-    }
-
-    fn apply_remove(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
-        if self.exists {
-            if PROTECTED_FILES.contains(&self.name) {
-                tracing::warn!("protected resource: {}", self.name);
-                return Ok(ONE_RESOURCE_ONE_ERROR);
-            }
-
-            tracing::info!("removing: {}", self.name);
-
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                fs::remove_file(&self.name)?;
-                Ok(ONE_RESOURCE_ONE_CHANGE)
-            }
-        } else {
-            tracing::debug!("not present: {}", self.name);
-            Ok(ONE_RESOURCE_NO_CHANGE)
-        }
     }
 
     fn changes<'a>(&self, current: &FileState, desired: &FileState) -> anyhow::Result<Changes<'a>> {
@@ -213,7 +208,7 @@ impl GurpFile {
         // no need to check the contents: they have to be right, and it's a potentially expensive
         // operation.
         //
-        let hash = if self.exists {
+        let hash = if path.exists() {
             Some(self.file_hash()?)
         } else {
             None
@@ -242,10 +237,33 @@ impl GurpFile {
             Ok(fh.write_all(content.as_bytes())?)
         } else if let Some(from) = &desired_state.from {
             tracing::debug!("coping {} -> {}", from, self.name);
-            fs::copy(&from, &self.name)?;
+            fs::copy(from, &self.name)?;
             Ok(())
         } else {
             bail!("can write neither from nor content");
+        }
+    }
+}
+
+impl GurpFileRemove {
+    fn apply(&self, _apply_context: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if self.name.exists() {
+            if PROTECTED_FILES.contains(&self.name) {
+                tracing::warn!("protected resource: {}", self.name);
+                return Ok(ONE_RESOURCE_ONE_ERROR);
+            }
+
+            tracing::info!("removing: {}", self.name);
+
+            if opts.noop {
+                Ok(ONE_RESOURCE_NOOP)
+            } else {
+                fs::remove_file(&self.name)?;
+                Ok(ONE_RESOURCE_ONE_CHANGE)
+            }
+        } else {
+            tracing::debug!("not present: {}", self.name);
+            Ok(ONE_RESOURCE_NO_CHANGE)
         }
     }
 }
@@ -263,12 +281,9 @@ mod test {
 
     #[test]
     fn test_file_remove_apply_does_not_exist() {
-        let file_does_not_exist = GurpFile {
+        let file_does_not_exist = GurpFileRemove {
             name: Utf8PathBuf::from("/does/not/exist/file-to-test"),
-            exists: false,
             id: "/test-role/file/file-to-test".to_owned(),
-            action: Action::Remove,
-            desired_state: None,
         };
 
         assert_eq!(
@@ -281,12 +296,9 @@ mod test {
 
     #[test]
     fn test_file_remove_apply_not_allowed() {
-        let disallowed_file = GurpFile {
+        let disallowed_file = GurpFileRemove {
             name: Utf8PathBuf::from("/bin/ps"),
             id: "/test-role/file/_bin_ps".to_owned(),
-            exists: true,
-            action: Action::Remove,
-            desired_state: None,
         };
 
         assert_eq!(
@@ -301,12 +313,9 @@ mod test {
         temp.child("test-file").write_str("stuff").unwrap();
         let file = temp.join("test-file");
 
-        let test_file = GurpFile {
+        let test_file = GurpFileRemove {
             name: Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap(),
             id: "/test-role/file/test-file".to_owned(),
-            exists: true,
-            action: Action::Remove,
-            desired_state: None,
         };
 
         assert!(file.exists());
@@ -323,12 +332,9 @@ mod test {
         temp.child("test-file").write_str("stuff").unwrap();
         let file = temp.join("test-file");
 
-        let test_file = GurpFile {
+        let test_file = GurpFileRemove {
             name: Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap(),
             id: "/test-role/file/test-file".to_owned(),
-            exists: true,
-            action: Action::Remove,
-            desired_state: None,
         };
 
         assert!(file.exists());

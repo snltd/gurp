@@ -1,17 +1,18 @@
-use crate::common::constants::ONE_RESOURCE_ONE_ERROR;
-use crate::common::traits::{Apply, HasId};
+use crate::common::constants::JSON_LIB;
 use crate::common::types::{ApplyContext, ApplySummary, ChangedIds, HostConfig, Opts};
 use crate::debug;
-use crate::utils::{janet_helpers, parser, reader};
-use anyhow::anyhow;
+use crate::utils::{janet_helpers, reader};
+// use anyhow::anyhow;
+use anyhow::bail;
 use camino::Utf8PathBuf;
-use janetrs::{Janet, TaggedJanet, env::CFunOptions};
-use std::cell::RefCell;
+use janetrs::TaggedJanet;
+use serde_json::Value;
+// use std::cell::RefCell;
 use std::collections::HashSet;
 
-thread_local! {
-    static OPTIONS: RefCell<Option<Opts>> = const { RefCell::new(None) };
-}
+// thread_local! {
+//     static OPTIONS: RefCell<Option<Opts>> = const { RefCell::new(None) };
+// }
 
 // Read the host file the user gives us, and execute it with our embedded Janet interpreter. This
 // generates a big Janet Struct, with these keys:
@@ -31,23 +32,19 @@ thread_local! {
 // grouped together
 // into a single action.
 
+fn pretty_print_json_str(json_str: &str) -> anyhow::Result<()> {
+    let value: Value = serde_json::from_str(json_str)?;
+    let pretty = serde_json::to_string_pretty(&value)?;
+    println!("{}", pretty);
+    Ok(())
+}
+
 // This is the entry point from main
 pub fn apply(
     host_file: &Utf8PathBuf,
     gurp_lib_path: &Option<Utf8PathBuf>,
     opts: &Opts,
-) -> anyhow::Result<Janet> {
-    tracing::debug!("Stashing opts object");
-
-    OPTIONS.with(|o| {
-        *o.borrow_mut() = Some(Opts {
-            debug: opts.debug,
-            noop: opts.noop,
-            verbose: opts.verbose,
-            no_colour: opts.no_colour,
-        });
-    });
-
+) -> anyhow::Result<ApplySummary> {
     let host_config = reader::read_and_enrich_host_config(host_file, gurp_lib_path, opts, false)?;
 
     debug!(
@@ -57,28 +54,37 @@ pub fn apply(
         reader::format_janet_listing(&host_config)
     );
 
-    let mut client = janet_helpers::janet_client();
+    let client = janet_helpers::janet_client();
 
-    // client.add_c_fn(CFunOptions::new(
-    //     c"run-machine-configuration",
-    //     machine_config_handler_c,
-    // ));
+    let json_wrapped_host_config =
+        format!("{}\n{}\n(encode (machine-config))", JSON_LIB, host_config,);
 
-    // Compile the Janet and kick off the machine configuration by calling the handler defined above.
-    let json = client.run(host_config);
-    println!("{:?}", json.unwrap().unwrap());
-    //     // Here we return from doing all the work of configuring the host
-    //     Ok(summary) => Ok(summary),
-    //     Err(e) => {
-    //         tracing::debug!("returning err from host apply");
-    //         Err(anyhow!(e))
-    //     }
-    // }
-    todo!()
+    let json_buffer = client.run(json_wrapped_host_config)?;
+
+    let json = match json_buffer.unwrap() {
+        TaggedJanet::Buffer(buf) => buf.to_string(),
+        other => bail!("expected Janet::Buffer, got {}", other),
+    };
+
+    tracing::debug!("Janet returned {} char JSON buffer", json.len());
+    tracing::debug!("Unpacking JSON into HostConfig");
+
+    // println!("{}", json);
+
+    pretty_print_json_str(&json)?;
+
+    let host_config: HostConfig = serde_json::from_str(&json)?;
+
+    println!("{:#?}", host_config);
+
+    ensure_and_remove(&host_config, opts)
 }
+
 // #[janetrs::janet_fn(arity(fix(1)))]
 // fn machine_config_handler(janet_config: &mut [Janet]) -> Janet {
-//     janet_config.to_owned()
+//     // println!("{}", janet_helpers::pretty_janet(&janet_config[0], 4));
+//     janet_config[0]
+//     // janet_config.to_owned()[0]
 // }
 
 // #[janetrs::janet_fn(arity(fix(1)))]
@@ -153,28 +159,40 @@ pub fn apply(
 //     }
 // }
 
+macro_rules! apply_resources {
+    ($summary_total:ident, $changed_ids:ident, $resources:expr, $ctx:expr, $opts:expr) => {
+        for resource in $resources {
+            let summary = resource.apply($ctx, $opts)?;
+            $summary_total = $summary_total + summary;
+            if summary.changes > 0 {
+                $changed_ids.insert(resource.id.clone());
+            }
+        }
+    };
+}
+
 fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySummary> {
     tracing::info!("Configuring host: {}", config.metadata.name);
+    let ensure = &config.resources.ensure;
+    let remove = &config.resources.remove;
 
-    let ensure_order = &[
-        "zfs",
-        "pkg",
-        "gem",
-        "user",
-        "cron",
-        "directory",
-        "file",
-        "symlink",
-        "file-line",
-        "smf",
-        "misc",
-    ];
+    let mut summary_total = ApplySummary::default();
 
-    let mut summary_total = ApplySummary {
-        resources: 0,
-        changes: 0,
-        errors: 0,
-    };
+    //     let ensure_order = &[
+    //         "zfs",
+    //         // "pkg",
+    //         // "gem",
+    //         // "user",
+    //         // "cron",
+    //         // "directory",
+    //         // "file",
+    //         // "symlink",
+    //         // "file-line",
+    //         // "smf",
+    //         // "misc",
+    //     ];
+
+    // let mut summary_total = ApplySummary.default();
 
     let mut changed_ids: ChangedIds = HashSet::new();
 
@@ -182,73 +200,186 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
         changed_ids: HashSet::new(),
     };
 
-    for resource_type in ensure_order {
-        if let Some(resources) = config.resources.ensure.get(*resource_type) {
-            for resource in resources {
-                match resource.apply(&initial_context, opts) {
-                    Ok(summary) => {
-                        summary_total = summary_total + summary;
-                        if summary.changes > 0 {
-                            changed_ids.insert(resource.id());
-                        }
-                    }
-                    Err(e) => {
-                        tracing::error!("could not ensure {}: {}", resource.id(), e);
-                        summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
-                    }
-                }
-            }
-        } else {
-            tracing::debug!("{}: no resources to ensure", resource_type);
-        }
-    }
+    apply_resources!(
+        summary_total,
+        changed_ids,
+        &ensure.zfs,
+        &initial_context,
+        opts
+    );
 
+    apply_resources!(
+        summary_total,
+        changed_ids,
+        &ensure.user,
+        &initial_context,
+        opts
+    );
+
+    apply_resources!(
+        summary_total,
+        changed_ids,
+        &ensure.cron,
+        &initial_context,
+        opts
+    );
+
+    apply_resources!(
+        summary_total,
+        changed_ids,
+        &ensure.symlink,
+        &initial_context,
+        opts
+    );
+
+    apply_resources!(
+        summary_total,
+        changed_ids,
+        &ensure.file_line,
+        &initial_context,
+        opts
+    );
+
+    apply_resources!(
+        summary_total,
+        changed_ids,
+        &ensure.smf,
+        &initial_context,
+        opts
+    );
+
+    apply_resources!(
+        summary_total,
+        changed_ids,
+        &ensure.misc,
+        &initial_context,
+        opts
+    );
+
+    apply_resources!(
+        summary_total,
+        changed_ids,
+        &ensure.svc,
+        &initial_context,
+        opts
+    );
+
+    // for resource_type in ensure_order {
+    //     if let Some(resources) = config.resources.ensure.get(*resource_type) {
+    //         for resource in resources {
+    //             match resource.apply(&initial_context, opts) {
+    //                 Ok(summary) => {
+    //                     summary_total = summary_total + summary;
+    //                     if summary.changes > 0 {
+    //                         changed_ids.insert(resource.id());
+    //                     }
+    //                 }
+    //                 Err(e) => {
+    //                     tracing::error!("could not ensure {}: {}", resource.id(), e);
+    //                     summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
+    //                 }
+    //             }
+    //         }
+    //     } else {
+    //         tracing::debug!("{}: no resources to ensure", resource_type);
+    //     }
+    // }
+
+    /*
     let remove_order = &[
-        "file-line",
-        "symlink",
-        "file",
-        "directory",
-        "cron",
-        "user",
-        "smf",
-        "gem",
-        "pkg",
+        // "file-line",
+        // "symlink",
+        // "file",
+        // "directory",
+        // "cron",
+        // "user",
+        // "smf",
+        // "gem",
+        // "pkg",
         "zfs",
     ];
+    */
+    apply_resources!(
+        summary_total,
+        changed_ids,
+        &ensure.file_line,
+        &initial_context,
+        opts
+    );
 
-    for resource_type in remove_order {
-        if let Some(resources) = config.resources.remove.get(*resource_type) {
-            for resource in resources {
-                match resource.apply(&initial_context, opts) {
-                    Ok(summary) => summary_total = summary_total + summary,
-                    Err(e) => {
-                        tracing::error!("could not remove {}: {}", resource.id(), e);
-                        summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
-                    }
-                }
-            }
-        } else {
-            tracing::debug!("{}: no resources to remove", resource_type);
-        }
-    }
+    apply_resources!(
+        summary_total,
+        changed_ids,
+        &remove.symlink,
+        &initial_context,
+        opts
+    );
 
-    let svc_context = ApplyContext { changed_ids };
+    apply_resources!(
+        summary_total,
+        changed_ids,
+        &ensure.cron,
+        &initial_context,
+        opts
+    );
+
+    apply_resources!(
+        summary_total,
+        changed_ids,
+        &remove.user,
+        &initial_context,
+        opts
+    );
+
+    apply_resources!(
+        summary_total,
+        changed_ids,
+        &ensure.smf,
+        &initial_context,
+        opts
+    );
+
+    apply_resources!(
+        summary_total,
+        changed_ids,
+        &remove.zfs,
+        &initial_context,
+        opts
+    );
+
+    // for resource_type in remove_order {
+    //     if let Some(resources) = config.resources.remove.get(*resource_type) {
+    //         for resource in resources {
+    //             match resource.apply(&initial_context, opts) {
+    //                 Ok(summary) => summary_total = summary_total + summary,
+    //                 Err(e) => {
+    //                     tracing::error!("could not remove {}: {}", resource.id(), e);
+    //                     summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
+    //                 }
+    //             }
+    //         }
+    //     } else {
+    //         tracing::debug!("{}: no resources to remove", resource_type);
+    //     }
+    // }
+
+    // let svc_context = ApplyContext { changed_ids };
 
     // We deal with services last, and differently.
     //
-    if let Some(svcs) = config.resources.ensure.get("svc") {
-        for svc in svcs {
-            match svc.apply(&svc_context, opts) {
-                Ok(summary) => summary_total = summary_total + summary,
-                Err(e) => {
-                    tracing::error!("could not ensure {}: {}", svc.id(), e);
-                    summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
-                }
-            }
-        }
-    } else {
-        tracing::debug!("svc: no resources to ensure");
-    }
+    // if let Some(svcs) = config.resources.ensure.get("svc") {
+    //     for svc in svcs {
+    //         match svc.apply(&svc_context, opts) {
+    //             Ok(summary) => summary_total = summary_total + summary,
+    //             Err(e) => {
+    //                 tracing::error!("could not ensure {}: {}", svc.id(), e);
+    //                 summary_total = summary_total + ONE_RESOURCE_ONE_ERROR;
+    //             }
+    //         }
+    //     }
+    // } else {
+    //     tracing::debug!("svc: no resources to ensure");
+    // }
 
     Ok(summary_total)
 }

@@ -1,13 +1,9 @@
 use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
-use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
-use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
-use anyhow::anyhow;
+use crate::common::types::{ApplyContext, ApplySummary, Opts};
 use camino::Utf8PathBuf;
-use janetrs::{Janet, JanetArray};
-use paste::paste;
+use serde::Deserialize;
 use std::fs;
 use std::io::Write;
 
@@ -21,58 +17,45 @@ use std::io::Write;
 // We always read the file. There's no caching or anyhing.
 // Files are not backed up.
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct GurpFileLine {
-    pub action: Action,
-    pub exists: bool,
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub struct GurpFileLineEnsure {
+    #[serde(rename = "_id")]
     pub id: String,
+    pub line: String,
     pub name: Utf8PathBuf, // The Path
+    #[serde(flatten)]
     pub desired_state: FileLineState,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub struct GurpFileLineRemove {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub line: String,
+    pub name: Utf8PathBuf, // The Path
+    #[serde(flatten)]
+    pub desired_state: FileLineState,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct FileLineState {
     pub line: String,
 }
 
-crate::unpack_fn!(ensure_list, FileLine, GurpFileLine);
-crate::unpack_fn!(remove_list, FileLine, GurpFileLine);
-crate::impl_apply!(GurpFileLine);
-
-impl TryFrom<&Janet> for GurpFileLine {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Janet) -> anyhow::Result<Self> {
-        let data = value.extract_struct()?;
-        let name = data.get_field_pathbuf("name")?;
-
-        if !name.exists() {
-            return Err(anyhow!("File {} does not exist", name));
-        }
-
-        let action = janet_helpers::action_as_enum(&data)?;
-        let line = data.get_field_string("line")?;
-        let contents = fs::read_to_string(name)?;
-        let exists = contents.lines().any(|l| l == line);
-        let state = FileLineState { line };
-
-        Ok(GurpFileLine {
-            action,
-            exists,
-            id: data.get_field_string("_id")?,
-            name: data.get_field_pathbuf("name")?,
-            desired_state: state,
-        })
-    }
+fn line_exists(path: &Utf8PathBuf, line: &str) -> anyhow::Result<bool> {
+    let contents = fs::read_to_string(path)?;
+    Ok(contents.lines().any(|l| l == line))
 }
 
-impl GurpFileLine {
-    fn apply_ensure(
+impl GurpFileLineEnsure {
+    pub fn apply(
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
     ) -> anyhow::Result<ApplySummary> {
-        if self.exists {
+        if line_exists(&self.name, &self.line)? {
             tracing::info!("no change: {}", &self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
         } else {
@@ -87,13 +70,15 @@ impl GurpFileLine {
             }
         }
     }
+}
 
-    fn apply_remove(
+impl GurpFileLineRemove {
+    pub fn apply(
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
     ) -> anyhow::Result<ApplySummary> {
-        if !self.exists {
+        if line_exists(&self.name, &self.line)? {
             tracing::info!("no change: {}", &self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
         } else {
@@ -107,7 +92,7 @@ impl GurpFileLine {
                 let out: String = content
                     .lines()
                     .filter(|l| l != &self.desired_state.line)
-                    .map(|line| format!("{}\n", line))
+                    .map(|line| format!("{line}\n"))
                     .collect();
 
                 fs::write(&self.name, out)?;
@@ -135,7 +120,7 @@ mod test {
             ":name" => "/file/does/not/exist",
         });
 
-        assert!(GurpFileLine::try_from(&resource).is_err());
+        assert!(GurpFileLineEnsure::try_from(&resource).is_err());
     }
 
     #[test]
@@ -155,7 +140,7 @@ mod test {
             ":name" => file_to_modify.to_string_lossy().to_string().as_str(),
         });
 
-        let gurp_file = GurpFileLine::try_from(&example_file_ensure).unwrap();
+        let gurp_file = GurpFileLineEnsure::try_from(&example_file_ensure).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
@@ -184,7 +169,7 @@ mod test {
             ":name" => file_to_modify.to_string_lossy().to_string().as_str(),
         });
 
-        let gurp_file = GurpFileLine::try_from(&example_file_ensure).unwrap();
+        let gurp_file = GurpFileLineEnsure::try_from(&example_file_ensure).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_NOOP,
@@ -213,7 +198,7 @@ mod test {
             ":name" => file_to_modify.to_string_lossy().to_string().as_str(),
         });
 
-        let gurp_file = GurpFileLine::try_from(&example_file_ensure).unwrap();
+        let gurp_file = GurpFileLineEnsure::try_from(&example_file_ensure).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,
@@ -242,7 +227,7 @@ mod test {
             ":name" => file_to_modify.to_string_lossy().to_string().as_str(),
         });
 
-        let gurp_file = GurpFileLine::try_from(&example_file_ensure).unwrap();
+        let gurp_file = GurpFileLineRemove::try_from(&example_file_ensure).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
@@ -271,7 +256,7 @@ mod test {
             ":name" => file_to_modify.to_string_lossy().to_string().as_str(),
         });
 
-        let gurp_file = GurpFileLine::try_from(&example_file_ensure).unwrap();
+        let gurp_file = GurpFileLineRemove::try_from(&example_file_ensure).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_NOOP,

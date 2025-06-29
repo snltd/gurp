@@ -1,9 +1,10 @@
 use crate::common::types::{
     EnsureResources, HostConfig, HostMetadata, HostResources, Opts, RemoveResources,
 };
-use crate::doers::{
-    cron, directory, file, file_line, gem, misc, pkg, smf, svc, symlink, user, zfs,
-};
+// use crate::doers::{
+//     cron, directory, file, file_line, gem, misc, pkg, smf, svc, symlink, user, zfs,
+// };
+use crate::doers::zfs;
 use crate::utils::janet_helpers::JanetExt;
 use anyhow::bail;
 use janetrs::{Janet, JanetKeyword, TaggedJanet};
@@ -40,78 +41,72 @@ fn extract_ensure_resources(
         );
 
         match resource_type.as_str() {
-            ":pkg" => {
-                ret.insert(
-                    "pkg".to_owned(),
-                    pkg::unpack_ensure_list(&resource_list, opts)?,
-                );
-            }
-            ":gem" => {
-                ret.insert(
-                    "gem".to_owned(),
-                    gem::unpack_ensure_list(&resource_list, opts)?,
-                );
-            }
-            ":zfs" => {
-                ret.insert(
-                    "zfs".to_owned(),
-                    zfs::unpack_ensure_list(&resource_list, opts)?,
-                );
-            }
-            ":directory" => {
-                ret.insert(
-                    "directory".to_owned(),
-                    directory::unpack_ensure_list(&resource_list, opts)?,
-                );
-            }
-            ":file" => {
-                ret.insert(
-                    "file".to_owned(),
-                    file::unpack_ensure_list(&resource_list, opts)?,
-                );
-            }
-            ":cron" => {
-                ret.insert(
-                    "cron".to_owned(),
-                    cron::unpack_ensure_list(&resource_list, opts)?,
-                );
-            }
-            ":user" => {
-                ret.insert(
-                    "user".to_owned(),
-                    user::unpack_ensure_list(&resource_list, opts)?,
-                );
-            }
-            ":file-line" => {
-                ret.insert(
-                    "file-line".to_owned(),
-                    file_line::unpack_ensure_list(&resource_list, opts)?,
-                );
-            }
-            ":misc" => {
-                ret.insert(
-                    "misc".to_owned(),
-                    misc::unpack_ensure_list(&resource_list, opts)?,
-                );
-            }
-            ":smf" => {
-                ret.insert(
-                    "smf".to_owned(),
-                    smf::unpack_ensure_list(&resource_list, opts)?,
-                );
-            }
-            ":svc" => {
-                ret.insert(
-                    "svc".to_owned(),
-                    svc::unpack_ensure_list(&resource_list, opts)?,
-                );
-            }
-            ":symlink" => {
-                ret.insert(
-                    "symlink".to_owned(),
-                    symlink::unpack_ensure_list(&resource_list, opts)?,
-                );
-            }
+            // ":gem" => {
+            //     ret.insert(
+            //         "gem".to_owned(),
+            //         gem::unpack_ensure_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":zfs" => {
+            //     ret.insert(
+            //         "zfs".to_owned(),
+            //         zfs::unpack_ensure_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":directory" => {
+            //     ret.insert(
+            //         "directory".to_owned(),
+            //         directory::unpack_ensure_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":file" => {
+            //     ret.insert(
+            //         "file".to_owned(),
+            //         file::unpack_ensure_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":cron" => {
+            //     ret.insert(
+            //         "cron".to_owned(),
+            //         cron::unpack_ensure_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":user" => {
+            //     ret.insert(
+            //         "user".to_owned(),
+            //         user::unpack_ensure_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":file-line" => {
+            //     ret.insert(
+            //         "file-line".to_owned(),
+            //         file_line::unpack_ensure_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":misc" => {
+            //     ret.insert(
+            //         "misc".to_owned(),
+            //         misc::unpack_ensure_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":smf" => {
+            //     ret.insert(
+            //         "smf".to_owned(),
+            //         smf::unpack_ensure_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":svc" => {
+            //     ret.insert(
+            //         "svc".to_owned(),
+            //         svc::unpack_ensure_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":symlink" => {
+            //     ret.insert(
+            //         "symlink".to_owned(),
+            //         symlink::unpack_ensure_list(&resource_list, opts)?,
+            //     );
+            // }
             other => tracing::warn!(
                 "{} resources are not implemented",
                 other.replacen(':', "", 1)
@@ -140,66 +135,66 @@ fn extract_remove_resources(
         );
 
         match resource_type.as_str() {
-            ":directory" => {
-                ret.insert(
-                    "directory".to_owned(),
-                    directory::unpack_remove_list(&resource_list, opts)?,
-                );
-            }
-            ":file" => {
-                ret.insert(
-                    "file".to_owned(),
-                    file::unpack_remove_list(&resource_list, opts)?,
-                );
-            }
-            ":zfs" => {
-                ret.insert(
-                    "zfs".to_owned(),
-                    zfs::unpack_remove_list(&resource_list, opts)?,
-                );
-            }
-            ":user" => {
-                ret.insert(
-                    "user".to_owned(),
-                    user::unpack_remove_list(&resource_list, opts)?,
-                );
-            }
-            ":pkg" => {
-                ret.insert(
-                    "pkg".to_owned(),
-                    pkg::unpack_remove_list(&resource_list, opts)?,
-                );
-            }
-            ":gem" => {
-                ret.insert(
-                    "gem".to_owned(),
-                    gem::unpack_remove_list(&resource_list, opts)?,
-                );
-            }
-            ":cron" => {
-                ret.insert(
-                    "cron".to_owned(),
-                    cron::unpack_remove_list(&resource_list, opts)?,
-                );
-            }
-            ":smf" => {
-                ret.insert(
-                    "smf".to_owned(),
-                    smf::unpack_remove_list(&resource_list, opts)?,
-                );
-            }
-            ":symlink" => {
-                ret.insert(
-                    "symlink".to_owned(),
-                    symlink::unpack_remove_list(&resource_list, opts)?,
-                );
-            }
-            ":file-line" => {
-                ret.insert(
-                    "file-line".to_owned(),
-                    file_line::unpack_remove_list(&resource_list, opts)?,
-                );
-            }
+            // ":directory" => {
+            //     ret.insert(
+            //         "directory".to_owned(),
+            //         directory::unpack_remove_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":file" => {
+            //     ret.insert(
+            //         "file".to_owned(),
+            //         file::unpack_remove_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":zfs" => {
+            //     ret.insert(
+            //         "zfs".to_owned(),
+            //         zfs::unpack_remove_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":user" => {
+            //     ret.insert(
+            //         "user".to_owned(),
+            //         user::unpack_remove_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":pkg" => {
+            //     ret.insert(
+            //         "pkg".to_owned(),
+            //         pkg::unpack_remove_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":gem" => {
+            //     ret.insert(
+            //         "gem".to_owned(),
+            //         gem::unpack_remove_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":cron" => {
+            //     ret.insert(
+            //         "cron".to_owned(),
+            //         cron::unpack_remove_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":smf" => {
+            //     ret.insert(
+            //         "smf".to_owned(),
+            //         smf::unpack_remove_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":symlink" => {
+            //     ret.insert(
+            //         "symlink".to_owned(),
+            //         symlink::unpack_remove_list(&resource_list, opts)?,
+            //     );
+            // }
+            // ":file-line" => {
+            //     ret.insert(
+            //         "file-line".to_owned(),
+            //         file_line::unpack_remove_list(&resource_list, opts)?,
+            //     );
+            // }
             other => tracing::warn!(
                 "{} resources are not implemented",
                 other.replacen(':', "", 1)

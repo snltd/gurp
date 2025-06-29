@@ -1,13 +1,8 @@
 use crate::common::constants::{
     NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
-use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
-use crate::utils::helpers;
-use crate::utils::janet_helpers::JanetExt;
-use anyhow::{Context, bail};
-use janetrs::{JanetArray, JanetKeyword};
-use paste::paste;
+use crate::common::types::{ApplyContext, ApplySummary, Opts };
+use serde::Deserialize;
 use std::process::Command;
 use std::sync::LazyLock;
 
@@ -16,28 +11,29 @@ use std::sync::LazyLock;
 // is it. Nothing else. `gem install` takes many options, and this code does not let the user
 // specify any of them, not even the version. It only uses the OmniOS system `gem`.
 
-const GEM_BIN: &str = "/opt/ooce/bin/gem";
-
-// A chunk of text from `gem list`.
-fn gem_output() -> anyhow::Result<String> {
-    let cmd = Command::new(GEM_BIN).arg("list").arg("-l").output()?;
-    Ok(String::from_utf8_lossy(&cmd.stdout).into_owned())
-}
-
 type GemName = String;
 type InstalledGems = Vec<GemName>;
+
+const GEM_BIN: &str = "/opt/ooce/bin/gem";
 
 static CURRENT_GEM_OUTPUT: LazyLock<String> =
     LazyLock::new(|| gem_output().expect("Could not get gem list"));
 
-pub struct GurpGem {
-    pub action: Action,
+#[derive(Debug, Deserialize)]
+pub struct GurpGemEnsure {
+    #[serde(rename = "_id")]
     pub id: String,
-    pub gem_list: Vec<String>,
+    pub name: GemName,
 }
 
-crate::impl_apply!(GurpGem);
+#[derive(Debug, Deserialize)]
+pub struct GurpGemRemove {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: GemName,
+}
 
+/*
 impl GurpGem {
     // Because they're all done in one shot, we consider any number of changes to be a
     // single change. You could _MAYBE_ justify this as saying "it's one change to the gem
@@ -171,6 +167,12 @@ pub fn unpack_remove_list(
         action: Action::Remove,
         gem_list: remove_list,
     })])
+}
+*/
+
+fn gem_output() -> anyhow::Result<String> {
+    let cmd = Command::new(GEM_BIN).arg("list").arg("-l").output()?;
+    Ok(String::from_utf8_lossy(&cmd.stdout).into_owned())
 }
 
 fn parse_gem_output(output: &str) -> InstalledGems {

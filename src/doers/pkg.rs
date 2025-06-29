@@ -1,13 +1,10 @@
 use crate::common::constants::{
     NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
 };
-use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
+use crate::common::types::{ApplyContext, ApplySummary, Opts};
 use crate::utils::helpers;
-use crate::utils::janet_helpers::JanetExt;
 use anyhow::{Context, bail};
-use janetrs::{JanetArray, JanetKeyword};
-use paste::paste;
+use serde::Deserialize;
 use std::process::Command;
 use std::sync::LazyLock;
 
@@ -23,24 +20,12 @@ use std::sync::LazyLock;
 // what can and cannot be done, so runs `pkg(1)` in the most efficient way
 // possible. `pkg(1)` is rather a slow tool.
 
-// A chunk of text from pkg(1). This is expensive, so do it once and parse the output twice.
-fn pkg_output() -> anyhow::Result<String> {
-    let cmd = Command::new(PKG_BIN)
-        .arg("list")
-        .arg("-aH")
-        .arg("-o")
-        .arg("name,flags")
-        .output()?;
-
-    Ok(String::from_utf8(cmd.stdout)?)
-}
+static CURRENT_PKG_OUTPUT: LazyLock<String> =
+    LazyLock::new(|| pkg_output().expect("Could not get pkg list"));
 
 const PKG_BIN: &str = "/bin/pkg";
 
 type PkgName = String;
-
-static CURRENT_PKG_OUTPUT: LazyLock<String> =
-    LazyLock::new(|| pkg_output().expect("Could not get pkg list"));
 
 // TODO this needs a better name
 struct GlobalPkgs {
@@ -48,14 +33,21 @@ struct GlobalPkgs {
     installed: Vec<PkgName>,
 }
 
-pub struct GurpPkg {
-    pub action: Action,
+#[derive(Debug, Deserialize)]
+pub struct GurpPkgEnsure {
+    #[serde(rename = "_id")]
     pub id: String,
-    pub pkg_list: Vec<String>,
+    pub name: PkgName,
 }
 
-crate::impl_apply!(GurpPkg);
+#[derive(Debug, Deserialize)]
+pub struct GurpPkgRemove {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: PkgName,
+}
 
+/*
 impl GurpPkg {
     // Because they're all done in one shot, we consider any number of package changes to be a
     // single change. You could _MAYBE_ justify this as saying "it's one change to the package
@@ -205,6 +197,19 @@ pub fn unpack_remove_list(
         action: Action::Remove,
         pkg_list: remove_list,
     })])
+}
+*/
+
+// A chunk of text from pkg(1). This is expensive, so do it once and parse the output twice.
+fn pkg_output() -> anyhow::Result<String> {
+    let cmd = Command::new(PKG_BIN)
+        .arg("list")
+        .arg("-aH")
+        .arg("-o")
+        .arg("name,flags")
+        .output()?;
+
+    Ok(String::from_utf8(cmd.stdout)?)
 }
 
 fn parse_pkg_output(output: &str) -> GlobalPkgs {

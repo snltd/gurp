@@ -1,13 +1,10 @@
 use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
-use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
+use crate::common::types::{ApplyContext, ApplySummary, Opts};
 use crate::utils::helpers;
-use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
 use anyhow::bail;
-use janetrs::{Janet, JanetArray};
-use paste::paste;
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
 use std::sync::LazyLock;
@@ -35,83 +32,63 @@ fn zfs_output() -> anyhow::Result<Vec<String>> {
         .collect())
 }
 
-pub struct GurpZfs {
-    pub action: Action,
-    pub exists: bool,
+#[derive(Debug, Deserialize)]
+pub struct GurpZfsEnsure {
+    #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
-    pub desired_state: Option<ZfsState>,
+    pub options: Option<ZfsState>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GurpZfsRemove {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
 }
 
 type ZfsState = HashMap<String, String>;
 
-impl TryFrom<&Janet> for GurpZfs {
-    type Error = anyhow::Error;
+fn zfs_state(name: &str) -> anyhow::Result<ZfsState> {
+    let mut ret = HashMap::new();
+    let mut cmd = Command::new(ZFS_BIN);
+    cmd.arg("get")
+        .arg("-pH")
+        .arg("-o")
+        .arg("property,value")
+        .arg("all")
+        .arg(name);
 
-    fn try_from(value: &Janet) -> anyhow::Result<Self> {
-        let data = value.extract_struct()?;
-        let action = janet_helpers::action_as_enum(&data)?;
-        let name = data.get_field_string("name")?;
-        let exists = CURRENT_ZFS_OUTPUT.contains(&name);
+    tracing::debug!(command = helpers::command_to_string(&cmd));
 
-        let state = match action {
-            Action::Ensure => {
-                let state_struct = data.get_field_struct("options")?;
-                Some(janet_helpers::struct_to_hash(&state_struct))
-            }
-            Action::Remove => None,
-        };
+    let result = cmd.output()?;
 
-        Ok(GurpZfs {
-            name,
-            id: data.get_field_string("_id")?,
-            action,
-            exists,
-            desired_state: state,
-        })
-    }
-}
+    for l in String::from_utf8_lossy(&result.stdout).lines() {
+        let bits: Vec<_> = l.split_whitespace().collect();
 
-crate::unpack_fn!(ensure_list, Zfs, GurpZfs);
-crate::unpack_fn!(remove_list, Zfs, GurpZfs);
-crate::impl_apply!(GurpZfs);
-
-impl GurpZfs {
-    fn current_state(&self) -> anyhow::Result<ZfsState> {
-        let mut ret = HashMap::new();
-        let mut cmd = Command::new(ZFS_BIN);
-        cmd.arg("get")
-            .arg("-pH")
-            .arg("-o")
-            .arg("property,value")
-            .arg("all")
-            .arg(&self.name);
-
-        tracing::debug!(command = helpers::command_to_string(&cmd));
-
-        let result = cmd.output()?;
-
-        for l in String::from_utf8_lossy(&result.stdout).lines() {
-            let bits: Vec<_> = l.split_whitespace().collect();
-
-            if bits.len() != 2 {
-                continue;
-            }
-
-            ret.insert(bits[0].to_owned(), bits[1].to_owned());
+        if bits.len() != 2 {
+            continue;
         }
 
-        Ok(ret)
+        ret.insert(bits[0].to_owned(), bits[1].to_owned());
     }
 
-    fn apply_ensure(
+    Ok(ret)
+}
+
+fn zfs_exists(name: &str) -> bool {
+    CURRENT_ZFS_OUTPUT.contains(&name.to_owned())
+}
+
+impl GurpZfsEnsure {
+    pub fn apply(
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
     ) -> anyhow::Result<ApplySummary> {
-        if self.exists {
-            if let Some(state) = self.desired_state.as_ref() {
-                let current_state = self.current_state()?;
+        if zfs_exists(&self.name) {
+            if let Some(state) = self.options.as_ref() {
+                let current_state = zfs_state(&self.name)?;
                 let mut run_cmd = false;
                 let mut cmd = Command::new(ZFS_BIN);
                 cmd.arg("set");
@@ -129,7 +106,7 @@ impl GurpZfs {
                                 desired_value,
                             );
                             run_cmd = true;
-                            cmd.arg(format!("{}={}", property, desired_value));
+                            cmd.arg(format!("{property}={desired_value}"));
                         }
                     }
                 }
@@ -157,34 +134,15 @@ impl GurpZfs {
         }
     }
 
-    fn apply_remove(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
-        if self.exists {
-            tracing::info!("removing filesystem: {}", self.name);
-
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                self.remove_filesystem()
-            }
-        } else {
-            tracing::debug!("not present: {}", self.name);
-            Ok(ONE_RESOURCE_NO_CHANGE)
-        }
-    }
-
     fn create_filesystem(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         tracing::info!("creating filesystem: {}", self.name);
 
         let mut cmd = Command::new(ZFS_BIN);
         cmd.arg("create");
 
-        for (property, value) in self.desired_state.as_ref().unwrap() {
+        for (property, value) in self.options.as_ref().unwrap() {
             cmd.arg("-o");
-            cmd.arg(format!("{}={}", property, value));
+            cmd.arg(format!("{property}={value}"));
         }
 
         if opts.noop {
@@ -203,6 +161,27 @@ impl GurpZfs {
             }
         } else {
             bail!(String::from_utf8_lossy(&output.stderr).into_owned())
+        }
+    }
+}
+
+impl GurpZfsRemove {
+    pub fn apply(
+        &self,
+        _apply_context: &ApplyContext,
+        opts: &Opts,
+    ) -> anyhow::Result<ApplySummary> {
+        if zfs_exists(&self.name) {
+            tracing::info!("removing filesystem: {}", self.name);
+
+            if opts.noop {
+                Ok(ONE_RESOURCE_NOOP)
+            } else {
+                self.remove_filesystem()
+            }
+        } else {
+            tracing::debug!("not present: {}", self.name);
+            Ok(ONE_RESOURCE_NO_CHANGE)
         }
     }
 

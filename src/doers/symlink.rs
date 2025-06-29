@@ -1,13 +1,10 @@
 use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
-use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
-use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
+use crate::common::types::{ApplyContext, ApplySummary, Opts};
 use anyhow::bail;
 use camino::Utf8PathBuf;
-use janetrs::{Janet, JanetArray};
-use paste::paste;
+use serde::Deserialize;
 use std::fmt::Debug;
 use std::fs;
 use std::os::unix;
@@ -15,51 +12,29 @@ use std::os::unix;
 // THINGS TO KNOW / THINGS TO DO.
 // Only does symbolic links.
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct GurpSymlink {
-    pub action: Action,
-    pub exists: bool,
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+pub struct GurpSymlinkEnsure {
+    #[serde(rename = "_id")]
     pub id: String,
     pub name: Utf8PathBuf, // The Path
-    pub source: Option<Utf8PathBuf>,
+    pub source: Utf8PathBuf,
 }
 
-impl TryFrom<&Janet> for GurpSymlink {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Janet) -> anyhow::Result<Self> {
-        let data = value.extract_struct()?;
-        let name = data.get_field_pathbuf("name")?;
-        let exists = name.exists();
-        let action = janet_helpers::action_as_enum(&data)?;
-
-        let source = match action {
-            Action::Ensure => Some(data.get_field_pathbuf("source")?),
-            Action::Remove => None,
-        };
-
-        Ok(GurpSymlink {
-            action,
-            exists,
-            id: data.get_field_string("_id")?,
-            name: data.get_field_pathbuf("name")?,
-            source,
-        })
-    }
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+pub struct GurpSymlinkRemove {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: Utf8PathBuf, // The Path
 }
 
-crate::unpack_fn!(ensure_list, Symlink, GurpSymlink);
-crate::unpack_fn!(remove_list, Symlink, GurpSymlink);
-crate::impl_apply!(GurpSymlink);
-
-impl GurpSymlink {
-    fn apply_ensure(
+impl GurpSymlinkEnsure {
+    pub fn apply(
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
     ) -> anyhow::Result<ApplySummary> {
         let target = &self.name;
-        let source = self.source.as_ref().unwrap();
+        let source = &self.source;
 
         if !source.exists() {
             bail!("source not found: {}", source);
@@ -98,13 +73,15 @@ impl GurpSymlink {
             bail!("{} exists and is not a symlink", &target);
         }
     }
+}
 
-    fn apply_remove(
+impl GurpSymlinkRemove {
+    pub fn apply(
         &self,
         _apply_context: &ApplyContext,
         opts: &Opts,
     ) -> anyhow::Result<ApplySummary> {
-        if self.exists {
+        if self.name.exists() {
             tracing::info!("removing symlink: {}", self.name);
             if opts.noop {
                 Ok(ONE_RESOURCE_NOOP)
@@ -121,25 +98,25 @@ impl GurpSymlink {
 
 #[cfg(test)]
 mod test {
-    use crate::test_utils::spec_helper::{defopts, defopts_noop};
-
     use super::*;
+    use crate::test_utils::spec_helper::{defopts, defopts_noop};
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use camino::Utf8PathBuf;
     use std::os::unix;
 
-    fn make_symlink(
-        action: Action,
-        name: &Utf8PathBuf,
-        source: Option<Utf8PathBuf>,
-    ) -> GurpSymlink {
-        GurpSymlink {
-            action,
-            exists: name.exists(),
+    fn make_ensure_symlink(name: &Utf8PathBuf, source: Utf8PathBuf) -> GurpSymlinkEnsure {
+        GurpSymlinkEnsure {
             id: "test-id".to_string(),
             name: name.clone(),
             source,
+        }
+    }
+
+    fn make_remove_symlink(name: &Utf8PathBuf) -> GurpSymlinkRemove {
+        GurpSymlinkRemove {
+            id: "test-id".to_string(),
+            name: name.clone(),
         }
     }
 
@@ -150,15 +127,12 @@ mod test {
         let dst = temp.child("dst");
         src.write_str("data").unwrap();
 
-        let symlink = make_symlink(
-            Action::Ensure,
+        let symlink = make_ensure_symlink(
             &Utf8PathBuf::from_path_buf(dst.path().to_path_buf()).unwrap(),
-            Some(Utf8PathBuf::from_path_buf(src.path().to_path_buf()).unwrap()),
+            Utf8PathBuf::from_path_buf(src.path().to_path_buf()).unwrap(),
         );
 
-        let result = symlink
-            .apply_ensure(&ApplyContext::default(), &defopts())
-            .unwrap();
+        let result = symlink.apply(&ApplyContext::default(), &defopts()).unwrap();
         assert_eq!(result, ONE_RESOURCE_ONE_CHANGE);
         assert!(dst.path().is_symlink());
     }
@@ -170,14 +144,13 @@ mod test {
         let dst = temp.child("dst");
         src.write_str("noop").unwrap();
 
-        let symlink = make_symlink(
-            Action::Ensure,
+        let symlink = make_ensure_symlink(
             &Utf8PathBuf::from_path_buf(dst.path().to_path_buf()).unwrap(),
-            Some(Utf8PathBuf::from_path_buf(src.path().to_path_buf()).unwrap()),
+            Utf8PathBuf::from_path_buf(src.path().to_path_buf()).unwrap(),
         );
 
         let result = symlink
-            .apply_ensure(&ApplyContext::default(), &defopts_noop())
+            .apply(&ApplyContext::default(), &defopts_noop())
             .unwrap();
         assert_eq!(result, ONE_RESOURCE_NOOP);
         assert!(!dst.path().exists());
@@ -191,15 +164,10 @@ mod test {
         src.write_str("x").unwrap();
         unix::fs::symlink(src.path(), dst.path()).unwrap();
 
-        let symlink = make_symlink(
-            Action::Remove,
-            &Utf8PathBuf::from_path_buf(dst.path().to_path_buf()).unwrap(),
-            None,
-        );
+        let symlink =
+            make_remove_symlink(&Utf8PathBuf::from_path_buf(dst.path().to_path_buf()).unwrap());
 
-        let result = symlink
-            .apply_remove(&ApplyContext::default(), &defopts())
-            .unwrap();
+        let result = symlink.apply(&ApplyContext::default(), &defopts()).unwrap();
         assert_eq!(result, ONE_RESOURCE_ONE_CHANGE);
         assert!(!dst.path().exists());
     }
@@ -209,15 +177,10 @@ mod test {
         let temp = TempDir::new().unwrap();
         let ghost = temp.child("ghost");
 
-        let symlink = make_symlink(
-            Action::Remove,
-            &Utf8PathBuf::from_path_buf(ghost.path().to_path_buf()).unwrap(),
-            None,
-        );
+        let symlink =
+            make_remove_symlink(&Utf8PathBuf::from_path_buf(ghost.path().to_path_buf()).unwrap());
 
-        let result = symlink
-            .apply_remove(&ApplyContext::default(), &defopts())
-            .unwrap();
+        let result = symlink.apply(&ApplyContext::default(), &defopts()).unwrap();
         assert_eq!(result, ONE_RESOURCE_NO_CHANGE);
     }
 }
