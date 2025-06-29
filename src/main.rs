@@ -73,7 +73,6 @@ fn main() -> anyhow::Result<()> {
     let global_opts = Opts {
         debug: cli.debug,
         noop: cli.noop,
-        verbose: cli.verbose,
         no_colour: cli.no_colour,
     };
 

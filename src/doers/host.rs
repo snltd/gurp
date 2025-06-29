@@ -37,7 +37,7 @@ pub fn apply(
     let formatted_json = match helpers::pretty_json(&json) {
         Ok(json) => json,
         Err(e) => {
-            tracing::error!("unable to process JSON. Raw JSON follows");
+            tracing::error!("JSON processing error: {}", e);
             tracing::error!(json);
             bail!("END");
         }
@@ -58,10 +58,10 @@ pub fn apply(
             let last_line = (line + 15).clamp(0, json_lines.len());
 
             for l in first_line..=last_line {
-                println!(" {} | {}", l + 1, json_lines.get(l).unwrap_or(&""));
+                println!(" {:4} | {}", l + 1, json_lines.get(l).unwrap_or(&""));
             }
 
-            bail!("END");
+            bail!("deserializing error end");
         }
     };
 

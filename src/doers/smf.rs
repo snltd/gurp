@@ -27,73 +27,11 @@ pub struct GurpSmfEnsure {
 }
 
 #[derive(Deserialize, Debug)]
-#[serde(rename_all = "kebab-case")]
 pub struct GurpSmfRemove {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
 }
-
-/*
-impl TryFrom<&Janet> for GurpSmf {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Janet) -> anyhow::Result<Self> {
-        let data = value.extract_struct()?;
-        let action = janet_helpers::action_as_enum(&data)?;
-        let name = data.get_field_string("name")?;
-
-        let state = match action {
-            Action::Ensure => Some(unpack_smf(&data)?),
-            Action::Remove => None,
-        };
-
-        Ok(GurpSmf {
-            action,
-            manifest_path: Utf8PathBuf::from(MANIFEST_DIR).join(format!("gurp-{}.xml", name)),
-            name,
-            id: data.get_field_string("_id")?,
-            desired_state: state,
-        })
-    }
-}
-*/
-/*
-fn unpack_smf_method(
-    data: &JanetStruct,
-    method: &str,
-) -> anyhow::Result<Option<SmfDefinitionExecMethod>> {
-    Ok(data.get_field_struct_opt(method).and_then(|m| {
-        Some(SmfDefinitionExecMethod {
-            exec: m.get_field_string("exec").ok()?,
-            timeout: m.get_field_u32("timeout").ok()?,
-            context: m.get_field_struct_opt("context").and_then(|c| {
-                Some(SmfDefinitionExecMethodContext {
-                    user: c.get_field_string("user").ok()?,
-                    group: c.get_field_string_opt("group"),
-                    privileges: c.get_field_string_opt("privileges"),
-                })
-            }),
-        })
-    }))
-}
-
-fn unpack_smf(data: &JanetStruct) -> anyhow::Result<SmfDefinition> {
-    Ok(SmfDefinition {
-        name: data.get_field_string("name")?,
-        description: data.get_field_string("description")?,
-        fmri: data.get_field_string("fmri")?,
-        single_instance: data.get_field_bool("single-instance")?,
-        default_enabled: data.get_field_bool("default-enabled")?,
-        start_method: unpack_smf_method(data, "start-method")?,
-        stop_method: unpack_smf_method(data, "stop-method")?,
-        refresh_method: unpack_smf_method(data, "refresh-method")?,
-    })
-}
-
-crate::unpack_fn!(ensure_list, Smf, GurpSmf, box);
-crate::unpack_fn!(remove_list, Smf, GurpSmf, box);
-*/
 
 impl GurpSmfEnsure {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
@@ -145,10 +83,6 @@ impl GurpSmfEnsure {
         svcs::run_svccfg("import", self.manifest_path().as_str())?;
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
-    }
-
-    fn apply_remove(&self, _opts: &Opts) -> anyhow::Result<ApplySummary> {
-        todo!()
     }
 
     fn manifest_path(&self) -> Utf8PathBuf {

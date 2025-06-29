@@ -18,7 +18,7 @@ pub fn fixture(file: &str) -> Utf8PathBuf {
 
 #[cfg(test)]
 pub fn load_fixture(file: &str) -> String {
-    fs::read_to_string(fixture(file)).unwrap_or_else(|_| panic!("Did not find {}", file))
+    fs::read_to_string(fixture(file)).unwrap_or_else(|_| panic!("Did not find {file}"))
 }
 
 #[cfg(test)]
@@ -26,7 +26,6 @@ pub fn defopts() -> Opts {
     Opts {
         debug: false,
         noop: false,
-        verbose: false,
         no_colour: true,
     }
 }
@@ -36,7 +35,6 @@ pub fn defopts_noop() -> Opts {
     Opts {
         debug: false,
         noop: true,
-        verbose: false,
         no_colour: true,
     }
 }
@@ -60,27 +58,3 @@ pub fn my_user() -> String {
 pub fn my_group() -> String {
     Group::from_gid(getgid()).unwrap().unwrap().name
 }
-
-// #[cfg(test)]
-// use assert_fs::TempDir;
-// #[cfg(test)]
-// use camino::Utf8Path;
-
-// #[allow(dead_code)]
-// #[cfg(test)]
-// pub trait TempDirExt {
-//     fn utf8_path(&self) -> &Utf8Path;
-// }
-
-// #[cfg(test)]
-// impl TempDirExt for TempDir {
-//     fn utf8_path(&self) -> &Utf8Path {
-//         Utf8Path::from_path(self.path()).unwrap()
-//     }
-// }
-
-// #[allow(dead_code)]
-// pub fn files_in_dir(dir: &Path) -> usize {
-//     let files: Vec<_> = dir.read_dir().unwrap().collect();
-//     files.len()
-// }
