@@ -32,4 +32,5 @@
                                     :user "telegraf"}
                           :exec "/opt/site/lib/smf/method/telegraf.sh"
                           :timeout 60}
-           :stop-method {:exec ":kill" :timeout 10}}}))
+           :stop-method {:exec ":kill" :timeout 10}
+           :svc-name "telegraf"}}))
