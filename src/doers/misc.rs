@@ -1,7 +1,7 @@
 use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
 };
-use crate::common::types::{ApplyContext, ApplySummary, Opts};
+use crate::common::types::{ApplySummary, Opts};
 use crate::utils::helpers;
 use anyhow::{anyhow, bail};
 use serde::Deserialize;
@@ -37,7 +37,7 @@ type Username = String;
 type SchedulerClass = String;
 
 impl GurpMiscEnsure {
-    pub fn apply(&self, _c: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let mut aggr = ApplySummary::default();
 
         if let Some(domain) = &self.desired_state.nfs_domain {

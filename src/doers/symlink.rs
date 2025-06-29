@@ -1,7 +1,7 @@
 use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
-use crate::common::types::{ApplyContext, ApplySummary, Opts};
+use crate::common::types::{ApplySummary, Opts};
 use anyhow::bail;
 use camino::Utf8PathBuf;
 use serde::Deserialize;
@@ -16,7 +16,8 @@ use std::os::unix;
 pub struct GurpSymlinkEnsure {
     #[serde(rename = "_id")]
     pub id: String,
-    pub name: Utf8PathBuf, // The Path
+    #[serde(rename = "name")]
+    pub path: Utf8PathBuf,
     pub source: Utf8PathBuf,
 }
 
@@ -24,16 +25,13 @@ pub struct GurpSymlinkEnsure {
 pub struct GurpSymlinkRemove {
     #[serde(rename = "_id")]
     pub id: String,
-    pub name: Utf8PathBuf, // The Path
+    #[serde(rename = "name")]
+    pub path: Utf8PathBuf,
 }
 
 impl GurpSymlinkEnsure {
-    pub fn apply(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
-        let target = &self.name;
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        let target = &self.path;
         let source = &self.source;
 
         if !source.exists() {
@@ -52,7 +50,7 @@ impl GurpSymlinkEnsure {
         } else if target.is_symlink() {
             let current_source = target.read_link_utf8()?;
             if current_source == *source {
-                tracing::info!("no change: {}", self.name);
+                tracing::info!("no change: {}", self.path);
                 Ok(ONE_RESOURCE_NO_CHANGE)
             } else {
                 tracing::info!(
@@ -76,21 +74,17 @@ impl GurpSymlinkEnsure {
 }
 
 impl GurpSymlinkRemove {
-    pub fn apply(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
-        if self.name.exists() {
-            tracing::info!("removing symlink: {}", self.name);
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if self.path.exists() {
+            tracing::info!("removing symlink: {}", self.path);
             if opts.noop {
                 Ok(ONE_RESOURCE_NOOP)
             } else {
-                fs::remove_file(&self.name)?;
+                fs::remove_file(&self.path)?;
                 Ok(ONE_RESOURCE_ONE_CHANGE)
             }
         } else {
-            tracing::debug!("not present: {}", self.name);
+            tracing::debug!("not present: {}", self.path);
             Ok(ONE_RESOURCE_NO_CHANGE)
         }
     }
@@ -108,7 +102,7 @@ mod test {
     fn make_ensure_symlink(name: &Utf8PathBuf, source: Utf8PathBuf) -> GurpSymlinkEnsure {
         GurpSymlinkEnsure {
             id: "test-id".to_string(),
-            name: name.clone(),
+            path: name.clone(),
             source,
         }
     }
@@ -116,7 +110,7 @@ mod test {
     fn make_remove_symlink(name: &Utf8PathBuf) -> GurpSymlinkRemove {
         GurpSymlinkRemove {
             id: "test-id".to_string(),
-            name: name.clone(),
+            path: name.clone(),
         }
     }
 
@@ -132,7 +126,7 @@ mod test {
             Utf8PathBuf::from_path_buf(src.path().to_path_buf()).unwrap(),
         );
 
-        let result = symlink.apply(&ApplyContext::default(), &defopts()).unwrap();
+        let result = symlink.apply(&defopts()).unwrap();
         assert_eq!(result, ONE_RESOURCE_ONE_CHANGE);
         assert!(dst.path().is_symlink());
     }
@@ -149,9 +143,7 @@ mod test {
             Utf8PathBuf::from_path_buf(src.path().to_path_buf()).unwrap(),
         );
 
-        let result = symlink
-            .apply(&ApplyContext::default(), &defopts_noop())
-            .unwrap();
+        let result = symlink.apply(&defopts_noop()).unwrap();
         assert_eq!(result, ONE_RESOURCE_NOOP);
         assert!(!dst.path().exists());
     }
@@ -167,7 +159,7 @@ mod test {
         let symlink =
             make_remove_symlink(&Utf8PathBuf::from_path_buf(dst.path().to_path_buf()).unwrap());
 
-        let result = symlink.apply(&ApplyContext::default(), &defopts()).unwrap();
+        let result = symlink.apply(&defopts()).unwrap();
         assert_eq!(result, ONE_RESOURCE_ONE_CHANGE);
         assert!(!dst.path().exists());
     }
@@ -180,7 +172,7 @@ mod test {
         let symlink =
             make_remove_symlink(&Utf8PathBuf::from_path_buf(ghost.path().to_path_buf()).unwrap());
 
-        let result = symlink.apply(&ApplyContext::default(), &defopts()).unwrap();
+        let result = symlink.apply(&defopts()).unwrap();
         assert_eq!(result, ONE_RESOURCE_NO_CHANGE);
     }
 }

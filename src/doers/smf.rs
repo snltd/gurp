@@ -2,7 +2,7 @@ use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
 use crate::common::svcs;
-use crate::common::types::{ApplyContext, ApplySummary, Opts, SmfDefinition};
+use crate::common::types::{ApplySummary, Opts, SmfDefinition};
 use crate::debug;
 use crate::utils::helpers;
 use crate::utils::smf_builder;
@@ -96,11 +96,7 @@ crate::unpack_fn!(remove_list, Smf, GurpSmf, box);
 */
 
 impl GurpSmfEnsure {
-    pub fn apply(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let new_manifest = smf_builder::make_manifest(&self.desired_state);
         let manifest_path = &self.manifest_path();
 
@@ -151,16 +147,18 @@ impl GurpSmfEnsure {
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
-    fn apply_remove(
-        &self,
-        _apply_context: &ApplyContext,
-        _opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
+    fn apply_remove(&self, _opts: &Opts) -> anyhow::Result<ApplySummary> {
         todo!()
     }
 
     fn manifest_path(&self) -> Utf8PathBuf {
         Utf8PathBuf::from(MANIFEST_DIR).join(format!("gurp-{}.xml", &self.name))
+    }
+}
+
+impl GurpSmfRemove {
+    pub fn apply(&self, _opts: &Opts) -> anyhow::Result<ApplySummary> {
+        todo!()
     }
 }
 

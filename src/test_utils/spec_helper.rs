@@ -1,10 +1,6 @@
 #[cfg(test)]
-use crate::common::types::ApplyContext;
-#[cfg(test)]
 use crate::common::types::Opts;
 use camino::Utf8PathBuf;
-#[cfg(test)]
-use std::collections::HashSet;
 use std::env::current_dir;
 
 #[cfg(test)]
@@ -42,13 +38,6 @@ pub fn defopts_noop() -> Opts {
         noop: true,
         verbose: false,
         no_colour: true,
-    }
-}
-
-#[cfg(test)]
-pub fn defcontext() -> ApplyContext {
-    ApplyContext {
-        changed_ids: HashSet::new(),
     }
 }
 

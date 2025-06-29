@@ -1,7 +1,7 @@
 use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
-use crate::common::types::{ApplyContext, ApplySummary, Opts};
+use crate::common::types::{ApplySummary, Opts};
 use crate::utils::helpers;
 use anyhow::bail;
 use serde::Deserialize;
@@ -81,11 +81,7 @@ fn zfs_exists(name: &str) -> bool {
 }
 
 impl GurpZfsEnsure {
-    pub fn apply(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         if zfs_exists(&self.name) {
             if let Some(state) = self.options.as_ref() {
                 let current_state = zfs_state(&self.name)?;
@@ -166,11 +162,7 @@ impl GurpZfsEnsure {
 }
 
 impl GurpZfsRemove {
-    pub fn apply(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         if zfs_exists(&self.name) {
             tracing::info!("removing filesystem: {}", self.name);
 

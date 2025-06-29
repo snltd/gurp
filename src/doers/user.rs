@@ -2,7 +2,7 @@ use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
     PROTECTED_USERS,
 };
-use crate::common::types::{ApplyContext, ApplySummary, Changes, Opts};
+use crate::common::types::{ApplySummary, Changes, Opts};
 use crate::utils::helpers;
 use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
@@ -55,11 +55,7 @@ pub struct GurpUserRemove {
 }
 
 impl GurpUserEnsure {
-    pub fn apply(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         if !user_exists(&self.name)? {
             tracing::info!("creating user: {}", self.name);
             return self.create(opts);
@@ -302,11 +298,7 @@ impl GurpUserEnsure {
 }
 
 impl GurpUserRemove {
-    pub fn apply(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         if user_exists(&self.name)? {
             if PROTECTED_USERS.contains(&self.name.as_str()) {
                 tracing::warn!("protected resource: {}", self.name);

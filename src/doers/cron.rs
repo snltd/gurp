@@ -1,7 +1,7 @@
 use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
-use crate::common::types::{ApplyContext, ApplySummary, Opts};
+use crate::common::types::{ApplySummary, Opts};
 use crate::utils::helpers;
 use anyhow::bail;
 use serde::Deserialize;
@@ -45,11 +45,7 @@ pub struct GurpCronRemove {
 }
 
 impl GurpCronEnsure {
-    pub fn apply(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let content = current_crontab(&self.name)?;
         match self.ensured_crontab(&content)? {
             Some(new_crontab) => {
@@ -110,11 +106,7 @@ impl GurpCronEnsure {
 }
 
 impl GurpCronRemove {
-    pub fn apply(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let content = current_crontab(&self.name)?;
         match self.removed_crontab(&content)? {
             // If you try to write an empty file, crontab(1) will reject it. If we take out the
@@ -167,9 +159,7 @@ impl GurpCronRemove {
         }
 
         if changed {
-            Ok(Some(
-                new_crontab.iter().map(|l| format!("{}\n", l)).collect(),
-            ))
+            Ok(Some(new_crontab.iter().map(|l| format!("{l}\n")).collect()))
         } else {
             Ok(None)
         }

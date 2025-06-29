@@ -2,7 +2,7 @@ use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
 use crate::common::svcs;
-use crate::common::types::{ApplyContext, ApplySummary, Opts};
+use crate::common::types::{ApplySummary, ChangedIds, Opts};
 use serde::Deserialize;
 use std::collections::HashSet;
 
@@ -22,13 +22,12 @@ pub struct GurpSvcEnsure {
 }
 
 impl GurpSvcEnsure {
-    pub fn apply(&self, apply_context: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, changed_ids: &ChangedIds, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let current_state = svcs::current_state(&self.name)?;
 
         tracing::debug!(
             "changed resources: {}",
-            apply_context
-                .changed_ids
+            changed_ids
                 .iter()
                 .map(|s| s.as_str())
                 .collect::<Vec<_>>()
@@ -36,7 +35,7 @@ impl GurpSvcEnsure {
         );
 
         if current_state == self.desired_state {
-            if !apply_context.changed_ids.is_disjoint(&self.restarters) {
+            if !changed_ids.is_disjoint(&self.restarters) {
                 tracing::info!("{}: restarting service", self.name);
                 if opts.noop {
                     Ok(ONE_RESOURCE_NOOP)
@@ -44,7 +43,7 @@ impl GurpSvcEnsure {
                     svcs::run_svcadm(&self.name, "restart")?;
                     Ok(ONE_RESOURCE_ONE_CHANGE)
                 }
-            } else if !apply_context.changed_ids.is_disjoint(&self.reloaders) {
+            } else if !changed_ids.is_disjoint(&self.reloaders) {
                 tracing::info!("{}: reloading service", self.name);
                 if opts.noop {
                     Ok(ONE_RESOURCE_NOOP)

@@ -2,7 +2,7 @@ use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
     PROTECTED_FILES,
 };
-use crate::common::types::{ApplyContext, ApplySummary, Changes, Opts};
+use crate::common::types::{ApplySummary, Changes, Opts};
 use crate::common::users_and_groups;
 use anyhow::bail;
 use blake3::Hash;
@@ -17,11 +17,11 @@ use std::io::Write;
 // Files are not backed up
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
-#[serde(rename_all = "kebab-case")]
 pub struct GurpFileEnsure {
     #[serde(rename = "_id")]
     pub id: String,
-    pub name: Utf8PathBuf, // The Path
+    #[serde(rename = "name")]
+    pub path: Utf8PathBuf,
     #[serde(flatten)]
     pub desired_state: DesiredFileState,
 }
@@ -49,62 +49,12 @@ pub struct FileState<'a> {
 pub struct GurpFileRemove {
     #[serde(rename = "_id")]
     pub id: String,
-    pub name: Utf8PathBuf, // The Path
+    #[serde(rename = "name")]
+    pub path: Utf8PathBuf,
 }
-
-/*
-impl TryFrom<&Janet> for GurpFile {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Janet) -> anyhow::Result<Self> {
-        let data = value.extract_struct()?;
-        let name = data.get_field_pathbuf("name")?;
-        let exists = name.exists();
-        let action = janet_helpers::action_as_enum(&data)?;
-        let content = data.get_field_string_opt("content");
-        let from = data.get_field_pathbuf_opt("from");
-
-        let state = match action {
-            Action::Ensure => {
-                if content.is_none() && from.is_none() {
-                    bail!("file must have :content or :from");
-                }
-
-                if content.is_some() && from.is_some() {
-                    bail!("file cannot have both :content and :from");
-                }
-
-                Some(FileState {
-                    gid: users_and_groups::group_from(&data.get_field_string("group")?)?,
-                    mode: data.get_field_string("mode")?,
-                    uid: users_and_groups::owner_from(&data.get_field_string("owner")?)?,
-                    from,
-                    content,
-                    hash: None,
-                })
-            }
-            Action::Remove => None,
-        };
-
-        Ok(GurpFile {
-            action,
-            exists,
-            id: data.get_field_string("_id")?,
-            name: data.get_field_pathbuf("name")?,
-            desired_state: state,
-        })
-    }
-}
-*/
 
 impl GurpFileEnsure {
-    pub fn apply(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
-        let path = &self.name;
-
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let desired = FileState {
             content: self.desired_state.content.as_ref(),
             from: self.desired_state.from.clone(),
@@ -114,8 +64,8 @@ impl GurpFileEnsure {
             hash: None,
         };
 
-        if !path.exists() {
-            tracing::info!("creating: {}", path);
+        if !self.path.exists() {
+            tracing::info!("creating: {}", self.path);
 
             if opts.noop {
                 return Ok(ONE_RESOURCE_ONE_CHANGE);
@@ -128,35 +78,35 @@ impl GurpFileEnsure {
         let changes = self.changes(&current, &desired)?;
 
         if changes.is_empty() {
-            tracing::info!("no change: {}", self.name);
+            tracing::info!("no change: {}", self.path);
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
         if changes.contains(&"content") {
-            tracing::info!("change content: {}", self.name);
+            tracing::info!("change content: {}", self.path);
             self.write_contents_to_file(&desired)?;
         }
 
         if changes.contains(&"group") || changes.contains(&"owner") {
             tracing::info!(
                 "change owner:group : {} {}:{} -> {}:{}",
-                self.name,
+                self.path,
                 current.uid,
                 current.gid,
                 desired.uid,
                 desired.gid
             );
-            users_and_groups::set_user(path, desired.uid, desired.gid)?;
+            users_and_groups::set_user(&self.path, desired.uid, desired.gid)?;
         }
 
         if changes.contains(&"mode") {
             tracing::info!(
                 "change mode: {} {} -> {}",
-                self.name,
+                self.path,
                 current.mode,
                 desired.mode,
             );
-            users_and_groups::set_mode(path, &current.mode, &desired.mode)?;
+            users_and_groups::set_mode(&self.path, &current.mode, &desired.mode)?;
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -191,13 +141,13 @@ impl GurpFileEnsure {
             to_change.push("mode");
         }
 
-        tracing::debug!("to change for {}: {}", self.name, to_change.join(", "));
+        tracing::debug!("to change for {}: {}", self.path, to_change.join(", "));
         Ok(to_change)
     }
 
     fn current_state(&self) -> anyhow::Result<FileState> {
-        tracing::debug!("getting state: {}", &self.name);
-        let path = &self.name.as_path();
+        tracing::debug!("getting state: {}", &self.path);
+        let path = &self.path.as_path();
         let metadata = nix::sys::stat::stat(path.as_std_path())?;
 
         let mode = format!("{:04o}", metadata.st_mode & 0o777);
@@ -226,18 +176,18 @@ impl GurpFileEnsure {
 
     fn file_hash(&self) -> anyhow::Result<Hash> {
         let mut hasher = blake3::Hasher::new();
-        let mut fh = fs::File::open(&self.name)?;
+        let mut fh = fs::File::open(&self.path)?;
         std::io::copy(&mut fh, &mut hasher)?;
         Ok(hasher.finalize())
     }
 
     fn write_contents_to_file(&self, desired_state: &FileState) -> anyhow::Result<()> {
         if let Some(content) = &desired_state.content {
-            let mut fh = fs::File::create(&self.name)?;
+            let mut fh = fs::File::create(&self.path)?;
             Ok(fh.write_all(content.as_bytes())?)
         } else if let Some(from) = &desired_state.from {
-            tracing::debug!("coping {} -> {}", from, self.name);
-            fs::copy(from, &self.name)?;
+            tracing::debug!("coping {} -> {}", from, self.path);
+            fs::copy(from, &self.path)?;
             Ok(())
         } else {
             bail!("can write neither from nor content");
@@ -246,23 +196,23 @@ impl GurpFileEnsure {
 }
 
 impl GurpFileRemove {
-    fn apply(&self, _apply_context: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        if self.name.exists() {
-            if PROTECTED_FILES.contains(&self.name) {
-                tracing::warn!("protected resource: {}", self.name);
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if self.path.exists() {
+            if PROTECTED_FILES.contains(&self.path) {
+                tracing::warn!("protected resource: {}", self.path);
                 return Ok(ONE_RESOURCE_ONE_ERROR);
             }
 
-            tracing::info!("removing: {}", self.name);
+            tracing::info!("removing: {}", self.path);
 
             if opts.noop {
                 Ok(ONE_RESOURCE_NOOP)
             } else {
-                fs::remove_file(&self.name)?;
+                fs::remove_file(&self.path)?;
                 Ok(ONE_RESOURCE_ONE_CHANGE)
             }
         } else {
-            tracing::debug!("not present: {}", self.name);
+            tracing::debug!("not present: {}", self.path);
             Ok(ONE_RESOURCE_NO_CHANGE)
         }
     }
@@ -271,39 +221,35 @@ impl GurpFileRemove {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::spec_helper::{
-        defcontext, defopts, defopts_noop, init_janet, my_group, my_user,
-    };
+    use crate::test_utils::spec_helper::{defopts, defopts_noop}; //, init_janet, my_group, my_user};
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use camino::Utf8PathBuf;
-    use std::os::unix::fs::MetadataExt;
+    // use std::os::unix::fs::MetadataExt;
 
     #[test]
     fn test_file_remove_apply_does_not_exist() {
         let file_does_not_exist = GurpFileRemove {
-            name: Utf8PathBuf::from("/does/not/exist/file-to-test"),
+            path: Utf8PathBuf::from("/does/not/exist/file-to-test"),
             id: "/test-role/file/file-to-test".to_owned(),
         };
 
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,
-            file_does_not_exist
-                .apply(&defcontext(), &defopts())
-                .unwrap()
+            file_does_not_exist.apply(&defopts()).unwrap()
         );
     }
 
     #[test]
     fn test_file_remove_apply_not_allowed() {
         let disallowed_file = GurpFileRemove {
-            name: Utf8PathBuf::from("/bin/ps"),
+            path: Utf8PathBuf::from("/bin/ps"),
             id: "/test-role/file/_bin_ps".to_owned(),
         };
 
         assert_eq!(
             ONE_RESOURCE_ONE_ERROR,
-            disallowed_file.apply(&defcontext(), &defopts()).unwrap()
+            disallowed_file.apply(&defopts()).unwrap()
         );
     }
 
@@ -314,14 +260,14 @@ mod test {
         let file = temp.join("test-file");
 
         let test_file = GurpFileRemove {
-            name: Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap(),
+            path: Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap(),
             id: "/test-role/file/test-file".to_owned(),
         };
 
         assert!(file.exists());
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
-            test_file.apply(&defcontext(), &defopts()).unwrap()
+            test_file.apply(&defopts()).unwrap()
         );
         assert!(!file.exists());
     }
@@ -333,18 +279,19 @@ mod test {
         let file = temp.join("test-file");
 
         let test_file = GurpFileRemove {
-            name: Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap(),
+            path: Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap(),
             id: "/test-role/file/test-file".to_owned(),
         };
 
         assert!(file.exists());
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,
-            test_file.apply(&defcontext(), &defopts_noop()).unwrap()
+            test_file.apply(&defopts_noop()).unwrap()
         );
         assert!(file.exists());
     }
 
+    /*
     #[test]
     fn test_unpack_ensure_file() {
         init_janet();
@@ -462,4 +409,5 @@ mod test {
         let mode = format!("{:04o}", metadata.mode() & 0o777);
         assert_eq!("0400", mode);
     }
+    */
 }

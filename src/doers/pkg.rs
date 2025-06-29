@@ -1,9 +1,7 @@
-use crate::common::constants::{
-    NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
-};
-use crate::common::types::{ApplyContext, ApplySummary, Opts};
+use crate::common::constants::NO_RESOURCES_TO_CHANGE;
+use crate::common::types::{ApplySummary, Opts};
 use crate::utils::helpers;
-use anyhow::{Context, bail};
+use anyhow::bail;
 use serde::Deserialize;
 use std::process::Command;
 use std::sync::LazyLock;
@@ -27,7 +25,6 @@ const PKG_BIN: &str = "/bin/pkg";
 
 type PkgName = String;
 
-// TODO this needs a better name
 struct GlobalPkgs {
     available: Vec<PkgName>,
     installed: Vec<PkgName>,
@@ -35,35 +32,44 @@ struct GlobalPkgs {
 
 #[derive(Debug, Deserialize)]
 pub struct GurpPkgEnsure {
-    #[serde(rename = "_id")]
-    pub id: String,
     pub name: PkgName,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct GurpPkgRemove {
-    #[serde(rename = "_id")]
-    pub id: String,
     pub name: PkgName,
 }
 
-/*
-impl GurpPkg {
-    // Because they're all done in one shot, we consider any number of package changes to be a
-    // single change. You could _MAYBE_ justify this as saying "it's one change to the package
-    // state" but I know in my heart that's cheating. I might make it smarter in the future.
-    //
-    fn apply_ensure(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
-        if self.pkg_list.is_empty() {
-            tracing::info!("no change");
-            return Ok(NO_RESOURCES_TO_CHANGE);
+type EnsureList = Vec<GurpPkgEnsure>;
+type RemoveList = Vec<GurpPkgRemove>;
+
+pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    let resources = pkg_list.len() as u32;
+    let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
+    let pkg_names: Vec<_> = pkg_list.iter().map(|r| &r.name).collect();
+    let mut install_list = Vec::new();
+
+    for pkg in &pkg_names {
+        if global_pkgs.installed.contains(pkg) {
+            tracing::debug!("already installed: {}", pkg);
+            continue;
         }
 
-        tracing::info!("installing: {}", self.pkg_list.join(", "));
+        if global_pkgs.available.contains(pkg) {
+            tracing::debug!("scheduled for install: {}", pkg);
+            install_list.push(pkg.as_str());
+        } else {
+            tracing::warn!("not available: {}", pkg);
+        }
+    }
+
+    tracing::debug!("ensure pkg list: {}", install_list.join(" "));
+
+    if install_list.is_empty() {
+        tracing::info!("no packages to install");
+        Ok(NO_RESOURCES_TO_CHANGE)
+    } else {
+        tracing::info!("installing: {}", install_list.join(", "));
 
         let mut cmd = Command::new(PKG_BIN);
         cmd.arg("install");
@@ -72,14 +78,18 @@ impl GurpPkg {
             cmd.arg("-n");
         }
 
-        cmd.args(&self.pkg_list);
+        cmd.args(&install_list);
         tracing::debug!(command = helpers::command_to_string(&cmd));
         let output = cmd.output()?;
 
         if output.status.success() {
-            Ok(ONE_RESOURCE_ONE_CHANGE)
+            Ok(ApplySummary {
+                resources,
+                errors: 0,
+                changes: install_list.len() as u32,
+            })
         } else {
-            // It doesn't always write to stderr on an error
+            // pkg doesn't always write to stderr on an error
             let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
 
             let error_message = if stderr.is_empty() {
@@ -97,18 +107,29 @@ impl GurpPkg {
             bail!(error_message)
         }
     }
+}
 
-    fn apply_remove(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
-        if self.pkg_list.is_empty() {
-            tracing::info!("no change");
-            return Ok(NO_RESOURCES_TO_CHANGE);
+pub fn collect_and_remove(pkg_list: &RemoveList, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    let resources = pkg_list.len() as u32;
+    let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
+    let pkg_names: Vec<_> = pkg_list.iter().map(|r| &r.name).collect();
+    let mut remove_list = Vec::new();
+
+    for pkg in pkg_names {
+        if global_pkgs.installed.contains(pkg) {
+            tracing::debug!("scheduled for removal: {}", pkg);
+            remove_list.push(pkg.as_str());
+        } else {
+            tracing::debug!("not present: {}", pkg);
+            continue;
         }
+    }
 
-        tracing::info!("removing: {}", self.pkg_list.join(", "));
+    if remove_list.is_empty() {
+        tracing::info!("no packages to remove");
+        Ok(NO_RESOURCES_TO_CHANGE)
+    } else {
+        tracing::info!("removing: {}", remove_list.join(", "));
 
         let mut cmd = Command::new(PKG_BIN);
         cmd.arg("uninstall");
@@ -118,89 +139,36 @@ impl GurpPkg {
             cmd.arg("-n");
         }
 
-        cmd.args(&self.pkg_list);
+        cmd.args(&remove_list);
         tracing::debug!(command = helpers::command_to_string(&cmd));
-        let result = cmd.status()?;
+        let output = cmd.output()?;
 
-        if result.success() {
-            Ok(ONE_RESOURCE_ONE_CHANGE)
+        if output.status.success() {
+            Ok(ApplySummary {
+                resources,
+                errors: 0,
+                changes: remove_list.len() as u32,
+            })
         } else {
-            Ok(ONE_RESOURCE_ONE_ERROR)
-        }
-    }
-}
+            let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
 
-// Receive a list of pkgs, but return a single element vec which will be applied.
-pub fn unpack_ensure_list(
-    resource_list: &JanetArray,
-    _opts: &Opts,
-) -> anyhow::Result<Vec<Resource>> {
-    let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
-    let mut install_list = Vec::new();
-
-    for candidate in resource_list {
-        let candidate_struct = candidate
-            .extract_struct()
-            .context("Failed to extract package struct")?;
-        let name = candidate_struct
-            .get(JanetKeyword::from("name"))
-            .context("Package struct missing 'name' field")?
-            .to_string();
-
-        if global_pkgs.installed.contains(&name) {
-            tracing::debug!("already installed: {}", name);
-            continue;
-        }
-
-        if global_pkgs.available.contains(&name) {
-            tracing::debug!("scheduled for install: {}", name);
-            install_list.push(name);
-        } else {
-            tracing::warn!("not available: {}", name);
-        }
-    }
-
-    tracing::debug!("ensure pkg list: {}", install_list.join(" "));
-
-    Ok(vec![Resource::Pkg(GurpPkg {
-        id: "/aggr/pkg/all".to_owned(),
-        action: Action::Ensure,
-        pkg_list: install_list,
-    })])
-}
-
-// Receive a list of pkgs, but return a single element vec which will be applied.
-pub fn unpack_remove_list(
-    resource_list: &JanetArray,
-    _opts: &Opts,
-) -> anyhow::Result<Vec<Resource>> {
-    let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
-
-    let mut remove_list = Vec::new();
-
-    for candidate_struct in resource_list {
-        let candidate_struct = candidate_struct.extract_struct()?;
-        if let Some(candidate) = candidate_struct.get(JanetKeyword::from("name")) {
-            let candidate = candidate.unwrap().to_string();
-
-            if global_pkgs.installed.contains(&candidate) {
-                tracing::debug!("scheduled for removal: {}", candidate);
-                remove_list.push(candidate);
+            let error_message = if stderr.is_empty() {
+                let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+                stdout
+                    .lines()
+                    .collect::<Vec<_>>()
+                    .last()
+                    .map_or("no output", |v| v)
+                    .to_owned()
             } else {
-                tracing::debug!("not installed: {}", candidate);
-            }
+                stderr.to_owned()
+            };
+
+            bail!(error_message)
         }
     }
-
-    Ok(vec![Resource::Pkg(GurpPkg {
-        id: "/aggr/pkg/all".to_owned(),
-        action: Action::Remove,
-        pkg_list: remove_list,
-    })])
 }
-*/
 
-// A chunk of text from pkg(1). This is expensive, so do it once and parse the output twice.
 fn pkg_output() -> anyhow::Result<String> {
     let cmd = Command::new(PKG_BIN)
         .arg("list")
