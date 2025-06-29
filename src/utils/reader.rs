@@ -27,39 +27,36 @@ pub fn read_and_enrich_host_config(
 
     let host_config_dir = qualified_path
         .parent()
-        .context(format!("cannot find parent of {}", host_file_path))?;
+        .context(format!("cannot find parent of {host_file_path}"))?;
 
     let gurp_lib = match gurp_lib_path {
         Some(path) => &load_lib_from_disk(path)?,
         None => GURP_LIB,
     };
 
-    let mut ret = format!("(setdyn *syspath* \"{}\")\n\n", host_config_dir);
+    let mut ret = format!("(setdyn *syspath* \"{host_config_dir}\")\n\n");
     ret.push_str(&format!(
-        "(setdyn :gurp-config-root \"{}\")\n\n",
-        host_config_dir
+        "(setdyn :gurp-config-root \"{host_config_dir}\")\n\n"
     ));
     ret.push_str(GURP_DEFAULTS);
     ret.push_str(
         gurp_lib
             .lines()
             .skip(1)
-            .map(|s| format!("{}\n", s).to_owned())
+            .map(|s| format!("{s}\n").to_owned())
             .collect::<String>()
             .as_str(),
     );
     ret.push('\n');
     ret.push_str(&janet_host_config);
 
-    // if compile_only {
-    //     if opts.no_colour {
-    //         ret.push_str("\n(prinf \"%m\" (machine-config))");
-    //     } else {
-    //         ret.push_str("\n(prinf \"%M\" (machine-config))");
-    //     }
-    // } else {
-    //     // ret.push_str("\n(run-machine-configuration (machine-config))");
-    // }
+    if compile_only {
+        if opts.no_colour {
+            ret.push_str("\n(prinf \"%m\" (machine-config))");
+        } else {
+            ret.push_str("\n(prinf \"%M\" (machine-config))");
+        }
+    }
 
     Ok(ret)
 }

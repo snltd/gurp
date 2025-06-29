@@ -17,10 +17,10 @@ const MANIFEST_DIR: &str = "/opt/site/lib/smf/manifest";
 // is hardcoded.
 
 #[derive(Deserialize, Debug)]
-#[serde(rename_all = "kebab-case")]
 pub struct GurpSmfEnsure {
     #[serde(rename = "_id")]
     pub id: String,
+    #[serde(rename = "svc-name")]
     pub name: String,
     #[serde(flatten)]
     pub desired_state: SmfDefinition,

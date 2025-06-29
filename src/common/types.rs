@@ -118,11 +118,6 @@ pub struct HostResources {
 
 pub type ChangedIds = HashSet<String>;
 
-#[derive(Default)]
-pub struct ApplyContext {
-    pub changed_ids: ChangedIds,
-}
-
 #[cfg_attr(test, derive(PartialEq))]
 #[derive(Deserialize, Debug, Hash)]
 #[serde(rename_all = "kebab-case")]

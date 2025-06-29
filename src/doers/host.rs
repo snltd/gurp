@@ -34,14 +34,36 @@ pub fn apply(
     tracing::debug!("Janet returned {} char JSON buffer", json.len());
     tracing::debug!("Unpacking JSON into HostConfig");
 
+    let formatted_json = match helpers::pretty_json(&json) {
+        Ok(json) => json,
+        Err(e) => {
+            tracing::error!("unable to process JSON. Raw JSON follows");
+            tracing::error!(json);
+            bail!("END");
+        }
+    };
+
     debug!(
         opts,
-        "host-apply",
-        "JSON host config follows:\n{}",
-        helpers::pretty_json(&json)?
+        "host-apply", "JSON host config follows:\n{}", formatted_json
     );
 
-    let host_config: HostConfig = serde_json::from_str(&json)?;
+    let host_config: HostConfig = match serde_json::from_str(&formatted_json) {
+        Ok(conf) => conf,
+        Err(e) => {
+            tracing::error!("deserialzing error: {}", e);
+            let line = e.line();
+            let json_lines: Vec<_> = formatted_json.lines().collect();
+            let first_line = (line - 30).clamp(0, json_lines.len());
+            let last_line = (line + 15).clamp(0, json_lines.len());
+
+            for l in first_line..=last_line {
+                println!(" {} | {}", l + 1, json_lines.get(l).unwrap_or(&""));
+            }
+
+            bail!("END");
+        }
+    };
 
     debug!(
         opts,

@@ -227,7 +227,10 @@ impl GurpUserEnsure {
         // to_change.push("other-groups");
         // } // doesn't do anything now
 
-        tracing::debug!("to change for {}: {}", self.name, to_change.join(", "));
+        if !to_change.is_empty() {
+            tracing::debug!("to change for {}: {}", self.name, to_change.join(", "));
+        }
+
         to_change
     }
 

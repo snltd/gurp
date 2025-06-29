@@ -152,11 +152,10 @@
   (def res (generic-resource :smf :ensure name specs))
 
   # Protos don't nest, so we need to do a little bit of work on the sub-structs
-  (var result @{})
+  (var result @{:svc-name name })
   (loop [[k v] :pairs (res :smf)]
     (put result k
          (if (struct? v) (table/to-struct (merge (proto k) v)) v)))
-
   {:smf (table/to-struct result)})
 
 (defn zfs/ensure
