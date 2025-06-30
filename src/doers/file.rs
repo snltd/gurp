@@ -1,5 +1,5 @@
 use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
+    ONE_RESOURCE_NOOP, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
     PROTECTED_FILES,
 };
 use crate::common::types::{ApplySummary, Changes, Opts};
@@ -41,6 +41,7 @@ pub struct FileState<'a> {
     pub mode: String,
     pub uid: Uid,
     pub content: Option<&'a String>,
+    pub ignore_pattern: Option<String>,
     pub from: Option<Utf8PathBuf>,
     pub hash: Option<Hash>,
 }
@@ -166,6 +167,7 @@ impl GurpFileEnsure {
 
         Ok(FileState {
             gid,
+            ignore_pattern: None,
             uid,
             mode: mode.to_owned(),
             content: None,
@@ -190,7 +192,7 @@ impl GurpFileEnsure {
             fs::copy(from, &self.path)?;
             Ok(())
         } else {
-            bail!("can write neither from nor content");
+            bail!("can write neither :from nor :content");
         }
     }
 }
@@ -224,8 +226,8 @@ mod test {
     use crate::test_utils::spec_helper::{
         defopts, defopts_noop, fixture, janet2json, my_group, my_user,
     };
-    use assert_fs::TempDir;
     use assert_fs::prelude::*;
+    use assert_fs::TempDir;
     use camino::Utf8PathBuf;
     use indoc::formatdoc;
     use std::fs;
@@ -474,5 +476,65 @@ mod test {
             test_file.apply(&defopts_noop()).unwrap()
         );
         assert!(file.exists());
+    }
+
+    #[test]
+    fn test_create_fresh_file() {
+        init_janet();
+
+        let temp = TempDir::new().unwrap();
+        let file_to_create = temp.join("test-file");
+
+        let example_file_ensure = Janet::wrap(janetrs::structs! {
+            ":_id" => "/test-role/file/test-file",
+            ":action" => ":ensure",
+            ":content" => "some-content",
+            ":group" => my_group().as_str(),
+            ":mode" => "0600",
+            ":name" => file_to_create.to_string_lossy().to_string().as_str(),
+            ":owner" => my_user().as_str(),
+        });
+
+        let gurp_file = GurpFile::try_from(&example_file_ensure).unwrap();
+        gurp_file.apply(&defcontext(), &defopts()).unwrap();
+
+        assert!(file_to_create.exists());
+        assert_eq!(
+            "some-content".to_owned(),
+            fs::read_to_string(&file_to_create).unwrap()
+        );
+        let metadata = fs::metadata(file_to_create).unwrap();
+        let mode = format!("{:04o}", metadata.mode() & 0o777);
+        assert_eq!("0600", mode);
+    }
+
+    #[test]
+    fn test_ignored_line_means_no_change() {
+        init_janet();
+        let temp = TempDir::new().unwrap();
+        temp.child("test-file")
+            .write_str("today is 2015-01-30\nBut this never changes.\nAnd nor does this.")
+            .unwrap();
+        let file_to_create = temp.join("test-file");
+
+        let example_file_ensure = Janet::wrap(janetrs::structs! {
+            ":_id" => "/test-role/file/test-file",
+            ":action" => ":ensure",
+            ":content" => "today is 2025-06-26\nBut this never changes.\nAnd nor does this.",
+            ":group" => my_group().as_str(),
+            ":ignore-pattern" => "^today is",
+            ":mode" => "0400",
+            ":name" => file_to_create.to_string_lossy().to_string().as_str(),
+            ":owner" => my_user().as_str(),
+        });
+
+        let gurp_file = GurpFile::try_from(&example_file_ensure).unwrap();
+        gurp_file.apply(&defcontext(), &defopts()).unwrap();
+
+        assert!(file_to_create.exists());
+        assert_eq!(
+            "today is 2015-01-30\nBut this never changes.\nAnd nor does this.",
+            fs::read_to_string(&file_to_create).unwrap()
+        );
     }
 }

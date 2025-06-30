@@ -417,6 +417,7 @@ dependencies = [
  "paste",
  "predicates",
  "pretty_assertions",
+ "regex",
  "serde",
  "serde_json",
  "tracing",
