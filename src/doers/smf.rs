@@ -128,82 +128,65 @@ fn manifest_path(svc_name: &str) -> Utf8PathBuf {
     Utf8PathBuf::from(MANIFEST_DIR).join(format!("gurp-{svc_name}.xml"))
 }
 
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-//     use crate::common::types::{SmfDefinitionExecMethod, SmfDefinitionExecMethodContext};
-//     use crate::test_utils::spec_helper::init_janet;
-//     use janetrs::structs;
-//     use pretty_assertions::assert_eq;
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::common::types::{SmfDefinitionExecMethod, SmfDefinitionExecMethodContext};
+    use crate::test_utils::spec_helper::janet2json;
+    use indoc::indoc;
+    use pretty_assertions::assert_eq;
 
-//     #[test]
-//     fn test_unpack_ensure_file() {
-//         init_janet();
+    #[test]
+    fn test_smf_conversion() {
+        let janet_desc = indoc! {r#"
+            (smf/ensure "telegraf"
+                :name "export"
+                :description "Run Telegraf agent"
+                :fmri "sysdef/telegraf"
+                :start-method {
+                    :exec "/opt/site/lib/smf/method/telegraf.sh"
+                    :context {
+                        :user "telegraf"
+                        :group "daemon"
+                        :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"
+                    }
+                }
+                :refresh-method {
+                    :exec ":kill -THAW"
+                    :timeout 60 })
+            "#};
 
-//         let start_context = structs! {
-//             ":user" => "telegraf",
-//             ":group" => "daemon",
-//             ":privileges" => "basic,file_dac_search,sys_admin,proc_owner,proc_zone",
-//         };
+        let expected = SmfDefinition {
+            name: "export".to_owned(),
+            description: "Run Telegraf agent".to_owned(),
+            fmri: "sysdef/telegraf".to_owned(),
+            single_instance: true,
+            default_enabled: true,
+            start_method: Some(SmfDefinitionExecMethod {
+                exec: "/opt/site/lib/smf/method/telegraf.sh".to_owned(),
+                timeout: 60,
+                context: Some(SmfDefinitionExecMethodContext {
+                    user: "telegraf".to_owned(),
+                    group: Some("daemon".to_owned()),
+                    privileges: Some(
+                        "basic,file_dac_search,sys_admin,proc_owner,proc_zone".to_owned(),
+                    ),
+                }),
+            }),
+            stop_method: Some(SmfDefinitionExecMethod {
+                exec: ":kill".to_owned(),
+                timeout: 10,
+                context: None,
+            }),
+            refresh_method: Some(SmfDefinitionExecMethod {
+                exec: ":kill -THAW".to_owned(),
+                timeout: 60,
+                context: None,
+            }),
+        };
 
-//         let start_method = structs! {
-//             ":exec" => "/opt/site/lib/smf/method/telegraf.sh",
-//             ":timeout" => 60,
-//             ":context" => start_context,
-//         };
-
-//         let stop_method = structs! {
-//             ":exec" => ":kill",
-//             ":timeout" => 10,
-//         };
-
-//         let refresh_method = structs! {
-//             ":exec" => ":kill -THAW",
-//             ":timeout" => 60,
-//         };
-
-//         let test_ensure = structs! {
-//             ":_id" => "/test-role/smf/test-smf",
-//             ":action" => ":ensure",
-//             ":name" => "export",
-//             ":description" => "Run Telegraf agent",
-//             ":fmri" => "sysdef/telegraf",
-//             ":default-enabled" => true,
-//             ":single-instance" => true,
-//             ":start-method" => start_method,
-//             ":stop-method" => stop_method,
-//             ":refresh-method" => refresh_method,
-//         };
-
-//         let test_svc = SmfDefinition {
-//             name: "export".to_owned(),
-//             description: "Run Telegraf agent".to_owned(),
-//             fmri: "sysdef/telegraf".to_owned(),
-//             single_instance: true,
-//             default_enabled: true,
-//             start_method: Some(SmfDefinitionExecMethod {
-//                 exec: "/opt/site/lib/smf/method/telegraf.sh".to_owned(),
-//                 timeout: 60,
-//                 context: Some(SmfDefinitionExecMethodContext {
-//                     user: "telegraf".to_owned(),
-//                     group: Some("daemon".to_owned()),
-//                     privileges: Some(
-//                         "basic,file_dac_search,sys_admin,proc_owner,proc_zone".to_owned(),
-//                     ),
-//                 }),
-//             }),
-//             stop_method: Some(SmfDefinitionExecMethod {
-//                 exec: ":kill".to_owned(),
-//                 timeout: 10,
-//                 context: None,
-//             }),
-//             refresh_method: Some(SmfDefinitionExecMethod {
-//                 exec: ":kill -THAW".to_owned(),
-//                 timeout: 60,
-//                 context: None,
-//             }),
-//         };
-
-//         assert_eq!(test_svc, unpack_smf(&test_ensure).unwrap());
-//     }
-// }
+        let json_def = janet2json(janet_desc);
+        let sut: SmfDefinition = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(expected, sut);
+    }
+}

@@ -43,7 +43,7 @@ pub struct FileState<'a> {
     pub gid: Gid,
     pub mode: String,
     pub uid: Uid,
-    pub content: Option<&'a String>,
+    pub content: Option<&'a str>,
     pub ignore_pattern: Option<String>,
     pub from: Option<Utf8PathBuf>,
     pub hash: Option<Hash>,
@@ -59,8 +59,20 @@ pub struct GurpFileRemove {
 
 impl GurpFileEnsure {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        let filtered;
+        let content = if let Some(filter) = &self.desired_state.ignore_pattern {
+            if let Some(content) = &self.desired_state.content {
+                filtered = self.filter_content(content, filter)?;
+                Some(filtered.as_str())
+            } else {
+                self.desired_state.content.as_deref()
+            }
+        } else {
+            self.desired_state.content.as_deref()
+        };
+
         let desired = FileState {
-            content: self.desired_state.content.as_ref(),
+            content,
             from: self.desired_state.from.clone(),
             uid: users_and_groups::owner_from(&self.desired_state.owner)?,
             gid: users_and_groups::group_from(&self.desired_state.group)?,
@@ -68,6 +80,8 @@ impl GurpFileEnsure {
             mode: self.desired_state.mode.clone(),
             hash: None,
         };
+
+        let mut need_to_read_hash = true;
 
         if !self.path.exists() {
             tracing::info!("creating: {}", self.path);
@@ -77,9 +91,10 @@ impl GurpFileEnsure {
             }
 
             self.write_contents_to_file(&desired)?;
+            need_to_read_hash = false;
         }
 
-        let current = self.current_state()?;
+        let current = self.current_state(need_to_read_hash)?;
         let changes = self.changes(&current, &desired)?;
 
         if changes.is_empty() {
@@ -121,10 +136,19 @@ impl GurpFileEnsure {
         let mut to_change = Vec::new();
 
         if let Some(current_hash) = current.hash {
+            // File existed before this run. Are its contents correct? We already have its hash,
+            // and if the user gave us a filter, that hash is of the filtered file.
             let desired_hash = if let Some(content) = &desired.content {
-                blake3::hash(content.as_bytes())
-            } else if let Some(from) = &desired.from {
-                blake3::hash(&fs::read(from)?)
+                // If we were given content and an ignore filter, the content is already filtered
+                // so we only have to hash it
+                self.content_hash(content)
+            } else if let Some(from_file) = &desired.from {
+                // If we've been given a from file, we may need to filter it
+                if let Some(pattern) = &desired.ignore_pattern {
+                    self.hash_of_filtered_file(from_file, pattern)?
+                } else {
+                    blake3::hash(&fs::read(from_file)?)
+                }
             } else {
                 bail!("have neither from nor content");
             };
@@ -132,7 +156,7 @@ impl GurpFileEnsure {
             if desired_hash != current_hash {
                 to_change.push("content");
             }
-        }
+        } // else the file has just been created and we know its contents are correct
 
         if current.gid != desired.gid {
             to_change.push("group");
@@ -150,14 +174,20 @@ impl GurpFileEnsure {
         Ok(to_change)
     }
 
+    fn hash_of_filtered_file(&self, path: &Utf8PathBuf, pattern: &str) -> anyhow::Result<Hash> {
+        let raw = fs::read_to_string(path)?;
+        let filtered = self.filter_content(&raw, pattern)?;
+        Ok(self.content_hash(&filtered))
+    }
+
     fn filter_content(&self, content: &str, filter: &str) -> anyhow::Result<String> {
         tracing::debug!("filtering content on '{}'", filter);
         let rx = Regex::new(filter)?;
-        let ret: String = content.lines().filter(|l| rx.is_match(l)).collect();
+        let ret: String = content.lines().filter(|l| !rx.is_match(l)).collect();
         Ok(ret)
     }
 
-    fn current_state(&self) -> anyhow::Result<FileState> {
+    fn current_state(&self, need_to_read_hash: bool) -> anyhow::Result<FileState> {
         tracing::debug!("getting state: {}", &self.path);
         let path = &self.path.as_path();
         let metadata = nix::sys::stat::stat(path.as_std_path())?;
@@ -166,12 +196,12 @@ impl GurpFileEnsure {
         let uid = metadata.st_uid.into();
         let gid = metadata.st_gid.into();
 
-        // If we have just created the file ourselves, this will still be false, so we know there's
-        // no need to check the contents: they have to be right, and it's a potentially expensive
-        // operation.
-        //
-        let hash = if path.exists() {
-            Some(self.file_hash()?)
+        let hash = if need_to_read_hash {
+            if let Some(pattern) = &self.desired_state.ignore_pattern {
+                Some(self.hash_of_filtered_file(&self.path, pattern)?)
+            } else {
+                Some(self.file_hash()?)
+            }
         } else {
             None
         };
@@ -185,6 +215,10 @@ impl GurpFileEnsure {
             from: None,
             hash,
         })
+    }
+
+    fn content_hash(&self, content: &str) -> Hash {
+        blake3::hash(content.as_bytes())
     }
 
     fn file_hash(&self) -> anyhow::Result<Hash> {
@@ -245,7 +279,7 @@ mod test {
     use std::os::unix::fs::PermissionsExt;
 
     #[test]
-    fn test_file_ensure_apply_noop() {
+    fn test_file_create_noop() {
         let temp = TempDir::new().unwrap();
         let path = Utf8PathBuf::from_path_buf(temp.child("test-file").to_path_buf()).unwrap();
 
@@ -265,33 +299,6 @@ mod test {
         let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
         assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
         assert!(!path.exists());
-    }
-
-    #[test]
-    fn test_file_ensure_already_correct() {
-        let temp = TempDir::new().unwrap();
-        temp.child("test-file").write_str("stuff").unwrap();
-        let file = temp.join("test-file");
-
-        let path = Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap();
-        fs::set_permissions(&path, fs::Permissions::from_mode(0o750)).unwrap();
-        assert!(path.exists());
-
-        let json_def = janet2json(&formatdoc! {"
-            (file/ensure \"{}\"
-                :content \"stuff\"
-                :mode \"0750\"
-                :owner \"{}\"
-                :group \"{}\")
-            ",
-            path,
-            my_user(),
-            my_group(),
-        });
-
-        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts_noop()).unwrap());
-        assert!(path.exists());
     }
 
     #[test]
@@ -351,7 +358,34 @@ mod test {
     }
 
     #[test]
-    fn test_update_file_and_set_mode() {
+    fn test_file_ensure_already_correct() {
+        let temp = TempDir::new().unwrap();
+        temp.child("test-file").write_str("stuff").unwrap();
+        let file = temp.join("test-file");
+
+        let path = Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o750)).unwrap();
+        assert!(path.exists());
+
+        let json_def = janet2json(&formatdoc! {"
+            (file/ensure \"{}\"
+                :content \"stuff\"
+                :mode \"0750\"
+                :owner \"{}\"
+                :group \"{}\")
+            ",
+            path,
+            my_user(),
+            my_group(),
+        });
+
+        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert!(path.exists());
+    }
+
+    #[test]
+    fn test_update_file_from_content_and_set_mode() {
         let temp = TempDir::new().unwrap();
         temp.child("test-file")
             .write_str("the-wrong-stuff")
@@ -388,7 +422,7 @@ mod test {
     }
 
     #[test]
-    fn test_update_file_from_file() {
+    fn test_update_file_from_file_and_set_mode() {
         let temp = TempDir::new().unwrap();
         temp.child("test-file")
             .write_str("the-wrong-stuff")
@@ -427,16 +461,16 @@ mod test {
     }
 
     #[test]
-    fn test_ignored_line_means_no_change() {
+    fn test_ignored_line_means_no_change_with_content() {
+        let content = "today is 2015-01-30\nBut this never changes.\nAnd nor does this.\n";
         let temp = TempDir::new().unwrap();
-        temp.child("test-file")
-            .write_str("today is 2015-01-30\nBut this never changes.\nAnd nor does this.")
-            .unwrap();
+        temp.child("test-file").write_str(content).unwrap();
 
         let path = Utf8PathBuf::from_path_buf(temp.to_path_buf())
             .unwrap()
             .join("test-file");
 
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
         assert!(path.exists());
 
         let json_def = janet2json(&formatdoc! {"
@@ -453,75 +487,89 @@ mod test {
         });
 
         let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
-        sut.apply(&defopts()).unwrap();
-        // assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts()).unwrap());
-        assert_eq!(
-            "today is 2015-01-30\nBut this never changes.\nAnd nor does this.",
-            fs::read_to_string(&path).unwrap()
-        );
+        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(content, fs::read_to_string(&path).unwrap());
     }
 
     #[test]
-    fn test_file_remove_apply_does_not_exist() {
-        let file_does_not_exist = GurpFileRemove {
-            path: Utf8PathBuf::from("/does/not/exist/file-to-test"),
-            id: "/test-role/file/file-to-test".to_owned(),
-        };
-
-        assert_eq!(
-            ONE_RESOURCE_NO_CHANGE,
-            file_does_not_exist.apply(&defopts()).unwrap()
-        );
-    }
-
-    #[test]
-    fn test_file_remove_apply_not_allowed() {
-        let disallowed_file = GurpFileRemove {
-            path: Utf8PathBuf::from("/bin/ps"),
-            id: "/test-role/file/_bin_ps".to_owned(),
-        };
-
-        assert_eq!(
-            ONE_RESOURCE_ONE_ERROR,
-            disallowed_file.apply(&defopts()).unwrap()
-        );
-    }
-
-    #[test]
-    fn test_file_remove_apply_works() {
+    fn test_ignored_line_means_no_change_with_from() {
+        let content = "today is 2015-01-30\nBut this never changes.\nAnd nor does this.\n";
         let temp = TempDir::new().unwrap();
-        temp.child("test-file").write_str("stuff").unwrap();
-        let file = temp.join("test-file");
+        temp.child("test-file").write_str(content).unwrap();
 
-        let test_file = GurpFileRemove {
-            path: Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap(),
-            id: "/test-role/file/test-file".to_owned(),
-        };
+        let path = Utf8PathBuf::from_path_buf(temp.to_path_buf())
+            .unwrap()
+            .join("test-file");
 
-        assert!(file.exists());
-        assert_eq!(
-            ONE_RESOURCE_ONE_CHANGE,
-            test_file.apply(&defopts()).unwrap()
-        );
-        assert!(!file.exists());
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+        assert!(path.exists());
+
+        let json_def = janet2json(&formatdoc! {"
+            (file/ensure \"{}\"
+                :from \"{}\"
+                :mode \"0600\"
+                :ignore-pattern \"^today is\"
+                :owner \"{}\"
+                :group \"{}\")
+            ",
+            path,
+            fixture("doers/file/ignore-line-file"),
+            my_user(),
+            my_group(),
+        });
+
+        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(content, fs::read_to_string(&path).unwrap());
     }
 
     #[test]
-    fn test_file_remove_apply_noop() {
+    fn test_file_remove_does_not_exist() {
+        let json_def = janet2json(r#"(file/remove "/path/does/not/exist")"#);
+        let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts()).unwrap());
+    }
+
+    #[test]
+    fn test_file_remove_forbidden() {
+        let json_def = janet2json(r#"(file/remove "/bin/ps")"#);
+        let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_ERROR, sut.apply(&defopts()).unwrap());
+    }
+
+    #[test]
+    fn test_file_remove() {
         let temp = TempDir::new().unwrap();
-        temp.child("test-file").write_str("stuff").unwrap();
-        let file = temp.join("test-file");
+        temp.child("test-file")
+            .write_str("transient-stuff")
+            .unwrap();
 
-        let test_file = GurpFileRemove {
-            path: Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap(),
-            id: "/test-role/file/test-file".to_owned(),
-        };
+        let path = Utf8PathBuf::from_path_buf(temp.to_path_buf())
+            .unwrap()
+            .join("test-file");
 
-        assert!(file.exists());
-        assert_eq!(
-            ONE_RESOURCE_NO_CHANGE,
-            test_file.apply(&defopts_noop()).unwrap()
-        );
-        assert!(file.exists());
+        assert!(path.exists());
+        let json_def = janet2json(&format!("(file/remove \"{path}\")"));
+        let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn test_file_remove_noop() {
+        let temp = TempDir::new().unwrap();
+        temp.child("test-file")
+            .write_str("transient-stuff")
+            .unwrap();
+
+        let path = Utf8PathBuf::from_path_buf(temp.to_path_buf())
+            .unwrap()
+            .join("test-file");
+
+        assert!(path.exists());
+        let json_def = janet2json(&format!("(file/remove \"{path}\")"));
+        let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
+        assert!(path.exists());
     }
 }

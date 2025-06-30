@@ -93,7 +93,9 @@ impl GurpSymlinkRemove {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::spec_helper::{defopts, defopts_noop};
+    use crate::test_utils::spec_helper::{
+        defopts, defopts_noop, fixture, janet2json, my_group, my_user,
+    };
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use camino::Utf8PathBuf;
@@ -115,64 +117,82 @@ mod test {
     }
 
     #[test]
-    fn test_symlink_creation() {
+    fn test_symlink_create() {
         let temp = TempDir::new().unwrap();
-        let src = temp.child("src");
-        let dst = temp.child("dst");
-        src.write_str("data").unwrap();
+        let source_file = temp.child("source-file");
+        source_file.write_str("some-content").unwrap();
+        let source_path =
+            Utf8PathBuf::from_path_buf(temp.child("source-file").to_path_buf()).unwrap();
+        let target_path = Utf8PathBuf::from_path_buf(temp.child("target").to_path_buf()).unwrap();
 
-        let symlink = make_ensure_symlink(
-            &Utf8PathBuf::from_path_buf(dst.path().to_path_buf()).unwrap(),
-            Utf8PathBuf::from_path_buf(src.path().to_path_buf()).unwrap(),
-        );
+        let json_def = janet2json(&format!(
+            " (symlink/ensure \"{target_path}\" :source \"{source_path}\")"
+        ));
 
-        let result = symlink.apply(&defopts()).unwrap();
-        assert_eq!(result, ONE_RESOURCE_ONE_CHANGE);
-        assert!(dst.path().is_symlink());
+        assert!(!target_path.exists());
+        let sut: GurpSymlinkEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert!(target_path.exists());
+        assert!(target_path.is_symlink());
     }
 
     #[test]
-    fn test_symlink_noop_creation() {
+    fn test_symlink_create_noop() {
         let temp = TempDir::new().unwrap();
-        let src = temp.child("src");
-        let dst = temp.child("dst");
-        src.write_str("noop").unwrap();
+        let source_file = temp.child("source-file");
+        source_file.write_str("some-content").unwrap();
+        let source_path =
+            Utf8PathBuf::from_path_buf(temp.child("source-file").to_path_buf()).unwrap();
+        let target_path = Utf8PathBuf::from_path_buf(temp.child("target").to_path_buf()).unwrap();
 
-        let symlink = make_ensure_symlink(
-            &Utf8PathBuf::from_path_buf(dst.path().to_path_buf()).unwrap(),
-            Utf8PathBuf::from_path_buf(src.path().to_path_buf()).unwrap(),
-        );
+        let json_def = janet2json(&format!(
+            " (symlink/ensure \"{target_path}\" :source \"{source_path}\")"
+        ));
 
-        let result = symlink.apply(&defopts_noop()).unwrap();
-        assert_eq!(result, ONE_RESOURCE_NOOP);
-        assert!(!dst.path().exists());
+        assert!(!target_path.exists());
+        let sut: GurpSymlinkEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
+        assert!(!target_path.exists());
     }
 
     #[test]
-    fn test_symlink_removal() {
+    fn test_symlink_remove() {
         let temp = TempDir::new().unwrap();
-        let src = temp.child("src");
-        let dst = temp.child("dst");
-        src.write_str("x").unwrap();
-        unix::fs::symlink(src.path(), dst.path()).unwrap();
+        let source = temp.child("source");
+        let target = temp.child("target");
+        source.write_str("some-content").unwrap();
+        unix::fs::symlink(source.path(), target.path()).unwrap();
+        let target_path = Utf8PathBuf::from_path_buf(target.to_path_buf()).unwrap();
 
-        let symlink =
-            make_remove_symlink(&Utf8PathBuf::from_path_buf(dst.path().to_path_buf()).unwrap());
+        let json_def = janet2json(&format!("(symlink/remove \"{target_path}\")"));
 
-        let result = symlink.apply(&defopts()).unwrap();
-        assert_eq!(result, ONE_RESOURCE_ONE_CHANGE);
-        assert!(!dst.path().exists());
+        assert!(target_path.exists());
+        let sut: GurpSymlinkRemove = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert!(!target_path.exists());
+    }
+
+    #[test]
+    fn test_symlink_remove_noop() {
+        let temp = TempDir::new().unwrap();
+        let source = temp.child("source");
+        let target = temp.child("target");
+        source.write_str("some-content").unwrap();
+        unix::fs::symlink(source.path(), target.path()).unwrap();
+        let target_path = Utf8PathBuf::from_path_buf(target.to_path_buf()).unwrap();
+
+        let json_def = janet2json(&format!("(symlink/remove \"{target_path}\")"));
+
+        assert!(target_path.exists());
+        let sut: GurpSymlinkRemove = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
+        assert!(target_path.exists());
     }
 
     #[test]
     fn test_symlink_remove_missing() {
-        let temp = TempDir::new().unwrap();
-        let ghost = temp.child("ghost");
-
-        let symlink =
-            make_remove_symlink(&Utf8PathBuf::from_path_buf(ghost.path().to_path_buf()).unwrap());
-
-        let result = symlink.apply(&defopts()).unwrap();
-        assert_eq!(result, ONE_RESOURCE_NO_CHANGE);
+        let json_def = janet2json("(symlink/remove \"/no/such/file\")");
+        let sut: GurpSymlinkRemove = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts_noop()).unwrap());
     }
 }
