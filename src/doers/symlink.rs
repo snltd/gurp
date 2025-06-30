@@ -93,28 +93,11 @@ impl GurpSymlinkRemove {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::spec_helper::{
-        defopts, defopts_noop, fixture, janet2json, my_group, my_user,
-    };
+    use crate::test_utils::spec_helper::{defopts, defopts_noop, janet2json};
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use camino::Utf8PathBuf;
     use std::os::unix;
-
-    fn make_ensure_symlink(name: &Utf8PathBuf, source: Utf8PathBuf) -> GurpSymlinkEnsure {
-        GurpSymlinkEnsure {
-            id: "test-id".to_string(),
-            path: name.clone(),
-            source,
-        }
-    }
-
-    fn make_remove_symlink(name: &Utf8PathBuf) -> GurpSymlinkRemove {
-        GurpSymlinkRemove {
-            id: "test-id".to_string(),
-            path: name.clone(),
-        }
-    }
 
     #[test]
     fn test_symlink_create() {
