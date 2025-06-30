@@ -9,7 +9,7 @@ pub fn owner_from(desired_owner: &str) -> anyhow::Result<Uid> {
         Ok(val) => val.into(),
         Err(_) => {
             User::from_name(desired_owner)?
-                .context(format!("No such user'{}'", desired_owner))?
+                .context(format!("No such user '{desired_owner}'"))?
                 .uid
         }
     })
@@ -20,7 +20,7 @@ pub fn group_from(desired_group: &str) -> anyhow::Result<Gid> {
         Ok(val) => val.into(),
         Err(_) => {
             Group::from_name(desired_group)?
-                .context(format!("No such group'{}'", desired_group))?
+                .context(format!("No such group '{desired_group}'"))?
                 .gid
         }
     })

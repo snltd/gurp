@@ -1,13 +1,10 @@
 use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
 };
-use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
+use crate::common::types::{ApplySummary, Opts};
 use crate::utils::helpers;
-use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
 use anyhow::{anyhow, bail};
-use janetrs::{Janet, JanetArray};
-use paste::paste;
+use serde::Deserialize;
 use std::process::{Command, Stdio};
 
 // THINGS TO KNOW / THINGS TO DO.
@@ -19,56 +16,28 @@ const SHARECTL_BIN: &str = "/usr/sbin/sharectl";
 const SMBADM_BIN: &str = "/usr/sbin/smbadm";
 const DISPADMIN_BIN: &str = "/usr/sbin/dispadmin";
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct GurpMisc {
-    pub action: Action,
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+pub struct GurpMiscEnsure {
+    #[serde(rename = "_id")]
     pub id: String,
+    #[serde(flatten)]
     pub desired_state: MiscState,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub struct MiscState {
+    pub nfs_domain: Option<NfsDomain>,
+    pub enable_smb: Option<Username>,
+    pub scheduler: Option<SchedulerClass>,
 }
 
 type NfsDomain = String;
 type Username = String;
+type SchedulerClass = String;
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct MiscState {
-    pub nfs_domain: Option<NfsDomain>,
-    pub enable_smb: Option<Username>,
-    pub scheduler: Option<String>,
-}
-
-crate::unpack_fn!(ensure_list, Misc, GurpMisc);
-
-impl TryFrom<&Janet> for GurpMisc {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Janet) -> anyhow::Result<Self> {
-        let data = value.extract_struct()?;
-        let action = janet_helpers::action_as_enum(&data)?;
-
-        if action != Action::Ensure {
-            bail!("misc can only be ensured");
-        }
-
-        Ok(GurpMisc {
-            action: Action::Ensure,
-            id: data.get_field_string("_id")?,
-            desired_state: MiscState {
-                nfs_domain: data.get_field_string_opt("nfs-domain"),
-                enable_smb: data.get_field_string_opt("enable-smb"),
-                scheduler: data.get_field_string_opt("scheduler"),
-            },
-        })
-    }
-}
-
-impl Apply for GurpMisc {
-    fn apply(&self, apply_context: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        self.apply_ensure(apply_context, opts)
-    }
-}
-
-impl GurpMisc {
-    fn apply_ensure(&self, _c: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
+impl GurpMiscEnsure {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let mut aggr = ApplySummary::default();
 
         if let Some(domain) = &self.desired_state.nfs_domain {
@@ -173,7 +142,7 @@ impl GurpMisc {
         set_cmd
             .arg("set")
             .arg("-p")
-            .arg(format!("nfsmapid_domain={}", desired_domain))
+            .arg(format!("nfsmapid_domain={desired_domain}"))
             .arg("nfs")
             .stderr(Stdio::piped());
 
@@ -207,11 +176,16 @@ impl GurpMisc {
         tracing::debug!(command = helpers::command_to_string(&get_cmd));
 
         let dispadmin_output = get_cmd.output()?;
-        let dispadmin_string = String::from_utf8_lossy(&dispadmin_output.stdout);
-        let chunks: Vec<_> = dispadmin_string.split_whitespace().collect();
+        let dispadmin_stdout = String::from_utf8_lossy(&dispadmin_output.stdout);
+        let dispadmin_stderr = String::from_utf8_lossy(&dispadmin_output.stderr);
+        let chunks: Vec<_> = dispadmin_stdout.split_whitespace().collect();
 
         if chunks.len() < 2 {
-            bail!("unexpected dispadmin output: {}", dispadmin_string);
+            tracing::debug!(
+                stdout = dispadmin_stdout.as_ref(),
+                stderr = dispadmin_stderr.as_ref()
+            );
+            bail!("unexpected dispadmin output: run with debug to see output");
         }
 
         let current_class = chunks.first().unwrap().trim();

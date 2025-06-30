@@ -1,7 +1,7 @@
 use crate::common::constants::{GURP_DEFAULTS, GURP_LIB};
 use crate::common::types::Opts;
 use anyhow::{Context, bail};
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 
 // Wherein we read and prep the user-supplied Janet code
 
@@ -15,6 +15,40 @@ use camino::Utf8PathBuf;
 // By setting the syspath dynamic binding, we let the user `use` role and library files without
 // having to supply their path.
 //
+pub fn janet_conf(
+    config: &str,
+    host_config_dir: &Utf8Path,
+    gurp_lib: &str,
+    opts: &Opts,
+    compile_only: bool,
+) -> anyhow::Result<String> {
+    let mut ret = format!("(setdyn *syspath* \"{host_config_dir}\")\n\n");
+    ret.push_str(&format!(
+        "(setdyn :gurp-config-root \"{host_config_dir}\")\n\n"
+    ));
+    ret.push_str(GURP_DEFAULTS);
+    ret.push_str(
+        gurp_lib
+            .lines()
+            .skip(1)
+            .map(|s| format!("{s}\n").to_owned())
+            .collect::<String>()
+            .as_str(),
+    );
+    ret.push('\n');
+    ret.push_str(config);
+
+    if compile_only {
+        if opts.no_colour {
+            ret.push_str("\n(prinf \"%m\" (machine-config))");
+        } else {
+            ret.push_str("\n(prinf \"%M\" (machine-config))");
+        }
+    }
+
+    Ok(ret)
+}
+
 pub fn read_and_enrich_host_config(
     host_file_path: &Utf8PathBuf,
     gurp_lib_path: &Option<Utf8PathBuf>,
@@ -27,41 +61,20 @@ pub fn read_and_enrich_host_config(
 
     let host_config_dir = qualified_path
         .parent()
-        .context(format!("cannot find parent of {}", host_file_path))?;
+        .context(format!("cannot find parent of {host_file_path}"))?;
 
     let gurp_lib = match gurp_lib_path {
         Some(path) => &load_lib_from_disk(path)?,
         None => GURP_LIB,
     };
 
-    let mut ret = format!("(setdyn *syspath* \"{}\")\n\n", host_config_dir);
-    ret.push_str(&format!(
-        "(setdyn :gurp-config-root \"{}\")\n\n",
-        host_config_dir
-    ));
-    ret.push_str(GURP_DEFAULTS);
-    ret.push_str(
-        gurp_lib
-            .lines()
-            .skip(1)
-            .map(|s| format!("{}\n", s).to_owned())
-            .collect::<String>()
-            .as_str(),
-    );
-    ret.push('\n');
-    ret.push_str(&janet_host_config);
-
-    if compile_only {
-        if opts.no_colour {
-            ret.push_str("\n(prinf \"%m\" (machine-config))");
-        } else {
-            ret.push_str("\n(prinf \"%M\" (machine-config))");
-        }
-    } else {
-        ret.push_str("\n(run-machine-configuration (machine-config))");
-    }
-
-    Ok(ret)
+    janet_conf(
+        &janet_host_config,
+        host_config_dir,
+        gurp_lib,
+        opts,
+        compile_only,
+    )
 }
 
 pub fn format_janet_listing(janet_code: &str) -> String {

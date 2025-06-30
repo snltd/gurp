@@ -60,16 +60,19 @@ enum Commands {
 
 fn main() -> anyhow::Result<()> {
     let use_colour = std::env::var_os("GURP_NO_COLOUR").is_none();
+
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
         .with_ansi(use_colour)
         .init();
+
     let cli = Cli::parse();
 
     let global_opts = Opts {
         debug: cli.debug,
         noop: cli.noop,
-        verbose: cli.verbose,
         no_colour: cli.no_colour,
     };
 

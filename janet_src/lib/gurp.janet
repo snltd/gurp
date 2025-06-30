@@ -58,7 +58,6 @@
   [& chunks]
   (string/join (map |(string/trim $ "/") (tuple "" ;chunks)) "/"))
 
-
 (defn parent
   [path]
   (def components
@@ -70,17 +69,18 @@
 (defn qualify-from-path
   "We expect files to be in a directory `files/` at the same level as
   the role file which references those files. This expects a path relative
-  to that directory, and returns the fully qualified path"
+  to that directory, and returns the fully qualified path, but if it gets
+  a fully qualified path, it simply returns it"
   [file-name]
-  (pathcat
-    (dyn :gurp-config-root) "files" file-name))
+  (if (string/has-prefix? "/" file-name)
+    file-name
+    (pathcat (dyn :gurp-config-root) "files" file-name)))
 
 (defn file/ensure
   "Given a file name and specification, return a file ensure struct"
   [name & specs]
   (def result (generic-resource :file :ensure name specs))
   (var resource (struct/to-table (result :file)))
-
 
   (if-let [from-path (resource :from)]
     (do
@@ -154,11 +154,10 @@
   (def res (generic-resource :smf :ensure name specs))
 
   # Protos don't nest, so we need to do a little bit of work on the sub-structs
-  (var result @{})
+  (var result @{:svc-name name})
   (loop [[k v] :pairs (res :smf)]
     (put result k
          (if (struct? v) (table/to-struct (merge (proto k) v)) v)))
-
   {:smf (table/to-struct result)})
 
 (defn zfs/ensure

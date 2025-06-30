@@ -1,50 +1,100 @@
-use crate::doers::cron::GurpCron;
-use crate::doers::directory::GurpDirectory;
-use crate::doers::file::GurpFile;
-use crate::doers::file_line::GurpFileLine;
-use crate::doers::gem::GurpGem;
-use crate::doers::misc::GurpMisc;
-use crate::doers::pkg::GurpPkg;
-use crate::doers::smf::GurpSmf;
-use crate::doers::svc::GurpSvc;
-use crate::doers::symlink::GurpSymlink;
-use crate::doers::user::GurpUser;
-use crate::doers::zfs::GurpZfs;
-use std::collections::{HashMap, HashSet};
+use crate::doers::cron::{GurpCronEnsure, GurpCronRemove};
+use crate::doers::directory::{GurpDirectoryEnsure, GurpDirectoryRemove};
+use crate::doers::file::{GurpFileEnsure, GurpFileRemove};
+use crate::doers::file_line::{GurpFileLineEnsure, GurpFileLineRemove};
+use crate::doers::gem::{GurpGemEnsure, GurpGemRemove};
+use crate::doers::misc::GurpMiscEnsure;
+use crate::doers::pkg::{GurpPkgEnsure, GurpPkgRemove};
+use crate::doers::smf::{GurpSmfEnsure, GurpSmfRemove};
+use crate::doers::svc::GurpSvcEnsure;
+use crate::doers::symlink::{GurpSymlinkEnsure, GurpSymlinkRemove};
+use crate::doers::user::{GurpUserEnsure, GurpUserRemove};
+use crate::doers::zfs::{GurpZfsEnsure, GurpZfsRemove};
+use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::ops::Add;
-
-pub type ExitCode = u8;
 
 #[derive(Clone)]
 pub struct Opts {
     pub debug: bool,
     pub noop: bool,
-    pub verbose: bool,
     pub no_colour: bool,
 }
 
-pub enum Resource {
-    Directory(GurpDirectory),
-    User(GurpUser),
-    Pkg(GurpPkg),
-    FileLine(GurpFileLine),
-    File(GurpFile),
-    Cron(Box<GurpCron>),
-    Svc(GurpSvc),
-    Misc(GurpMisc),
-    Smf(Box<GurpSmf>),
-    Zfs(GurpZfs),
-    Gem(GurpGem),
-    Symlink(GurpSymlink),
+#[derive(Deserialize, Debug)]
+pub struct HostConfig {
+    pub metadata: HostMetadata,
+    pub resources: HostResources,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum Action {
-    Ensure,
-    Remove,
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct HostMetadata {
+    pub name: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct HostResources {
+    #[serde(default)]
+    pub ensure: EnsureResources,
+    #[serde(default)]
+    pub remove: RemoveResources,
+}
+
+#[derive(Default, Deserialize, Debug)]
+pub struct EnsureResources {
+    #[serde(default)]
+    pub cron: Vec<GurpCronEnsure>,
+    #[serde(default)]
+    pub directory: Vec<GurpDirectoryEnsure>,
+    #[serde(default)]
+    pub file: Vec<GurpFileEnsure>,
+    #[serde(default)]
+    pub file_line: Vec<GurpFileLineEnsure>,
+    #[serde(default)]
+    pub misc: Vec<GurpMiscEnsure>,
+    #[serde(default)]
+    pub gem: Vec<GurpGemEnsure>,
+    #[serde(default)]
+    pub pkg: Vec<GurpPkgEnsure>,
+    #[serde(default)]
+    pub smf: Vec<GurpSmfEnsure>,
+    #[serde(default)]
+    pub svc: Vec<GurpSvcEnsure>,
+    #[serde(default)]
+    pub symlink: Vec<GurpSymlinkEnsure>,
+    #[serde(default)]
+    pub user: Vec<GurpUserEnsure>,
+    #[serde(default)]
+    pub zfs: Vec<GurpZfsEnsure>,
+}
+
+#[derive(Default, Deserialize, Debug)]
+pub struct RemoveResources {
+    #[serde(default)]
+    pub cron: Vec<GurpCronRemove>,
+    #[serde(default)]
+    pub directory: Vec<GurpDirectoryRemove>,
+    #[serde(default)]
+    pub file: Vec<GurpFileRemove>,
+    #[serde(default)]
+    pub file_line: Vec<GurpFileLineRemove>,
+    #[serde(default)]
+    pub gem: Vec<GurpGemRemove>,
+    #[serde(default)]
+    pub pkg: Vec<GurpPkgRemove>,
+    #[serde(default)]
+    pub smf: Vec<GurpSmfRemove>,
+    #[serde(default)]
+    pub symlink: Vec<GurpSymlinkRemove>,
+    #[serde(default)]
+    pub user: Vec<GurpUserRemove>,
+    #[serde(default)]
+    pub zfs: Vec<GurpZfsRemove>,
 }
 
 pub type Changes<'a> = Vec<&'a str>;
+pub type ChangedIds = HashSet<String>;
+pub type ExitCode = u8;
 
 #[derive(Debug, Default, PartialEq, Copy, Clone)]
 pub struct ApplySummary {
@@ -65,33 +115,9 @@ impl Add for ApplySummary {
     }
 }
 
-pub struct HostConfig {
-    pub metadata: HostMetadata,
-    pub resources: HostResources,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct HostMetadata {
-    pub name: String,
-}
-
-pub type EnsureResources = HashMap<String, Vec<Resource>>;
-pub type RemoveResources = HashMap<String, Vec<Resource>>;
-
-pub struct HostResources {
-    pub ensure: EnsureResources,
-    pub remove: RemoveResources,
-}
-
-pub type ChangedIds = HashSet<String>;
-
-#[derive(Default)]
-pub struct ApplyContext {
-    pub changed_ids: ChangedIds,
-}
-
 #[cfg_attr(test, derive(PartialEq))]
-#[derive(Debug, Hash)]
+#[derive(Deserialize, Debug, Hash)]
+#[serde(rename_all = "kebab-case")]
 pub struct SmfDefinition {
     pub name: String,
     pub description: String,
@@ -104,7 +130,8 @@ pub struct SmfDefinition {
 }
 
 #[cfg_attr(test, derive(PartialEq))]
-#[derive(Hash)]
+#[derive(Deserialize, Hash)]
+#[serde(rename_all = "kebab-case")]
 pub struct SmfDefinitionDependencySvc {
     pub name: String,
     pub restart_on: String,
@@ -112,7 +139,7 @@ pub struct SmfDefinitionDependencySvc {
 }
 
 #[cfg_attr(test, derive(PartialEq))]
-#[derive(Debug, Hash)]
+#[derive(Deserialize, Debug, Hash)]
 pub struct SmfDefinitionExecMethod {
     pub exec: String,
     pub timeout: u32,
@@ -120,7 +147,7 @@ pub struct SmfDefinitionExecMethod {
 }
 
 #[cfg_attr(test, derive(PartialEq))]
-#[derive(Debug, Hash)]
+#[derive(Deserialize, Debug, Hash)]
 pub struct SmfDefinitionExecMethodContext {
     pub user: String,
     pub group: Option<String>,
