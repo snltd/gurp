@@ -7,52 +7,6 @@
   [resource-type]
   (get default-protos resource-type {}))
 
-(defn generic-resource
-  "Creates a resource struct of the given type and name. The role is picked up
-  from a role-specific dynamic binding, to cut down on user boilerplate"
-  [resource-type action resource-name resource-spec]
-  (->>
-    (struct/with-proto
-      (proto resource-type)
-      :_id (string "/" (dyn :role-dyn "NO-ROLE")
-                   "/" resource-type
-                   "/" (get (table ;resource-spec) :label
-                            (string/replace-all "/" "_" resource-name)))
-      :role (dyn :role-dyn)
-      :name resource-name
-      :action action
-      (splice resource-spec))
-    (struct/proto-flatten)
-    (merge)
-    (table/to-struct)
-    (struct resource-type)))
-
-(defn misc/ensure
-  "Sets miscellaneous system properties"
-  [& specs]
-  (generic-resource :misc :ensure "GENERIC" specs))
-
-(defn pkg/ensure
-  "Given a a pkg name, return a pkg ensure struct. In OmniOS, the
-  pkg version is effectively part of the name, so there are no parameters"
-  [name &]
-  (generic-resource :pkg :ensure name []))
-
-(defn pkg/remove
-  "Given a pkg name, return a pkg remove struct"
-  [name &]
-  (generic-resource :pkg :remove name []))
-
-(defn gem/ensure
-  "Given a a gem name, return a gem ensure struct"
-  [name &]
-  (generic-resource :gem :ensure name []))
-
-(defn gem/remove
-  "Given a gem name, return a gem remove struct"
-  [name &]
-  (generic-resource :gem :remove name []))
-
 (defn pathcat
   "Joins tokens to make a path"
   [& chunks]
@@ -76,99 +30,13 @@
     file-name
     (pathcat (dyn :gurp-config-root) "files" file-name)))
 
-(defn file/ensure
-  "Given a file name and specification, return a file ensure struct"
-  [name & specs]
-  (def result (generic-resource :file :ensure name specs))
-  (var resource (struct/to-table (result :file)))
+(defn id
+  [resource-type resource-name resource-spec]
+  (string "/" (dyn :role-dyn "NO-ROLE")
+          "/" resource-type
+          "/" (get (table ;resource-spec) :label
+                   (string/replace-all "/" "_" resource-name))))
 
-  (if-let [from-path (resource :from)]
-    (do
-      (set (resource :from) (qualify-from-path from-path))
-      {:file resource})
-    result))
-
-(defn file/remove
-  "Given a file name and specification, return a file remove struct"
-  [name & specs]
-  (generic-resource :file :remove name specs))
-
-(defn symlink/ensure
-  "Given a symlink name and specification, return a symlink ensure struct"
-  [name & specs]
-  (generic-resource :symlink :ensure name specs))
-
-(defn symlink/remove
-  "Given a symlink name and specification, return a symlink remove struct"
-  [name & specs]
-  (generic-resource :symlink :remove name specs))
-
-(defn file-line/ensure
-  "Given a file name and a line pattern, make sure the file contains the line"
-  [name & specs]
-  (generic-resource :file-line :ensure name specs))
-
-(defn file-line/remove
-  "Given a file name and a line pattern, make sure the file does not contain the line"
-  [name & specs]
-  (generic-resource :file-line :remove name specs))
-
-(defn directory/ensure
-  "Given a directory name and specification, return a directory ensure struct"
-  [name & specs]
-  (generic-resource :directory :ensure name specs))
-
-(defn directory/remove
-  "Given a directory name and specification, return a directory remove struct"
-  [name & specs]
-  (generic-resource :directory :remove name specs))
-
-(defn user/ensure
-  "Given a user name and specification, return a user ensure struct"
-  [name & specs]
-  (generic-resource :user :ensure name specs))
-
-(defn user/remove
-  "Given a user name and specification, return a user remove struct"
-  [name & specs]
-  (generic-resource :user :remove name specs))
-
-(defn cron/ensure
-  "Given a name and specification, return a cron ensure struct"
-  [name & specs]
-  (generic-resource :cron :ensure name specs))
-
-(defn cron/remove
-  "Given a name and specification, return a cron remove struct"
-  [name & specs]
-  (generic-resource :cron :remove name specs))
-
-(defn svc/ensure
-  "Given a name and state, return a svc ensure struct"
-  [name & specs]
-  (generic-resource :svc :ensure name specs))
-
-(defn smf/ensure
-  "Given a name and a manifest description, return an smf ensure struct"
-  [name & specs]
-  (def res (generic-resource :smf :ensure name specs))
-
-  # Protos don't nest, so we need to do a little bit of work on the sub-structs
-  (var result @{:svc-name name})
-  (loop [[k v] :pairs (res :smf)]
-    (put result k
-         (if (struct? v) (table/to-struct (merge (proto k) v)) v)))
-  {:smf (table/to-struct result)})
-
-(defn zfs/ensure
-  "Given a zfs dataset name and specification, return a zfs ensure struct"
-  [name & specs]
-  (generic-resource :zfs :ensure name specs))
-
-(defn zfs/remove
-  "Given a zfs dataset name and specification, return a zfs remove struct"
-  [name & specs]
-  (generic-resource :zfs :remove name specs))
 
 (defn this-host
   "Returns the name of the host, which is set by a dyn in the host macro"
@@ -353,3 +221,150 @@
   "Returns the name of the current host"
   []
   (run-cmd "/bin/uname -n"))
+
+(defn- ensure-resource
+  "Creates a resource struct of the given type and name. The role is picked up
+  from a role-specific dynamic binding, to cut down on user boilerplate"
+  [resource-type resource-name resource-spec]
+  (->>
+    (struct/with-proto
+      (proto resource-type)
+      :_id (id resource-type resource-name resource-spec)
+      :role (dyn :role-dyn)
+      :name resource-name
+      :action :ensure
+      (splice resource-spec))
+    (struct/proto-flatten)
+    (merge)
+    (table/to-struct)
+    (struct resource-type)))
+
+(defn- remove-resource
+  "Creates a resource struct of the given type and name. The role is picked up
+  from a role-specific dynamic binding, to cut down on user boilerplate"
+  [resource-type resource-name resource-spec]
+  (struct resource-type (struct :_id (id resource-type resource-name resource-spec)
+                         :action :remove
+                         :role (dyn :role-dyn)
+                         :name resource-name
+                         (splice resource-spec) )))
+
+(defn cron/ensure
+  "Given a name and specification, return a cron ensure struct"
+  [name & specs]
+  (ensure-resource :cron name specs))
+
+(defn cron/remove
+  "Given a name and specification, return a cron remove struct"
+  [name & specs]
+  (remove-resource :cron name specs))
+
+(defn directory/ensure
+  "Given a directory name and specification, return a directory ensure struct"
+  [name & specs]
+  (ensure-resource :directory name specs))
+
+(defn directory/remove
+  "Given a directory name and specification, return a directory remove struct"
+  [name & specs]
+  (remove-resource :directory  name specs))
+
+(defn file/ensure
+  "Given a file name and specification, return a file ensure struct"
+  [name & specs]
+  (def result (ensure-resource :file  name specs))
+  (var resource (struct/to-table (result :file)))
+
+  (if-let [from-path (resource :from)]
+    (do
+      (set (resource :from) (qualify-from-path from-path))
+      {:file (table/to-struct resource)})
+    result))
+
+(defn file/remove
+  "Given a file name and specification, return a file remove struct"
+  [name & specs]
+  (remove-resource :file  name specs))
+
+(defn file-line/ensure
+  "Given a file name and a line pattern, make sure the file contains the line"
+  [name & specs]
+  (ensure-resource :file-line name specs))
+
+(defn file-line/remove
+  "Given a file name and a line pattern, make sure the file does not contain the line"
+  [name & specs]
+  (remove-resource :file-line name specs))
+
+(defn gem/ensure
+  "Given a a gem name, return a gem ensure struct"
+  [name &]
+  (ensure-resource :gem name []))
+
+(defn gem/remove
+  "Given a gem name, return a gem remove struct"
+  [name &]
+  (remove-resource :gem  name []))
+
+(defn misc/ensure
+  "Sets miscellaneous system properties"
+  [& specs]
+  (ensure-resource :misc  "GENERIC" specs))
+
+(defn pkg/ensure
+  "Given a a pkg name, return a pkg ensure struct. In OmniOS, the
+  pkg version is effectively part of the name, so there are no parameters"
+  [name &]
+  (ensure-resource :pkg name []))
+
+(defn pkg/remove
+  "Given a pkg name, return a pkg remove struct"
+  [name &]
+  (remove-resource :pkg name []))
+
+(defn smf/ensure
+  "Given a name and a manifest description, return an smf ensure struct"
+  [name & specs]
+  (def res (ensure-resource :smf name specs))
+
+  # Protos don't nest, so we need to do a little bit of work on the sub-structs
+  (var result @{:svc-name name})
+  (loop [[k v] :pairs (res :smf)]
+    (put result k
+         (if (struct? v) (table/to-struct (merge (proto k) v)) v)))
+  {:smf (table/to-struct result)})
+
+(defn svc/ensure
+  "Given a name and state, return a svc ensure struct"
+  [name & specs]
+  (ensure-resource :svc  name specs))
+
+(defn symlink/ensure
+  "Given a symlink name and specification, return a symlink ensure struct"
+  [name & specs]
+  (ensure-resource :symlink name specs))
+
+(defn symlink/remove
+  "Given a symlink name and specification, return a symlink remove struct"
+  [name & specs]
+  (remove-resource :symlink name specs))
+
+(defn user/ensure
+  "Given a user name and specification, return a user ensure struct"
+  [name & specs]
+  (ensure-resource :user  name specs))
+
+(defn user/remove
+  "Given a user name and specification, return a user remove struct"
+  [name & specs]
+  (remove-resource :user  name specs))
+
+(defn zfs/ensure
+  "Given a zfs dataset name and specification, return a zfs ensure struct"
+  [name & specs]
+  (ensure-resource :zfs name specs))
+
+(defn zfs/remove
+  "Given a zfs dataset name and specification, return a zfs remove struct"
+  [name & specs]
+  (remove-resource :zfs  name specs))
