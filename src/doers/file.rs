@@ -8,6 +8,7 @@ use anyhow::bail;
 use blake3::Hash;
 use camino::Utf8PathBuf;
 use nix::unistd::{Gid, Uid};
+use regex::Regex;
 use serde::Deserialize;
 use std::fmt::Debug;
 use std::fs;
@@ -147,6 +148,13 @@ impl GurpFileEnsure {
 
         tracing::debug!("to change for {}: {}", self.path, to_change.join(", "));
         Ok(to_change)
+    }
+
+    fn filter_content(&self, content: &str, filter: &str) -> anyhow::Result<String> {
+        tracing::debug!("filtering content on '{}'", filter);
+        let rx = Regex::new(filter)?;
+        let ret: String = content.lines().filter(|l| rx.is_match(l)).collect();
+        Ok(ret)
     }
 
     fn current_state(&self) -> anyhow::Result<FileState> {
