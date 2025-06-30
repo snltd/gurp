@@ -68,7 +68,7 @@ impl GurpFileEnsure {
             tracing::info!("creating: {}", self.path);
 
             if opts.noop {
-                return Ok(ONE_RESOURCE_ONE_CHANGE);
+                return Ok(ONE_RESOURCE_NOOP);
             }
 
             self.write_contents_to_file(&desired)?;
@@ -186,7 +186,7 @@ impl GurpFileEnsure {
             let mut fh = fs::File::create(&self.path)?;
             Ok(fh.write_all(content.as_bytes())?)
         } else if let Some(from) = &desired_state.from {
-            tracing::debug!("coping {} -> {}", from, self.path);
+            tracing::debug!("copying {} -> {}", from, self.path);
             fs::copy(from, &self.path)?;
             Ok(())
         } else {
@@ -221,11 +221,196 @@ impl GurpFileRemove {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::spec_helper::{defopts, defopts_noop}; //, init_janet, my_group, my_user};
+    use crate::test_utils::spec_helper::{
+        defopts, defopts_noop, fixture, janet2json, my_group, my_user,
+    };
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use camino::Utf8PathBuf;
-    // use std::os::unix::fs::MetadataExt;
+    use indoc::formatdoc;
+    use std::fs;
+    use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn test_file_ensure_apply_noop() {
+        let temp = TempDir::new().unwrap();
+        let path = Utf8PathBuf::from_path_buf(temp.child("test-file").to_path_buf()).unwrap();
+
+        let json_def = janet2json(&formatdoc! {"
+            (file/ensure \"{}\"
+                :content \"some-junk\"
+                :mode \"0750\"
+                :owner \"{}\"
+                :group \"{}\")
+            ",
+            path,
+            my_user(),
+            my_group(),
+        });
+
+        assert!(!path.exists());
+        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn test_file_ensure_already_correct() {
+        let temp = TempDir::new().unwrap();
+        temp.child("test-file").write_str("stuff").unwrap();
+        let file = temp.join("test-file");
+
+        let path = Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o750)).unwrap();
+        assert!(path.exists());
+
+        let json_def = janet2json(&formatdoc! {"
+            (file/ensure \"{}\"
+                :content \"stuff\"
+                :mode \"0750\"
+                :owner \"{}\"
+                :group \"{}\")
+            ",
+            path,
+            my_user(),
+            my_group(),
+        });
+
+        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert!(path.exists());
+    }
+
+    #[test]
+    fn test_file_create_from_content() {
+        let temp = TempDir::new().unwrap();
+        let file = temp.join("test-file");
+        let path = Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap();
+        assert!(!path.exists());
+
+        let json_def = janet2json(&formatdoc! {"
+            (file/ensure \"{}\"
+                :content \"stuff\"
+                :mode \"0640\"
+                :owner \"{}\"
+                :group \"{}\")
+            ",
+            path,
+            my_user(),
+            my_group(),
+        });
+
+        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert!(path.exists());
+        let metadata = fs::metadata(&path).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o777, 0o640);
+        assert_eq!("stuff", fs::read_to_string(path).unwrap());
+    }
+
+    #[test]
+    fn test_file_create_from_template() {
+        let temp = TempDir::new().unwrap();
+        let file = temp.join("test-file");
+        let path = Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap();
+        assert!(!path.exists());
+
+        // escape { with another {
+        let json_def = janet2json(&formatdoc! {"
+            (file/ensure \"{}\"
+                :content (template-out \"{{{{ name }}}} is running a {{{{ thing }}}}\"
+                                        {{ :name \"gurp\" :thing \"test\" }})
+                :mode \"0600\"
+                :owner \"{}\"
+                :group \"{}\")
+            ",
+            path,
+            my_user(),
+            my_group(),
+        });
+
+        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert!(path.exists());
+        let metadata = fs::metadata(&path).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o777, 0o600);
+        assert_eq!("gurp is running a test", fs::read_to_string(path).unwrap());
+    }
+
+    #[test]
+    fn test_update_file_and_set_mode() {
+        let temp = TempDir::new().unwrap();
+        temp.child("test-file")
+            .write_str("the-wrong-stuff")
+            .unwrap();
+
+        let path = Utf8PathBuf::from_path_buf(temp.to_path_buf())
+            .unwrap()
+            .join("test-file");
+        assert!(path.exists());
+
+        let json_def = janet2json(&formatdoc! {"
+            (file/ensure \"{}\"
+                :content \"the-right-stuff\"
+                :mode \"0400\"
+                :owner \"{}\"
+                :group \"{}\")
+            ",
+            path,
+            my_user(),
+            my_group(),
+        });
+
+        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+
+        assert!(path.exists());
+        assert_eq!(
+            "the-right-stuff".to_owned(),
+            fs::read_to_string(&path).unwrap()
+        );
+
+        let metadata = fs::metadata(&path).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o777, 0o400);
+    }
+
+    #[test]
+    fn test_update_file_from_file() {
+        let temp = TempDir::new().unwrap();
+        temp.child("test-file")
+            .write_str("the-wrong-stuff")
+            .unwrap();
+
+        let path = Utf8PathBuf::from_path_buf(temp.to_path_buf())
+            .unwrap()
+            .join("test-file");
+        assert!(path.exists());
+
+        let json_def = janet2json(&formatdoc! {"
+            (file/ensure \"{}\"
+                :from \"{}\"
+                :mode \"0444\"
+                :owner \"{}\"
+                :group \"{}\")
+            ",
+            path,
+            &fixture("doers/file/copy-file"),
+            my_user(),
+            my_group(),
+        });
+
+        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+
+        assert!(path.exists());
+        assert_eq!(
+            "some-content\n".to_owned(),
+            fs::read_to_string(&path).unwrap()
+        );
+
+        let metadata = fs::metadata(&path).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o777, 0o444);
+    }
 
     #[test]
     fn test_file_remove_apply_does_not_exist() {
@@ -290,124 +475,4 @@ mod test {
         );
         assert!(file.exists());
     }
-
-    /*
-    #[test]
-    fn test_unpack_ensure_file() {
-        init_janet();
-
-        let example_file_ensure = Janet::wrap(janetrs::structs! {
-            ":_id" => "/test-role/file/test-file",
-            ":action" => ":ensure",
-            ":content" => "some-content",
-            ":group" => "14",
-            ":mode" => "0755",
-            ":name" => "/tmp/merp",
-            ":owner" => "264",
-        });
-
-        assert_eq!(
-            GurpFile {
-                name: Utf8PathBuf::from("/tmp/merp"),
-                id: "/test-role/file/test-file".to_owned(),
-                exists: false,
-                action: Action::Ensure,
-                desired_state: Some(FileState {
-                    content: Some("some-content".to_owned()),
-                    from: None,
-                    gid: 14.into(),
-                    hash: None,
-                    mode: "0755".to_owned(),
-                    uid: 264.into(),
-                }),
-            },
-            GurpFile::try_from(&example_file_ensure).unwrap()
-        );
-    }
-
-    #[test]
-    fn test_unpack_remove_file() {
-        init_janet();
-        let example_file_remove = Janet::wrap(janetrs::structs! {
-            ":name" => "/tmp/merp",
-            ":_id" => "/test-role/file/merp",
-            ":label" => "merp",
-            ":action" => ":remove",
-        });
-
-        assert_eq!(
-            GurpFile {
-                name: Utf8PathBuf::from("/tmp/merp"),
-                id: "/test-role/file/merp".to_owned(),
-                exists: false,
-                action: Action::Remove,
-                desired_state: None,
-            },
-            GurpFile::try_from(&example_file_remove).unwrap()
-        );
-    }
-
-    #[test]
-    fn test_create_fresh_file() {
-        init_janet();
-
-        let temp = TempDir::new().unwrap();
-        let file_to_create = temp.join("test-file");
-
-        let example_file_ensure = Janet::wrap(janetrs::structs! {
-            ":_id" => "/test-role/file/test-file",
-            ":action" => ":ensure",
-            ":content" => "some-content",
-            ":group" => my_group().as_str(),
-            ":mode" => "0600",
-            ":name" => file_to_create.to_string_lossy().to_string().as_str(),
-            ":owner" => my_user().as_str(),
-        });
-
-        let gurp_file = GurpFile::try_from(&example_file_ensure).unwrap();
-        gurp_file.apply(&defcontext(), &defopts()).unwrap();
-
-        assert!(file_to_create.exists());
-        assert_eq!(
-            "some-content".to_owned(),
-            fs::read_to_string(&file_to_create).unwrap()
-        );
-        let metadata = fs::metadata(file_to_create).unwrap();
-        let mode = format!("{:04o}", metadata.mode() & 0o777);
-        assert_eq!("0600", mode);
-    }
-
-    #[test]
-    fn test_update_file_and_set_mode() {
-        init_janet();
-
-        let temp = TempDir::new().unwrap();
-        temp.child("test-file")
-            .write_str("the-wrong-stuff")
-            .unwrap();
-        let file_to_create = temp.join("test-file");
-
-        let example_file_ensure = Janet::wrap(janetrs::structs! {
-            ":_id" => "/test-role/file/test-file",
-            ":action" => ":ensure",
-            ":content" => "the-right-stuff",
-            ":group" => my_group().as_str(),
-            ":mode" => "0400",
-            ":name" => file_to_create.to_string_lossy().to_string().as_str(),
-            ":owner" => my_user().as_str(),
-        });
-
-        let gurp_file = GurpFile::try_from(&example_file_ensure).unwrap();
-        gurp_file.apply(&defcontext(), &defopts()).unwrap();
-
-        assert!(file_to_create.exists());
-        assert_eq!(
-            "the-right-stuff".to_owned(),
-            fs::read_to_string(&file_to_create).unwrap()
-        );
-        let metadata = fs::metadata(file_to_create).unwrap();
-        let mode = format!("{:04o}", metadata.mode() & 0o777);
-        assert_eq!("0400", mode);
-    }
-    */
 }

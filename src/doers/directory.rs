@@ -52,7 +52,7 @@ impl GurpDirectoryEnsure {
             tracing::info!("creating directory: {}", self.path);
 
             if opts.noop {
-                return Ok(ONE_RESOURCE_ONE_CHANGE);
+                return Ok(ONE_RESOURCE_NOOP);
             }
 
             fs::create_dir_all(&self.path)?;
@@ -157,35 +157,88 @@ impl GurpDirectoryRemove {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::spec_helper::{defopts, defopts_noop};
+    use crate::test_utils::spec_helper::{defopts, defopts_noop, janet2json, my_group, my_user};
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
-    use camino::Utf8PathBuf;
+    use indoc::formatdoc;
+    use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn test_directory_ensure_apply_noop() {
+        let temp = TempDir::new().unwrap();
+        let dir = Utf8PathBuf::from_path_buf(temp.child("test_directory").to_path_buf()).unwrap();
+        let json_def = janet2json(&format!("(directory/ensure \"{}\")", dir));
+        assert!(!dir.exists());
+        let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
+        assert!(!dir.exists());
+    }
+
+    #[test]
+    fn test_directory_ensure_already_exists() {
+        let temp = TempDir::new().unwrap();
+        let dir = temp.child("test_directory");
+        dir.create_dir_all().unwrap();
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o750)).unwrap();
+
+        let dir_path = Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap();
+        assert!(dir_path.exists());
+
+        let json_def = janet2json(&formatdoc! {"
+            (directory/ensure \"{}\"
+                :mode \"0750\"
+                :owner \"{}\"
+                :group \"{}\")
+            ",
+            dir_path,
+            my_user(),
+            my_group(),
+        });
+        let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert!(dir_path.exists());
+    }
+
+    #[test]
+    fn test_directory_ensure_change_mode() {
+        let temp = TempDir::new().unwrap();
+        let dir = temp.child("test_directory");
+        dir.create_dir_all().unwrap();
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o750)).unwrap();
+
+        let dir_path = Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap();
+        assert!(dir_path.exists());
+
+        let json_def = janet2json(&formatdoc! {"
+            (directory/ensure \"{}\"
+                :mode \"0775\"
+                :owner \"{}\"
+                :group \"{}\")
+            ",
+            dir_path,
+            my_user(),
+            my_group(),
+        });
+
+        let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert!(dir_path.exists());
+        let metadata = fs::metadata(dir_path).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o777, 0o775);
+    }
 
     #[test]
     fn test_directory_remove_apply_does_not_exist() {
-        let dir_does_not_exist = GurpDirectoryRemove {
-            path: Utf8PathBuf::from("/does/not/exist/dir-to-test"),
-            id: "/test-role/directory/dir-to-test".to_owned(),
-        };
-
-        assert_eq!(
-            ONE_RESOURCE_NO_CHANGE,
-            dir_does_not_exist.apply(&defopts()).unwrap()
-        );
+        let json_def = janet2json(r#"(directory/remove "/no/such/dir")"#);
+        let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts()).unwrap());
     }
 
     #[test]
     fn test_directory_remove_apply_not_allowed() {
-        let disallowed_dir = GurpDirectoryRemove {
-            path: Utf8PathBuf::from("/"),
-            id: "/test-role/directory/root".to_owned(),
-        };
-
-        assert_eq!(
-            ONE_RESOURCE_ONE_ERROR,
-            disallowed_dir.apply(&defopts()).unwrap()
-        );
+        let json_def = janet2json(r#"(directory/remove "/usr")"#);
+        let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_ERROR, sut.apply(&defopts()).unwrap());
     }
 
     #[test]
@@ -194,13 +247,11 @@ mod test {
         let dir = temp.child("test_directory");
         dir.create_dir_all().unwrap();
 
-        let test_dir = GurpDirectoryRemove {
-            path: Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap(),
-            id: "/test-role/directory/test_directory".to_owned(),
-        };
+        let json_def = janet2json(&format!("(directory/remove \"{}\")", dir.to_string_lossy()));
+        let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
 
         assert!(dir.exists());
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, test_dir.apply(&defopts()).unwrap());
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
         assert!(!dir.exists());
     }
 
@@ -210,66 +261,11 @@ mod test {
         let dir = temp.child("test_directory");
         dir.create_dir_all().unwrap();
 
-        let test_dir = GurpDirectoryRemove {
-            path: Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap(),
-            id: "/test-role/directory/test_directory".to_owned(),
-        };
+        let json_def = janet2json(&format!("(directory/remove \"{}\")", dir.to_string_lossy()));
+        let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
 
         assert!(dir.exists());
-        assert_eq!(
-            ONE_RESOURCE_NO_CHANGE,
-            test_dir.apply(&defopts_noop()).unwrap()
-        );
+        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
         assert!(dir.exists());
     }
-
-    /*
-    #[cfg(not(target_os = "macos"))]
-    #[test]
-    fn test_unpack_ensure_directory() {
-        init_janet();
-
-        let example_dir_ensure = Janet::wrap(janetrs::structs! {
-            ":_id" => "/test-role/directory/test_directory",
-            ":action" => ":ensure",
-            ":group" => "bin",
-            ":mode" => "0755",
-            ":owner" => "root",
-            ":name" => "/tmp/merp",
-        });
-
-        assert_eq!(
-            GurpDirectoryEnsure {
-                path: Utf8PathBuf::from("/tmp/merp"),
-                id: "/test-role/directory/test_directory".to_owned(),
-                desired_state: DesiredDirectoryState {
-                    group: 2.into(),
-                    mode: "0755".to_owned(),
-                    owner: 0.into(),
-                },
-            },
-            GurpDirectory::try_from(&example_dir_ensure).unwrap()
-        );
-    }
-    */
-
-    /*
-    #[test]
-    fn test_unpack_remove_directory() {
-        init_janet();
-        let example_dir_remove = Janet::wrap(janetrs::structs! {
-            ":name" => "/tmp/merp",
-            ":_id" => "/test-role/directory/merp",
-            ":action" => ":remove",
-        });
-
-        assert_eq!(
-            GurpDirectoryRemove {
-                path: Utf8PathBuf::from("/tmp/merp"),
-                id: "/test-role/directory/merp".to_owned(),
-            },
-            GurpDirectory::try_from(&example_dir_remove).unwrap()
-        );
-    }
-    */
 }

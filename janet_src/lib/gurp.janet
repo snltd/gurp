@@ -69,10 +69,12 @@
 (defn qualify-from-path
   "We expect files to be in a directory `files/` at the same level as
   the role file which references those files. This expects a path relative
-  to that directory, and returns the fully qualified path"
+  to that directory, and returns the fully qualified path, but if it gets
+  a fully qualified path, it simply returns it"
   [file-name]
-  (pathcat
-    (dyn :gurp-config-root) "files" file-name))
+  (if (string/has-prefix? "/" file-name)
+    file-name
+    (pathcat (dyn :gurp-config-root) "files" file-name)))
 
 (defn file/ensure
   "Given a file name and specification, return a file ensure struct"
@@ -152,7 +154,7 @@
   (def res (generic-resource :smf :ensure name specs))
 
   # Protos don't nest, so we need to do a little bit of work on the sub-structs
-  (var result @{:svc-name name })
+  (var result @{:svc-name name})
   (loop [[k v] :pairs (res :smf)]
     (put result k
          (if (struct? v) (table/to-struct (merge (proto k) v)) v)))
@@ -194,8 +196,8 @@
   (setdyn :host-dyn (string host-name))
   ~(defn machine-config
      []
-       {:metadata {:name ,host-name}
-        :resources (group-by-action-and-type (flatten (tuple ,;host-definition)))}))
+     {:metadata {:name ,host-name}
+      :resources (group-by-action-and-type (flatten (tuple ,;host-definition)))}))
 
 (defn group-by-action-and-type
   "Turns an array of resources into a struct of structs, and resolves references."
