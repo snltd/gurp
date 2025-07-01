@@ -41,6 +41,13 @@
                  :owner "myself"
                  :role "test-role"}})
 
+  (test-error
+    (directory/ensure "/extra/keys"
+                      :owner "me"
+                      :gid 234
+                      :recursive true)
+    "directory '/extra/keys' has unrecognised key(s): recursive, gid")
+
   (test
     (directory/remove "/path/to/dir")
     {:directory {:_id "/test-role/directory/_path_to_dir"

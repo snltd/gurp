@@ -6,10 +6,10 @@
   (test
     (cron/ensure "loosely-specced"
                  :minute 6
-                 :cmd (argcat "command" "arg1" "arg2" "arg3"))
+                 :command (argcat "/bin/thing" "arg1" "arg2" "arg3"))
     {:cron {:_id "/test-role/cron/loosely-specced"
             :action :ensure
-            :cmd "command arg1 arg2 arg3"
+            :command "/bin/thing arg1 arg2 arg3"
             :day-of-month "*"
             :day-of-week "*"
             :hour "*"
@@ -22,15 +22,15 @@
   (test
     (cron/ensure "tightly-specced"
                  :minute 6
-                :hour 4
-                :day-of-month "*"
-                :day-of-week 5
-                :label "some-cron-job"
-                :user "test-user"
-                 :cmd (argcat "command" "arg1" "arg2" "arg3"))
+                 :hour 4
+                 :day-of-month "*"
+                 :day-of-week 5
+                 :label "some-cron-job"
+                 :user "test-user"
+                 :command (argcat "/bin/thing" "arg1" "arg2" "arg3"))
     {:cron {:_id "/test-role/cron/some-cron-job"
             :action :ensure
-            :cmd "command arg1 arg2 arg3"
+            :command "/bin/thing arg1 arg2 arg3"
             :day-of-month "*"
             :day-of-week 5
             :hour 4
@@ -40,6 +40,19 @@
             :name "tightly-specced"
             :role "test-role"
             :user "test-user"}})
+
+  (test-error
+    (cron/ensure "missing-data" :hour 6)
+    "cron missing required key(s): command")
+
+  (test-error
+    (cron/ensure "junk-keys"
+                 :command "/bin/effort"
+                 :minute 1
+                 :day "monday"
+                 :colour "blue"
+                 :hour 6)
+    "cron 'junk-keys' has unrecognised key(s): day, colour")
 
   (test
     (cron/remove "that-old-cron-job")

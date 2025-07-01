@@ -5,9 +5,9 @@
   (setdyn :role-dyn "test-role")
   (test
     (zfs/ensure (zfscat "tank" "export" "test")
-                    :label "test-zfs"
-                    :compression "gzip9"
-                    :devices "off")
+                :label "test-zfs"
+                :compression "gzip9"
+                :devices "off")
     {:zfs {:_id "/test-role/zfs/test-zfs"
            :action :ensure
            :compression "gzip9"
