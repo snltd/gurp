@@ -167,7 +167,7 @@ mod test {
     fn test_directory_ensure_apply_noop() {
         let temp = TempDir::new().unwrap();
         let dir = Utf8PathBuf::from_path_buf(temp.child("test_directory").to_path_buf()).unwrap();
-        let json_def = janet2json(&format!("(directory/ensure \"{}\")", dir));
+        let json_def = janet2json(&format!("(directory/ensure \"{dir}\")"));
         assert!(!dir.exists());
         let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
         assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
