@@ -7,10 +7,20 @@
   [resource-type]
   (get default-protos resource-type {}))
 
+(defn argcat
+  "Joins arguments to make a command"
+  [& chunks]
+  (string/join (tuple ;chunks) " "))
+
 (defn pathcat
   "Joins tokens to make a path"
   [& chunks]
   (string/join (map |(string/trim $ "/") (tuple "" ;chunks)) "/"))
+
+(defn zfscat
+  "Joins tokens to make a ZFS dataset name"
+  [& chunks]
+  (string/join (map |(string/trim $ "/") (tuple ;chunks)) "/"))
 
 (defn parent
   [path]
@@ -30,7 +40,7 @@
     file-name
     (pathcat (dyn :gurp-config-root) "files" file-name)))
 
-(defn id
+(defn resource-id
   [resource-type resource-name resource-spec]
   (string "/" (dyn :role-dyn "NO-ROLE")
           "/" resource-type
@@ -192,15 +202,7 @@
                   (string/split (string "\n" ,str))
                   (string/join "\n")
                   (string/trim)))))
-(defn zfscat
-  "Joins tokens to make a ZFS dataset name"
-  [& chunks]
-  (string/join (map |(string/trim $ "/") (tuple ;chunks)) "/"))
 
-(defn argcat
-  "Joins arguments to make a command"
-  [& chunks]
-  (string/join (tuple ;chunks) " "))
 
 (defn fields
   "Returns an array of the whitespace-separated elements in a string"
@@ -222,14 +224,53 @@
   []
   (run-cmd "/bin/uname -n"))
 
+(def resource-ensure-keys
+  {:cron {:supported [:user :minute :hour :day-of-month :month-of-year
+                      :day-of-week :command]
+          :mandatory [:command]}
+   :directory {:supported [:owner :mode :group]}
+   :file-line {:supported [:line]
+               :mandatory [:line]}
+   :file {:supported [:owner :mode :group :content :ignore-pattern :from]}
+   :misc {:supported [:nfs-domain :enable-smb :scheduler]}
+   :smf {:supported [:description :fmri :default-enabled :single-instance
+                     :start-method :stop-method :refresh-method]
+         :mandatory [:description :fmri]}
+   :svc {:supported [:state :restarters :reloaders]
+         :mandatory [:state]}
+   :symlink {:supported [:source]
+             :mandatory [:source]}
+   :user {:supported [:uid :primary-group :home-dir :shell :gecos :password-hash]
+          :mandatory [:uid :primary-group :home-dir :shell :gecos]}})
+
+(defn- validate-ensure-spec
+  [resource-type resource-name resource-spec]
+  (def user-keys (filter |(not (= :label $)) (keys (struct ;resource-spec))))
+  (def valid-keys (get resource-ensure-keys resource-type {}))
+  (def mandatory-keys (get valid-keys :mandatory []))
+  (def supported-keys (tuple :label ;(get valid-keys :supported [])))
+
+  (def missing-mandatory (filter |(not (has-value? user-keys $)) mandatory-keys))
+  (if-not (empty? missing-mandatory)
+    (error (string resource-type " missing required key(s): " (string/join missing-mandatory ", "))))
+
+  (def unrecognised (filter |(not (has-value? supported-keys $)) user-keys))
+  (if-not (empty? unrecognised)
+    (error (string/format "%s '%s' has unrecognised key(s): %s" resource-type resource-name (string/join unrecognised ", ")))))
+
+(defn- validate-remove-spec
+  [resource-type resource-spec])
+
 (defn- ensure-resource
   "Creates a resource struct of the given type and name. The role is picked up
   from a role-specific dynamic binding, to cut down on user boilerplate"
-  [resource-type resource-name resource-spec]
+  [resource-type resource-name resource-spec & opts]
+  (if-not (has-value? opts :no-validate)
+    (validate-ensure-spec resource-type resource-name resource-spec))
   (->>
     (struct/with-proto
       (proto resource-type)
-      :_id (id resource-type resource-name resource-spec)
+      :_id (resource-id resource-type resource-name resource-spec)
       :role (dyn :role-dyn)
       :name resource-name
       :action :ensure
@@ -243,11 +284,13 @@
   "Creates a resource struct of the given type and name. The role is picked up
   from a role-specific dynamic binding, to cut down on user boilerplate"
   [resource-type resource-name resource-spec]
-  (struct resource-type (struct :_id (id resource-type resource-name resource-spec)
-                         :action :remove
-                         :role (dyn :role-dyn)
-                         :name resource-name
-                         (splice resource-spec) )))
+  (validate-remove-spec resource-type resource-spec)
+  (struct resource-type
+          (struct :_id (resource-id resource-type resource-name resource-spec)
+                  :action :remove
+                  :role (dyn :role-dyn)
+                  :name resource-name
+                  (splice resource-spec))))
 
 (defn cron/ensure
   "Given a name and specification, return a cron ensure struct"
@@ -267,12 +310,12 @@
 (defn directory/remove
   "Given a directory name and specification, return a directory remove struct"
   [name & specs]
-  (remove-resource :directory  name specs))
+  (remove-resource :directory name specs))
 
 (defn file/ensure
   "Given a file name and specification, return a file ensure struct"
   [name & specs]
-  (def result (ensure-resource :file  name specs))
+  (def result (ensure-resource :file name specs))
   (var resource (struct/to-table (result :file)))
 
   (if-let [from-path (resource :from)]
@@ -284,7 +327,7 @@
 (defn file/remove
   "Given a file name and specification, return a file remove struct"
   [name & specs]
-  (remove-resource :file  name specs))
+  (remove-resource :file name specs))
 
 (defn file-line/ensure
   "Given a file name and a line pattern, make sure the file contains the line"
@@ -298,29 +341,29 @@
 
 (defn gem/ensure
   "Given a a gem name, return a gem ensure struct"
-  [name &]
-  (ensure-resource :gem name []))
+  [name & specs]
+  (ensure-resource :gem name specs))
 
 (defn gem/remove
   "Given a gem name, return a gem remove struct"
-  [name &]
-  (remove-resource :gem  name []))
+  [name & specs]
+  (remove-resource :gem name specs))
 
 (defn misc/ensure
   "Sets miscellaneous system properties"
   [& specs]
-  (ensure-resource :misc  "GENERIC" specs))
+  (ensure-resource :misc "GENERIC" specs))
 
 (defn pkg/ensure
   "Given a a pkg name, return a pkg ensure struct. In OmniOS, the
   pkg version is effectively part of the name, so there are no parameters"
-  [name &]
-  (ensure-resource :pkg name []))
+  [name & specs]
+  (ensure-resource :pkg name specs))
 
 (defn pkg/remove
   "Given a pkg name, return a pkg remove struct"
-  [name &]
-  (remove-resource :pkg name []))
+  [name & specs]
+  (remove-resource :pkg name specs))
 
 (defn smf/ensure
   "Given a name and a manifest description, return an smf ensure struct"
@@ -337,7 +380,7 @@
 (defn svc/ensure
   "Given a name and state, return a svc ensure struct"
   [name & specs]
-  (ensure-resource :svc  name specs))
+  (ensure-resource :svc name specs))
 
 (defn symlink/ensure
   "Given a symlink name and specification, return a symlink ensure struct"
@@ -352,19 +395,19 @@
 (defn user/ensure
   "Given a user name and specification, return a user ensure struct"
   [name & specs]
-  (ensure-resource :user  name specs))
+  (ensure-resource :user name specs))
 
 (defn user/remove
   "Given a user name and specification, return a user remove struct"
   [name & specs]
-  (remove-resource :user  name specs))
+  (remove-resource :user name specs))
 
 (defn zfs/ensure
   "Given a zfs dataset name and specification, return a zfs ensure struct"
   [name & specs]
-  (ensure-resource :zfs name specs))
+  (ensure-resource :zfs name specs :no-validate))
 
 (defn zfs/remove
   "Given a zfs dataset name and specification, return a zfs remove struct"
   [name & specs]
-  (remove-resource :zfs  name specs))
+  (remove-resource :zfs name specs))

@@ -6,11 +6,11 @@
       (pkg/ensure "ooce/developer/git")
       (file/ensure "/tmp/hx-config.txt"
                    :owner :/devtools/file/git-config/owner
-                   :source "hx-config")
+                   :content "hx-config")
       (file/ensure "/tmp/git-config.txt"
                    :label "git-config"
                    :owner :/basenode/directory/merp/owner
-                   :source "git-config"))
+                   :content "git-config"))
 
 (role basenode
       (section packages
@@ -55,21 +55,21 @@
                                    :role "basenode"}
                                   {:_id "/devtools/file/_tmp_hx-config.txt"
                                    :action :ensure
+                                   :content "hx-config"
                                    :group "root"
                                    :mode "0644"
                                    :name "/tmp/hx-config.txt"
                                    :owner "rob"
-                                   :role "devtools"
-                                   :source "hx-config"}
+                                   :role "devtools"}
                                   {:_id "/devtools/file/git-config"
                                    :action :ensure
+                                   :content "git-config"
                                    :group "root"
                                    :label "git-config"
                                    :mode "0644"
                                    :name "/tmp/git-config.txt"
                                    :owner "rob"
-                                   :role "devtools"
-                                   :source "git-config"}]
+                                   :role "devtools"}]
                           :pkg @[{:_id "/basenode/pkg/ooce_editor_helix"
                                   :action :ensure
                                   :name "ooce/editor/helix"

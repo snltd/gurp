@@ -6,9 +6,9 @@
   (setdyn :role-dyn "test-role")
   (test
     (file/ensure "/path/to/file"
-      :group "daemon"
-      :mode "0755"
-      :from "file-test/does-not-exist")
+                 :group "daemon"
+                 :mode "0755"
+                 :from "file-test/does-not-exist")
     {:file {:_id "/test-role/file/_path_to_file"
             :action :ensure
             :from "/gurpdir/files/file-test/does-not-exist"
@@ -20,9 +20,9 @@
 
   (test
     (file/ensure "/file/path"
-      :owner "dataperson"
-      :mode "0600"
-      :content "lots-of-data")
+                 :owner "dataperson"
+                 :mode "0600"
+                 :content "lots-of-data")
     {:file {:_id "/test-role/file/_file_path"
             :action :ensure
             :content "lots-of-data"
@@ -32,9 +32,16 @@
             :owner "dataperson"
             :role "test-role"}})
 
-    (test
+  (test-error
+    (file/ensure "/octals/only"
+                 :owner "merp"
+                 :group "byerp"
+                 :permissions "rwxr-xr-x")
+    "file '/octals/only' has unrecognised key(s): permissions")
+
+  (test
     (file/remove "/path/to/file")
-      {:file {:_id "/test-role/file/_path_to_file"
-              :action :remove
-              :name "/path/to/file"
-              :role "test-role"}}))
+    {:file {:_id "/test-role/file/_path_to_file"
+            :action :remove
+            :name "/path/to/file"
+            :role "test-role"}}))

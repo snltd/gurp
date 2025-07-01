@@ -14,11 +14,17 @@
 
   (test
     (misc/ensure
-      :scheduler-class "FSS"
+      :scheduler "FSS"
       :enable-smb "rob")
     {:misc {:_id "/test-role/misc/GENERIC"
             :action :ensure
             :enable-smb "rob"
             :name "GENERIC"
             :role "test-role"
-            :scheduler-class "FSS"}}))
+            :scheduler "FSS"}})
+
+  (test-error
+    (misc/ensure
+      :scheduler-class "FSS"
+      :enable-smb "rob")
+    "misc 'GENERIC' has unrecognised key(s): scheduler-class"))

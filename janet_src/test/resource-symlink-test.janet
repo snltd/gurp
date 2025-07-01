@@ -13,6 +13,16 @@
                :name "/link/is/here"
                :role "test-role"
                :source "/link/points/here"}})
+  (test-error
+    (symlink/ensure "/where/does/this/point")
+    "symlink missing required key(s): source")
+
+  (test-error
+    (symlink/ensure "/symlinks/dont/work/like/that"
+                    :source "/some/file"
+                    :owner "me")
+    "symlink '/symlinks/dont/work/like/that' has unrecognised key(s): owner")
+
   (test
     (symlink/remove "/dont/want/this/link")
     {:symlink {:_id "/test-role/symlink/_dont_want_this_link"
