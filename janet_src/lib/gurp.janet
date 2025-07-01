@@ -236,7 +236,7 @@
    :smf {:supported [:description :fmri :default-enabled :single-instance
                      :start-method :stop-method :refresh-method :name]
          :mandatory [:description :fmri]}
-   :svc {:supported [:state :restarters :reloaders]
+   :svc {:supported [:state :restarted-by :reloaded-by]
          :mandatory [:state]}
    :symlink {:supported [:source]
              :mandatory [:source]}
