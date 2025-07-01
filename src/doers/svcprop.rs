@@ -27,6 +27,7 @@ type PropertyMap = HashMap<String, PropertyStruct>;
 #[derive(Debug, Deserialize)]
 pub struct PropertyStruct {
     pub value: String,
+    #[serde(rename = "type")]
     pub prop_type: String,
 }
 

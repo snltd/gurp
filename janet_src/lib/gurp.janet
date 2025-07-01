@@ -238,6 +238,8 @@
          :mandatory [:description :fmri]}
    :svc {:supported [:state :restarted-by :reloaded-by]
          :mandatory [:state]}
+   :svcprop {:supported [:properties]
+             :mandatory [:properties]}
    :symlink {:supported [:source]
              :mandatory [:source]}
    :user {:supported [:uid :primary-group :home-dir :shell :gecos :password-hash]
@@ -385,18 +387,15 @@
 (defn svcprop/ensure
   "Given a name and state, return a svcprop ensure struct"
   [name & specs]
-  (var new-specs
-
-  (map (fn [v]
-     (match (type v)
-          :keyword v
-           :number {:type "integer" :value v}
-           :boolean {:type "boolean" :value v}
-           _ {:type "astring" :value v})) specs )
-
-)
-
-  (ensure-resource :svcprop name new-specs :no-validate))
+  (def spec-table (table ;specs))
+  (var new-properties
+    (map (fn [v]
+           (match (type v)
+             :keyword v
+             :number {:type "integer" :value v}
+             :boolean {:type "boolean" :value v}
+             _ {:type "astring" :value v})) (flatten (pairs (spec-table :properties)))))
+  (ensure-resource :svcprop name (tuple :properties (struct ;new-properties)) :no-validate))
 
 
 (defn svcprop/remove
