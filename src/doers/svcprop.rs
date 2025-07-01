@@ -1,190 +1,259 @@
 use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
+    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
-use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
+use crate::common::types::{ApplySummary, Opts};
 use crate::utils::helpers;
-use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
-use anyhow::{anyhow, bail};
-use janetrs::{Janet, JanetArray};
-use paste::paste;
+use anyhow::bail;
+use serde::Deserialize;
+use std::collections::HashMap;
 use std::process::{Command, Stdio};
+// use std::sync::LazyLock;
 
 // THINGS TO KNOW / THINGS TO DO.
+// As always, extremely limited. Just sets a service property.
 
 const SVCPROP_BIN: &str = "/usr/sbin/svcprop";
+const SVCCFG_BIN: &str = "/usr/sbin/svccfg";
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct GurpSvcprop {
-    pub action: Action,
+// static CURRENT_SVCCFG_OUTPUT: LazyLock<Vec<String>> =
+//     LazyLock::new(|| svcprop_output().expect("Could not get svcprop list"));
+
+// A chunk of text from svcprop(8).
+// fn svcprop_output() -> anyhow::Result<Vec<String>> {
+//     let mut cmd = Command::new(SVCCFG_BIN);
+//     cmd.arg("list").arg("-H").arg("-o").arg("name");
+
+//     tracing::debug!(command = helpers::command_to_string(&cmd));
+//     let result = cmd.output()?;
+
+//     Ok(String::from_utf8_lossy(&result.stdout)
+//         .lines()
+//         .map(|s| s.to_owned())
+//         .collect())
+// }
+
+//    2  - name: Register data directory property
+//    3    ansible.builtin.shell: "/usr/bin/svcprop -p application/datadir {{ svc }}"
+//    4    register: current_data_dir
+//    5    changed_when: false
+//    6
+//    7  - name: Set data directory property
+//    8    when: current_data_dir.stdout != data_dir
+//    9    ansible.builtin.command: "/usr/sbin/svccfg -s {{ svc }} setprop application/datadir={{ data_dir }}"
+//   10    notify:
+//   11    ╎ - Refresh MariaDB
+//   12    ╎ - Restart MariaDB
+
+type PropertyMap = HashMap<String, String>;
+
+#[derive(Debug, Deserialize)]
+pub struct GurpSvcpropEnsure {
+    #[serde(rename = "_id")]
     pub id: String,
-    pub desired_state: SvcpropState,
+    #[serde(rename = "name")]
+    pub service: String,
+    pub values: PropertyMap,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct SvcpropState {
-    pub nfs_domain: Option<NfsDomain>,
-    pub enable_smb: Option<Username>,
+// fn svcprop_state(name: &str) -> anyhow::Result<SvcpropState> {
+//     let mut ret = HashMap::new();
+//     let mut cmd = Command::new(SVCCFG_BIN);
+//     cmd.arg("get")
+//         .arg("-pH")
+//         .arg("-o")
+//         .arg("property,value")
+//         .arg("all")
+//         .arg(name);
+
+//     tracing::debug!(command = helpers::command_to_string(&cmd));
+
+//     let result = cmd.output()?;
+
+//     for l in String::from_utf8_lossy(&result.stdout).lines() {
+//         let bits: Vec<_> = l.split_whitespace().collect();
+
+//         if bits.len() != 2 {
+//             continue;
+//         }
+
+//         ret.insert(bits[0].to_owned(), bits[1].to_owned());
+//     }
+
+//     Ok(ret)
+// }
+
+// fn svcprop_exists(name: &str) -> bool {
+//     CURRENT_SVCCFG_OUTPUT.contains(&name.to_owned())
+// }
+
+type SvcProps = HashMap<String, SvcPropVal>;
+
+struct SvcPropVal {
+    prop_type: String,
+    value: String,
 }
 
-crate::unpack_fn!(ensure_list, Svcprop, GurpSvcprop);
+// impl GurpSvcpropEnsure {
+    fn svc_property_values(&self, svc: &str) -> anyhow::Result<String> {
+        let mut cmd = Command::new(SVCPROP_BIN);
+        cmd.arg(svc).stderr(Stdio::piped());
 
-impl TryFrom<&Janet> for GurpSvcprop {
-    type Error = anyhow::Error;
+        tracing::debug!(command = helpers::command_to_string(&cmd));
+        let output = cmd.output()?;
 
-    fn try_from(value: &Janet) -> anyhow::Result<Self> {
-        let data = value.extract_struct()?;
-        let action = janet_helpers::action_as_enum(&data)?;
-
-        if action != Action::Ensure {
-            bail!("misc can only be ensured");
+        if output.status.success() {
+            Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+        } else {
+            bail!(String::from_utf8_lossy(&output.stderr).into_owned())
         }
-
-        Ok(GurpSvcprop {
-            action: Action::Ensure,
-            id: data.get_field_string("_id")?,
-            desired_state: SvcpropState {
-                nfs_domain: data.get_field_string_opt("nfs-domain"),
-                enable_smb: data.get_field_string_opt("enable-smb"),
-            },
-        })
-    }
-}
-
-impl Apply for GurpSvcprop {
-    fn apply(&self, apply_context: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        self.apply_ensure(apply_context, opts)
-    }
-}
-
-impl GurpSvcprop {
-    fn apply_ensure(&self, _c: &ApplyContext, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        let mut aggr = ApplySummary::default();
-
-        if let Some(domain) = &self.desired_state.nfs_domain {
-            aggr = aggr + self.ensure_nfs_domain(domain, opts);
-        }
-
-        if let Some(user) = &self.desired_state.enable_smb {
-            aggr = aggr
-                + match self.enable_smb_share(user) {
-                    Ok(summary) => summary,
-                    Err(e) => {
-                        tracing::error!("smbadm check: {}", e);
-                        ONE_RESOURCE_ONE_ERROR
-                    }
-                };
-        }
-
-        Ok(aggr)
     }
 
-    fn enable_smb_share(&self, username: &str) -> anyhow::Result<ApplySummary> {
-        let mut get_status_cmd = Command::new(SMBADM_BIN);
-        get_status_cmd.arg("lookup").arg(username);
+    fn process_svc_properties(&self, raw: &str) -> SvcProps {
+        raw.lines()
+            .filter_map(|l| {
+                let chunks: Vec<_> = l.split_whitespace().collect();
+                if chunks.len() == 3 {
+                    // Empty string values show as "". That *might* be a problem one day
+                    let value = if chunks[2] == "\"\"" { "" } else { chunks[2] }.to_owned();
 
-        tracing::debug!(command = helpers::command_to_string(&get_status_cmd));
-
-        match get_status_cmd.output() {
-            // if it returns 0 and doesn't say "NONE_MAPPED" then I think it's configured
-            Ok(txt) => {
-                if !String::from_utf8_lossy(&txt.stdout).contains("NONE_MAPPED") {
-                    tracing::info!("no change: smb config {}", username);
-                    return Ok(ONE_RESOURCE_NO_CHANGE);
+                    Some((
+                        chunks[0].to_owned(),
+                        SvcPropVal {
+                            prop_type: chunks[1].to_owned(),
+                            value,
+                        },
+                    ))
+                } else {
+                    None
                 }
+            })
+            .collect()
+    }
+
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        let all_values = &self.process_svc_properties(&self.svc_property_values(&self.service)?);
+
+        let mut svccfg_script = String::new();
+        
+        for (property, propval) in &self.values {
+            if let Some(current_val) = all_values.get(property) {
+                if current_val.value == propval {
+                    tracing::debug!("{} svcprop {} already {}", &self.service, property, propval);
+                    continue;
+                }
+
+                svccfg_script.push_str(format!("setprop {property} = 
             }
-            // I'm not sure whether or not an error here means we shouldn't continue. I don't think
-            // it does
-            Err(_) => {
-                tracing::debug!("error running smbadm lookup; continuing");
+            
+        if svcprop_exists(&self.name) {
+            if let Some(state) = self.options.as_ref() {
+                let current_state = svcprop_state(&self.name)?;
+                let mut run_cmd = false;
+                let mut cmd = Command::new(SVCCFG_BIN);
+                cmd.arg("set");
+
+                for (property, desired_value) in state {
+                    if let Some(current_value) = current_state.get(property) {
+                        if current_value == desired_value {
+                            tracing::debug!("{}: already {}", property, desired_value);
+                        } else {
+                            tracing::info!(
+                                "change svcprop {}: [{}] {} -> {}",
+                                property,
+                                self.name,
+                                current_value,
+                                desired_value,
+                            );
+                            run_cmd = true;
+                            cmd.arg(format!("{property}={desired_value}"));
+                        }
+                    }
+                }
+
+                if run_cmd {
+                    cmd.arg(&self.name);
+                    tracing::debug!(command = helpers::command_to_string(&cmd));
+
+                    let output = cmd.output()?;
+
+                    if output.status.success() {
+                        Ok(ONE_RESOURCE_ONE_CHANGE)
+                    } else {
+                        bail!(String::from_utf8_lossy(&output.stderr).into_owned())
+                    }
+                } else {
+                    tracing::info!("no change: {}", self.name);
+                    Ok(ONE_RESOURCE_NO_CHANGE)
+                }
+            } else {
+                Ok(ONE_RESOURCE_NO_CHANGE)
             }
-        }
-
-        tracing::info!("enabling smb user: {}", username);
-
-        // If we're still here, we can enable the user
-        //
-        let mut enable_cmd = Command::new(SMBADM_BIN);
-        enable_cmd.arg("enable-user").arg(username);
-
-        tracing::debug!(command = helpers::command_to_string(&enable_cmd));
-
-        match get_status_cmd.output() {
-            Ok(_) => Ok(ONE_RESOURCE_ONE_CHANGE),
-            Err(e) => Err(anyhow!(e)),
+        } else {
+            self.create_filesystem(opts)
         }
     }
 
-    fn ensure_nfs_domain(&self, desired_domain: &str, opts: &Opts) -> ApplySummary {
-        let mut get_cmd = Command::new(SHARECTL_BIN);
-        get_cmd
-            .arg("get")
-            .arg("-p")
-            .arg("nfsmapid_domain")
-            .arg("nfs")
-            .stderr(Stdio::piped());
+    fn create_filesystem(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        tracing::info!("creating filesystem: {}", self.name);
 
-        tracing::debug!(command = helpers::command_to_string(&get_cmd));
+        let mut cmd = Command::new(SVCCFG_BIN);
+        cmd.arg("create");
 
-        let sharectl_output = match get_cmd.output() {
-            Ok(txt) => txt,
-            Err(e) => {
-                tracing::error!("cannot get NFS domain: {}", e);
-                return ONE_RESOURCE_ONE_ERROR;
-            }
-        };
-
-        let sharectl_string = String::from_utf8_lossy(&sharectl_output.stdout);
-        let chunks: Vec<_> = sharectl_string.split('=').collect();
-
-        if chunks.len() != 2 {
-            tracing::error!("unexpected sharectl output: {}", sharectl_string);
-            return ONE_RESOURCE_ONE_ERROR;
+        for (property, value) in self.options.as_ref().unwrap() {
+            cmd.arg("-o");
+            cmd.arg(format!("{property}={value}"));
         }
-
-        let current_domain = chunks.last().unwrap().trim();
-
-        if current_domain == desired_domain {
-            tracing::info!("no change to NFS domain: {}", current_domain);
-            return ONE_RESOURCE_NO_CHANGE;
-        }
-
-        tracing::info!(
-            "change NFS domain: {} -> {}",
-            current_domain,
-            desired_domain
-        );
 
         if opts.noop {
-            return ONE_RESOURCE_NOOP;
+            cmd.arg("-n");
         }
 
-        let mut set_cmd = Command::new(SHARECTL_BIN);
-        set_cmd
-            .arg("set")
-            .arg("-p")
-            .arg(format!("nfsmapid_domain={}", desired_domain))
-            .arg("nfs")
+        cmd.arg(&self.name).stderr(Stdio::piped());
+        tracing::debug!(command = helpers::command_to_string(&cmd));
+        let output = cmd.output()?;
+
+        if output.status.success() {
+            if opts.noop {
+                Ok(ONE_RESOURCE_NOOP)
+            } else {
+                Ok(ONE_RESOURCE_ONE_CHANGE)
+            }
+        } else {
+            bail!(String::from_utf8_lossy(&output.stderr).into_owned())
+        }
+    }
+}
+
+impl GurpSvcpropRemove {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if svcprop_exists(&self.name) {
+            tracing::info!("removing filesystem: {}", self.name);
+
+            if opts.noop {
+                Ok(ONE_RESOURCE_NOOP)
+            } else {
+                self.remove_filesystem()
+            }
+        } else {
+            tracing::debug!("not present: {}", self.name);
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        }
+    }
+
+    fn remove_filesystem(&self) -> anyhow::Result<ApplySummary> {
+        let mut cmd = Command::new(SVCCFG_BIN);
+        cmd.arg("destroy")
+            .arg("-r")
+            .arg(&self.name)
             .stderr(Stdio::piped());
 
-        tracing::debug!(command = helpers::command_to_string(&get_cmd));
+        tracing::debug!(command = helpers::command_to_string(&cmd));
+        let output = cmd.output()?;
 
-        match set_cmd.output() {
-            Ok(code) => {
-                if code.status.success() {
-                    ONE_RESOURCE_ONE_CHANGE
-                } else {
-                    tracing::error!(
-                        "error setting NFS domain: {}",
-                        String::from_utf8_lossy(&code.stderr),
-                    );
-                    ONE_RESOURCE_ONE_ERROR
-                }
-            }
-            Err(e) => {
-                tracing::error!("error setting NFS domain: {}", e,);
-                ONE_RESOURCE_ONE_ERROR
-            }
+        if output.status.success() {
+            Ok(ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            bail!(String::from_utf8_lossy(&output.stderr).into_owned())
         }
     }
 }

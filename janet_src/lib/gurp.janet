@@ -382,6 +382,28 @@
   [name & specs]
   (ensure-resource :svc name specs))
 
+(defn svcprop/ensure
+  "Given a name and state, return a svcprop ensure struct"
+  [name & specs]
+  (var new-specs
+
+  (map (fn [v]
+     (match (type v)
+          :keyword v
+           :number {:type "integer" :value v}
+           :boolean {:type "boolean" :value v}
+           _ {:type "astring" :value v})) specs )
+
+)
+
+  (ensure-resource :svcprop name new-specs :no-validate))
+
+
+(defn svcprop/remove
+  "Given a name and state, return a svcprop remove struct"
+  [name & specs]
+  (remove-resource :svcprop name specs))
+
 (defn symlink/ensure
   "Given a symlink name and specification, return a symlink ensure struct"
   [name & specs]
