@@ -234,7 +234,7 @@
    :file {:supported [:owner :mode :group :content :ignore-pattern :from]}
    :misc {:supported [:nfs-domain :enable-smb :scheduler]}
    :smf {:supported [:description :fmri :default-enabled :single-instance
-                     :start-method :stop-method :refresh-method]
+                     :start-method :stop-method :refresh-method :name]
          :mandatory [:description :fmri]}
    :svc {:supported [:state :restarters :reloaders]
          :mandatory [:state]}
