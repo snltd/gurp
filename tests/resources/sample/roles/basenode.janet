@@ -32,9 +32,9 @@
                             :uid 264
                             :gecos "Rob Fisher"
                             :home-dir "/home/rob"
+                            :primary-group "sysadmin"
                             :password-hash "gwjggijwo"
-                            :shell "/bin/zsh"
-                            :group "sysadmin"))
+                            :shell "/bin/zsh"))
 
       (section cron
                (file/ensure "/etc/default/cron"
@@ -45,6 +45,7 @@
                                  :mode "0755"
                                  :group "daemon")
                (svc/ensure "cron"
+                           :state "enabled"
                            :restarted-by [(this "file" "crondef")]))
 
       (section good-sense

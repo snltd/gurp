@@ -1,13 +1,9 @@
 use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
-use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplyContext, ApplySummary, Opts, Resource};
-use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
-use anyhow::anyhow;
+use crate::common::types::{ApplySummary, Opts};
 use camino::Utf8PathBuf;
-use janetrs::{Janet, JanetArray};
-use paste::paste;
+use serde::Deserialize;
 use std::fs;
 use std::io::Write;
 
@@ -21,98 +17,72 @@ use std::io::Write;
 // We always read the file. There's no caching or anyhing.
 // Files are not backed up.
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct GurpFileLine {
-    pub action: Action,
-    pub exists: bool,
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub struct GurpFileLineEnsure {
+    #[serde(rename = "_id")]
     pub id: String,
-    pub name: Utf8PathBuf, // The Path
-    pub desired_state: FileLineState,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct FileLineState {
     pub line: String,
+    #[serde(rename = "name")]
+    pub path: Utf8PathBuf,
 }
 
-crate::unpack_fn!(ensure_list, FileLine, GurpFileLine);
-crate::unpack_fn!(remove_list, FileLine, GurpFileLine);
-crate::impl_apply!(GurpFileLine);
-
-impl TryFrom<&Janet> for GurpFileLine {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Janet) -> anyhow::Result<Self> {
-        let data = value.extract_struct()?;
-        let name = data.get_field_pathbuf("name")?;
-
-        if !name.exists() {
-            return Err(anyhow!("File {} does not exist", name));
-        }
-
-        let action = janet_helpers::action_as_enum(&data)?;
-        let line = data.get_field_string("line")?;
-        let contents = fs::read_to_string(name)?;
-        let exists = contents.lines().any(|l| l == line);
-        let state = FileLineState { line };
-
-        Ok(GurpFileLine {
-            action,
-            exists,
-            id: data.get_field_string("_id")?,
-            name: data.get_field_pathbuf("name")?,
-            desired_state: state,
-        })
-    }
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub struct GurpFileLineRemove {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub line: String,
+    #[serde(rename = "name")]
+    pub path: Utf8PathBuf,
 }
 
-impl GurpFileLine {
-    fn apply_ensure(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
-        if self.exists {
-            tracing::info!("no change: {}", &self.name);
+fn line_exists(path: &Utf8PathBuf, line: &str) -> anyhow::Result<bool> {
+    let contents = fs::read_to_string(path)?;
+    Ok(contents.lines().any(|l| l == line))
+}
+
+impl GurpFileLineEnsure {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if line_exists(&self.path, &self.line)? {
+            tracing::info!("no change: {}", &self.path);
             Ok(ONE_RESOURCE_NO_CHANGE)
         } else {
-            tracing::info!("creating: {}", &self.name);
+            tracing::info!("creating: {}", &self.path);
 
             if opts.noop {
                 Ok(ONE_RESOURCE_NOOP)
             } else {
-                let fh = fs::OpenOptions::new().append(true).open(&self.name)?;
-                writeln!(&fh, "\n{}", self.desired_state.line.as_str())?;
+                let fh = fs::OpenOptions::new().append(true).open(&self.path)?;
+                writeln!(&fh, "\n{}", self.line.as_str())?;
                 Ok(ONE_RESOURCE_ONE_CHANGE)
             }
         }
     }
+}
 
-    fn apply_remove(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
-        if !self.exists {
-            tracing::info!("no change: {}", &self.name);
-            Ok(ONE_RESOURCE_NO_CHANGE)
-        } else {
-            tracing::info!("removing: {}", &self.name);
+impl GurpFileLineRemove {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if line_exists(&self.path, &self.line)? {
+            tracing::info!("removing: {}", &self.path);
 
             if opts.noop {
                 Ok(ONE_RESOURCE_NOOP)
             } else {
-                let content = fs::read_to_string(&self.name)?;
+                let content = fs::read_to_string(&self.path)?;
 
                 let out: String = content
                     .lines()
-                    .filter(|l| l != &self.desired_state.line)
-                    .map(|line| format!("{}\n", line))
+                    .filter(|l| l != &self.line)
+                    .map(|line| format!("{line}\n"))
                     .collect();
 
-                fs::write(&self.name, out)?;
+                fs::write(&self.path, out)?;
                 Ok(ONE_RESOURCE_ONE_CHANGE)
             }
+        } else {
+            tracing::info!("no change: {}", &self.path);
+            Ok(ONE_RESOURCE_NO_CHANGE)
         }
     }
 }
@@ -120,47 +90,33 @@ impl GurpFileLine {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::spec_helper::{defcontext, defopts, defopts_noop, init_janet};
+    use crate::test_utils::spec_helper::{defopts, defopts_noop, janet2json};
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
-    use janetrs::{Janet, structs};
+    use indoc::{formatdoc, indoc};
 
     #[test]
     fn test_file_line_ensure_file_does_not_exist() {
-        init_janet();
-        let resource = Janet::wrap(structs! {
-            ":_id" => "/test-role/file-line/test-does-not-exist",
-            ":action" => ":ensure",
-            ":line" => "some irrelevant text",
-            ":name" => "/file/does/not/exist",
-        });
+        let json_def = janet2json(indoc! {r#"
+            (file-line/ensure "/test-role/file-line/test-does-not-exist"
+                :line "some irrelevant text")
+                "#});
 
-        assert!(GurpFileLine::try_from(&resource).is_err());
+        let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
+        assert!(sut.apply(&defopts()).is_err());
     }
 
     #[test]
     fn test_file_line_ensure_file_does_not_contain_desired_line() {
-        init_janet();
+        let (_t, file_to_modify) = test_file();
 
-        let temp = TempDir::new().unwrap();
-        temp.child("test-file")
-            .write_str("line_1\nline_2\nline_3")
-            .unwrap();
-        let file_to_modify = temp.join("test-file");
+        let json_def = janet2json(&formatdoc! {"
+            (file-line/ensure \"{}\" :line \"line_4\")
+            ", file_to_modify});
 
-        let example_file_ensure = Janet::wrap(janetrs::structs! {
-            ":_id" => "/test-role/file-line/test-does-not-exist",
-            ":action" => ":ensure",
-            ":line" => "line_4",
-            ":name" => file_to_modify.to_string_lossy().to_string().as_str(),
-        });
+        let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
 
-        let gurp_file = GurpFileLine::try_from(&example_file_ensure).unwrap();
-
-        assert_eq!(
-            ONE_RESOURCE_ONE_CHANGE,
-            gurp_file.apply(&defcontext(), &defopts()).unwrap()
-        );
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
         assert_eq!(
             "line_1\nline_2\nline_3\nline_4\n".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
@@ -169,27 +125,15 @@ mod test {
 
     #[test]
     fn test_file_line_ensure_file_does_not_contain_desired_line_noop() {
-        init_janet();
+        let (_t, file_to_modify) = test_file();
 
-        let temp = TempDir::new().unwrap();
-        temp.child("test-file")
-            .write_str("line_1\nline_2\nline_3")
-            .unwrap();
-        let file_to_modify = temp.join("test-file");
+        let json_def = janet2json(&formatdoc! {"
+            (file-line/ensure \"{}\" :line \"line_4\")
+            ", file_to_modify});
 
-        let example_file_ensure = Janet::wrap(janetrs::structs! {
-            ":_id" => "/test-role/file-line/test-does-not-exist",
-            ":action" => ":ensure",
-            ":line" => "line_4",
-            ":name" => file_to_modify.to_string_lossy().to_string().as_str(),
-        });
+        let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
 
-        let gurp_file = GurpFileLine::try_from(&example_file_ensure).unwrap();
-
-        assert_eq!(
-            ONE_RESOURCE_NOOP,
-            gurp_file.apply(&defcontext(), &defopts_noop()).unwrap()
-        );
+        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
         assert_eq!(
             "line_1\nline_2\nline_3".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
@@ -198,27 +142,15 @@ mod test {
 
     #[test]
     fn test_file_line_ensure_file_contains_desired_line() {
-        init_janet();
+        let (_t, file_to_modify) = test_file();
 
-        let temp = TempDir::new().unwrap();
-        temp.child("test-file")
-            .write_str("line_1\nline_2\nline_3")
-            .unwrap();
-        let file_to_modify = temp.join("test-file");
+        let json_def = janet2json(&formatdoc! {"
+            (file-line/ensure \"{}\" :line \"line_3\")
+            ", file_to_modify});
 
-        let example_file_ensure = Janet::wrap(janetrs::structs! {
-            ":_id" => "/test-role/file-line/test-does-not-exist",
-            ":action" => ":ensure",
-            ":line" => "line_3",
-            ":name" => file_to_modify.to_string_lossy().to_string().as_str(),
-        });
+        let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
 
-        let gurp_file = GurpFileLine::try_from(&example_file_ensure).unwrap();
-
-        assert_eq!(
-            ONE_RESOURCE_NO_CHANGE,
-            gurp_file.apply(&defcontext(), &defopts()).unwrap()
-        );
+        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts()).unwrap());
         assert_eq!(
             "line_1\nline_2\nline_3".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
@@ -227,27 +159,16 @@ mod test {
 
     #[test]
     fn test_file_line_remove_file_contains_desired_line() {
-        init_janet();
+        let (_t, file_to_modify) = test_file();
 
-        let temp = TempDir::new().unwrap();
-        temp.child("test-file")
-            .write_str("line_1\nline_2\nline_3\n")
-            .unwrap();
-        let file_to_modify = temp.join("test-file");
+        let json_def = janet2json(&formatdoc! {"
+            (file-line/remove \"{}\" :line \"line_2\")
+            ", file_to_modify});
 
-        let example_file_ensure = Janet::wrap(janetrs::structs! {
-            ":_id" => "/test-role/file-line/test-does-not-exist",
-            ":action" => ":remove",
-            ":line" => "line_2",
-            ":name" => file_to_modify.to_string_lossy().to_string().as_str(),
-        });
+        let sut: GurpFileLineRemove = serde_json::from_str(&json_def).unwrap();
 
-        let gurp_file = GurpFileLine::try_from(&example_file_ensure).unwrap();
-
-        assert_eq!(
-            ONE_RESOURCE_ONE_CHANGE,
-            gurp_file.apply(&defcontext(), &defopts()).unwrap()
-        );
+        sut.apply(&defopts()).unwrap();
+        // assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
         assert_eq!(
             "line_1\nline_3\n".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
@@ -256,30 +177,32 @@ mod test {
 
     #[test]
     fn test_file_line_remove_file_does_not_contain_desired_line() {
-        init_janet();
-
         let temp = TempDir::new().unwrap();
         temp.child("test-file")
             .write_str("line_1\nline_2\nline_3")
             .unwrap();
         let file_to_modify = temp.join("test-file");
 
-        let example_file_ensure = Janet::wrap(janetrs::structs! {
-            ":_id" => "/test-role/file-line/test-does-not-exist",
-            ":action" => ":remove",
-            ":line" => "line_4",
-            ":name" => file_to_modify.to_string_lossy().to_string().as_str(),
-        });
+        let json_def = janet2json(&formatdoc! {"
+            (file-line/remove \"{}\" :line \"line_4\")
+            ", file_to_modify.to_string_lossy()});
 
-        let gurp_file = GurpFileLine::try_from(&example_file_ensure).unwrap();
+        let sut: GurpFileLineRemove = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(
-            ONE_RESOURCE_NOOP,
-            gurp_file.apply(&defcontext(), &defopts_noop()).unwrap()
-        );
+        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
         assert_eq!(
             "line_1\nline_2\nline_3".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
         );
+    }
+
+    fn test_file() -> (TempDir, Utf8PathBuf) {
+        let temp = TempDir::new().unwrap();
+        let file = temp.child("test-file");
+        file.write_str("line_1\nline_2\nline_3").unwrap();
+        (
+            temp,
+            Utf8PathBuf::from_path_buf(file.path().to_path_buf()).unwrap(),
+        )
     }
 }

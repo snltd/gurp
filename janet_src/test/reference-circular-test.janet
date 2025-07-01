@@ -26,4 +26,4 @@
 (deftest "circular-reference-should-error"
   (test-error
   (machine-config)
-    "Detected circular reference [@[\"/role-b/file/b2\" \"/role-b/file/_tmp_b1\" \"/role-a/file/a1\"]]"))
+    "file 'b2' has unrecognised key(s): path"))

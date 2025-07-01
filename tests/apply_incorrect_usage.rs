@@ -28,7 +28,7 @@ mod test {
             .assert()
             .failure()
             .stdout(predicate::str::ends_with(
-                "run error: No such file or directory (os error 2)\n",
+                "No such file or directory (os error 2)\n",
             ));
     }
 

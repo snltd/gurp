@@ -2,15 +2,12 @@ use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
     PROTECTED_USERS,
 };
-use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplyContext, ApplySummary, Changes, Opts, Resource};
+use crate::common::types::{ApplySummary, Changes, Opts};
 use crate::utils::helpers;
-use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
 use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
-use janetrs::{Janet, JanetArray};
 use nix::unistd::{Group, User};
-use paste::paste;
+use serde::Deserialize;
 use std::fs;
 use std::process::Command;
 
@@ -27,75 +24,46 @@ const USERADD_BIN: &str = "/usr/sbin/useradd";
 const USERDEL_BIN: &str = "/usr/sbin/userdel";
 const USERMOD_BIN: &str = "/usr/sbin/usermod";
 
-pub struct GurpUser {
-    pub action: Action,
-    pub exists: bool,
+#[derive(Debug, Deserialize)]
+pub struct GurpUserEnsure {
+    #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
-    pub desired_state: Option<UserState>,
+    #[serde(flatten)]
+    pub desired_state: UserState,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct UserState {
     pub uid: u32,
+    #[serde(rename = "home-dir")]
     pub home_dir: Utf8PathBuf,
     pub shell: Utf8PathBuf,
     pub gecos: String,
+    #[serde(rename = "primary-group")]
     pub primary_group: String,
+    #[serde(rename = "password-hash")]
     pub password_hash: Option<String>,
     // pub other_groups: Vec<String>,
 }
 
-impl TryFrom<&Janet> for GurpUser {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Janet) -> anyhow::Result<Self> {
-        let data = value.extract_struct()?;
-        let action = janet_helpers::action_as_enum(&data)?;
-        let name = data.get_field_string("name")?;
-        let exists = User::from_name(&name)?.is_some();
-
-        let state = match action {
-            Action::Ensure => Some(UserState {
-                uid: data.get_field_u32("uid")?,
-                home_dir: data.get_field_pathbuf("home-dir")?,
-                shell: data.get_field_pathbuf("shell")?,
-                gecos: data.get_field_string("gecos")?,
-                primary_group: data.get_field_string("group")?,
-                password_hash: data.get_field_string_opt("password-hash"),
-                // other_groups: data.get_field_string_tuple("other-groups")?,
-            }),
-            Action::Remove => None,
-        };
-
-        Ok(GurpUser {
-            name,
-            id: data.get_field_string("_id")?,
-            action,
-            exists,
-            desired_state: state,
-        })
-    }
+#[derive(Debug, Deserialize)]
+pub struct GurpUserRemove {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
 }
 
-crate::unpack_fn!(ensure_list, User, GurpUser);
-crate::unpack_fn!(remove_list, User, GurpUser);
-crate::impl_apply!(GurpUser);
-
-impl GurpUser {
-    fn apply_ensure(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
-        if !self.exists {
+impl GurpUserEnsure {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if !user_exists(&self.name)? {
             tracing::info!("creating user: {}", self.name);
             return self.create(opts);
         }
 
         let mut run_cmd = false;
         let current = self.current_state()?;
-        let desired = self.desired_state.as_ref().unwrap();
+        let desired = &self.desired_state;
         let changes = self.changes(&current, desired);
 
         if changes.is_empty() {
@@ -197,37 +165,34 @@ impl GurpUser {
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
-    fn apply_remove(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
-        if self.exists {
-            if PROTECTED_USERS.contains(&self.name.as_str()) {
-                tracing::warn!("protected resource: {}", self.name);
-                return Ok(ONE_RESOURCE_ONE_ERROR);
-            }
+    fn create(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        let state = &self.desired_state;
+        let mut cmd = Command::new(USERADD_BIN);
 
-            let mut cmd = Command::new(USERDEL_BIN);
-            cmd.arg(&self.name);
+        cmd.arg("-c")
+            .arg(&state.gecos)
+            .arg("-g")
+            .arg(&state.primary_group)
+            // .arg("-G")
+            // .arg(state.other_groups.join(","))
+            .arg("-s")
+            .arg(&state.shell)
+            .arg("-u")
+            .arg(state.uid.to_string())
+            .arg(&self.name);
 
-            tracing::info!("removing user: {}", self.name);
-            tracing::debug!(command = helpers::command_to_string(&cmd));
+        tracing::debug!(command = helpers::command_to_string(&cmd));
 
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                let result = cmd.output()?;
+        if opts.noop {
+            return Ok(ONE_RESOURCE_ONE_CHANGE);
+        }
 
-                if result.status.success() {
-                    Ok(ONE_RESOURCE_ONE_CHANGE)
-                } else {
-                    bail!(String::from_utf8_lossy(&result.stderr).into_owned())
-                }
-            }
+        let result = cmd.output()?;
+
+        if result.status.success() {
+            Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
-            tracing::debug!("not present: {}", self.name);
-            Ok(ONE_RESOURCE_NO_CHANGE)
+            bail!(String::from_utf8_lossy(&result.stderr).into_owned())
         }
     }
 
@@ -262,39 +227,11 @@ impl GurpUser {
         // to_change.push("other-groups");
         // } // doesn't do anything now
 
-        tracing::debug!("to change for {}: {}", self.name, to_change.join(", "));
+        if !to_change.is_empty() {
+            tracing::debug!("to change for {}: {}", self.name, to_change.join(", "));
+        }
+
         to_change
-    }
-
-    fn create(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        let state = self.desired_state.as_ref().unwrap();
-        let mut cmd = Command::new(USERADD_BIN);
-
-        cmd.arg("-c")
-            .arg(&state.gecos)
-            .arg("-g")
-            .arg(&state.primary_group)
-            // .arg("-G")
-            // .arg(state.other_groups.join(","))
-            .arg("-s")
-            .arg(&state.shell)
-            .arg("-u")
-            .arg(state.uid.to_string())
-            .arg(&self.name);
-
-        tracing::debug!(command = helpers::command_to_string(&cmd));
-
-        if opts.noop {
-            return Ok(ONE_RESOURCE_ONE_CHANGE);
-        }
-
-        let result = cmd.output()?;
-
-        if result.status.success() {
-            Ok(ONE_RESOURCE_ONE_CHANGE)
-        } else {
-            bail!(String::from_utf8_lossy(&result.stderr).into_owned())
-        }
     }
 
     fn current_state(&self) -> anyhow::Result<UserState> {
@@ -306,8 +243,7 @@ impl GurpUser {
                     user.gid, self.name
                 ))?;
 
-                let password_hash = if self.desired_state.as_ref().unwrap().password_hash.is_some()
-                {
+                let password_hash = if self.desired_state.password_hash.is_some() {
                     Some(self.hash_for_user(&Utf8PathBuf::from(SHADOW_PATH))?)
                 } else {
                     None
@@ -328,7 +264,7 @@ impl GurpUser {
     }
 
     fn hash_for_user(&self, shadow_path: &Utf8PathBuf) -> anyhow::Result<String> {
-        let desired_hash = match &self.desired_state.as_ref().unwrap().password_hash {
+        let desired_hash = match &self.desired_state.password_hash {
             Some(hash) => hash,
             None => bail!("no hash supplied for {}", self.name),
         };
@@ -364,6 +300,42 @@ impl GurpUser {
     }
 }
 
+impl GurpUserRemove {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if user_exists(&self.name)? {
+            if PROTECTED_USERS.contains(&self.name.as_str()) {
+                tracing::warn!("protected resource: {}", self.name);
+                return Ok(ONE_RESOURCE_ONE_ERROR);
+            }
+
+            let mut cmd = Command::new(USERDEL_BIN);
+            cmd.arg(&self.name);
+
+            tracing::info!("removing user: {}", self.name);
+            tracing::debug!(command = helpers::command_to_string(&cmd));
+
+            if opts.noop {
+                Ok(ONE_RESOURCE_NOOP)
+            } else {
+                let result = cmd.output()?;
+
+                if result.status.success() {
+                    Ok(ONE_RESOURCE_ONE_CHANGE)
+                } else {
+                    bail!(String::from_utf8_lossy(&result.stderr).into_owned())
+                }
+            }
+        } else {
+            tracing::debug!("not present: {}", self.name);
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        }
+    }
+}
+
+fn user_exists(username: &str) -> anyhow::Result<bool> {
+    Ok(User::from_name(username)?.is_some())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -393,15 +365,13 @@ mod tests {
 
     #[test]
     fn test_changes_detects_differences() {
-        let g = GurpUser {
-            action: Action::Ensure,
-            exists: true,
+        let g = GurpUserEnsure {
             id: "1".into(),
             name: "testuser".into(),
-            desired_state: Some(modified_state()),
+            desired_state: modified_state(),
         };
 
-        let changes = g.changes(&dummy_state(), g.desired_state.as_ref().unwrap());
+        let changes = g.changes(&dummy_state(), &g.desired_state);
         assert_eq!(
             changes,
             vec![
@@ -418,15 +388,13 @@ mod tests {
     #[test]
     fn test_changes_detects_no_difference() {
         let state = dummy_state();
-        let g = GurpUser {
-            action: Action::Ensure,
-            exists: true,
+        let g = GurpUserEnsure {
             id: "1".into(),
             name: "testuser".into(),
-            desired_state: Some(state.clone()),
+            desired_state: state.clone(),
         };
 
-        let changes = g.changes(&state, g.desired_state.as_ref().unwrap());
+        let changes = g.changes(&state, &g.desired_state);
         assert!(changes.is_empty());
     }
 
@@ -437,15 +405,13 @@ mod tests {
 
         fs::write(&path, input).unwrap();
 
-        let g = GurpUser {
-            action: Action::Ensure,
-            exists: true,
+        let g = GurpUserEnsure {
             id: "1".into(),
             name: "testuser".into(),
-            desired_state: Some(UserState {
+            desired_state: UserState {
                 password_hash: Some("newhash".into()),
                 ..dummy_state()
-            }),
+            },
         };
 
         g.update_shadow(&path, "oldhash", "newhash").unwrap();

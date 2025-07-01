@@ -3,6 +3,7 @@ use camino::Utf8PathBuf;
 use std::sync::LazyLock;
 
 pub const GURP_LIB: &str = include_str!("../../janet_src/lib/gurp.janet");
+pub const JSON_LIB: &str = include_str!("../../janet_src/lib/encode.janet");
 pub const GURP_DEFAULTS: &str = include_str!("../../janet_src/lib/defaults.janet");
 
 pub const ONE_RESOURCE_ONE_CHANGE: ApplySummary = ApplySummary {

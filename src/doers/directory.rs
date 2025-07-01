@@ -2,14 +2,11 @@ use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
     PROTECTED_DIRS,
 };
-use crate::common::traits::Apply;
-use crate::common::types::{Action, ApplyContext, ApplySummary, Changes, Opts, Resource};
+use crate::common::types::{ApplySummary, Changes, Opts};
 use crate::common::users_and_groups;
-use crate::utils::janet_helpers::{self, JanetExt, JanetStructExt};
 use camino::Utf8PathBuf;
-use janetrs::{Janet, JanetArray};
 use nix::unistd::{Gid, Uid};
-use paste::paste;
+use serde::Deserialize;
 use std::fs;
 use std::os::unix::fs::MetadataExt;
 
@@ -17,13 +14,21 @@ use std::os::unix::fs::MetadataExt;
 // Creating a directory is `mkdir -p` style.
 // You can only define users and groups by their names. UIDs/GIDs do not work.
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct GurpDirectory {
-    pub action: Action,
-    pub exists: bool,
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+pub struct GurpDirectoryEnsure {
+    #[serde(rename = "_id")]
     pub id: String,
-    pub name: Utf8PathBuf, // The Path
-    pub desired_state: Option<DirectoryState>,
+    #[serde(rename = "name")]
+    pub path: Utf8PathBuf,
+    #[serde(flatten)]
+    pub desired_state: DesiredDirectoryState,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+pub struct DesiredDirectoryState {
+    pub group: String,
+    pub mode: String,
+    pub owner: String,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -33,112 +38,63 @@ pub struct DirectoryState {
     pub uid: Uid,
 }
 
-impl TryFrom<&Janet> for GurpDirectory {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Janet) -> anyhow::Result<Self> {
-        let data = value.extract_struct()?;
-        let name = data.get_field_pathbuf("name")?;
-        let exists = name.exists();
-        let action = janet_helpers::action_as_enum(&data)?;
-
-        let state = match action {
-            Action::Ensure => Some(DirectoryState {
-                gid: users_and_groups::group_from(&data.get_field_string("group")?)?,
-                mode: data.get_field_string("mode")?,
-                uid: users_and_groups::owner_from(&data.get_field_string("owner")?)?,
-            }),
-            Action::Remove => None,
-        };
-
-        Ok(GurpDirectory {
-            action,
-            exists,
-            id: data.get_field_string("_id")?,
-            name: data.get_field_pathbuf("name")?,
-            desired_state: state,
-        })
-    }
+#[derive(Deserialize, Debug)]
+pub struct GurpDirectoryRemove {
+    #[serde(rename = "_id")]
+    pub id: String,
+    #[serde(rename = "name")]
+    pub path: Utf8PathBuf,
 }
 
-crate::unpack_fn!(ensure_list, Directory, GurpDirectory);
-crate::unpack_fn!(remove_list, Directory, GurpDirectory);
-crate::impl_apply!(GurpDirectory);
-
-impl GurpDirectory {
-    fn apply_ensure(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
-        if !self.exists {
-            tracing::info!("creating directory: {}", self.name);
+impl GurpDirectoryEnsure {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if !self.path.exists() {
+            tracing::info!("creating directory: {}", self.path);
 
             if opts.noop {
-                return Ok(ONE_RESOURCE_ONE_CHANGE);
+                return Ok(ONE_RESOURCE_NOOP);
             }
 
-            fs::create_dir_all(&self.name)?;
+            fs::create_dir_all(&self.path)?;
         }
 
-        let path = &self.name;
         let current = self.current_state()?;
-        let desired = self.desired_state.as_ref().unwrap();
-        let changes = self.changes(&current, desired);
+        let desired = DirectoryState {
+            uid: users_and_groups::owner_from(&self.desired_state.owner)?,
+            gid: users_and_groups::group_from(&self.desired_state.group)?,
+            mode: self.desired_state.mode.clone(),
+        };
+
+        let changes = self.changes(&current, &desired);
 
         if changes.is_empty() {
-            tracing::info!("no change: {}", self.name);
+            tracing::info!("no change: {}", self.path);
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
         if changes.contains(&"group") || changes.contains(&"owner") {
             tracing::info!(
                 "change owner:group: {} {}:{} -> {}:{}",
-                self.name,
+                self.path,
                 current.uid,
                 current.gid,
                 desired.uid,
                 desired.gid
             );
-            users_and_groups::set_user(path, desired.uid, desired.gid)?;
+            users_and_groups::set_user(&self.path, desired.uid, desired.gid)?;
         }
 
         if changes.contains(&"mode") {
             tracing::info!(
                 "change mode: {} {} -> {}",
-                self.name,
+                self.path,
                 current.mode,
                 desired.mode,
             );
-            users_and_groups::set_mode(path, &current.mode, &desired.mode)?;
+            users_and_groups::set_mode(&self.path, &current.mode, &desired.mode)?;
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
-    }
-
-    fn apply_remove(
-        &self,
-        _apply_context: &ApplyContext,
-        opts: &Opts,
-    ) -> anyhow::Result<ApplySummary> {
-        if self.exists {
-            if PROTECTED_DIRS.contains(&self.name) {
-                tracing::warn!("protected resource: {}", self.name);
-                return Ok(ONE_RESOURCE_ONE_ERROR);
-            }
-
-            tracing::info!("removing directory: {}", self.name);
-
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                fs::remove_dir_all(&self.name)?;
-                Ok(ONE_RESOURCE_ONE_CHANGE)
-            }
-        } else {
-            tracing::debug!("not present: {}", self.name);
-            Ok(ONE_RESOURCE_NO_CHANGE)
-        }
     }
 
     fn changes<'a>(&self, current: &DirectoryState, desired: &DirectoryState) -> Changes<'a> {
@@ -156,13 +112,15 @@ impl GurpDirectory {
             to_change.push("mode");
         }
 
-        tracing::debug!("to change for {}: {}", self.name, to_change.join(", "));
+        if !to_change.is_empty() {
+            tracing::debug!("to change for {}: {}", self.path, to_change.join(", "));
+        }
         to_change
     }
 
     fn current_state(&self) -> anyhow::Result<DirectoryState> {
-        tracing::debug!("getting state: {}", &self.name);
-        let path = &self.name;
+        tracing::debug!("getting state: {}", &self.path);
+        let path = &self.path;
         let metadata = fs::metadata(path)?;
 
         Ok(DirectoryState {
@@ -173,44 +131,114 @@ impl GurpDirectory {
     }
 }
 
+impl GurpDirectoryRemove {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if self.path.exists() {
+            if PROTECTED_DIRS.contains(&self.path) {
+                tracing::warn!("protected resource: {}", self.path);
+                return Ok(ONE_RESOURCE_ONE_ERROR);
+            }
+
+            tracing::info!("removing directory: {}", self.path);
+
+            if opts.noop {
+                Ok(ONE_RESOURCE_NOOP)
+            } else {
+                fs::remove_dir_all(&self.path)?;
+                Ok(ONE_RESOURCE_ONE_CHANGE)
+            }
+        } else {
+            tracing::debug!("not present: {}", self.path);
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::spec_helper::{defcontext, defopts, defopts_noop, init_janet};
+    use crate::test_utils::spec_helper::{defopts, defopts_noop, janet2json, my_group, my_user};
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
-    use camino::Utf8PathBuf;
+    use indoc::formatdoc;
+    use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn test_directory_ensure_apply_noop() {
+        let temp = TempDir::new().unwrap();
+        let dir = Utf8PathBuf::from_path_buf(temp.child("test_directory").to_path_buf()).unwrap();
+        let json_def = janet2json(&format!("(directory/ensure \"{}\")", dir));
+        assert!(!dir.exists());
+        let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
+        assert!(!dir.exists());
+    }
+
+    #[test]
+    fn test_directory_ensure_already_exists() {
+        let temp = TempDir::new().unwrap();
+        let dir = temp.child("test_directory");
+        dir.create_dir_all().unwrap();
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o750)).unwrap();
+
+        let dir_path = Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap();
+        assert!(dir_path.exists());
+
+        let json_def = janet2json(&formatdoc! {"
+            (directory/ensure \"{}\"
+                :mode \"0750\"
+                :owner \"{}\"
+                :group \"{}\")
+            ",
+            dir_path,
+            my_user(),
+            my_group(),
+        });
+        let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert!(dir_path.exists());
+    }
+
+    #[test]
+    fn test_directory_ensure_change_mode() {
+        let temp = TempDir::new().unwrap();
+        let dir = temp.child("test_directory");
+        dir.create_dir_all().unwrap();
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o750)).unwrap();
+
+        let dir_path = Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap();
+        assert!(dir_path.exists());
+
+        let json_def = janet2json(&formatdoc! {"
+            (directory/ensure \"{}\"
+                :mode \"0775\"
+                :owner \"{}\"
+                :group \"{}\")
+            ",
+            dir_path,
+            my_user(),
+            my_group(),
+        });
+
+        let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert!(dir_path.exists());
+        let metadata = fs::metadata(dir_path).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o777, 0o775);
+    }
 
     #[test]
     fn test_directory_remove_apply_does_not_exist() {
-        let dir_does_not_exist = GurpDirectory {
-            name: Utf8PathBuf::from("/does/not/exist/dir-to-test"),
-            exists: false,
-            id: "/test-role/directory/dir-to-test".to_owned(),
-            action: Action::Remove,
-            desired_state: None,
-        };
-
-        assert_eq!(
-            ONE_RESOURCE_NO_CHANGE,
-            dir_does_not_exist.apply(&defcontext(), &defopts()).unwrap()
-        );
+        let json_def = janet2json(r#"(directory/remove "/no/such/dir")"#);
+        let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts()).unwrap());
     }
 
     #[test]
     fn test_directory_remove_apply_not_allowed() {
-        let disallowed_dir = GurpDirectory {
-            name: Utf8PathBuf::from("/"),
-            id: "/test-role/directory/root".to_owned(),
-            exists: true,
-            action: Action::Remove,
-            desired_state: None,
-        };
-
-        assert_eq!(
-            ONE_RESOURCE_ONE_ERROR,
-            disallowed_dir.apply(&defcontext(), &defopts()).unwrap()
-        );
+        let json_def = janet2json(r#"(directory/remove "/usr")"#);
+        let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_ERROR, sut.apply(&defopts()).unwrap());
     }
 
     #[test]
@@ -219,19 +247,11 @@ mod test {
         let dir = temp.child("test_directory");
         dir.create_dir_all().unwrap();
 
-        let test_dir = GurpDirectory {
-            name: Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap(),
-            id: "/test-role/directory/test_directory".to_owned(),
-            exists: true,
-            action: Action::Remove,
-            desired_state: None,
-        };
+        let json_def = janet2json(&format!("(directory/remove \"{}\")", dir.to_string_lossy()));
+        let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
 
         assert!(dir.exists());
-        assert_eq!(
-            ONE_RESOURCE_ONE_CHANGE,
-            test_dir.apply(&defcontext(), &defopts()).unwrap()
-        );
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
         assert!(!dir.exists());
     }
 
@@ -241,70 +261,11 @@ mod test {
         let dir = temp.child("test_directory");
         dir.create_dir_all().unwrap();
 
-        let test_dir = GurpDirectory {
-            name: Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap(),
-            id: "/test-role/directory/test_directory".to_owned(),
-            exists: true,
-            action: Action::Remove,
-            desired_state: None,
-        };
+        let json_def = janet2json(&format!("(directory/remove \"{}\")", dir.to_string_lossy()));
+        let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
 
         assert!(dir.exists());
-        assert_eq!(
-            ONE_RESOURCE_NO_CHANGE,
-            test_dir.apply(&defcontext(), &defopts_noop()).unwrap()
-        );
+        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
         assert!(dir.exists());
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    #[test]
-    fn test_unpack_ensure_directory() {
-        init_janet();
-
-        let example_dir_ensure = Janet::wrap(janetrs::structs! {
-            ":_id" => "/test-role/directory/test_directory",
-            ":action" => ":ensure",
-            ":group" => "bin",
-            ":mode" => "0755",
-            ":owner" => "root",
-            ":name" => "/tmp/merp",
-        });
-
-        assert_eq!(
-            GurpDirectory {
-                name: Utf8PathBuf::from("/tmp/merp"),
-                id: "/test-role/directory/test_directory".to_owned(),
-                exists: false,
-                action: Action::Ensure,
-                desired_state: Some(DirectoryState {
-                    gid: 2.into(),
-                    mode: "0755".to_owned(),
-                    uid: 0.into(),
-                }),
-            },
-            GurpDirectory::try_from(&example_dir_ensure).unwrap()
-        );
-    }
-
-    #[test]
-    fn test_unpack_remove_directory() {
-        init_janet();
-        let example_dir_remove = Janet::wrap(janetrs::structs! {
-            ":name" => "/tmp/merp",
-            ":_id" => "/test-role/directory/merp",
-            ":action" => ":remove",
-        });
-
-        assert_eq!(
-            GurpDirectory {
-                name: Utf8PathBuf::from("/tmp/merp"),
-                id: "/test-role/directory/merp".to_owned(),
-                exists: false,
-                action: Action::Remove,
-                desired_state: None,
-            },
-            GurpDirectory::try_from(&example_dir_remove).unwrap()
-        );
     }
 }
