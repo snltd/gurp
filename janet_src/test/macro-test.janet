@@ -3,12 +3,11 @@
 
 (test-macro
   (host "example-node" (role "basenode") (role "devtools"))
-  (defn machine-config
-    []
-    {:metadata {:name "example-node"}
-     :resources (group-by-action-and-type
-                  (flatten
-                    (tuple (role "basenode") (role "devtools"))))}))
+  (upscope
+    (setdyn :host-dyn (string "example-node"))
+    (defn machine-config
+      []
+      {:metadata {:name "example-node"} :resources (group-by-action-and-type (flatten (tuple (role "basenode") (role "devtools"))))})))
 
 (test-macro
   (role basenode

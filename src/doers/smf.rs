@@ -46,7 +46,7 @@ impl GurpSmfEnsure {
                 let desired_xml = helpers::parse_xml(&new_manifest)?;
                 let current_xml = helpers::parse_xml(&current_manifest)?;
                 if desired_xml == current_xml {
-                    tracing::info!("no change: {}", self.name);
+                    tracing::debug!("no change: {}", self.name);
                     return Ok(ONE_RESOURCE_NO_CHANGE);
                 }
             } else {

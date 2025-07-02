@@ -2,6 +2,7 @@ use crate::common::constants::NO_RESOURCES_TO_CHANGE;
 use crate::common::types::{ApplySummary, Opts};
 use crate::utils::helpers;
 use anyhow::bail;
+use camino::Utf8PathBuf;
 use serde::Deserialize;
 use std::process::Command;
 use std::sync::LazyLock;
@@ -32,6 +33,9 @@ pub struct GurpGemRemove {
 }
 
 pub fn collect_and_ensure(gem_list: &EnsureList, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    if gem_list.is_empty() {
+        return Ok(NO_RESOURCES_TO_CHANGE);
+    }
     let resources = gem_list.len() as u32;
     let installed_gems = parse_gem_output(&CURRENT_GEM_OUTPUT);
     let gem_names: Vec<_> = gem_list.iter().map(|r| &r.name).collect();
@@ -50,15 +54,17 @@ pub fn collect_and_ensure(gem_list: &EnsureList, opts: &Opts) -> anyhow::Result<
     tracing::debug!("ensure gem list: {}", install_list.join(" "));
 
     if install_list.is_empty() {
-        tracing::info!("no gems to install");
+        tracing::debug!("no gems to install");
         Ok(NO_RESOURCES_TO_CHANGE)
     } else {
         tracing::info!("installing: {}", install_list.join(", "));
 
         let mut cmd = Command::new(GEM_BIN);
-        cmd.arg("install");
-        cmd.arg("--silent");
-        cmd.arg("--no-document");
+        cmd.arg("install")
+            .arg("--bindir")
+            .arg("/opts/ooce/bin")
+            .arg("--silent")
+            .arg("--no-document");
 
         let changes = if opts.noop {
             cmd.arg("--explain");
@@ -84,6 +90,9 @@ pub fn collect_and_ensure(gem_list: &EnsureList, opts: &Opts) -> anyhow::Result<
 }
 
 pub fn collect_and_remove(gem_list: &RemoveList, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    if gem_list.is_empty() {
+        return Ok(NO_RESOURCES_TO_CHANGE);
+    }
     let resources = gem_list.len() as u32;
     let installed_gems = parse_gem_output(&CURRENT_GEM_OUTPUT);
     let gem_names: Vec<_> = gem_list.iter().map(|r| &r.name).collect();
@@ -102,7 +111,7 @@ pub fn collect_and_remove(gem_list: &RemoveList, opts: &Opts) -> anyhow::Result<
     tracing::debug!("ensure gem list: {}", install_list.join(" "));
 
     if install_list.is_empty() {
-        tracing::info!("no gems to install");
+        tracing::debug!("no gems to install");
         Ok(NO_RESOURCES_TO_CHANGE)
     } else {
         tracing::info!("installing: {}", install_list.join(", "));
@@ -136,6 +145,9 @@ pub fn collect_and_remove(gem_list: &RemoveList, opts: &Opts) -> anyhow::Result<
 }
 
 fn gem_output() -> anyhow::Result<String> {
+    if !Utf8PathBuf::from(GEM_BIN).exists() {
+        bail!("No gem binary at {}", GEM_BIN);
+    }
     let cmd = Command::new(GEM_BIN).arg("list").arg("-l").output()?;
     Ok(String::from_utf8_lossy(&cmd.stdout).into_owned())
 }

@@ -66,7 +66,7 @@ pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &Opts) -> anyhow::Result<
     tracing::debug!("ensure pkg list: {}", install_list.join(" "));
 
     if install_list.is_empty() {
-        tracing::info!("no packages to install");
+        tracing::debug!("no packages to install");
         Ok(NO_RESOURCES_TO_CHANGE)
     } else {
         tracing::info!("installing: {}", install_list.join(", "));
@@ -126,7 +126,7 @@ pub fn collect_and_remove(pkg_list: &RemoveList, opts: &Opts) -> anyhow::Result<
     }
 
     if remove_list.is_empty() {
-        tracing::info!("no packages to remove");
+        tracing::debug!("no packages to remove");
         Ok(NO_RESOURCES_TO_CHANGE)
     } else {
         tracing::info!("removing: {}", remove_list.join(", "));

@@ -51,17 +51,17 @@ pub fn apply(
     let host_config: HostConfig = match serde_json::from_str(&formatted_json) {
         Ok(conf) => conf,
         Err(e) => {
-            tracing::error!("deserialzing error: {}", e);
+            tracing::error!("deserializing error: {}", e);
             let line = e.line();
             let json_lines: Vec<_> = formatted_json.lines().collect();
-            let first_line = (line - 30).clamp(0, json_lines.len());
+            let first_line = line.saturating_sub(30);
             let last_line = (line + 15).clamp(0, json_lines.len());
 
             for l in first_line..=last_line {
                 println!(" {:4} | {}", l + 1, json_lines.get(l).unwrap_or(&""));
             }
 
-            bail!("deserializing error end");
+            bail!("end of deserializing error output")
         }
     };
 
@@ -82,9 +82,9 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     let mut changed_ids: ChangedIds = HashSet::new();
 
     apply_resources!(summary_total, changed_ids, &ensure.zfs, opts);
-    apply_resources!(summary_total, changed_ids, &ensure.user, opts);
     crate::doers::pkg::collect_and_ensure(&ensure.pkg, opts)?;
     crate::doers::gem::collect_and_ensure(&ensure.gem, opts)?;
+    apply_resources!(summary_total, changed_ids, &ensure.user, opts);
     apply_resources!(summary_total, changed_ids, &ensure.cron, opts);
     apply_resources!(summary_total, changed_ids, &ensure.directory, opts);
     apply_resources!(summary_total, changed_ids, &ensure.symlink, opts);
@@ -101,9 +101,9 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     apply_resources!(summary_total, changed_ids, &remove.svcprop, opts);
     apply_resources!(summary_total, changed_ids, &remove.smf, opts);
     apply_resources!(summary_total, changed_ids, &remove.cron, opts);
+    apply_resources!(summary_total, changed_ids, &remove.user, opts);
     crate::doers::pkg::collect_and_remove(&remove.pkg, opts)?;
     crate::doers::gem::collect_and_remove(&remove.gem, opts)?;
-    apply_resources!(summary_total, changed_ids, &remove.user, opts);
     apply_resources!(summary_total, changed_ids, &remove.zfs, opts);
 
     for resource in &ensure.svc {

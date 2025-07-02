@@ -67,7 +67,7 @@ impl GurpUserEnsure {
         let changes = self.changes(&current, desired);
 
         if changes.is_empty() {
-            tracing::info!("no change: {}", self.name);
+            tracing::debug!("no change: {}", self.name);
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
@@ -150,16 +150,7 @@ impl GurpUserEnsure {
 
         if changes.contains(&"password-hash") {
             let desired_hash = desired.password_hash.as_ref().unwrap();
-            let old_hash = current.password_hash.unwrap();
-
-            tracing::info!(
-                "change user password-hash: [{}] {} -> {}",
-                self.name,
-                old_hash,
-                desired_hash
-            );
-
-            self.update_shadow(&Utf8PathBuf::from(SHADOW_PATH), &old_hash, desired_hash)?;
+            self.update_shadow(&Utf8PathBuf::from(SHADOW_PATH), &self.name, desired_hash)?;
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -175,6 +166,8 @@ impl GurpUserEnsure {
             .arg(&state.primary_group)
             // .arg("-G")
             // .arg(state.other_groups.join(","))
+            .arg("-d")
+            .arg(&state.home_dir)
             .arg("-s")
             .arg(&state.shell)
             .arg("-u")
@@ -190,6 +183,9 @@ impl GurpUserEnsure {
         let result = cmd.output()?;
 
         if result.status.success() {
+            if let Some(password_hash) = &state.password_hash {
+                self.update_shadow(&Utf8PathBuf::from(SHADOW_PATH), &self.name, password_hash)?;
+            }
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
             bail!(String::from_utf8_lossy(&result.stderr).into_owned())
@@ -291,11 +287,31 @@ impl GurpUserEnsure {
     fn update_shadow(
         &self,
         shadow_path: &Utf8PathBuf,
-        old_hash: &str,
+        user: &str,
         new_hash: &str,
     ) -> anyhow::Result<()> {
+        tracing::info!("change user password-hash: [{}]", self.name);
+
         let raw_file = fs::read_to_string(shadow_path)?;
-        let output = raw_file.replace(old_hash, new_hash);
+        let line_prefix = format!("{user}:");
+
+        let output: String = raw_file
+            .lines()
+            .map(|l| {
+                if l.starts_with(&line_prefix) {
+                    let mut chunks: Vec<_> = l.split(':').collect();
+                    if chunks.len() < SHADOW_FIELDS {
+                        bail!("invalid shadow entry for {}", self.name);
+                    }
+                    chunks[1] = new_hash;
+                    Ok(chunks.join(":"))
+                } else {
+                    Ok(l.to_string())
+                }
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .join("\n");
+
         Ok(fs::write(shadow_path, output)?)
     }
 }
@@ -400,7 +416,7 @@ mod tests {
 
     #[test]
     fn test_update_shadow_replaces_correctly() {
-        let input = "testuser:oldhash:18000:0:99999:7:::\notheruser:somehash:...";
+        let input = "testuser:oldhash:18000:0:99999:7:::\notheruser:oldhash:...";
         let path = Utf8PathBuf::from("/tmp/shadow-test");
 
         fs::write(&path, input).unwrap();
@@ -409,15 +425,16 @@ mod tests {
             id: "1".into(),
             name: "testuser".into(),
             desired_state: UserState {
-                password_hash: Some("newhash".into()),
+                password_hash: Some("NEWHASH".into()),
                 ..dummy_state()
             },
         };
 
-        g.update_shadow(&path, "oldhash", "newhash").unwrap();
+        g.update_shadow(&path, "testuser", "NEWHASH").unwrap();
 
-        let output = fs::read_to_string(&path).unwrap();
-        assert!(output.contains("testuser:newhash:"));
-        assert!(!output.contains("oldhash"));
+        assert_eq!(
+            "testuser:NEWHASH:18000:0:99999:7:::\notheruser:oldhash:...",
+            fs::read_to_string(&path).unwrap()
+        );
     }
 }

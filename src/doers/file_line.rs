@@ -45,7 +45,7 @@ fn line_exists(path: &Utf8PathBuf, line: &str) -> anyhow::Result<bool> {
 impl GurpFileLineEnsure {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         if line_exists(&self.path, &self.line)? {
-            tracing::info!("no change: {}", &self.path);
+            tracing::debug!("no change: {}", &self.path);
             Ok(ONE_RESOURCE_NO_CHANGE)
         } else {
             tracing::info!("creating: {}", &self.path);
@@ -54,7 +54,7 @@ impl GurpFileLineEnsure {
                 Ok(ONE_RESOURCE_NOOP)
             } else {
                 let fh = fs::OpenOptions::new().append(true).open(&self.path)?;
-                writeln!(&fh, "\n{}", self.line.as_str())?;
+                writeln!(&fh, "\n{}\n", self.line.as_str())?;
                 Ok(ONE_RESOURCE_ONE_CHANGE)
             }
         }
@@ -81,7 +81,7 @@ impl GurpFileLineRemove {
                 Ok(ONE_RESOURCE_ONE_CHANGE)
             }
         } else {
-            tracing::info!("no change: {}", &self.path);
+            tracing::debug!("no change: {}", &self.path);
             Ok(ONE_RESOURCE_NO_CHANGE)
         }
     }

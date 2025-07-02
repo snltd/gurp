@@ -80,7 +80,7 @@ impl GurpMiscEnsure {
             // if it returns 0 and doesn't say "NONE_MAPPED" then I think it's configured
             Ok(txt) => {
                 if !String::from_utf8_lossy(&txt.stdout).contains("NONE_MAPPED") {
-                    tracing::info!("no change: smb config {}", username);
+                    tracing::debug!("no change: smb config {}", username);
                     return Ok(ONE_RESOURCE_NO_CHANGE);
                 }
             }
@@ -129,7 +129,8 @@ impl GurpMiscEnsure {
         let current_domain = chunks.last().unwrap().trim();
 
         if current_domain == desired_domain {
-            bail!("no change to NFS domain: {}", current_domain);
+            tracing::debug!("no change to NFS domain: {}", current_domain);
+            return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
         tracing::info!(
@@ -191,7 +192,7 @@ impl GurpMiscEnsure {
         let current_class = chunks.first().unwrap().trim();
 
         if current_class == desired_class {
-            tracing::info!("no change to scheduler class: {}", current_class);
+            tracing::debug!("no change to scheduler class: {}", current_class);
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
