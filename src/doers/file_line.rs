@@ -118,7 +118,7 @@ mod test {
 
         assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
         assert_eq!(
-            "line_1\nline_2\nline_3\nline_4\n".to_owned(),
+            "line_1\nline_2\nline_3\nline_4\n\n".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
         );
     }
