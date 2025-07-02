@@ -10,7 +10,7 @@ use std::process::{Command, Stdio};
 // THINGS TO KNOW / THINGS TO DO.
 // As always, extremely limited. Just sets and removes service properties.
 
-const SVCPROP_BIN: &str = "/usr/sbin/svcprop";
+const SVCPROP_BIN: &str = "/usr/bin/svcprop";
 const SVCCFG_BIN: &str = "/usr/sbin/svccfg";
 
 #[derive(Debug, Deserialize)]
@@ -59,10 +59,15 @@ fn svc_property_values(svc: &str) -> anyhow::Result<String> {
 fn process_svc_properties(raw: &str) -> SvcProps {
     raw.lines()
         .filter_map(|l| {
-            let chunks: Vec<_> = l.split_whitespace().collect();
+            let chunks: Vec<_> = l.splitn(3, ' ').collect();
             if chunks.len() == 3 {
                 // Empty string values show as "". That *might* be a problem one day
                 let value = if chunks[2] == "\"\"" { "" } else { chunks[2] }.to_owned();
+
+                let value = value.replace("\\ ", " ");
+
+                // svcprop escapes spaces
+                //
 
                 Some((
                     chunks[0].to_owned(),
@@ -86,7 +91,10 @@ impl GurpSvcpropEnsure {
         let mut svccfg_script = String::new();
 
         for (property, desired) in &self.properties {
+            tracing::debug!("{} svcprop: looking for '{}'", self.service, property);
+
             if let Some(current_val) = all_values.get(property) {
+                tracing::debug!("{} svcprop: found '{}'", self.service, property);
                 if current_val.value == desired.value {
                     tracing::debug!(
                         "{} svcprop: '{}' already '{}'",
@@ -96,33 +104,34 @@ impl GurpSvcpropEnsure {
                     );
                     continue;
                 }
-
-                let value = if desired.prop_type == "astring" {
-                    &format!("\"{}\"", desired.value)
-                } else {
-                    &desired.value
-                };
-
-                tracing::info!(
-                    "{} svcprop: setting '{}' to '{}'",
-                    self.service,
-                    property,
-                    value,
-                );
-
-                svccfg_script.push_str(&format!(
-                    "setprop {} = {}: {}\n",
-                    property, desired.prop_type, value
-                ));
-
-                changes += 1;
+            } else {
+                tracing::debug!("{} svcprop: did not find '{}'", self.service, property);
             }
+
+            let value = if desired.prop_type == "astring" {
+                &format!("\"{}\"", desired.value)
+            } else {
+                &desired.value
+            };
+
+            tracing::info!(
+                "{} svcprop: setting '{}' to '{}'",
+                self.service,
+                property,
+                value,
+            );
+
+            svccfg_script.push_str(&format!(
+                "setprop {} = {}: {}\n",
+                property, desired.prop_type, value
+            ));
+
+            changes += 1;
         }
 
         if svccfg_script.is_empty() {
             tracing::info!("{} svcprop: no change", self.service);
         } else {
-            svccfg_script.push_str("commit");
             tracing::debug!("{} svcprop: applying change file", self.service);
             debug!(opts, "doer/svcprop", "{}", svccfg_script);
 
