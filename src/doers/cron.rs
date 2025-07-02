@@ -187,21 +187,22 @@ fn current_crontab(username: &str) -> anyhow::Result<String> {
 }
 
 fn write_crontab(username: &str, content: &str) -> anyhow::Result<ApplySummary> {
-    let mut cmd = Command::new(CRONTAB_BIN)
-        .arg("-u")
+    let mut cmd = Command::new(CRONTAB_BIN);
+    cmd.arg("-u")
         .arg(username)
         .stdin(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
+        .stderr(Stdio::piped());
 
-    tracing::debug!(command = "{} -u {}", CRONTAB_BIN, username);
+    tracing::debug!(command = helpers::command_to_string(&cmd));
 
-    if let Some(stdin) = cmd.stdin.as_mut() {
+    let mut child = cmd.spawn()?;
+
+    if let Some(stdin) = child.stdin.as_mut() {
         tracing::debug!("{}: writing: {}", username, content);
         stdin.write_all(content.as_bytes())?;
     }
 
-    let output = cmd.wait_with_output()?;
+    let output = child.wait_with_output()?;
 
     if output.status.success() {
         tracing::debug!("{}: crontab updated successfully", username);

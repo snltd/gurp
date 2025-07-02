@@ -8,6 +8,7 @@ pub mod misc;
 pub mod pkg;
 pub mod smf;
 pub mod svc;
+pub mod svcprop;
 pub mod symlink;
 pub mod user;
 pub mod zfs;
