@@ -3,8 +3,8 @@
 
 (deftest this
   (setdyn :role-dyn (string (quote basenode)))
-  (test (this "file" "the-label" "owner") "/basenode/file/the-label/owner")
-  (test (this "file" "the-label") "/basenode/file/the-label")
+  (test (this "file" "the-label" "owner") :/basenode/file/the-label/owner)
+  (test (this "file" "the-label") :/basenode/file/the-label)
   (setdyn :role-dyn nil))
 
 (deftest pathcat
