@@ -46,7 +46,7 @@ impl GurpSmfEnsure {
                 let desired_xml = helpers::parse_xml(&new_manifest)?;
                 let current_xml = helpers::parse_xml(&current_manifest)?;
                 if desired_xml == current_xml {
-                    tracing::info!("no change: {}", self.name);
+                    tracing::debug!("no change: {}", self.name);
                     return Ok(ONE_RESOURCE_NO_CHANGE);
                 }
             } else {
@@ -140,7 +140,7 @@ mod test {
     fn test_smf_conversion() {
         let janet_desc = indoc! {r#"
             (smf/ensure "telegraf"
-                :name "export"
+                :svc-name "export"
                 :description "Run Telegraf agent"
                 :fmri "sysdef/telegraf"
                 :start-method {
@@ -157,7 +157,7 @@ mod test {
             "#};
 
         let expected = SmfDefinition {
-            name: "export".to_owned(),
+            name: "telegraf".to_owned(),
             description: "Run Telegraf agent".to_owned(),
             fmri: "sysdef/telegraf".to_owned(),
             single_instance: true,

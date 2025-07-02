@@ -10,7 +10,7 @@ use std::process::{Command, Stdio};
 use std::sync::LazyLock;
 
 // THINGS TO KNOW / THINGS TO DO.
-// Very limited in what it can do. Create, destroy, align get/set options. Can't do fixed
+// Very limited in what it can do. Create, destroy, align get/set properties. Can't do fixed
 // sizes.
 
 const ZFS_BIN: &str = "/usr/sbin/zfs";
@@ -37,8 +37,10 @@ pub struct GurpZfsEnsure {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
-    pub options: Option<ZfsState>,
+    pub properties: Option<ZfsProperties>,
 }
+
+type ZfsProperties = HashMap<String, String>;
 
 #[derive(Debug, Deserialize)]
 pub struct GurpZfsRemove {
@@ -47,9 +49,7 @@ pub struct GurpZfsRemove {
     pub name: String,
 }
 
-type ZfsState = HashMap<String, String>;
-
-fn zfs_state(name: &str) -> anyhow::Result<ZfsState> {
+fn zfs_state(name: &str) -> anyhow::Result<ZfsProperties> {
     let mut ret = HashMap::new();
     let mut cmd = Command::new(ZFS_BIN);
     cmd.arg("get")
@@ -83,7 +83,8 @@ fn zfs_exists(name: &str) -> bool {
 impl GurpZfsEnsure {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         if zfs_exists(&self.name) {
-            if let Some(state) = self.options.as_ref() {
+            tracing::debug!("zfs: {} exists", &self.name);
+            if let Some(state) = self.properties.as_ref() {
                 let current_state = zfs_state(&self.name)?;
                 let mut run_cmd = false;
                 let mut cmd = Command::new(ZFS_BIN);
@@ -119,7 +120,7 @@ impl GurpZfsEnsure {
                         bail!(String::from_utf8_lossy(&output.stderr).into_owned())
                     }
                 } else {
-                    tracing::info!("no change: {}", self.name);
+                    tracing::debug!("no change: {}", self.name);
                     Ok(ONE_RESOURCE_NO_CHANGE)
                 }
             } else {
@@ -136,9 +137,11 @@ impl GurpZfsEnsure {
         let mut cmd = Command::new(ZFS_BIN);
         cmd.arg("create");
 
-        for (property, value) in self.options.as_ref().unwrap() {
-            cmd.arg("-o");
-            cmd.arg(format!("{property}={value}"));
+        if let Some(properties) = &self.properties {
+            for (property, value) in properties {
+                cmd.arg("-o");
+                cmd.arg(format!("{property}={value}"));
+            }
         }
 
         if opts.noop {
@@ -163,6 +166,7 @@ impl GurpZfsEnsure {
 
 impl GurpZfsRemove {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        tracing::debug!("zfs: looking for {}", self.name);
         if zfs_exists(&self.name) {
             tracing::info!("removing filesystem: {}", self.name);
 

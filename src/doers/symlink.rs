@@ -50,7 +50,7 @@ impl GurpSymlinkEnsure {
         } else if target.is_symlink() {
             let current_source = target.read_link_utf8()?;
             if current_source == *source {
-                tracing::info!("no change: {}", self.path);
+                tracing::debug!("no change: {}", self.path);
                 Ok(ONE_RESOURCE_NO_CHANGE)
             } else {
                 tracing::info!(

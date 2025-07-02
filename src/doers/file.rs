@@ -81,6 +81,15 @@ impl GurpFileEnsure {
             hash: None,
         };
 
+        if (desired.content.is_none() && desired.from.is_none())
+            || (desired.content.is_some() && desired.from.is_some())
+        {
+            bail!(
+                "file '{}' must have exactly one of :content or :from",
+                &self.path
+            );
+        }
+
         let mut need_to_read_hash = true;
 
         if !self.path.exists() {
@@ -98,7 +107,7 @@ impl GurpFileEnsure {
         let changes = self.changes(&current, &desired)?;
 
         if changes.is_empty() {
-            tracing::info!("no change: {}", self.path);
+            tracing::debug!("no change: {}", self.path);
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
@@ -155,6 +164,8 @@ impl GurpFileEnsure {
 
             if desired_hash != current_hash {
                 to_change.push("content");
+                to_change.push("owner");
+                to_change.push("mode");
             }
         } // else the file has just been created and we know its contents are correct
 

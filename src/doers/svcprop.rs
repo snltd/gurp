@@ -86,7 +86,7 @@ fn process_svc_properties(raw: &str) -> SvcProps {
 impl GurpSvcpropEnsure {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let all_values = process_svc_properties(&svc_property_values(&self.service)?);
-        let resources = all_values.len() as u32;
+        let resources = self.properties.len() as u32;
         let mut changes = 0;
         let mut svccfg_script = String::new();
 
@@ -130,7 +130,7 @@ impl GurpSvcpropEnsure {
         }
 
         if svccfg_script.is_empty() {
-            tracing::info!("{} svcprop: no change", self.service);
+            tracing::debug!("{} svcprop: no change", self.service);
         } else {
             tracing::debug!("{} svcprop: applying change file", self.service);
             debug!(opts, "doer/svcprop", "{}", svccfg_script);
@@ -177,7 +177,7 @@ impl GurpSvcpropEnsure {
 impl GurpSvcpropRemove {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let all_values = process_svc_properties(&svc_property_values(&self.service)?);
-        let resources = all_values.len() as u32;
+        let resources = self.properties.len() as u32;
         let mut changes = 0;
         let mut errors = 0;
         let mut to_remove = Vec::new();

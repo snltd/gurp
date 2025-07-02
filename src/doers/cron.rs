@@ -5,6 +5,7 @@ use crate::common::types::{ApplySummary, Opts};
 use crate::utils::helpers;
 use anyhow::bail;
 use serde::Deserialize;
+use std::fmt;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
@@ -14,24 +15,41 @@ const CRONTAB_BIN: &str = "/bin/crontab";
 // THINGS TO KNOW / THINGS TO DO.
 // We use crontab(1) to apply changes. That checks values are valid, so we won't bother.
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum StrOrNumber {
+    Str(String),
+    Number(u32),
+}
+
+impl fmt::Display for StrOrNumber {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            StrOrNumber::Str(s) => write!(f, "{s}"),
+            StrOrNumber::Number(n) => write!(f, "{n}"),
+        }
+    }
+}
+
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpCronEnsure {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
     pub user: String,
+    #[serde(flatten)]
     pub desired_state: CronState,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct CronState {
-    pub minute: String,
-    pub hour: String,
-    pub day_of_month: String,
-    pub month_of_year: String,
-    pub day_of_week: String,
+    pub minute: StrOrNumber,
+    pub hour: StrOrNumber,
+    pub day_of_month: StrOrNumber,
+    pub month_of_year: StrOrNumber,
+    pub day_of_week: StrOrNumber,
     pub command: String,
 }
 
@@ -46,7 +64,7 @@ pub struct GurpCronRemove {
 
 impl GurpCronEnsure {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        let content = current_crontab(&self.name)?;
+        let content = current_crontab(&self.user)?;
         match self.ensured_crontab(&content)? {
             Some(new_crontab) => {
                 tracing::info!("changing: {}", self.name);
@@ -54,11 +72,11 @@ impl GurpCronEnsure {
                 if opts.noop {
                     Ok(ONE_RESOURCE_NOOP)
                 } else {
-                    write_crontab(&self.name, &new_crontab)
+                    write_crontab(&self.user, &new_crontab)
                 }
             }
             None => {
-                tracing::info!("no change: {}", &self.name);
+                tracing::debug!("no change: {}", &self.name);
                 Ok(ONE_RESOURCE_NO_CHANGE)
             }
         }
@@ -107,7 +125,7 @@ impl GurpCronEnsure {
 
 impl GurpCronRemove {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        let content = current_crontab(&self.name)?;
+        let content = current_crontab(&self.user)?;
         match self.removed_crontab(&content)? {
             // If you try to write an empty file, crontab(1) will reject it. If we take out the
             // managed resource and there's nothing left, we have to *remove* the crontab.
@@ -126,12 +144,12 @@ impl GurpCronRemove {
                     if opts.noop {
                         Ok(ONE_RESOURCE_NOOP)
                     } else {
-                        write_crontab(&self.name, &new_crontab)
+                        write_crontab(&self.user, &new_crontab)
                     }
                 }
             }
             None => {
-                tracing::info!("no change: {}", &self.name);
+                tracing::debug!("no change: {}", &self.name);
                 Ok(ONE_RESOURCE_NO_CHANGE)
             }
         }
@@ -313,11 +331,11 @@ mod test {
             name: "Test job".to_owned(),
             user: "rob".to_owned(),
             desired_state: CronState {
-                minute: "4".to_owned(),
-                hour: "1,12".to_owned(),
-                day_of_month: "*".to_owned(),
-                month_of_year: "*".to_owned(),
-                day_of_week: "1-5".to_owned(),
+                minute: StrOrNumber::Number(4),
+                hour: StrOrNumber::Str("1,12".to_owned()),
+                day_of_month: StrOrNumber::Str("*".to_owned()),
+                month_of_year: StrOrNumber::Str("*".to_owned()),
+                day_of_week: StrOrNumber::Str("1-5".to_owned()),
                 command: "/bin/command >/var/log/file".to_owned(),
             },
         }

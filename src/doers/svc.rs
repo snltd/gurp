@@ -17,7 +17,9 @@ pub struct GurpSvcEnsure {
     pub name: String,
     #[serde(rename = "state")]
     pub desired_state: String,
+    #[serde(rename = "restarted-by")]
     pub restarters: HashSet<String>,
+    #[serde(rename = "reloaded-by")]
     pub reloaders: HashSet<String>,
 }
 
@@ -54,7 +56,7 @@ impl GurpSvcEnsure {
             } else if opts.noop {
                 Ok(ONE_RESOURCE_NOOP)
             } else {
-                tracing::info!("{}: no change", self.name);
+                tracing::debug!("{}: no change", self.name);
                 Ok(ONE_RESOURCE_NO_CHANGE)
             }
         } else {

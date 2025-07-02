@@ -68,7 +68,7 @@ impl GurpDirectoryEnsure {
         let changes = self.changes(&current, &desired);
 
         if changes.is_empty() {
-            tracing::info!("no change: {}", self.path);
+            tracing::debug!("no change: {}", self.path);
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 

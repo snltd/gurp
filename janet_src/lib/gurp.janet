@@ -22,6 +22,11 @@
   [& chunks]
   (string/join (map |(string/trim $ "/") (tuple ;chunks)) "/"))
 
+(defn- clean-data
+  "Removes anything which is not a struct from a list"
+  [list]
+  (filter |(struct? $) list))
+
 (defn parent
   [path]
   (def components
@@ -30,7 +35,7 @@
   (array/pop components)
   (string "/" (string/join components "/")))
 
-(defn qualify-from-path
+(defn- qualify-from-path
   "We expect files to be in a directory `files/` at the same level as
   the role file which references those files. This expects a path relative
   to that directory, and returns the fully qualified path, but if it gets
@@ -71,16 +76,23 @@
 (defmacro host
   "The top-level wrapper used to define a host to be configured"
   [host-name & host-definition]
-  (setdyn :host-dyn (string host-name))
-  ~(defn machine-config
+  ~(upscope
+  (setdyn :host-dyn (string ,host-name))
+  (defn machine-config
      []
      {:metadata {:name ,host-name}
-      :resources (group-by-action-and-type (flatten (tuple ,;host-definition)))}))
+      :resources (group-by-action-and-type (flatten (tuple ,;host-definition)))})
+      ))
+      
 
 (defn group-by-action-and-type
   "Turns an array of resources into a struct of structs, and resolves references."
   [data]
 
+  # We'll assume all structs are resources. That lets us put any other code
+  # anywhere we like
+  # 
+  (def data (clean-data data))
   (def flat-data (mapcat values data))
 
   (var resolve-reference nil)
@@ -137,13 +149,18 @@
   [& resource-structs]
   (flatten (array ;resource-structs)))
 
+
 (defmacro role
   "Holder for role definitions"
   [role-name & role-definition]
   ~(defn ,role-name
      []
+     (def collector @[])
      (setdyn :role-dyn (string ',role-name))
-     (collect-resources ,;role-definition)))
+     (collect-resources collector ,;role-definition)))
+
+(defmacro add [& args]
+  ~(array/push collector ,;args))
 
 (defmacro section
   "A no-op which might help you write readable definitions"
@@ -153,7 +170,7 @@
 (defn this
   "A convenient way to reference a resource in the current role"
   [& args]
-  (string/join (tuple "" (this-role) ;args) "/"))
+  (keyword (string/join (tuple "" (this-role) ;args) "/")))
 
 (defn template-out
   "Takes a template with vars in {{ brackets }} and a table of vars to values.
@@ -234,7 +251,7 @@
    :file {:supported [:owner :mode :group :content :ignore-pattern :from]}
    :misc {:supported [:nfs-domain :enable-smb :scheduler]}
    :smf {:supported [:description :fmri :default-enabled :single-instance
-                     :start-method :stop-method :refresh-method :name]
+                     :start-method :stop-method :refresh-method :svc-name]
          :mandatory [:description :fmri]}
    :svc {:supported [:state :restarted-by :reloaded-by]
          :mandatory [:state]}
@@ -243,7 +260,8 @@
    :symlink {:supported [:source]
              :mandatory [:source]}
    :user {:supported [:uid :primary-group :home-dir :shell :gecos :password-hash]
-          :mandatory [:uid :primary-group :home-dir :shell :gecos]}})
+          :mandatory [:uid :primary-group :home-dir :shell :gecos]}
+   :zfs {:supported [:properties]}})
 
 (defn- validate-ensure-spec
   [resource-type resource-name resource-spec]

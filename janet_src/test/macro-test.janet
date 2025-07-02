@@ -3,12 +3,11 @@
 
 (test-macro
   (host "example-node" (role "basenode") (role "devtools"))
-  (defn machine-config
-    []
-    {:metadata {:name "example-node"}
-     :resources (group-by-action-and-type
-                  (flatten
-                    (tuple (role "basenode") (role "devtools"))))}))
+  (upscope
+    (setdyn :host-dyn (string "example-node"))
+    (defn machine-config
+      []
+      {:metadata {:name "example-node"} :resources (group-by-action-and-type (flatten (tuple (role "basenode") (role "devtools"))))})))
 
 (test-macro
   (role basenode
@@ -23,8 +22,9 @@
         (directory/remove "/tmp/junk"))
   (defn basenode
     []
+    (def collector @[])
     (setdyn :role-dyn (string (quote basenode)))
-    (collect-resources (pkg/ensure "helix") (pkg/remove "go") (file/ensure "/tmp/basenode.txt" :content "some words") (directory/ensure "/tmp/merp" :owner "tester" :group "tester" :mode "0755") (directory/remove "/tmp/junk"))))
+    (collect-resources collector (pkg/ensure "helix") (pkg/remove "go") (file/ensure "/tmp/basenode.txt" :content "some words") (directory/ensure "/tmp/merp" :owner "tester" :group "tester" :mode "0755") (directory/remove "/tmp/junk"))))
 
 (test-macro
   (section "test-section"
