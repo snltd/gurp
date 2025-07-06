@@ -35,7 +35,7 @@
   (array/pop components)
   (string "/" (string/join components "/")))
 
-(defn- qualify-from-path
+(defn qualify-from-path
   "We expect files to be in a directory `files/` at the same level as
   the role file which references those files. This expects a path relative
   to that directory, and returns the fully qualified path, but if it gets
@@ -77,13 +77,12 @@
   "The top-level wrapper used to define a host to be configured"
   [host-name & host-definition]
   ~(upscope
-  (setdyn :host-dyn (string ,host-name))
-  (defn machine-config
-     []
-     {:metadata {:name ,host-name}
-      :resources (group-by-action-and-type (flatten (tuple ,;host-definition)))})
-      ))
-      
+     (setdyn :host-dyn (string ,host-name))
+     (defn machine-config
+       []
+       {:metadata {:name ,host-name}
+        :resources (group-by-action-and-type (flatten (tuple ,;host-definition)))})))
+
 
 (defn group-by-action-and-type
   "Turns an array of resources into a struct of structs, and resolves references."
@@ -182,7 +181,7 @@
       :subst (capture (* :open :value :close))
       :open (* "{{" (any :s))
       :close (* (any :s) "}}")
-      :value (/ (capture (some :w)) ,|(vars (keyword $)))})
+      :value (/ (capture (some (if-not (set " \t\r\n\0\f\v}") 1))) ,|(vars (keyword $)))})
 
   (def find->replace (table ;(reverse (peg/match peg template))))
   (var result template)
@@ -197,7 +196,11 @@
                    (string/join (filter |(not (nil? $)) leftovers) ", "))))
 
   (if-not (= (length find->replace) (length vars))
-    (error "unused vars"))
+    (error (string/format "unused vars: expected %s : got %s"
+                          (string/join
+                            (map |(peg/replace-all '(set "{} \t\r\n\0\f\v") "" $)
+                              (keys find->replace)) ", ")
+                          (string/join (keys vars) ", "))))
 
   result)
 
