@@ -221,7 +221,7 @@
                     (string "\n"))
                   (string/split (string "\n" ,str))
                   (string/join "\n")
-                  (string/trim)))))
+                  (string/triml)))))
 
 
 (defn fields
