@@ -264,7 +264,8 @@
              :mandatory [:source]}
    :user {:supported [:uid :primary-group :home-dir :shell :gecos :password-hash]
           :mandatory [:uid :primary-group :home-dir :shell :gecos]}
-   :zfs {:supported [:properties]}})
+   :zfs {:supported [:properties]}
+   :zone {:supported [:properties]}})
 
 (defn- validate-ensure-spec
   [resource-type resource-name resource-spec]
@@ -453,3 +454,13 @@
   "Given a zfs dataset name and specification, return a zfs remove struct"
   [name & specs]
   (remove-resource :zfs name specs))
+
+(defn zone/ensure
+  "Given a zone name and specification, return a zone ensure struct"
+  [name & specs]
+  (ensure-resource :zonename specs :no-validate))
+
+(defn zone/remove
+  "Given a zone name and specification, return a zone remove struct"
+  [name & specs]
+  (remove-resource :zone name specs))

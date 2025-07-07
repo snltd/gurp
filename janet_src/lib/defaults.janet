@@ -8,7 +8,7 @@
    :smf {:single-instance true
          :stop-method {:exec ":kill" :timeout 10}
          :default-enabled true}
-   :start-method { :timeout 60 }
+   :start-method {:timeout 60}
    :cron {:hour "*"
           :minute "*"
           :day-of-month "*"
@@ -19,4 +19,5 @@
           :primary-group "staff"}
    :directory {:owner "root"
                :mode "0755"
-               :group "root"}})
+               :group "root"}
+   :zone {:autoboot true}})
