@@ -82,8 +82,16 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     let mut changed_ids: ChangedIds = HashSet::new();
 
     apply_resources!(summary_total, changed_ids, &ensure.zfs, opts);
-    crate::doers::pkg::collect_and_ensure(&ensure.pkg, opts)?;
-    crate::doers::gem::collect_and_ensure(&ensure.gem, opts)?;
+    apply_resources!(summary_total, changed_ids, &ensure.zone, opts);
+
+    if !&ensure.pkg.is_empty() {
+        crate::doers::pkg::collect_and_ensure(&ensure.pkg, opts)?;
+    }
+
+    if !&ensure.gem.is_empty() {
+        crate::doers::gem::collect_and_ensure(&ensure.gem, opts)?;
+    }
+
     apply_resources!(summary_total, changed_ids, &ensure.user, opts);
     apply_resources!(summary_total, changed_ids, &ensure.cron, opts);
     apply_resources!(summary_total, changed_ids, &ensure.directory, opts);
@@ -102,8 +110,16 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     apply_resources!(summary_total, changed_ids, &remove.smf, opts);
     apply_resources!(summary_total, changed_ids, &remove.cron, opts);
     apply_resources!(summary_total, changed_ids, &remove.user, opts);
-    crate::doers::pkg::collect_and_remove(&remove.pkg, opts)?;
-    crate::doers::gem::collect_and_remove(&remove.gem, opts)?;
+
+    if !&remove.pkg.is_empty() {
+        crate::doers::pkg::collect_and_remove(&remove.pkg, opts)?;
+    }
+
+    if !&remove.gem.is_empty() {
+        crate::doers::gem::collect_and_remove(&remove.gem, opts)?;
+    }
+
+    apply_resources!(summary_total, changed_ids, &remove.zone, opts);
     apply_resources!(summary_total, changed_ids, &remove.zfs, opts);
 
     for resource in &ensure.svc {

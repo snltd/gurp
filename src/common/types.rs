@@ -11,6 +11,7 @@ use crate::doers::svcprop::{GurpSvcpropEnsure, GurpSvcpropRemove};
 use crate::doers::symlink::{GurpSymlinkEnsure, GurpSymlinkRemove};
 use crate::doers::user::{GurpUserEnsure, GurpUserRemove};
 use crate::doers::zfs::{GurpZfsEnsure, GurpZfsRemove};
+use crate::doers::zone::{GurpZoneEnsure, GurpZoneRemove};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::ops::Add;
@@ -69,6 +70,8 @@ pub struct EnsureResources {
     pub user: Vec<GurpUserEnsure>,
     #[serde(default)]
     pub zfs: Vec<GurpZfsEnsure>,
+    #[serde(default)]
+    pub zone: Vec<GurpZoneEnsure>,
 }
 
 #[derive(Default, Deserialize, Debug)]
@@ -95,6 +98,8 @@ pub struct RemoveResources {
     pub user: Vec<GurpUserRemove>,
     #[serde(default)]
     pub zfs: Vec<GurpZfsRemove>,
+    #[serde(default)]
+    pub zone: Vec<GurpZoneRemove>,
 }
 
 pub type Changes<'a> = Vec<&'a str>;

@@ -458,7 +458,7 @@
 (defn zone/ensure
   "Given a zone name and specification, return a zone ensure struct"
   [name & specs]
-  (ensure-resource :zonename specs :no-validate))
+  (ensure-resource :zone name specs))
 
 (defn zone/remove
   "Given a zone name and specification, return a zone remove struct"
