@@ -242,7 +242,7 @@
 (defn hostname
   "Returns the name of the current host"
   []
-  (run-cmd "/bin/uname -n"))
+  (run-cmd "/usr/bin/uname -n"))
 
 (def resource-ensure-keys
   {:cron {:supported [:user :minute :hour :day-of-month :month-of-year
