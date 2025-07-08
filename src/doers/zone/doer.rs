@@ -5,7 +5,8 @@ use crate::common::types::{ApplySummary, Opts};
 use crate::utils::helpers;
 use anyhow::bail;
 // use serde::Deserialize;
-use camino::Utf8PathBuf;
+use crate::doers::zone::control;
+use crate::doers::zone::control::ZoneadmState;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
@@ -25,14 +26,6 @@ static CURRENT_ZONE_LIST: LazyLock<ZoneadmZones> = LazyLock::new(|| {
 type ZoneName = String;
 type ZoneadmZones = HashMap<ZoneName, ZoneadmState>;
 
-#[derive(Debug, PartialEq)]
-struct ZoneadmState {
-    status: String,
-    path: Utf8PathBuf,
-    brand: String,
-    ip: String,
-}
-
 #[derive(Debug, Deserialize)]
 pub struct GurpZoneEnsure {
     #[serde(rename = "_id")]
@@ -45,6 +38,34 @@ pub struct GurpZoneRemove {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
+}
+
+impl GurpZoneEnsure {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if CURRENT_ZONE_LIST.contains_key(&self.name) {
+            println!("ZONE {} already exists", self.name);
+        } else {
+            println!("CREATE ZONE {}", &self.name);
+        }
+
+        Ok(ONE_RESOURCE_NO_CHANGE)
+    }
+}
+
+impl GurpZoneRemove {
+    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        if CURRENT_ZONE_LIST.contains_key(&self.name) {
+            tracing::info!("zone {}: remove", self.name);
+            if opts.noop {
+                Ok(ONE_RESOURCE_NOOP)
+            } else {
+                control::remove_zone(&self.name)
+            }
+        } else {
+            tracing::debug!("zone {}: not found", self.name);
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        }
+    }
 }
 
 fn zone_list() -> anyhow::Result<String> {
@@ -81,33 +102,10 @@ fn parse_zone_list(raw: &str) -> anyhow::Result<ZoneadmZones> {
         .collect::<anyhow::Result<HashMap<_, _>>>()
 }
 
-impl GurpZoneEnsure {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        if CURRENT_ZONE_LIST.contains_key(&self.name) {
-            println!("ZONE {} already exists", self.name);
-        } else {
-            println!("CREATE ZONE {}", &self.name);
-        }
-
-        Ok(ONE_RESOURCE_NO_CHANGE)
-    }
-}
-
-impl GurpZoneRemove {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        if CURRENT_ZONE_LIST.contains_key(&self.name) {
-            println!("REMOVE ZONE {}", &self.name);
-        } else {
-            println!("ZONE {} does not exist", self.name);
-        }
-
-        Ok(ONE_RESOURCE_NO_CHANGE)
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
+    use camino::Utf8PathBuf;
     use indoc::indoc;
 
     #[test]
