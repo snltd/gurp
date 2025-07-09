@@ -67,7 +67,10 @@ pub fn janet2json(janet_defn: &str) -> String {
     let json_wrapped_host_config =
         format!("{JSON_LIB}\n{full_janet}\n(encode (first (values {janet_defn})))");
     let client = janet_client();
-    let ret = client.run(json_wrapped_host_config).unwrap();
+    let ret = match client.run(json_wrapped_host_config) {
+        Ok(janet) => janet,
+        Err(e) => panic!("janet2jason ERROR: {e}"),
+    };
     match ret.unwrap() {
         TaggedJanet::Buffer(str) => str.to_string(),
         _ => panic!("no buffer from Janet"),

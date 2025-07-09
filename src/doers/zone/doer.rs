@@ -2,14 +2,15 @@ use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
 use crate::common::types::{ApplySummary, Opts};
-use crate::utils::helpers;
-use anyhow::bail;
-// use serde::Deserialize;
+use crate::debug;
+use crate::doers::zone::config::GurpZoneConfig;
 use crate::doers::zone::control;
 use crate::doers::zone::control::ZoneadmState;
+use crate::utils::helpers;
+use anyhow::bail;
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::sync::LazyLock;
 
 // THINGS TO KNOW / THINGS TO DO.
@@ -31,6 +32,8 @@ pub struct GurpZoneEnsure {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
+    #[serde(flatten)]
+    pub config: GurpZoneConfig,
 }
 
 #[derive(Debug, Deserialize)]
@@ -42,13 +45,32 @@ pub struct GurpZoneRemove {
 
 impl GurpZoneEnsure {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        let config_input = self.config.to_zonecfg();
+
         if CURRENT_ZONE_LIST.contains_key(&self.name) {
             println!("ZONE {} already exists", self.name);
+            self.modify_from_config(&config_input)
         } else {
             println!("CREATE ZONE {}", &self.name);
-        }
+            debug!(
+                opts,
+                "zone/create", "raw zonecfg config follows:\n{}", &config_input
+            );
 
-        Ok(ONE_RESOURCE_NO_CHANGE)
+            if opts.noop {
+                Ok(ONE_RESOURCE_NOOP)
+            } else {
+                self.create_from_config(&config_input)
+            }
+        }
+    }
+
+    fn modify_from_config(&self, _config: &str) -> anyhow::Result<ApplySummary> {
+        Ok(ONE_RESOURCE_ONE_CHANGE)
+    }
+
+    fn create_from_config(&self, _config: &str) -> anyhow::Result<ApplySummary> {
+        Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 }
 
@@ -107,6 +129,7 @@ mod test {
     use super::*;
     use camino::Utf8PathBuf;
     use indoc::indoc;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_zone_list() {

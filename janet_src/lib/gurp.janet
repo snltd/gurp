@@ -199,7 +199,7 @@
     (error (string/format "unused vars: expected %s : got %s"
                           (string/join
                             (map |(peg/replace-all '(set "{} \t\r\n\0\f\v") "" $)
-                              (keys find->replace)) ", ")
+                                 (keys find->replace)) ", ")
                           (string/join (keys vars) ", "))))
 
   result)
@@ -265,7 +265,11 @@
    :user {:supported [:uid :primary-group :home-dir :shell :gecos :password-hash]
           :mandatory [:uid :primary-group :home-dir :shell :gecos]}
    :zfs {:supported [:properties]}
-   :zone {:supported [:properties]}})
+   :zone {:supported [:brand :run-cmd :dns :properties :zonepath :networks
+                      :autoboot :fs :datasets :run-ssh :attrs
+                      :capped-cpu :capped-memory :dedicated-cpu :devices :rctls
+                      :security-flags :admins]
+          :mandatory [:brand]}})
 
 (defn- validate-ensure-spec
   [resource-type resource-name resource-spec]

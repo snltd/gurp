@@ -20,4 +20,7 @@
    :directory {:owner "root"
                :mode "0755"
                :group "root"}
-   :zone {:autoboot true}})
+   :zone {:autoboot true
+
+  }
+  })
