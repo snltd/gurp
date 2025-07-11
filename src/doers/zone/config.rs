@@ -30,9 +30,16 @@ pub struct GurpZoneConfig {
     pub zonepath: Utf8PathBuf,
     pub networks: Vec<GurpZoneNetwork>,
     pub datasets: Option<Vec<String>>,
+    pub capped_memory: Option<GurpZoneCappedMemory>,
     pub dns: Option<GurpZoneDns>,
     pub fs: Option<Vec<GurpZoneFs>>,
     pub run_cmd: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GurpZoneCappedMemory {
+    pub physical: String,
+    pub swap: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -80,6 +87,12 @@ impl GurpZoneConfig {
         }
 
         if let Some(datasets) = &self.datasets {
+            for ds in datasets {
+                ret.push_str(&self.zone_dataset(ds));
+            }
+        }
+
+        if let Some(memcap) = &self.capped_memory {
             for ds in datasets {
                 ret.push_str(&self.zone_dataset(ds));
             }
@@ -156,6 +169,10 @@ mod test {
             :fs [{:dir "/home"
                   :special "/export/home"
                   :type "lofs"}]
+            :capped-memory {
+                :physical "500M"
+                :swap "500M"
+            }
             :datasets ["big/zone/fs" "fast/zone/fs"]
             :dns {:domain "lan.id264.net"
                   :nameservers ["192.168.1.53"
@@ -191,6 +208,13 @@ mod test {
             end
             add dataset
               set name=big/zone/fs
+            end
+            add dataset
+              set name=fast/zone/fs
+            end
+            add capped-memory
+              set physical=500M
+              set swap=500M
             end
             "};
 

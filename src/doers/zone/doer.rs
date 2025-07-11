@@ -61,6 +61,7 @@ impl GurpZoneEnsure {
                 Ok(ONE_RESOURCE_NOOP)
             } else {
                 self.create_from_config(&config_input)
+                self.install()
             }
         }
     }
@@ -70,8 +71,40 @@ impl GurpZoneEnsure {
     }
 
     fn create_from_config(&self, _config: &str) -> anyhow::Result<ApplySummary> {
-        Ok(ONE_RESOURCE_ONE_CHANGE)
+    let mut cmd = Command::new(SVCCFG_BIN);
+    cmd.arg("-u")
+        .arg(username)
+        .stdin(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    tracing::debug!(command = helpers::command_to_string(&cmd));
+
+    let mut child = cmd.spawn()?;
+
+    if let Some(stdin) = child.stdin.as_mut() {
+        tracing::debug!("{}: writing: {}", username, content);
+        stdin.write_all(content.as_bytes())?;
     }
+
+    let output = child.wait_with_output()?;
+
+    if output.status.success() {
+        tracing::debug!("{}: crontab updated successfully", username);
+        Ok(ONE_RESOURCE_ONE_CHANGE)
+    } else {
+        bail!(String::from_utf8_lossy(&output.stderr).into_owned())
+    }
+
+        Ok(ONE_RESOURCE_ONE_CHANGE)
+    
+    }
+
+    fn install(&self) {
+        Ok(ONE_RESOURCE_ONE_CHANGE)
+
+    }
+
+    
 }
 
 impl GurpZoneRemove {
