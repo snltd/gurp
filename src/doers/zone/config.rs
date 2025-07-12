@@ -25,15 +25,18 @@ macro_rules! set {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpZoneConfig {
+    pub clone_from: Option<String>,
     pub brand: String,
     pub autoboot: bool,
     pub zonepath: Utf8PathBuf,
-    pub networks: Vec<GurpZoneNetwork>,
+    pub networks: GurpZoneNetworks,
     pub datasets: Option<Vec<String>>,
     pub capped_memory: Option<GurpZoneCappedMemory>,
     pub dns: Option<GurpZoneDns>,
-    pub fs: Option<Vec<GurpZoneFs>>,
+    pub fs: Option<GurpZoneFilesystems>,
     pub run_cmd: Option<Vec<String>>,
+    pub boot_after_install: bool,
+    pub recreate: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -48,14 +51,18 @@ pub struct GurpZoneDns {
     pub nameservers: Vec<String>,
 }
 
+type GurpZoneFilesystems = Vec<GurpZoneFilesystem>;
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpZoneFs {
+pub struct GurpZoneFilesystem {
     pub dir: Utf8PathBuf,
     pub special: Utf8PathBuf,
     #[serde(rename = "type")]
     pub fs_type: String,
 }
+
+type GurpZoneNetworks = Vec<GurpZoneNetwork>;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -76,13 +83,13 @@ impl GurpZoneConfig {
             ret.push_str(&self.zone_network(network_conf));
         }
 
-        if let Some(dns_conf) = &self.dns {
-            ret.push_str(&self.zone_dns(dns_conf));
+        if let Some(conf) = &self.dns {
+            ret.push_str(&self.zone_dns(conf));
         }
 
         if let Some(fs_conf) = &self.fs {
-            for fs in fs_conf {
-                ret.push_str(&self.zone_fs(fs));
+            for conf in fs_conf {
+                ret.push_str(&self.zone_fs(conf));
             }
         }
 
@@ -92,10 +99,8 @@ impl GurpZoneConfig {
             }
         }
 
-        if let Some(memcap) = &self.capped_memory {
-            for ds in datasets {
-                ret.push_str(&self.zone_dataset(ds));
-            }
+        if let Some(conf) = &self.capped_memory {
+            ret.push_str(&self.zone_capped_memory(conf));
         }
 
         ret
@@ -106,12 +111,19 @@ impl GurpZoneConfig {
         format!("add dataset\n  set name={ds_name}\nend\n")
     }
 
-    fn zone_fs(&self, conf: &GurpZoneFs) -> String {
+    fn zone_fs(&self, conf: &GurpZoneFilesystem) -> String {
         formatdoc! { "add fs
           set dir={}
           set special={}
           set type={}
         end\n", conf.dir, conf.special, conf.fs_type }
+    }
+
+    fn zone_capped_memory(&self, conf: &GurpZoneCappedMemory) -> String {
+        formatdoc! { "add capped-memory
+          set physical={}
+          set swap={}
+        end\n", conf.physical, conf.swap}
     }
 
     fn string_attr(&self, name: &str, value: &str) -> String {
@@ -131,15 +143,16 @@ impl GurpZoneConfig {
     }
 
     fn zone_network(&self, conf: &GurpZoneNetwork) -> String {
-        let mut ret = "add network\n".to_owned();
-        set!(ret, conf, indent: "  ", physical, global_nic);
+        let mut ret = "add net\n".to_owned();
+        ret.push_str(&format!("  set physical={}\n", conf.physical));
+        ret.push_str(&format!("  set global-nic={}\n", conf.global_nic));
 
         if let Some(addr) = &conf.allowed_address {
-            ret.push_str(&format!("  allowed-address={addr}\n"));
+            ret.push_str(&format!("  set allowed-address={addr}\n"));
         }
 
         if let Some(defrouter) = &conf.defrouter {
-            ret.push_str(&format!("  defrouter={defrouter}\n"));
+            ret.push_str(&format!("  set defrouter={defrouter}\n"));
         }
 
         ret.push_str("end\n");
@@ -149,7 +162,6 @@ impl GurpZoneConfig {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::doers::zone::GurpZoneEnsure;
     use crate::test_utils::spec_helper::janet2json;
     use indoc::indoc;
@@ -158,38 +170,34 @@ mod test {
     #[test]
     fn test_config() {
         let json_def = janet2json(indoc! {r#"
-            (zone/ensure "zone-with-everything"
-            :brand "lipkg"
-            :zonepath "/zones/serv-fs"
-            :autoboot false
-            :networks [{:physical "fs_net0"
-                       :global-nic "auto"
-                       :allowed-address "192.168.1.33/24"
-                       :defrouter "192.168.1.1"}]
-            :fs [{:dir "/home"
-                  :special "/export/home"
-                  :type "lofs"}]
-            :capped-memory {
-                :physical "500M"
-                :swap "500M"
-            }
-            :datasets ["big/zone/fs" "fast/zone/fs"]
-            :dns {:domain "lan.id264.net"
-                  :nameservers ["192.168.1.53"
-                                "192.168.1.1"]})
+            (zone/ensure "test-zone"
+                :brand "lipkg"
+                :autoboot false
+                (zone-network "test_net0"
+                           :allowed-address "192.168.1.33/24"
+                           :defrouter "192.168.1.1")
+                (zone-fs "/home" :special "/export/home")
+                :capped-memory {
+                    :physical "500M"
+                    :swap "500M"
+                }
+                :datasets ["big/zone/fs" "fast/zone/fs"]
+                :dns {:domain "lan.id264.net"
+                      :nameservers ["192.168.1.53"
+                                    "192.168.1.1"]})
                     "#
         });
 
         let expected_conf = indoc! {"
             create -b
             set brand=lipkg
-            set zonepath=/zones/serv-fs
+            set zonepath=/zones/test-zone
             set autoboot=false
-            add network
-              set physical=fs_net0
-              set global_nic=auto
-              allowed-address=192.168.1.33/24
-              defrouter=192.168.1.1
+            add net
+              set physical=test_net0
+              set global-nic=auto
+              set allowed-address=192.168.1.33/24
+              set defrouter=192.168.1.1
             end
             add attr
               set name=dns-domain

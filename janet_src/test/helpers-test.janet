@@ -36,7 +36,7 @@
   (test (run-cmd "ls -d /usr") "/usr")
   (test-error
     (run-cmd "/no/such/thing --verbose")
-    "@[\"/no/such/thing\" \"--verbose\"]: Resource temporarily unavailable"))
+    "@[\"/no/such/thing\" \"--verbose\"]: No such file or directory"))
 
 # Inconsistent across development/test platforms
 # (deftest hostname

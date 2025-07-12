@@ -1,13 +1,9 @@
 use crate::common::constants::ONE_RESOURCE_ONE_CHANGE;
-use crate::common::types::{ApplySummary, Opts};
-use crate::utils::helpers;
+use crate::common::types::ApplySummary;
+use crate::doers::zone::cmd;
 use anyhow::bail;
 use camino::Utf8PathBuf;
-use std::ffi::OsStr;
-use std::{
-    process::{Command, Stdio},
-    str::FromStr,
-};
+use std::str::FromStr;
 
 #[derive(Debug, PartialEq)]
 pub struct ZoneadmState {
@@ -17,8 +13,6 @@ pub struct ZoneadmState {
     pub ip: String,
 }
 
-const ZONECFG_BIN: &str = "/usr/sbin/zonecfg";
-const ZONEADM_BIN: &str = "/usr/sbin/zoneadm";
 const ZONEADM_FIELDS: usize = 8;
 
 // State machine to handle zone cleanup
@@ -56,7 +50,7 @@ impl FromStr for ZoneState {
 }
 
 fn zone_state(zone_name: &str) -> anyhow::Result<ZoneState> {
-    let raw = run_zoneadm(zone_name, "list", &["-p"])?;
+    let raw = cmd::run_zoneadm(zone_name, "list", ["-p"])?;
     let chunks: Vec<_> = raw.split(":").collect();
 
     if chunks.len() != ZONEADM_FIELDS {
@@ -100,64 +94,24 @@ pub fn remove_zone(zone: &str) -> anyhow::Result<ApplySummary> {
     Ok(ONE_RESOURCE_ONE_CHANGE)
 }
 
-fn run_zoneadm<I, S>(zone: &str, subcommand: &str, extra_args: I) -> anyhow::Result<String>
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-{
-    let mut cmd = Command::new(ZONEADM_BIN);
-    cmd.arg("-z").arg(zone).arg(subcommand);
-    cmd.args(extra_args);
-    cmd.stderr(Stdio::piped());
-
-    tracing::debug!(command = helpers::command_to_string(&cmd));
-    let output = cmd.output()?;
-
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).into_owned())
-    } else {
-        bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-    }
-}
-
-fn run_zonecfg<I, S>(zone: &str, subcommand: &str, extra_args: I) -> anyhow::Result<String>
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-{
-    let mut cmd = Command::new(ZONECFG_BIN);
-    cmd.arg("-z").arg(zone).arg(subcommand);
-    cmd.args(extra_args);
-    cmd.stderr(Stdio::piped());
-
-    tracing::debug!(command = helpers::command_to_string(&cmd));
-    let output = cmd.output()?;
-
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).into_owned())
-    } else {
-        bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-    }
-}
-
 fn unmount_zone(zone: &str) -> anyhow::Result<String> {
     tracing::debug!("zone {}: halting", zone);
-    run_zoneadm(zone, "unmount", std::iter::empty::<&str>())
+    cmd::run_zoneadm(zone, "unmount", std::iter::empty::<&str>())
 }
 
 // I've seen things (bhyve) get stuck here, but I can't reproduce anything right now
 fn halt_zone(zone: &str) -> anyhow::Result<String> {
     tracing::debug!("zone {}: halting", zone);
-    run_zoneadm(zone, "halt", std::iter::empty::<&str>())
+    cmd::run_zoneadm(zone, "halt", std::iter::empty::<&str>())
 }
 
 fn uninstall_zone(zone: &str) -> anyhow::Result<String> {
     tracing::debug!("zone {}: uninstall", zone);
-    run_zoneadm(zone, "uninstall", &["-F"])
+    cmd::run_zoneadm(zone, "uninstall", ["-F"])
 }
 
 // We may want to clean up ZFS filesystems here as well
 fn delete_zone(zone: &str) -> anyhow::Result<String> {
     tracing::debug!("zone {}: delete", zone);
-    run_zonecfg(zone, "delete", &["-F"])
+    cmd::run_zonecfg(zone, "delete", ["-F"])
 }

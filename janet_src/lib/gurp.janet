@@ -266,7 +266,8 @@
           :mandatory [:uid :primary-group :home-dir :shell :gecos]}
    :zfs {:supported [:properties]}
    :zone {:supported [:brand :run-cmd :dns :properties :zonepath :networks
-                      :autoboot :fs :datasets :run-ssh :attrs
+                      :autoboot :fs :datasets :run-ssh :attrs :clone-from
+                      :boot-after-install :bootstrap-from :recreate
                       :capped-cpu :capped-memory :dedicated-cpu :devices :rctls
                       :security-flags :admins]
           :mandatory [:brand]}})
@@ -462,9 +463,39 @@
 (defn zone/ensure
   "Given a zone name and specification, return a zone ensure struct"
   [name & specs]
-  (ensure-resource :zone name specs))
+
+  (def separated-networks
+    (group-by (fn [i] (and (struct? i) (has-key? i :global-nic))) specs))
+
+  (var modified-specs (tuple ;(separated-networks false) :networks (separated-networks true)))
+
+  (def separated-fs
+    (group-by (fn [i] (and (struct? i) (has-key? i :special))) modified-specs))
+
+  (set modified-specs (tuple ;(separated-fs false) :fs (separated-fs true)))
+
+  (def result (ensure-resource :zone name modified-specs))
+
+  (var resource (struct/to-table (result :zone)))
+
+  (if-not (has-key? resource :zonepath)
+    (set (resource :zonepath) (pathcat "/zones" name)))
+
+  {:zone (table/to-struct resource)})
 
 (defn zone/remove
   "Given a zone name and specification, return a zone remove struct"
   [name & specs]
   (remove-resource :zone name specs))
+
+(defn zone-network
+  [physical & specs]
+  (struct/proto-flatten
+    (struct/with-proto {:global-nic "auto"}
+                       :physical physical ;specs)))
+
+(defn zone-fs
+  [mountpoint & specs]
+  (struct/proto-flatten
+    (struct/with-proto {:type "lofs"}
+                       :dir mountpoint ;specs)))

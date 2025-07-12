@@ -4,13 +4,14 @@ use crate::common::constants::{
 use crate::common::types::{ApplySummary, Opts};
 use crate::debug;
 use crate::doers::zone::config::GurpZoneConfig;
-use crate::doers::zone::control;
 use crate::doers::zone::control::ZoneadmState;
+use crate::doers::zone::{cmd, control};
 use crate::utils::helpers;
 use anyhow::bail;
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::process::Command;
+use std::io::Write;
+use std::process::{Command, Stdio};
 use std::sync::LazyLock;
 
 // THINGS TO KNOW / THINGS TO DO.
@@ -48,20 +49,29 @@ impl GurpZoneEnsure {
         let config_input = self.config.to_zonecfg();
 
         if CURRENT_ZONE_LIST.contains_key(&self.name) {
-            println!("ZONE {} already exists", self.name);
-            self.modify_from_config(&config_input)
-        } else {
-            println!("CREATE ZONE {}", &self.name);
-            debug!(
-                opts,
-                "zone/create", "raw zonecfg config follows:\n{}", &config_input
-            );
+            tracing::debug!("zone {}: already exists", self.name);
 
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
+            if self.config.recreate == "always" {
+                tracing::info!("zone {}: remove", self.name);
+                control::remove_zone(&self.name)?;
             } else {
-                self.create_from_config(&config_input)
-                self.install()
+                return self.modify_from_config(&config_input);
+            }
+        }
+
+        debug!(
+            opts,
+            "zone/create", "raw zonecfg config follows:\n{}", &config_input
+        );
+
+        if opts.noop {
+            Ok(ONE_RESOURCE_NOOP)
+        } else {
+            self.create_from_config(&config_input)?;
+            if let Some(clone_source) = &self.config.clone_from {
+                self.clone_zone(clone_source)
+            } else {
+                self.install_zone()
             }
         }
     }
@@ -70,41 +80,69 @@ impl GurpZoneEnsure {
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
-    fn create_from_config(&self, _config: &str) -> anyhow::Result<ApplySummary> {
-    let mut cmd = Command::new(SVCCFG_BIN);
-    cmd.arg("-u")
-        .arg(username)
-        .stdin(Stdio::piped())
-        .stderr(Stdio::piped());
+    fn create_from_config(&self, config: &str) -> anyhow::Result<()> {
+        let mut cmd = Command::new(ZONECFG_BIN);
+        cmd.arg("-z")
+            .arg(&self.name)
+            .stdin(Stdio::piped())
+            .stderr(Stdio::piped());
 
-    tracing::debug!(command = helpers::command_to_string(&cmd));
+        tracing::debug!(command = helpers::command_to_string(&cmd));
 
-    let mut child = cmd.spawn()?;
+        let mut child = cmd.spawn()?;
 
-    if let Some(stdin) = child.stdin.as_mut() {
-        tracing::debug!("{}: writing: {}", username, content);
-        stdin.write_all(content.as_bytes())?;
+        if let Some(stdin) = child.stdin.as_mut() {
+            stdin.write_all(config.as_bytes())?;
+        }
+
+        let output = child.wait_with_output()?;
+
+        if output.status.success() {
+            tracing::debug!("zone {}: configured successfully", self.name);
+            Ok(())
+        } else {
+            bail!(String::from_utf8_lossy(&output.stderr).into_owned())
+        }
     }
 
-    let output = child.wait_with_output()?;
+    fn install_zone(&self) -> anyhow::Result<ApplySummary> {
+        tracing::info!("zone {}: installing", self.name);
+        cmd::run_zoneadm(&self.name, "install", std::iter::empty::<&str>())?;
+        tracing::debug!("zone {}: installed", self.name);
+        self.boot_zone()
+        // self.bootstrap_zone()
+    }
 
-    if output.status.success() {
-        tracing::debug!("{}: crontab updated successfully", username);
+    fn clone_zone(&self, source_zone: &str) -> anyhow::Result<ApplySummary> {
+        tracing::info!("zone {}: installing", self.name);
+        cmd::run_zoneadm(&self.name, "clone", [source_zone])?;
+        tracing::debug!("zone {}: installed", self.name);
+        self.boot_zone()
+        // self.bootstrap_zone()
+    }
+
+    fn boot_zone(&self) -> anyhow::Result<ApplySummary> {
+        if self.config.boot_after_install {
+            tracing::debug!("zone {}: booting", self.name);
+            cmd::run_zoneadm(&self.name, "boot", std::iter::empty::<&str>())?;
+        }
+
         Ok(ONE_RESOURCE_ONE_CHANGE)
-    } else {
-        bail!(String::from_utf8_lossy(&output.stderr).into_owned())
     }
+    /*
+    fn boostrap_zone(&self) -> anyhow::Result<ApplySummary> {
+        let zone_dir = &self.config.zonepath.join("root").join("var").join("tmp");
 
-        Ok(ONE_RESOURCE_ONE_CHANGE)
-    
+        if !zone_dir.exists() {
+            bail!("bootstrapper cannot find {}", zone_dir);
+        }
+
+        let bootstrap_gurp = zone_dir.join("gurp");
+        // let bootstrap_conf =
+
+        fs::copy(env::current_exe(), )
     }
-
-    fn install(&self) {
-        Ok(ONE_RESOURCE_ONE_CHANGE)
-
-    }
-
-    
+    */
 }
 
 impl GurpZoneRemove {
