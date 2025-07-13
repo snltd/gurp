@@ -12,3 +12,4 @@ pub mod svcprop;
 pub mod symlink;
 pub mod user;
 pub mod zfs;
+pub mod zone;
