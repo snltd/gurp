@@ -109,7 +109,9 @@ impl GurpZoneEnsure {
         tracing::info!("zone {}: installing", self.name);
         cmd::run_zoneadm(&self.name, "install", std::iter::empty::<&str>())?;
         tracing::debug!("zone {}: installed", self.name);
-        self.boot_zone()
+        self.boot_zone()?;
+        self.exec()?;
+        Ok(ONE_RESOURCE_ONE_CHANGE)
         // self.bootstrap_zone()
     }
 
@@ -117,7 +119,9 @@ impl GurpZoneEnsure {
         tracing::info!("zone {}: installing", self.name);
         cmd::run_zoneadm(&self.name, "clone", [source_zone])?;
         tracing::debug!("zone {}: installed", self.name);
-        self.boot_zone()
+        self.boot_zone()?;
+        self.exec()?;
+        Ok(ONE_RESOURCE_ONE_CHANGE)
         // self.bootstrap_zone()
     }
 
@@ -127,6 +131,7 @@ impl GurpZoneEnsure {
             cmd::run_zoneadm(&self.name, "boot", std::iter::empty::<&str>())?;
         }
 
+        control::wait_for_readiness(&self.name)?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
