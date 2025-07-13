@@ -10,6 +10,8 @@ use crate::utils::helpers;
 use anyhow::bail;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::env;
+use std::fs;
 use std::io::Write;
 use std::process::{Command, Stdio};
 use std::sync::LazyLock;
@@ -111,6 +113,7 @@ impl GurpZoneEnsure {
         tracing::debug!("zone {}: installed", self.name);
         self.boot_zone()?;
         self.exec()?;
+        self.bootstrap_zone()?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
         // self.bootstrap_zone()
     }
@@ -121,6 +124,7 @@ impl GurpZoneEnsure {
         tracing::debug!("zone {}: installed", self.name);
         self.boot_zone()?;
         self.exec()?;
+        self.bootstrap_zone()?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
         // self.bootstrap_zone()
     }
@@ -147,20 +151,29 @@ impl GurpZoneEnsure {
         Ok(())
     }
 
-    /*
-    fn boostrap_zone(&self) -> anyhow::Result<ApplySummary> {
-        let zone_dir = &self.config.zonepath.join("root").join("var").join("tmp");
+    fn bootstrap_zone(&self) -> anyhow::Result<()> {
+        // Like everything else, this is super-minimal, at least for now, possibly for ever. Copy
+        // our own executable into the zone, and trust the user that the file they gave us is
+        // there, and can access all the roles and files it needs.
+        //
+        //
+        if let Some(host_config) = &self.config.bootstrap_from {
+            let zone_root = &self.config.zonepath.join("root");
+            let zone_dir = zone_root.join("var").join("tmp");
 
-        if !zone_dir.exists() {
-            bail!("bootstrapper cannot find {}", zone_dir);
+            if !zone_dir.exists() {
+                bail!("bootstrapper cannot find {}", zone_dir);
+            }
+
+            let zone_gurp = zone_dir.join("gurp");
+            let bootstrap_command = format!("/var/tmp/gurp apply {host_config}");
+
+            fs::copy(env::current_exe()?, zone_gurp)?;
+            cmd::run_zlogin_cmd(&self.name, &bootstrap_command)?;
         }
 
-        let bootstrap_gurp = zone_dir.join("gurp");
-        // let bootstrap_conf =
-
-        fs::copy(env::current_exe(), )
+        Ok(())
     }
-    */
 }
 
 impl GurpZoneRemove {
