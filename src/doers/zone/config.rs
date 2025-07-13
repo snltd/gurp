@@ -36,6 +36,7 @@ pub struct GurpZoneConfig {
     pub fs: Option<GurpZoneFilesystems>,
     pub exec: Option<Vec<String>>,
     pub boot_after_install: bool,
+    pub bootstrap_from: Option<Utf8PathBuf>,
     pub recreate: String,
 }
 

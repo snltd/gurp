@@ -1,5 +1,6 @@
 use crate::utils::helpers;
 use anyhow::bail;
+use std::env;
 use std::ffi::OsStr;
 use std::process::{Command, Stdio};
 
@@ -47,17 +48,27 @@ where
     }
 }
 
-pub fn run_zlogin_cmd(zone: &str, command: &str) -> anyhow::Result<String> {
+pub fn run_zlogin_cmd(zone: &str, command: &str) -> anyhow::Result<()> {
+    // Pass the RUST_LOG env var through, because we may be running an instance of this program
     let mut cmd = Command::new(ZLOGIN_BIN);
     cmd.arg(zone);
+    cmd.env("RUST_LOG", env::var_os("RUST_LOG").unwrap_or_default());
     cmd.arg(command);
-    cmd.stderr(Stdio::piped());
+    cmd.stdout(Stdio::inherit());
+    cmd.stderr(Stdio::inherit());
 
     tracing::debug!(command = helpers::command_to_string(&cmd));
+
+    let status = cmd.status()?;
+
+    if !status.success() {
+        anyhow::bail!("command failed with status: {}", status);
+    }
+
     let output = cmd.output()?;
 
     if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+        Ok(())
     } else {
         bail!(String::from_utf8_lossy(&output.stderr).into_owned())
     }
