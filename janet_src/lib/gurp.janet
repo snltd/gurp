@@ -266,7 +266,7 @@
           :mandatory [:uid :primary-group :home-dir :shell :gecos]}
    :zfs {:supported [:properties]}
    :zone {:supported [:brand :run-cmd :dns :properties :zonepath :networks
-                      :autoboot :fs :datasets :run-ssh :attrs :clone-from
+                      :autoboot :fs :datasets :exec :attrs :clone-from
                       :boot-after-install :bootstrap-from :recreate
                       :capped-cpu :capped-memory :dedicated-cpu :devices :rctls
                       :security-flags :admins]

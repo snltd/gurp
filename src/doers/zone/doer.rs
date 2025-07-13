@@ -129,6 +129,19 @@ impl GurpZoneEnsure {
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
+
+    fn exec(&self) -> anyhow::Result<()> {
+        if let Some(cmds) = &self.config.exec {
+            for cmd in cmds {
+                tracing::debug!("zone {}; exec '{}'", self.name, cmd);
+                cmd::run_zlogin_cmd(&self.name, cmd)?;
+                tracing::debug!("zone {}; exec '{}' OK", self.name, cmd);
+            }
+        }
+
+        Ok(())
+    }
+
     /*
     fn boostrap_zone(&self) -> anyhow::Result<ApplySummary> {
         let zone_dir = &self.config.zonepath.join("root").join("var").join("tmp");
