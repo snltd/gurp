@@ -34,7 +34,7 @@ pub struct GurpZoneConfig {
     pub capped_memory: Option<GurpZoneCappedMemory>,
     pub dns: Option<GurpZoneDns>,
     pub fs: Option<GurpZoneFilesystems>,
-    pub run_cmd: Option<Vec<String>>,
+    pub exec: Option<Vec<String>>,
     pub boot_after_install: bool,
     pub recreate: String,
 }

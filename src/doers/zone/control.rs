@@ -1,9 +1,21 @@
 use crate::common::constants::ONE_RESOURCE_ONE_CHANGE;
 use crate::common::types::ApplySummary;
 use crate::doers::zone::cmd;
+use crate::utils::helpers;
 use anyhow::bail;
 use camino::Utf8PathBuf;
+use std::process::{Command, Stdio};
 use std::str::FromStr;
+use std::thread::sleep;
+use std::time::Duration;
+
+const SVCS_BIN: &str = "/bin/svcs";
+const ZONEADM_FIELDS: usize = 8;
+const READY_SVC: &str = "svc:/milestone/multi-user-server:default";
+const STATE_WAIT_INTERVAL: Duration = Duration::from_secs(1);
+const STATE_WAIT_TIMEOUT: Duration = Duration::from_secs(60);
+const READINESS_WAIT_INTERVAL: Duration = Duration::from_secs(2);
+const READINESS_WAIT_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Debug, PartialEq)]
 pub struct ZoneadmState {
@@ -12,8 +24,6 @@ pub struct ZoneadmState {
     pub brand: String,
     pub ip: String,
 }
-
-const ZONEADM_FIELDS: usize = 8;
 
 // State machine to handle zone cleanup
 //
@@ -94,24 +104,86 @@ pub fn remove_zone(zone: &str) -> anyhow::Result<ApplySummary> {
     Ok(ONE_RESOURCE_ONE_CHANGE)
 }
 
-fn unmount_zone(zone: &str) -> anyhow::Result<String> {
+fn unmount_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: halting", zone);
-    cmd::run_zoneadm(zone, "unmount", std::iter::empty::<&str>())
+    cmd::run_zoneadm(zone, "unmount", std::iter::empty::<&str>())?;
+    wait_for_state(zone, ZoneState::Halted)
 }
 
 // I've seen things (bhyve) get stuck here, but I can't reproduce anything right now
-fn halt_zone(zone: &str) -> anyhow::Result<String> {
+fn halt_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: halting", zone);
-    cmd::run_zoneadm(zone, "halt", std::iter::empty::<&str>())
+    cmd::run_zoneadm(zone, "halt", std::iter::empty::<&str>())?;
+    wait_for_state(zone, ZoneState::Installed)
 }
 
-fn uninstall_zone(zone: &str) -> anyhow::Result<String> {
+fn uninstall_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: uninstall", zone);
-    cmd::run_zoneadm(zone, "uninstall", ["-F"])
+    cmd::run_zoneadm(zone, "uninstall", ["-F"])?;
+    wait_for_state(zone, ZoneState::Configured)
 }
 
 // We may want to clean up ZFS filesystems here as well
-fn delete_zone(zone: &str) -> anyhow::Result<String> {
+fn delete_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: delete", zone);
-    cmd::run_zonecfg(zone, "delete", ["-F"])
+    cmd::run_zonecfg(zone, "delete", ["-F"]).map(|_| ())
+}
+
+fn wait_for_state(zone: &str, desired_state: ZoneState) -> anyhow::Result<()> {
+    let elapsed = Duration::from_secs(0);
+
+    loop {
+        if zone_state(zone)? == desired_state {
+            return Ok(());
+        }
+
+        sleep(STATE_WAIT_INTERVAL);
+        let elapsed = elapsed + STATE_WAIT_INTERVAL;
+
+        if elapsed >= STATE_WAIT_TIMEOUT {
+            bail!(
+                "Timed out waiting for {} to reach state '{:?}'",
+                zone,
+                desired_state
+            )
+        }
+    }
+}
+
+pub fn wait_for_readiness(zone: &str) -> anyhow::Result<()> {
+    // This goes a bit further than waiting for the zone state. It checks it's up and in multi-user
+    // mode
+    let elapsed = Duration::from_secs(0);
+    loop {
+        if is_ready(zone)? {
+            return Ok(());
+        }
+
+        sleep(READINESS_WAIT_INTERVAL);
+        let elapsed = elapsed + READINESS_WAIT_INTERVAL;
+
+        if elapsed >= READINESS_WAIT_TIMEOUT {
+            bail!("Timed out waiting for {} be ready", zone)
+        }
+    }
+}
+
+fn is_ready(zone: &str) -> anyhow::Result<bool> {
+    let mut cmd = Command::new(SVCS_BIN);
+    cmd.arg("-z")
+        .arg(zone)
+        .arg("-Ho")
+        .arg("state")
+        .arg(READY_SVC);
+    cmd.stderr(Stdio::piped());
+
+    tracing::debug!(command = helpers::command_to_string(&cmd));
+    let output = cmd.output()?;
+
+    if output.status.success() {
+        let status = String::from_utf8_lossy(&output.stdout);
+        Ok(status.trim() == "online")
+    } else {
+        Ok(false)
+    }
 }

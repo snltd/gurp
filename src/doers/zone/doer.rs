@@ -109,7 +109,9 @@ impl GurpZoneEnsure {
         tracing::info!("zone {}: installing", self.name);
         cmd::run_zoneadm(&self.name, "install", std::iter::empty::<&str>())?;
         tracing::debug!("zone {}: installed", self.name);
-        self.boot_zone()
+        self.boot_zone()?;
+        self.exec()?;
+        Ok(ONE_RESOURCE_ONE_CHANGE)
         // self.bootstrap_zone()
     }
 
@@ -117,7 +119,9 @@ impl GurpZoneEnsure {
         tracing::info!("zone {}: installing", self.name);
         cmd::run_zoneadm(&self.name, "clone", [source_zone])?;
         tracing::debug!("zone {}: installed", self.name);
-        self.boot_zone()
+        self.boot_zone()?;
+        self.exec()?;
+        Ok(ONE_RESOURCE_ONE_CHANGE)
         // self.bootstrap_zone()
     }
 
@@ -127,8 +131,22 @@ impl GurpZoneEnsure {
             cmd::run_zoneadm(&self.name, "boot", std::iter::empty::<&str>())?;
         }
 
+        control::wait_for_readiness(&self.name)?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
+
+    fn exec(&self) -> anyhow::Result<()> {
+        if let Some(cmds) = &self.config.exec {
+            for cmd in cmds {
+                tracing::debug!("zone {}; exec '{}'", self.name, cmd);
+                cmd::run_zlogin_cmd(&self.name, cmd)?;
+                tracing::debug!("zone {}; exec '{}' OK", self.name, cmd);
+            }
+        }
+
+        Ok(())
+    }
+
     /*
     fn boostrap_zone(&self) -> anyhow::Result<ApplySummary> {
         let zone_dir = &self.config.zonepath.join("root").join("var").join("tmp");
