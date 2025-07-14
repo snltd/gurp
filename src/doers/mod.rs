@@ -1,4 +1,5 @@
 pub mod cron;
+pub mod publisher;
 pub mod directory;
 pub mod file;
 pub mod file_line;

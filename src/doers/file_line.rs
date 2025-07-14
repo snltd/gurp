@@ -167,8 +167,7 @@ mod test {
 
         let sut: GurpFileLineRemove = serde_json::from_str(&json_def).unwrap();
 
-        sut.apply(&defopts()).unwrap();
-        // assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
         assert_eq!(
             "line_1\nline_3\n".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
@@ -189,7 +188,7 @@ mod test {
 
         let sut: GurpFileLineRemove = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts_noop()).unwrap());
         assert_eq!(
             "line_1\nline_2\nline_3".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()

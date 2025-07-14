@@ -5,7 +5,13 @@
   (test
           (svc/ensure "important/service"
                       :state "enabled"
-                      :restarted-by :test-role/file/stub))
+                      :restarted-by [:test-role/file/stub])
+    {:svc {:_id "/NO-ROLE/svc/important_service"
+           :action :ensure
+           :name "important/service"
+           :reloaded-by []
+           :restarted-by [:test-role/file/stub]
+           :state "enabled"}})
 
   (test-error
     (svc/ensure "too/many/keys"

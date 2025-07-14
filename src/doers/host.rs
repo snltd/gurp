@@ -81,6 +81,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     let mut summary_total = ApplySummary::default();
     let mut changed_ids: ChangedIds = HashSet::new();
 
+    apply_resources!(summary_total, changed_ids, &ensure.publisher, opts);
     apply_resources!(summary_total, changed_ids, &ensure.zfs, opts);
     apply_resources!(summary_total, changed_ids, &ensure.zone, opts);
 
@@ -110,6 +111,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     apply_resources!(summary_total, changed_ids, &remove.smf, opts);
     apply_resources!(summary_total, changed_ids, &remove.cron, opts);
     apply_resources!(summary_total, changed_ids, &remove.user, opts);
+    apply_resources!(summary_total, changed_ids, &remove.publisher, opts);
 
     if !&remove.pkg.is_empty() {
         summary_total = summary_total + crate::doers::pkg::collect_and_remove(&remove.pkg, opts)?;
