@@ -253,6 +253,7 @@
                :mandatory [:line]}
    :file {:supported [:owner :mode :group :content :ignore-pattern :from]}
    :misc {:supported [:nfs-domain :enable-smb :scheduler]}
+   :publisher {:supported [:uri] :mandatory [:uri]}
    :smf {:supported [:description :fmri :default-enabled :single-instance
                      :start-method :stop-method :refresh-method :svc-name]
          :mandatory [:description :fmri]}
@@ -394,6 +395,16 @@
   [name & specs]
   (remove-resource :pkg name specs))
 
+(defn publisher/ensure
+  "Given a a publisher name, return a publisher ensure struct"
+  [name & specs]
+  (ensure-resource :publisher name specs))
+
+(defn publisher/remove
+  "Given a publisher name, return a publisher remove struct"
+  [name & specs]
+  (remove-resource :publisher name specs))
+
 (defn smf/ensure
   "Given a name and a manifest description, return an smf ensure struct"
   [name & specs]
@@ -475,6 +486,7 @@
   (set modified-specs (tuple ;(separated-fs false) :fs (separated-fs true)))
 
   (def result (ensure-resource :zone name modified-specs))
+  :publisher {:supported [:uri] :mandatory [:uri]}
 
   (var resource (struct/to-table (result :zone)))
 
