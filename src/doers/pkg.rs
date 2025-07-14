@@ -67,7 +67,11 @@ pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &Opts) -> anyhow::Result<
 
     if install_list.is_empty() {
         tracing::debug!("no packages to install");
-        Ok(NO_RESOURCES_TO_CHANGE)
+        Ok(ApplySummary {
+            resources,
+            errors: 0,
+            changes: 0,
+        })
     } else {
         tracing::info!("installing: {}", install_list.join(", "));
 

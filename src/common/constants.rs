@@ -14,7 +14,7 @@ pub const ONE_RESOURCE_ONE_CHANGE: ApplySummary = ApplySummary {
 
 pub const ONE_RESOURCE_NOOP: ApplySummary = ApplySummary {
     resources: 1,
-    changes: 0,
+    changes: 1,
     errors: 0,
 };
 

@@ -27,37 +27,40 @@ impl GurpSvcEnsure {
     pub fn apply(&self, changed_ids: &ChangedIds, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let current_state = svcs::current_state(&self.name)?;
 
-        tracing::debug!(
-            "changed resources: {}",
-            changed_ids
-                .iter()
-                .map(|s| s.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-
         if current_state == self.desired_state {
-            if !changed_ids.is_disjoint(&self.restarters) {
-                tracing::info!("{}: restarting service", self.name);
-                if opts.noop {
-                    Ok(ONE_RESOURCE_NOOP)
-                } else {
-                    svcs::run_svcadm(&self.name, "restart")?;
-                    Ok(ONE_RESOURCE_ONE_CHANGE)
-                }
-            } else if !changed_ids.is_disjoint(&self.reloaders) {
-                tracing::info!("{}: reloading service", self.name);
-                if opts.noop {
-                    Ok(ONE_RESOURCE_NOOP)
-                } else {
-                    svcs::run_svcadm(&self.name, "reload")?;
-                    Ok(ONE_RESOURCE_ONE_CHANGE)
-                }
-            } else if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                tracing::debug!("{}: no change", self.name);
+            if changed_ids.is_empty() {
+                tracing::debug!("no changed resources, so no {} svc trigger", &self.name);
                 Ok(ONE_RESOURCE_NO_CHANGE)
+            } else {
+                tracing::debug!(
+                    "changed resources: {}",
+                    changed_ids
+                        .iter()
+                        .map(|s| s.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
+
+                if !changed_ids.is_disjoint(&self.restarters) {
+                    tracing::info!("{}: restarting service", self.name);
+                    if opts.noop {
+                        Ok(ONE_RESOURCE_NOOP)
+                    } else {
+                        svcs::run_svcadm(&self.name, "restart")?;
+                        Ok(ONE_RESOURCE_ONE_CHANGE)
+                    }
+                } else if !changed_ids.is_disjoint(&self.reloaders) {
+                    tracing::info!("{}: reloading service", self.name);
+                    if opts.noop {
+                        Ok(ONE_RESOURCE_NOOP)
+                    } else {
+                        svcs::run_svcadm(&self.name, "reload")?;
+                        Ok(ONE_RESOURCE_ONE_CHANGE)
+                    }
+                } else {
+                    tracing::debug!("{}: no service trigger", self.name);
+                    Ok(ONE_RESOURCE_NO_CHANGE)
+                }
             }
         } else {
             tracing::info!(

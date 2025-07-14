@@ -111,6 +111,10 @@ impl GurpFileEnsure {
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
+        if opts.noop {
+            tracing::info!("{} change: {}", self.path, changes.join(", "));
+            return Ok(ONE_RESOURCE_NOOP);
+        }
         if changes.contains(&"content") {
             tracing::info!("change content: {}", self.path);
             self.write_contents_to_file(&desired)?;
@@ -181,7 +185,6 @@ impl GurpFileEnsure {
             to_change.push("mode");
         }
 
-        tracing::debug!("to change for {}: {}", self.path, to_change.join(", "));
         Ok(to_change)
     }
 

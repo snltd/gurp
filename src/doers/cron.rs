@@ -188,6 +188,7 @@ impl GurpCronRemove {
         cmd.arg("-u").arg(&self.user).arg("-r");
         tracing::debug!(command = helpers::command_to_string(&cmd));
         let result = cmd.status()?;
+
         if result.success() {
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {

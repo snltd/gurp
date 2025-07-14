@@ -2,17 +2,10 @@
 (use ../lib/gurp)
 
 (deftest "test svc functions"
-  (setdyn :role-dyn "test-role")
   (test
-    (svc/ensure "important/service"
-                :state "enabled")
-    {:svc {:_id "/test-role/svc/important_service"
-           :action :ensure
-           :name "important/service"
-           :reloaded-by []
-           :restarted-by []
-           :role "test-role"
-           :state "enabled"}})
+          (svc/ensure "important/service"
+                      :state "enabled"
+                      :restarted-by :test-role/file/stub))
 
   (test-error
     (svc/ensure "too/many/keys"

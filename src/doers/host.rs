@@ -85,11 +85,11 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     apply_resources!(summary_total, changed_ids, &ensure.zone, opts);
 
     if !&ensure.pkg.is_empty() {
-        crate::doers::pkg::collect_and_ensure(&ensure.pkg, opts)?;
+        summary_total = summary_total + crate::doers::pkg::collect_and_ensure(&ensure.pkg, opts)?;
     }
 
     if !&ensure.gem.is_empty() {
-        crate::doers::gem::collect_and_ensure(&ensure.gem, opts)?;
+        summary_total = summary_total + crate::doers::gem::collect_and_ensure(&ensure.gem, opts)?;
     }
 
     apply_resources!(summary_total, changed_ids, &ensure.user, opts);
@@ -112,11 +112,11 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     apply_resources!(summary_total, changed_ids, &remove.user, opts);
 
     if !&remove.pkg.is_empty() {
-        crate::doers::pkg::collect_and_remove(&remove.pkg, opts)?;
+        summary_total = summary_total + crate::doers::pkg::collect_and_remove(&remove.pkg, opts)?;
     }
 
     if !&remove.gem.is_empty() {
-        crate::doers::gem::collect_and_remove(&remove.gem, opts)?;
+        summary_total = summary_total + crate::doers::gem::collect_and_remove(&remove.gem, opts)?;
     }
 
     apply_resources!(summary_total, changed_ids, &remove.zone, opts);

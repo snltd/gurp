@@ -43,6 +43,7 @@ pub struct HostResources {
 }
 
 #[derive(Default, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub struct EnsureResources {
     #[serde(default)]
     pub cron: Vec<GurpCronEnsure>,
@@ -75,6 +76,7 @@ pub struct EnsureResources {
 }
 
 #[derive(Default, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub struct RemoveResources {
     #[serde(default)]
     pub cron: Vec<GurpCronRemove>,
