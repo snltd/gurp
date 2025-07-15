@@ -73,7 +73,7 @@ impl GurpCronEnsure {
         }
     }
 
-    fn ensured_crontab(&self, content: &str) -> anyhow::Result<Option<String>> {
+    fn ensured_crontab(&self, current_content: &str) -> anyhow::Result<Option<String>> {
         let identifier = format!("{} {}", TAG_LINE, &self.id);
         let s = &self.desired_state;
         let required_line = format!(
@@ -85,7 +85,7 @@ impl GurpCronEnsure {
         let mut new_crontab: Vec<String> = Vec::new();
         let mut insert_here = false;
 
-        for l in content.lines() {
+        for l in current_content.lines() {
             if insert_here {
                 seen_identifier = true;
                 insert_here = false;
@@ -175,7 +175,11 @@ impl GurpCronRemove {
 }
 
 fn current_crontab(username: &str) -> anyhow::Result<String> {
-    cmd_output!(CRONTAB_BIN, "-u", username, "-l")
+    let mut cmd = Command::new(CRONTAB_BIN);
+    cmd.arg("-u").arg(username).arg("-l");
+    tracing::debug!(command = helpers::command_to_string(&cmd));
+    let result = cmd.output()?;
+    Ok(String::from_utf8(result.stdout)?)
 }
 
 fn write_crontab(username: &str, content: &str) -> anyhow::Result<ApplySummary> {
