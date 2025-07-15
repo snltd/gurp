@@ -1,7 +1,4 @@
-use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
-};
-use crate::common::types::{ApplySummary, Opts};
+use crate::prelude::*;
 use camino::Utf8PathBuf;
 use serde::Deserialize;
 use std::fs;

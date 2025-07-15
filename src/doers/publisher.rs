@@ -1,9 +1,4 @@
-use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
-};
-use crate::common::types::{ApplySummary, Opts};
-use crate::utils::helpers;
-use anyhow::bail;
+use crate::prelude::*;
 use serde::Deserialize;
 use std::process::{Command, Stdio};
 use std::sync::LazyLock;
@@ -14,7 +9,6 @@ use std::sync::LazyLock;
 static CURRENT_PKG_OUTPUT: LazyLock<Vec<Publisher>> =
     LazyLock::new(|| parse_pkg_output(&pkg_output().expect("Could not get publisher list")));
 
-const PKG_BIN: &str = "/usr/bin/pkg";
 const PKG_PUBLISHER_FIELDS: usize = 5;
 
 type PublisherName = String;

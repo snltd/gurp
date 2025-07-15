@@ -56,7 +56,7 @@ macro_rules! cmd {
 
 macro_rules! cmd_output {
     ( $bin:expr, $( $arg:expr ),+ $(,)? ) => {{
-        let mut cmd = $crate::cmd!($bin, $($arg), +);
+        let mut cmd = cmd!($bin, $($arg), +);
         let output = cmd.output()?;
 
         if output.status.success() {
@@ -74,7 +74,6 @@ macro_rules! cmd_output {
 
 #[cfg(test)]
 mod test {
-    use crate::cmd;
     use crate::common::constants::{ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE};
     use crate::common::types::{ApplySummary, Opts};
     use crate::test_utils::spec_helper::{defopts, defopts_noop};

@@ -1,6 +1,6 @@
 use crate::common::constants::ONE_RESOURCE_ONE_CHANGE;
 use crate::common::types::ApplySummary;
-use crate::doers::zone::cmd;
+use crate::doers::zone::zone_cmd;
 use crate::utils::helpers;
 use anyhow::bail;
 use camino::Utf8PathBuf;
@@ -60,7 +60,7 @@ impl FromStr for ZoneState {
 }
 
 fn zone_state(zone_name: &str) -> anyhow::Result<ZoneState> {
-    let raw = cmd::run_zoneadm(zone_name, "list", ["-p"])?;
+    let raw = zone_cmd::run_zoneadm(zone_name, "list", ["-p"])?;
     let chunks: Vec<_> = raw.split(":").collect();
 
     if chunks.len() != ZONEADM_FIELDS {
@@ -106,27 +106,27 @@ pub fn remove_zone(zone: &str) -> anyhow::Result<ApplySummary> {
 
 fn unmount_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: halting", zone);
-    cmd::run_zoneadm(zone, "unmount", std::iter::empty::<&str>())?;
+    zone_cmd::run_zoneadm(zone, "unmount", std::iter::empty::<&str>())?;
     wait_for_state(zone, ZoneState::Halted)
 }
 
 // I've seen things (bhyve) get stuck here, but I can't reproduce anything right now
 fn halt_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: halting", zone);
-    cmd::run_zoneadm(zone, "halt", std::iter::empty::<&str>())?;
+    zone_cmd::run_zoneadm(zone, "halt", std::iter::empty::<&str>())?;
     wait_for_state(zone, ZoneState::Installed)
 }
 
 fn uninstall_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: uninstall", zone);
-    cmd::run_zoneadm(zone, "uninstall", ["-F"])?;
+    zone_cmd::run_zoneadm(zone, "uninstall", ["-F"])?;
     wait_for_state(zone, ZoneState::Configured)
 }
 
 // We may want to clean up ZFS filesystems here as well
 fn delete_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: delete", zone);
-    cmd::run_zonecfg(zone, "delete", ["-F"]).map(|_| ())
+    zone_cmd::run_zonecfg(zone, "delete", ["-F"]).map(|_| ())
 }
 
 fn wait_for_state(zone: &str, desired_state: ZoneState) -> anyhow::Result<()> {

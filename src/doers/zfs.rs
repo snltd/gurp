@@ -1,6 +1,4 @@
 use crate::prelude::*;
-use crate::utils::helpers;
-use anyhow::bail;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
@@ -9,8 +7,6 @@ use std::sync::LazyLock;
 // THINGS TO KNOW / THINGS TO DO.
 // Very limited in what it can do. Create, destroy, align get/set properties. Can't do fixed
 // sizes.
-
-const ZFS_BIN: &str = "/usr/sbin/zfs";
 
 static CURRENT_ZFS_OUTPUT: LazyLock<Vec<String>> =
     LazyLock::new(|| zfs_output().expect("Could not get zfs list"));

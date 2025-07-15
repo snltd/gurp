@@ -1,16 +1,9 @@
-use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
-};
 use crate::common::svcs;
-use crate::common::types::{ApplySummary, Opts, SmfDefinition};
-use crate::debug;
-use crate::utils::helpers;
+use crate::common::types::SmfDefinition;
+use crate::prelude::*;
 use crate::utils::smf_builder;
-use camino::Utf8PathBuf;
 use serde::Deserialize;
 use std::fs;
-
-const MANIFEST_DIR: &str = "/opt/site/lib/smf/manifest";
 
 // THINGS TO KNOW / THINGS TO DO.
 // This writes SMF manifest files to disk, and imports them as needed. As of now, the directory

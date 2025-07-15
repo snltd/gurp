@@ -1,16 +1,10 @@
-use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
-};
-use crate::common::types::{ApplySummary, Opts};
-use crate::utils::helpers;
-use anyhow::bail;
+use crate::prelude::*;
 use serde::Deserialize;
 use std::fmt;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
 const TAG_LINE: &str = "# gurp managed ID";
-const CRONTAB_BIN: &str = "/bin/crontab";
 
 // THINGS TO KNOW / THINGS TO DO.
 // We use crontab(1) to apply changes. That checks values are valid, so we won't bother.

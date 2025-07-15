@@ -1,7 +1,4 @@
-use crate::common::constants::NO_RESOURCES_TO_CHANGE;
-use crate::common::types::{ApplySummary, Opts};
-use crate::utils::helpers;
-use anyhow::bail;
+use crate::prelude::*;
 use serde::Deserialize;
 use std::process::Command;
 use std::sync::LazyLock;
@@ -20,8 +17,6 @@ use std::sync::LazyLock;
 
 static CURRENT_PKG_OUTPUT: LazyLock<String> =
     LazyLock::new(|| pkg_output().expect("Could not get pkg list"));
-
-const PKG_BIN: &str = "/bin/pkg";
 
 type PkgName = String;
 

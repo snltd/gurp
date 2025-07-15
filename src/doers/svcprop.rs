@@ -1,7 +1,4 @@
-use crate::common::types::{ApplySummary, Opts};
-use crate::debug;
-use crate::utils::helpers;
-use anyhow::bail;
+use crate::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::io::Write;
@@ -9,9 +6,6 @@ use std::process::{Command, Stdio};
 
 // THINGS TO KNOW / THINGS TO DO.
 // As always, extremely limited. Just sets and removes service properties.
-
-const SVCPROP_BIN: &str = "/usr/bin/svcprop";
-const SVCCFG_BIN: &str = "/usr/sbin/svccfg";
 
 #[derive(Debug, Deserialize)]
 pub struct GurpSvcpropEnsure {
@@ -23,6 +17,7 @@ pub struct GurpSvcpropEnsure {
 }
 
 type PropertyMap = HashMap<String, PropertyStruct>;
+type SvcProps = HashMap<String, PropertyStruct>;
 
 #[derive(Debug, Deserialize)]
 pub struct PropertyStruct {
@@ -39,8 +34,6 @@ pub struct GurpSvcpropRemove {
     pub service: String,
     pub properties: Vec<String>,
 }
-
-type SvcProps = HashMap<String, PropertyStruct>;
 
 fn svc_property_values(svc: &str) -> anyhow::Result<String> {
     let mut cmd = Command::new(SVCPROP_BIN);

@@ -1,13 +1,7 @@
-use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
-};
-use crate::common::types::{ApplySummary, Opts};
-use crate::debug;
 use crate::doers::zone::config::GurpZoneConfig;
 use crate::doers::zone::control::ZoneadmState;
-use crate::doers::zone::{cmd, control};
-use crate::utils::helpers;
-use anyhow::bail;
+use crate::doers::zone::{control, zone_cmd};
+use crate::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::env;
@@ -18,8 +12,6 @@ use std::sync::LazyLock;
 
 // THINGS TO KNOW / THINGS TO DO.
 
-const ZONECFG_BIN: &str = "/usr/sbin/zonecfg";
-const ZONEADM_BIN: &str = "/usr/sbin/zoneadm";
 const ZONEADM_FIELDS: usize = 8;
 
 static CURRENT_ZONE_LIST: LazyLock<ZoneadmZones> = LazyLock::new(|| {
@@ -114,7 +106,7 @@ impl GurpZoneEnsure {
 
     fn install_zone(&self) -> anyhow::Result<ApplySummary> {
         tracing::info!("zone {}: installing", self.name);
-        cmd::run_zoneadm(&self.name, "install", std::iter::empty::<&str>())?;
+        zone_cmd::run_zoneadm(&self.name, "install", std::iter::empty::<&str>())?;
         tracing::debug!("zone {}: installed", self.name);
         self.boot_zone()?;
         self.exec()?;
@@ -125,7 +117,7 @@ impl GurpZoneEnsure {
 
     fn clone_zone(&self, source_zone: &str) -> anyhow::Result<ApplySummary> {
         tracing::info!("zone {}: installing", self.name);
-        cmd::run_zoneadm(&self.name, "clone", [source_zone])?;
+        zone_cmd::run_zoneadm(&self.name, "clone", [source_zone])?;
         tracing::debug!("zone {}: installed", self.name);
         self.boot_zone()?;
         self.exec()?;
@@ -137,7 +129,7 @@ impl GurpZoneEnsure {
     fn boot_zone(&self) -> anyhow::Result<ApplySummary> {
         if self.config.boot_after_install {
             tracing::debug!("zone {}: booting", self.name);
-            cmd::run_zoneadm(&self.name, "boot", std::iter::empty::<&str>())?;
+            zone_cmd::run_zoneadm(&self.name, "boot", std::iter::empty::<&str>())?;
         }
 
         control::wait_for_readiness(&self.name)?;
@@ -148,7 +140,7 @@ impl GurpZoneEnsure {
         if let Some(cmds) = &self.config.exec {
             for cmd in cmds {
                 tracing::debug!("zone {}; exec '{}'", self.name, cmd);
-                cmd::run_zlogin_cmd(&self.name, cmd)?;
+                zone_cmd::run_zlogin_cmd(&self.name, cmd)?;
                 tracing::debug!("zone {}; exec '{}' OK", self.name, cmd);
             }
         }
@@ -174,7 +166,7 @@ impl GurpZoneEnsure {
             let bootstrap_command = format!("/var/tmp/gurp apply {host_config}");
 
             fs::copy(env::current_exe()?, zone_gurp)?;
-            cmd::run_zlogin_cmd(&self.name, &bootstrap_command)?;
+            zone_cmd::run_zlogin_cmd(&self.name, &bootstrap_command)?;
         }
 
         Ok(())

@@ -1,11 +1,6 @@
-use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
-    PROTECTED_USERS,
-};
-use crate::common::types::{ApplySummary, Changes, Opts};
-use crate::utils::helpers;
-use anyhow::{Context, bail};
-use camino::Utf8PathBuf;
+use crate::common::types::Changes;
+use crate::prelude::*;
+use anyhow::Context;
 use nix::unistd::{Group, User};
 use serde::Deserialize;
 use std::fs;
@@ -19,10 +14,6 @@ use std::process::Command;
 //
 pub const SHADOW_FIELDS: usize = 9;
 pub const SHADOW_PATH: &str = "/etc/shadow";
-
-const USERADD_BIN: &str = "/usr/sbin/useradd";
-const USERDEL_BIN: &str = "/usr/sbin/userdel";
-const USERMOD_BIN: &str = "/usr/sbin/usermod";
 
 #[derive(Debug, Deserialize)]
 pub struct GurpUserEnsure {

@@ -1,8 +1,6 @@
-use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
-};
 use crate::common::svcs;
-use crate::common::types::{ApplySummary, ChangedIds, Opts};
+use crate::common::types::ChangedIds;
+use crate::prelude::*;
 use serde::Deserialize;
 use std::collections::HashSet;
 
