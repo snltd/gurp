@@ -1,10 +1,4 @@
-use crate::cmd;
-use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
-};
-use crate::common::types::{ApplySummary, Opts};
-use crate::one_change_or_stderr;
-use crate::return_if_noop;
+use crate::prelude::*;
 use crate::utils::helpers;
 use anyhow::bail;
 use serde::Deserialize;
@@ -21,15 +15,8 @@ const ZFS_BIN: &str = "/usr/sbin/zfs";
 static CURRENT_ZFS_OUTPUT: LazyLock<Vec<String>> =
     LazyLock::new(|| zfs_output().expect("Could not get zfs list"));
 
-// A chunk of text from zfs(8).
 fn zfs_output() -> anyhow::Result<Vec<String>> {
-    let mut cmd = Command::new(ZFS_BIN);
-    cmd.arg("list").arg("-H").arg("-o").arg("name");
-
-    tracing::debug!(command = helpers::command_to_string(&cmd));
-    let result = cmd.output()?;
-
-    Ok(String::from_utf8_lossy(&result.stdout)
+    Ok(cmd_output!(ZFS_BIN, "list", "-H", "-o", "name")?
         .lines()
         .map(|s| s.to_owned())
         .collect())
@@ -54,19 +41,9 @@ pub struct GurpZfsRemove {
 
 fn zfs_state(name: &str) -> anyhow::Result<ZfsProperties> {
     let mut ret = HashMap::new();
-    let mut cmd = Command::new(ZFS_BIN);
-    cmd.arg("get")
-        .arg("-pH")
-        .arg("-o")
-        .arg("property,value")
-        .arg("all")
-        .arg(name);
+    let prop_vals = cmd_output!(ZFS_BIN, "get", "-pHo", "property,value", "all", name)?;
 
-    tracing::debug!(command = helpers::command_to_string(&cmd));
-
-    let result = cmd.output()?;
-
-    for l in String::from_utf8_lossy(&result.stdout).lines() {
+    for l in prop_vals.lines() {
         let bits: Vec<_> = l.split_whitespace().collect();
 
         if bits.len() != 2 {
@@ -156,11 +133,8 @@ impl GurpZfsEnsure {
         let output = cmd.output()?;
 
         if output.status.success() {
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                Ok(ONE_RESOURCE_ONE_CHANGE)
-            }
+            return_if_noop!(opts);
+            Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
             bail!(String::from_utf8_lossy(&output.stderr).into_owned())
         }
@@ -172,12 +146,8 @@ impl GurpZfsRemove {
         tracing::debug!("zfs: looking for {}", self.name);
         if zfs_exists(&self.name) {
             tracing::info!("removing filesystem: {}", self.name);
-
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                self.remove_filesystem(opts)
-            }
+            return_if_noop!(opts);
+            self.remove_filesystem(opts)
         } else {
             tracing::debug!("not present: {}", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
