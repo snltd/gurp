@@ -47,13 +47,18 @@ pub struct GurpZoneRemove {
 }
 
 impl GurpZoneEnsure {
+    fn recreate(&self) -> bool {
+        let num = rand::random_range(1..100);
+        self.config.recreate > num
+    }
+
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         let config_input = self.config.to_zonecfg();
 
         if CURRENT_ZONE_LIST.contains_key(&self.name) {
             tracing::debug!("zone {}: already exists", self.name);
 
-            if self.config.recreate == "always" {
+            if self.recreate() {
                 tracing::info!("zone {}: remove", self.name);
                 control::remove_zone(&self.name)?;
             } else {

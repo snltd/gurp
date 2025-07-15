@@ -21,5 +21,5 @@
                :mode "0755"
                :group "root"}
    :zone {:autoboot true
-          :recreate "never"
+          :recreate 0
           :boot-after-install true}})

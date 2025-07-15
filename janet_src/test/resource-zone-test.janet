@@ -20,7 +20,7 @@
             :boot-after-install true
             :brand "lipkg"
             :name "test-zone"
-            :recreate "never"
+            :recreate 0
             :role "test-role"
             :zonepath "/zones/test-zone"}}))
 
@@ -60,7 +60,7 @@
                          :defrouter "192.168.1.1"
                          :global-nic "auto"
                          :physical "fs_net0"}]
-            :recreate "never"
+            :recreate 0
             :role "test-role"
             :run-cmd ["/usr/bin/pkg refresh"]
             :zonepath "/zones/test-zone"}})
