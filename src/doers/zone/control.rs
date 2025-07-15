@@ -1,6 +1,5 @@
-use crate::common::constants::ONE_RESOURCE_ONE_CHANGE;
-use crate::common::types::ApplySummary;
 use crate::doers::zone::zone_cmd;
+use crate::prelude::*;
 use crate::utils::helpers;
 use anyhow::bail;
 use camino::Utf8PathBuf;
@@ -60,7 +59,7 @@ impl FromStr for ZoneState {
 }
 
 fn zone_state(zone_name: &str) -> anyhow::Result<ZoneState> {
-    let raw = zone_cmd::run_zoneadm(zone_name, "list", ["-p"])?;
+    let raw = cmd_output!(ZONEADM_BIN, "-z", zone_name, "list", "-p")?;
     let chunks: Vec<_> = raw.split(":").collect();
 
     if chunks.len() != ZONEADM_FIELDS {
@@ -106,27 +105,27 @@ pub fn remove_zone(zone: &str) -> anyhow::Result<ApplySummary> {
 
 fn unmount_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: halting", zone);
-    zone_cmd::run_zoneadm(zone, "unmount", std::iter::empty::<&str>())?;
+    cmd_output!(ZONEADM_BIN, "-z", zone, "unmount")?;
     wait_for_state(zone, ZoneState::Halted)
 }
 
 // I've seen things (bhyve) get stuck here, but I can't reproduce anything right now
 fn halt_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: halting", zone);
-    zone_cmd::run_zoneadm(zone, "halt", std::iter::empty::<&str>())?;
+    cmd_output!(ZONEADM_BIN, "-z", zone, "halt")?;
     wait_for_state(zone, ZoneState::Installed)
 }
 
 fn uninstall_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: uninstall", zone);
-    zone_cmd::run_zoneadm(zone, "uninstall", ["-F"])?;
+    cmd_output!(ZONEADM_BIN, "-z", zone, "uninstall", "-F")?;
     wait_for_state(zone, ZoneState::Configured)
 }
 
 // We may want to clean up ZFS filesystems here as well
-fn delete_zone(zone: &str) -> anyhow::Result<()> {
+fn delete_zone(zone: &str) -> anyhow::Result<String> {
     tracing::debug!("zone {}: delete", zone);
-    zone_cmd::run_zonecfg(zone, "delete", ["-F"]).map(|_| ())
+    cmd_output!(ZONECFG_BIN, "-z", zone, "delete", "-F")
 }
 
 fn wait_for_state(zone: &str, desired_state: ZoneState) -> anyhow::Result<()> {
@@ -169,21 +168,6 @@ pub fn wait_for_readiness(zone: &str) -> anyhow::Result<()> {
 }
 
 fn is_ready(zone: &str) -> anyhow::Result<bool> {
-    let mut cmd = Command::new(SVCS_BIN);
-    cmd.arg("-z")
-        .arg(zone)
-        .arg("-Ho")
-        .arg("state")
-        .arg(READY_SVC);
-    cmd.stderr(Stdio::piped());
-
-    tracing::debug!(command = helpers::command_to_string(&cmd));
-    let output = cmd.output()?;
-
-    if output.status.success() {
-        let status = String::from_utf8_lossy(&output.stdout);
-        Ok(status.trim() == "online")
-    } else {
-        Ok(false)
-    }
+    let status = cmd_output!(SVCS_BIN, "-z", zone, "-Ho", "state", READY_SVC)?;
+    Ok(status.trim() == "online")
 }

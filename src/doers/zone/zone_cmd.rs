@@ -4,10 +4,6 @@ use std::env;
 use std::ffi::OsStr;
 use std::process::{Command, Stdio};
 
-const ZONECFG_BIN: &str = "/usr/sbin/zonecfg";
-const ZONEADM_BIN: &str = "/usr/sbin/zoneadm";
-const ZLOGIN_BIN: &str = "/usr/sbin/zlogin";
-
 pub fn run_zoneadm<I, S>(zone: &str, subcommand: &str, extra_args: I) -> anyhow::Result<String>
 where
     I: IntoIterator<Item = S>,
