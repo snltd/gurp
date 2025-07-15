@@ -1,9 +1,4 @@
-use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ONE_RESOURCE_ONE_ERROR,
-};
-use crate::common::types::{ApplySummary, Opts};
-use crate::utils::helpers;
-use anyhow::{anyhow, bail};
+use crate::prelude::*;
 use serde::Deserialize;
 use std::process::{Command, Stdio};
 
@@ -11,10 +6,6 @@ use std::process::{Command, Stdio};
 // This might be a bad idea. Hardcoded ways to do a bunch of certain things that I want to do.
 // There's no misc/remove, only misc/ensure, at least for now.
 // dispadmin only takes the scheduler class.
-
-const SHARECTL_BIN: &str = "/usr/sbin/sharectl";
-const SMBADM_BIN: &str = "/usr/sbin/smbadm";
-const DISPADMIN_BIN: &str = "/usr/sbin/dispadmin";
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct GurpMiscEnsure {
@@ -46,7 +37,7 @@ impl GurpMiscEnsure {
 
         if let Some(user) = &self.desired_state.enable_smb {
             aggr = aggr
-                + match self.enable_smb_share(user) {
+                + match self.enable_smb_share(user, opts) {
                     Ok(summary) => summary,
                     Err(e) => {
                         tracing::error!("smbadm check: {}", e);
@@ -69,17 +60,13 @@ impl GurpMiscEnsure {
         Ok(aggr)
     }
 
-    fn enable_smb_share(&self, username: &str) -> anyhow::Result<ApplySummary> {
+    fn enable_smb_share(&self, username: &str, opts: &Opts) -> anyhow::Result<ApplySummary> {
         tracing::debug!("calling misc/enable_smb_share");
-        let mut get_status_cmd = Command::new(SMBADM_BIN);
-        get_status_cmd.arg("lookup").arg(username);
 
-        tracing::debug!(command = helpers::command_to_string(&get_status_cmd));
-
-        match get_status_cmd.output() {
+        match cmd_output!(SMBADM_BIN, "lookup", username) {
             // if it returns 0 and doesn't say "NONE_MAPPED" then I think it's configured
             Ok(txt) => {
-                if !String::from_utf8_lossy(&txt.stdout).contains("NONE_MAPPED") {
+                if txt.contains("NONE_MAPPED") {
                     tracing::debug!("no change: smb config {}", username);
                     return Ok(ONE_RESOURCE_NO_CHANGE);
                 }
@@ -93,37 +80,19 @@ impl GurpMiscEnsure {
 
         tracing::info!("enabling smb user: {}", username);
 
-        // If we're still here, we can enable the user
-        //
-        let mut enable_cmd = Command::new(SMBADM_BIN);
-        enable_cmd.arg("enable-user").arg(username);
-
-        tracing::debug!(command = helpers::command_to_string(&enable_cmd));
-
-        match get_status_cmd.output() {
-            Ok(_) => Ok(ONE_RESOURCE_ONE_CHANGE),
-            Err(e) => Err(anyhow!(e)),
-        }
+        let mut cmd = cmd!(SMBADM_BIN, "enable-user", username);
+        return_if_noop!(opts);
+        one_change_or_stderr!(cmd, "error enabling SMB share")
     }
 
     fn ensure_nfs_domain(&self, desired_domain: &str, opts: &Opts) -> anyhow::Result<ApplySummary> {
         tracing::debug!("calling misc/ensure_nfs_domain");
-        let mut get_cmd = Command::new(SHARECTL_BIN);
-        get_cmd
-            .arg("get")
-            .arg("-p")
-            .arg("nfsmapid_domain")
-            .arg("nfs")
-            .stderr(Stdio::piped());
 
-        tracing::debug!(command = helpers::command_to_string(&get_cmd));
-
-        let sharectl_output = get_cmd.output()?;
-        let sharectl_string = String::from_utf8_lossy(&sharectl_output.stdout);
-        let chunks: Vec<_> = sharectl_string.split('=').collect();
+        let status = cmd_output!(SHARECTL_BIN, "get", "-p", "nfsmapid_domain", "nfs")?;
+        let chunks: Vec<_> = status.split('=').collect();
 
         if chunks.len() != 2 {
-            bail!("unexpected sharectl output: {}", sharectl_string);
+            bail!("unexpected sharectl output: {}", status);
         }
 
         let current_domain = chunks.last().unwrap().trim();
@@ -139,30 +108,16 @@ impl GurpMiscEnsure {
             desired_domain
         );
 
-        let mut set_cmd = Command::new(SHARECTL_BIN);
-        set_cmd
-            .arg("set")
-            .arg("-p")
-            .arg(format!("nfsmapid_domain={desired_domain}"))
-            .arg("nfs")
-            .stderr(Stdio::piped());
+        let mut cmd = cmd!(
+            SHARECTL_BIN,
+            "set",
+            "-p",
+            format!("nfsmapid_domain={desired_domain}"),
+            "nfs"
+        );
 
-        tracing::debug!(command = helpers::command_to_string(&get_cmd));
-
-        if opts.noop {
-            return Ok(ONE_RESOURCE_NOOP);
-        }
-
-        let output = set_cmd.output()?;
-
-        if output.status.success() {
-            Ok(ONE_RESOURCE_ONE_CHANGE)
-        } else {
-            bail!(
-                "error setting NFS domain class: {}",
-                String::from_utf8_lossy(&output.stderr),
-            )
-        }
+        return_if_noop!(opts);
+        one_change_or_stderr!(cmd, "error setting NFS domain")
     }
 
     fn set_scheduler_class(
@@ -202,25 +157,8 @@ impl GurpMiscEnsure {
             desired_class
         );
 
-        let mut set_cmd = Command::new(DISPADMIN_BIN);
-
-        set_cmd.arg("-d").arg(desired_class).stderr(Stdio::piped());
-
-        tracing::debug!(command = helpers::command_to_string(&get_cmd));
-
-        if opts.noop {
-            return Ok(ONE_RESOURCE_NOOP);
-        }
-
-        let output = set_cmd.output()?;
-
-        if output.status.success() {
-            Ok(ONE_RESOURCE_ONE_CHANGE)
-        } else {
-            bail!(
-                "error setting scheduler class: {}",
-                String::from_utf8_lossy(&output.stderr),
-            )
-        }
+        let mut cmd = cmd!(DISPADMIN_BIN, "-d", desired_class);
+        return_if_noop!(opts);
+        one_change_or_stderr!(cmd, "error setting scheduler class")
     }
 }

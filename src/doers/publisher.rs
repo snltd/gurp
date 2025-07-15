@@ -1,11 +1,5 @@
-use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
-};
-use crate::common::types::{ApplySummary, Opts};
-use crate::utils::helpers;
-use anyhow::bail;
+use crate::prelude::*;
 use serde::Deserialize;
-use std::process::{Command, Stdio};
 use std::sync::LazyLock;
 
 // THINGS TO KNOW / THINGS TO DO.
@@ -14,7 +8,6 @@ use std::sync::LazyLock;
 static CURRENT_PKG_OUTPUT: LazyLock<Vec<Publisher>> =
     LazyLock::new(|| parse_pkg_output(&pkg_output().expect("Could not get publisher list")));
 
-const PKG_BIN: &str = "/usr/bin/pkg";
 const PKG_PUBLISHER_FIELDS: usize = 5;
 
 type PublisherName = String;
@@ -61,31 +54,9 @@ impl GurpPublisherEnsure {
             tracing::info!("add publisher {}", self.name,);
         }
 
-        let mut cmd = Command::new(PKG_BIN);
-
-        cmd.arg("set-publisher")
-            .arg("-g")
-            .arg(&self.uri)
-            .arg(&self.name)
-            .stderr(Stdio::piped());
-
-        tracing::debug!(command = helpers::command_to_string(&cmd));
-
-        if opts.noop {
-            return Ok(ONE_RESOURCE_NOOP);
-        }
-
-        let output = cmd.output()?;
-
-        if output.status.success() {
-            Ok(ONE_RESOURCE_ONE_CHANGE)
-        } else {
-            bail!(
-                "error on publisher {}: {}",
-                self.name,
-                String::from_utf8_lossy(&output.stderr),
-            )
-        }
+        let mut cmd = cmd!(PKG_BIN, "set-publisher", "-g", &self.uri, &self.name);
+        return_if_noop!(opts);
+        one_change_or_stderr!(cmd, format!("error setting '{}'; publisher", self.name))
     }
 }
 
@@ -94,29 +65,9 @@ impl GurpPublisherRemove {
         let current_publishers = &CURRENT_PKG_OUTPUT;
 
         if current_publishers.iter().any(|p| p.name == self.name) {
-            let mut cmd = Command::new(PKG_BIN);
-
-            cmd.arg("unset-publisher")
-                .arg(&self.name)
-                .stderr(Stdio::piped());
-
-            tracing::debug!(command = helpers::command_to_string(&cmd));
-
-            if opts.noop {
-                return Ok(ONE_RESOURCE_NOOP);
-            }
-
-            let output = cmd.output()?;
-
-            if output.status.success() {
-                Ok(ONE_RESOURCE_ONE_CHANGE)
-            } else {
-                bail!(
-                    "error removing publisher {}: {}",
-                    self.name,
-                    String::from_utf8_lossy(&output.stderr),
-                )
-            }
+            let mut cmd = cmd!(PKG_BIN, "unset-publisher", &self.name);
+            return_if_noop!(opts);
+            one_change_or_stderr!(cmd, format!("error unsetting '{}'; publisher", self.name))
         } else {
             tracing::debug!("publisher {} does not exist", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
@@ -126,9 +77,7 @@ impl GurpPublisherRemove {
 
 fn pkg_output() -> anyhow::Result<String> {
     tracing::debug!("looking up publishers");
-    let cmd = Command::new(PKG_BIN).arg("publisher").arg("-H").output()?;
-
-    Ok(String::from_utf8_lossy(&cmd.stdout).to_string())
+    cmd_output!(PKG_BIN, "publisher", "-H")
 }
 
 fn parse_pkg_output(output: &str) -> Vec<Publisher> {

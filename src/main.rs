@@ -1,12 +1,7 @@
-mod commands;
-mod common;
-mod doers;
-mod test_utils;
-mod utils;
-
-use crate::common::types::Opts;
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
+use gurp::commands;
+use gurp::prelude::*;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]

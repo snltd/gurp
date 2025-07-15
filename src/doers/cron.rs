@@ -1,16 +1,10 @@
-use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
-};
-use crate::common::types::{ApplySummary, Opts};
-use crate::utils::helpers;
-use anyhow::bail;
+use crate::prelude::*;
 use serde::Deserialize;
 use std::fmt;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
 const TAG_LINE: &str = "# gurp managed ID";
-const CRONTAB_BIN: &str = "/bin/crontab";
 
 // THINGS TO KNOW / THINGS TO DO.
 // We use crontab(1) to apply changes. That checks values are valid, so we won't bother.
@@ -69,11 +63,8 @@ impl GurpCronEnsure {
             Some(new_crontab) => {
                 tracing::info!("changing: {}", self.name);
                 tracing::debug!("new crontab follows\n{}", new_crontab);
-                if opts.noop {
-                    Ok(ONE_RESOURCE_NOOP)
-                } else {
-                    write_crontab(&self.user, &new_crontab)
-                }
+                return_if_noop!(opts);
+                write_crontab(&self.user, &new_crontab)
             }
             None => {
                 tracing::debug!("no change: {}", &self.name);
@@ -82,7 +73,7 @@ impl GurpCronEnsure {
         }
     }
 
-    fn ensured_crontab(&self, content: &str) -> anyhow::Result<Option<String>> {
+    fn ensured_crontab(&self, current_content: &str) -> anyhow::Result<Option<String>> {
         let identifier = format!("{} {}", TAG_LINE, &self.id);
         let s = &self.desired_state;
         let required_line = format!(
@@ -94,7 +85,7 @@ impl GurpCronEnsure {
         let mut new_crontab: Vec<String> = Vec::new();
         let mut insert_here = false;
 
-        for l in content.lines() {
+        for l in current_content.lines() {
             if insert_here {
                 seen_identifier = true;
                 insert_here = false;
@@ -133,19 +124,13 @@ impl GurpCronRemove {
                 tracing::info!("removing: {}", self.name);
                 if new_crontab.is_empty() {
                     tracing::debug!("new {} crontab is empty", self.user);
-                    if opts.noop {
-                        Ok(ONE_RESOURCE_NOOP)
-                    } else {
-                        tracing::debug!("removing crontab: {}", self.user);
-                        self.empty_crontab()
-                    }
+                    return_if_noop!(opts);
+                    tracing::debug!("removing crontab: {}", self.user);
+                    self.empty_crontab()
                 } else {
                     tracing::debug!("new {} crontab follows\n{}", self.user, new_crontab);
-                    if opts.noop {
-                        Ok(ONE_RESOURCE_NOOP)
-                    } else {
-                        write_crontab(&self.user, &new_crontab)
-                    }
+                    return_if_noop!(opts);
+                    write_crontab(&self.user, &new_crontab)
                 }
             }
             None => {
@@ -184,16 +169,8 @@ impl GurpCronRemove {
     }
 
     fn empty_crontab(&self) -> anyhow::Result<ApplySummary> {
-        let mut cmd = Command::new(CRONTAB_BIN);
-        cmd.arg("-u").arg(&self.user).arg("-r");
-        tracing::debug!(command = helpers::command_to_string(&cmd));
-        let result = cmd.status()?;
-
-        if result.success() {
-            Ok(ONE_RESOURCE_ONE_CHANGE)
-        } else {
-            bail!("Failed to empty {} crontab", self.user)
-        }
+        let mut cmd = cmd!(CRONTAB_BIN, "-u", &self.user, "-r");
+        one_change_or_stderr!(cmd)
     }
 }
 

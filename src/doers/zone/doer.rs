@@ -1,13 +1,6 @@
-use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
-};
-use crate::common::types::{ApplySummary, Opts};
-use crate::debug;
 use crate::doers::zone::config::GurpZoneConfig;
-use crate::doers::zone::control::ZoneadmState;
-use crate::doers::zone::{cmd, control};
-use crate::utils::helpers;
-use anyhow::bail;
+use crate::doers::zone::control::{self, ZoneadmState};
+use crate::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::env;
@@ -18,8 +11,6 @@ use std::sync::LazyLock;
 
 // THINGS TO KNOW / THINGS TO DO.
 
-const ZONECFG_BIN: &str = "/usr/sbin/zonecfg";
-const ZONEADM_BIN: &str = "/usr/sbin/zoneadm";
 const ZONEADM_FIELDS: usize = 8;
 
 static CURRENT_ZONE_LIST: LazyLock<ZoneadmZones> = LazyLock::new(|| {
@@ -114,7 +105,7 @@ impl GurpZoneEnsure {
 
     fn install_zone(&self) -> anyhow::Result<ApplySummary> {
         tracing::info!("zone {}: installing", self.name);
-        cmd::run_zoneadm(&self.name, "install", std::iter::empty::<&str>())?;
+        cmd_output!(ZONEADM_BIN, "-z", &self.name, "install")?;
         tracing::debug!("zone {}: installed", self.name);
         self.boot_zone()?;
         self.exec()?;
@@ -125,7 +116,7 @@ impl GurpZoneEnsure {
 
     fn clone_zone(&self, source_zone: &str) -> anyhow::Result<ApplySummary> {
         tracing::info!("zone {}: installing", self.name);
-        cmd::run_zoneadm(&self.name, "clone", [source_zone])?;
+        cmd_output!(ZONEADM_BIN, "-z", &self.name, "clone", source_zone)?;
         tracing::debug!("zone {}: installed", self.name);
         self.boot_zone()?;
         self.exec()?;
@@ -137,7 +128,7 @@ impl GurpZoneEnsure {
     fn boot_zone(&self) -> anyhow::Result<ApplySummary> {
         if self.config.boot_after_install {
             tracing::debug!("zone {}: booting", self.name);
-            cmd::run_zoneadm(&self.name, "boot", std::iter::empty::<&str>())?;
+            cmd_output!(ZONEADM_BIN, "-z", &self.name, "boot")?;
         }
 
         control::wait_for_readiness(&self.name)?;
@@ -148,7 +139,7 @@ impl GurpZoneEnsure {
         if let Some(cmds) = &self.config.exec {
             for cmd in cmds {
                 tracing::debug!("zone {}; exec '{}'", self.name, cmd);
-                cmd::run_zlogin_cmd(&self.name, cmd)?;
+                run_zlogin_cmd(&self.name, cmd)?;
                 tracing::debug!("zone {}; exec '{}' OK", self.name, cmd);
             }
         }
@@ -174,7 +165,7 @@ impl GurpZoneEnsure {
             let bootstrap_command = format!("/var/tmp/gurp apply {host_config}");
 
             fs::copy(env::current_exe()?, zone_gurp)?;
-            cmd::run_zlogin_cmd(&self.name, &bootstrap_command)?;
+            run_zlogin_cmd(&self.name, &bootstrap_command)?;
         }
 
         Ok(())
@@ -229,6 +220,32 @@ fn parse_zone_list(raw: &str) -> anyhow::Result<ZoneadmZones> {
     raw.lines()
         .map(|line| chunks_to_struct(&line.split(":").collect::<Vec<_>>()))
         .collect::<anyhow::Result<HashMap<_, _>>>()
+}
+
+fn run_zlogin_cmd(zone: &str, command: &str) -> anyhow::Result<()> {
+    // Pass the RUST_LOG env var through, because we may be running an instance of this program
+    let mut cmd = Command::new(ZLOGIN_BIN);
+    cmd.arg(zone);
+    cmd.env("RUST_LOG", env::var_os("RUST_LOG").unwrap_or_default());
+    cmd.arg(command);
+    cmd.stdout(Stdio::inherit());
+    cmd.stderr(Stdio::inherit());
+
+    tracing::debug!(command = helpers::command_to_string(&cmd));
+
+    let status = cmd.status()?;
+
+    if !status.success() {
+        anyhow::bail!("command failed with status: {}", status);
+    }
+
+    let output = cmd.output()?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        bail!(String::from_utf8_lossy(&output.stderr).into_owned())
+    }
 }
 
 #[cfg(test)]

@@ -1,8 +1,4 @@
-use crate::common::constants::NO_RESOURCES_TO_CHANGE;
-use crate::common::types::{ApplySummary, Opts};
-use crate::utils::helpers;
-use anyhow::bail;
-use camino::Utf8PathBuf;
+use crate::prelude::*;
 use serde::Deserialize;
 use std::process::Command;
 use std::sync::LazyLock;
@@ -16,8 +12,6 @@ type GemName = String;
 type InstalledGems = Vec<GemName>;
 type EnsureList = Vec<GurpGemEnsure>;
 type RemoveList = Vec<GurpGemRemove>;
-
-const GEM_BIN: &str = "/opt/ooce/bin/gem";
 
 static CURRENT_GEM_OUTPUT: LazyLock<String> =
     LazyLock::new(|| gem_output().expect("Could not get gem list"));

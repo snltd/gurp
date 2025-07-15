@@ -1,7 +1,4 @@
-use crate::common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
-};
-use crate::common::types::{ApplySummary, Opts};
+use crate::prelude::*;
 use camino::Utf8PathBuf;
 use serde::Deserialize;
 use std::fs;
@@ -50,13 +47,10 @@ impl GurpFileLineEnsure {
         } else {
             tracing::info!("creating: {}", &self.path);
 
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                let fh = fs::OpenOptions::new().append(true).open(&self.path)?;
-                writeln!(&fh, "\n{}\n", self.line.as_str())?;
-                Ok(ONE_RESOURCE_ONE_CHANGE)
-            }
+            return_if_noop!(opts);
+            let fh = fs::OpenOptions::new().append(true).open(&self.path)?;
+            writeln!(&fh, "\n{}\n", self.line.as_str())?;
+            Ok(ONE_RESOURCE_ONE_CHANGE)
         }
     }
 }
@@ -66,20 +60,17 @@ impl GurpFileLineRemove {
         if line_exists(&self.path, &self.line)? {
             tracing::info!("removing: {}", &self.path);
 
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                let content = fs::read_to_string(&self.path)?;
+            return_if_noop!(opts);
+            let content = fs::read_to_string(&self.path)?;
 
-                let out: String = content
-                    .lines()
-                    .filter(|l| l != &self.line)
-                    .map(|line| format!("{line}\n"))
-                    .collect();
+            let out: String = content
+                .lines()
+                .filter(|l| l != &self.line)
+                .map(|line| format!("{line}\n"))
+                .collect();
 
-                fs::write(&self.path, out)?;
-                Ok(ONE_RESOURCE_ONE_CHANGE)
-            }
+            fs::write(&self.path, out)?;
+            Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
             tracing::debug!("no change: {}", &self.path);
             Ok(ONE_RESOURCE_NO_CHANGE)

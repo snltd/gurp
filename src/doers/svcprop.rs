@@ -1,17 +1,10 @@
-use crate::common::types::{ApplySummary, Opts};
-use crate::debug;
-use crate::utils::helpers;
-use anyhow::bail;
+use crate::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::io::Write;
-use std::process::{Command, Stdio};
 
 // THINGS TO KNOW / THINGS TO DO.
 // As always, extremely limited. Just sets and removes service properties.
-
-const SVCPROP_BIN: &str = "/usr/bin/svcprop";
-const SVCCFG_BIN: &str = "/usr/sbin/svccfg";
 
 #[derive(Debug, Deserialize)]
 pub struct GurpSvcpropEnsure {
@@ -23,6 +16,7 @@ pub struct GurpSvcpropEnsure {
 }
 
 type PropertyMap = HashMap<String, PropertyStruct>;
+type SvcProps = HashMap<String, PropertyStruct>;
 
 #[derive(Debug, Deserialize)]
 pub struct PropertyStruct {
@@ -40,20 +34,8 @@ pub struct GurpSvcpropRemove {
     pub properties: Vec<String>,
 }
 
-type SvcProps = HashMap<String, PropertyStruct>;
-
 fn svc_property_values(svc: &str) -> anyhow::Result<String> {
-    let mut cmd = Command::new(SVCPROP_BIN);
-    cmd.arg(svc).stderr(Stdio::piped());
-
-    tracing::debug!(command = helpers::command_to_string(&cmd));
-    let output = cmd.output()?;
-
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).into_owned())
-    } else {
-        bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-    }
+    cmd_output!(SVCPROP_BIN, svc)
 }
 
 fn process_svc_properties(raw: &str) -> SvcProps {
@@ -63,17 +45,11 @@ fn process_svc_properties(raw: &str) -> SvcProps {
             if chunks.len() == 3 {
                 // Empty string values show as "". That *might* be a problem one day
                 let value = if chunks[2] == "\"\"" { "" } else { chunks[2] }.to_owned();
-
-                let value = value.replace("\\ ", " ");
-
-                // svcprop escapes spaces
-                //
-
                 Some((
                     chunks[0].to_owned(),
                     PropertyStruct {
                         prop_type: chunks[1].to_owned(),
-                        value,
+                        value: value.replace("\\ ", " "), // svcprop escapes spaces
                     },
                 ))
             } else {
@@ -135,13 +111,7 @@ impl GurpSvcpropEnsure {
             tracing::debug!("{} svcprop: applying change file", self.service);
             debug!(opts, "doer/svcprop", "{}", svccfg_script);
 
-            let mut cmd = Command::new(SVCCFG_BIN);
-            cmd.arg("-s")
-                .arg(&self.service)
-                .stdin(Stdio::piped())
-                .stderr(Stdio::piped());
-
-            tracing::debug!(command = helpers::command_to_string(&cmd));
+            let mut cmd = cmd!(SVCCFG_BIN, "-s", &self.service);
 
             if opts.noop {
                 return Ok(ApplySummary {
@@ -204,14 +174,7 @@ impl GurpSvcpropRemove {
             }
 
             for property in &to_remove {
-                let mut cmd = Command::new(SVCCFG_BIN);
-                cmd.arg("-s")
-                    .arg(&self.service)
-                    .arg("delprop")
-                    .arg(property)
-                    .stderr(Stdio::piped());
-
-                tracing::debug!(command = helpers::command_to_string(&cmd));
+                let mut cmd = cmd!(SVCCFG_BIN, "-s", &self.service, "delprop", property);
 
                 if opts.noop {
                     continue;
