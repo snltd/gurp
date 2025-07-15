@@ -1,5 +1,4 @@
-use crate::common::constants::GURP_DEFAULTS;
-use crate::common::constants::GURP_LIB;
+use crate::common::constants::{GURP_DEFAULTS, GURP_LIB};
 use crate::common::types::ExitCode;
 
 pub fn run(thing: &str) -> ExitCode {

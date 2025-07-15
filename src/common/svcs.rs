@@ -1,10 +1,5 @@
-use crate::utils::helpers;
-use anyhow::bail;
+use crate::prelude::*;
 use std::process::{Command, Stdio};
-
-const SVCCFG_BIN: &str = "/usr/sbin/svccfg";
-const SVCADM_BIN: &str = "/usr/sbin/svcadm";
-const SVCS_BIN: &str = "/bin/svcs";
 
 pub fn current_state(svc: &str) -> anyhow::Result<String> {
     let mut cmd = Command::new(SVCS_BIN);
