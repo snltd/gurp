@@ -1,7 +1,10 @@
+use crate::cmd;
 use crate::common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE,
 };
 use crate::common::types::{ApplySummary, Opts};
+use crate::one_change_or_stderr;
+use crate::return_if_noop;
 use crate::utils::helpers;
 use anyhow::bail;
 use serde::Deserialize;
@@ -173,7 +176,7 @@ impl GurpZfsRemove {
             if opts.noop {
                 Ok(ONE_RESOURCE_NOOP)
             } else {
-                self.remove_filesystem()
+                self.remove_filesystem(opts)
             }
         } else {
             tracing::debug!("not present: {}", self.name);
@@ -181,20 +184,9 @@ impl GurpZfsRemove {
         }
     }
 
-    fn remove_filesystem(&self) -> anyhow::Result<ApplySummary> {
-        let mut cmd = Command::new(ZFS_BIN);
-        cmd.arg("destroy")
-            .arg("-r")
-            .arg(&self.name)
-            .stderr(Stdio::piped());
-
-        tracing::debug!(command = helpers::command_to_string(&cmd));
-        let output = cmd.output()?;
-
-        if output.status.success() {
-            Ok(ONE_RESOURCE_ONE_CHANGE)
-        } else {
-            bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-        }
+    fn remove_filesystem(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        let mut cmd = cmd!(ZFS_BIN, "destroy", "-r", &self.name);
+        return_if_noop!(opts);
+        one_change_or_stderr!(cmd)
     }
 }
