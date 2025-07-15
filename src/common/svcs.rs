@@ -40,5 +40,5 @@ pub fn set_state(svc: &str, current_state: &str, desired_state: &str) -> anyhow:
         desired_state
     );
 
-    cmd_output!(SVCADM_BIN, svc, action)
+    cmd_output!(SVCADM_BIN, action, svc)
 }
