@@ -53,16 +53,14 @@ impl GurpSmfEnsure {
 
         tracing::debug!("rewriting manifest: {}", manifest_path);
 
-        if opts.noop {
-            Ok(ONE_RESOURCE_NOOP)
-        } else {
-            debug!(opts, "doer/smf", "SMF manifest follows:\n{}", new_manifest);
-            fs::write(manifest_path, &new_manifest)?;
-            self.ensure_service()
-        }
+        return_if_noop!(opts);
+
+        debug!(opts, "doer/smf", "SMF manifest follows:\n{}", new_manifest);
+        fs::write(manifest_path, &new_manifest)?;
+        self.ensure_service(opts)
     }
 
-    fn ensure_service(&self) -> anyhow::Result<ApplySummary> {
+    fn ensure_service(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         if svcs::exists(&self.name)? {
             let current_state = svcs::current_state(&self.name)?;
 
@@ -70,12 +68,15 @@ impl GurpSmfEnsure {
                 svcs::set_state(&self.name, &current_state, "disabled")?;
             }
 
-            svcs::run_svccfg("delete", &self.name)?;
+            let mut cmd = cmd!(SVCCFG_BIN, "delete", &self.name);
+            if !opts.noop {
+                cmd.status()?;
+            }
         }
 
-        svcs::run_svccfg("import", manifest_path(&self.name).as_str())?;
-
-        Ok(ONE_RESOURCE_ONE_CHANGE)
+        let mut cmd = cmd!(SVCCFG_BIN, "import", manifest_path(&self.name).as_str());
+        return_if_noop!(opts);
+        one_change_or_stderr!(cmd)
     }
 }
 
@@ -93,19 +94,19 @@ impl GurpSmfRemove {
 
             tracing::info!("svc: {} deleting service", &self.name);
 
+            let mut cmd = cmd!(SVCCFG_BIN, "delete", &self.name);
+
             if !opts.noop {
-                svcs::run_svccfg("delete", &self.name)?;
+                cmd.status()?;
             }
 
             let manifest_path = manifest_path(&self.name);
+
             if manifest_path.exists() {
                 tracing::info!("svc: {} deleting manifest {}", &self.name, manifest_path);
+                return_if_noop!(opts);
 
-                if opts.noop {
-                    return Ok(ONE_RESOURCE_NOOP);
-                } else {
-                    fs::remove_file(manifest_path)?;
-                }
+                fs::remove_file(manifest_path)?;
             } else {
                 tracing::debug!("svc: {} no manifest at {}", &self.name, manifest_path);
             }

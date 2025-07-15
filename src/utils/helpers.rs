@@ -9,6 +9,7 @@ pub fn command_to_string(cmd: &Command) -> String {
         .map(|a| a.to_string_lossy())
         .collect::<Vec<_>>()
         .join(" ");
+
     format!("{program} {args}")
 }
 

@@ -169,14 +169,7 @@ pub fn collect_and_remove(pkg_list: &RemoveList, opts: &Opts) -> anyhow::Result<
 }
 
 fn pkg_output() -> anyhow::Result<String> {
-    let cmd = Command::new(PKG_BIN)
-        .arg("list")
-        .arg("-aH")
-        .arg("-o")
-        .arg("name,flags")
-        .output()?;
-
-    Ok(String::from_utf8(cmd.stdout)?)
+    cmd_output!(PKG_BIN, "list", "-aHo", "name,flags")
 }
 
 fn parse_pkg_output(output: &str) -> GlobalPkgs {

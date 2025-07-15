@@ -148,33 +148,27 @@ impl GurpUserEnsure {
     }
 
     fn create(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        let state = &self.desired_state;
-        let mut cmd = Command::new(USERADD_BIN);
+        let mut cmd = cmd!(
+            USERADD_BIN,
+            "-c",
+            &self.desired_state.gecos,
+            "-g",
+            &self.desired_state.primary_group,
+            "-d",
+            &self.desired_state.home_dir,
+            "-s",
+            &self.desired_state.shell,
+            "-u",
+            self.desired_state.uid.to_string(),
+            &self.name
+        );
 
-        cmd.arg("-c")
-            .arg(&state.gecos)
-            .arg("-g")
-            .arg(&state.primary_group)
-            // .arg("-G")
-            // .arg(state.other_groups.join(","))
-            .arg("-d")
-            .arg(&state.home_dir)
-            .arg("-s")
-            .arg(&state.shell)
-            .arg("-u")
-            .arg(state.uid.to_string())
-            .arg(&self.name);
-
-        tracing::debug!(command = helpers::command_to_string(&cmd));
-
-        if opts.noop {
-            return Ok(ONE_RESOURCE_ONE_CHANGE);
-        }
+        return_if_noop!(opts);
 
         let result = cmd.output()?;
 
         if result.status.success() {
-            if let Some(password_hash) = &state.password_hash {
+            if let Some(password_hash) = &self.desired_state.password_hash {
                 self.update_shadow(&Utf8PathBuf::from(SHADOW_PATH), &self.name, password_hash)?;
             }
             Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -315,23 +309,11 @@ impl GurpUserRemove {
                 return Ok(ONE_RESOURCE_ONE_ERROR);
             }
 
-            let mut cmd = Command::new(USERDEL_BIN);
-            cmd.arg(&self.name);
-
             tracing::info!("removing user: {}", self.name);
-            tracing::debug!(command = helpers::command_to_string(&cmd));
 
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                let result = cmd.output()?;
-
-                if result.status.success() {
-                    Ok(ONE_RESOURCE_ONE_CHANGE)
-                } else {
-                    bail!(String::from_utf8_lossy(&result.stderr).into_owned())
-                }
-            }
+            let mut cmd = cmd!(USERDEL_BIN, &self.name);
+            return_if_noop!(opts);
+            one_change_or_stderr!(cmd, format!("error deleting user {}", self.name))
         } else {
             tracing::debug!("not present: {}", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)

@@ -35,13 +35,10 @@ impl GurpSymlinkEnsure {
 
         if !target.exists() {
             tracing::info!("creating symlink: {} -> {}", target, source);
+            return_if_noop!(opts);
 
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                unix::fs::symlink(source, target)?;
-                Ok(ONE_RESOURCE_ONE_CHANGE)
-            }
+            unix::fs::symlink(source, target)?;
+            Ok(ONE_RESOURCE_ONE_CHANGE)
         } else if target.is_symlink() {
             let current_source = target.read_link_utf8()?;
             if current_source == *source {
@@ -54,13 +51,11 @@ impl GurpSymlinkEnsure {
                     &current_source,
                     source
                 );
-                if opts.noop {
-                    Ok(ONE_RESOURCE_NOOP)
-                } else {
-                    fs::remove_file(target)?;
-                    unix::fs::symlink(source, target)?;
-                    Ok(ONE_RESOURCE_ONE_CHANGE)
-                }
+                return_if_noop!(opts);
+
+                fs::remove_file(target)?;
+                unix::fs::symlink(source, target)?;
+                Ok(ONE_RESOURCE_ONE_CHANGE)
             }
         } else {
             bail!("{} exists and is not a symlink", &target);
@@ -72,12 +67,10 @@ impl GurpSymlinkRemove {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         if self.path.exists() {
             tracing::info!("removing symlink: {}", self.path);
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                fs::remove_file(&self.path)?;
-                Ok(ONE_RESOURCE_ONE_CHANGE)
-            }
+            return_if_noop!(opts);
+
+            fs::remove_file(&self.path)?;
+            Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
             tracing::debug!("not present: {}", self.path);
             Ok(ONE_RESOURCE_NO_CHANGE)

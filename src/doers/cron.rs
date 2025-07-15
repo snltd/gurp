@@ -63,11 +63,8 @@ impl GurpCronEnsure {
             Some(new_crontab) => {
                 tracing::info!("changing: {}", self.name);
                 tracing::debug!("new crontab follows\n{}", new_crontab);
-                if opts.noop {
-                    Ok(ONE_RESOURCE_NOOP)
-                } else {
-                    write_crontab(&self.user, &new_crontab)
-                }
+                return_if_noop!(opts);
+                write_crontab(&self.user, &new_crontab)
             }
             None => {
                 tracing::debug!("no change: {}", &self.name);
@@ -127,19 +124,13 @@ impl GurpCronRemove {
                 tracing::info!("removing: {}", self.name);
                 if new_crontab.is_empty() {
                     tracing::debug!("new {} crontab is empty", self.user);
-                    if opts.noop {
-                        Ok(ONE_RESOURCE_NOOP)
-                    } else {
-                        tracing::debug!("removing crontab: {}", self.user);
-                        self.empty_crontab()
-                    }
+                    return_if_noop!(opts);
+                    tracing::debug!("removing crontab: {}", self.user);
+                    self.empty_crontab()
                 } else {
                     tracing::debug!("new {} crontab follows\n{}", self.user, new_crontab);
-                    if opts.noop {
-                        Ok(ONE_RESOURCE_NOOP)
-                    } else {
-                        write_crontab(&self.user, &new_crontab)
-                    }
+                    return_if_noop!(opts);
+                    write_crontab(&self.user, &new_crontab)
                 }
             }
             None => {
@@ -178,25 +169,13 @@ impl GurpCronRemove {
     }
 
     fn empty_crontab(&self) -> anyhow::Result<ApplySummary> {
-        let mut cmd = Command::new(CRONTAB_BIN);
-        cmd.arg("-u").arg(&self.user).arg("-r");
-        tracing::debug!(command = helpers::command_to_string(&cmd));
-        let result = cmd.status()?;
-
-        if result.success() {
-            Ok(ONE_RESOURCE_ONE_CHANGE)
-        } else {
-            bail!("Failed to empty {} crontab", self.user)
-        }
+        let mut cmd = cmd!(CRONTAB_BIN, "-u", &self.user, "-r");
+        one_change_or_stderr!(cmd)
     }
 }
 
 fn current_crontab(username: &str) -> anyhow::Result<String> {
-    let mut cmd = Command::new(CRONTAB_BIN);
-    cmd.arg("-u").arg(username).arg("-l");
-    tracing::debug!(command = helpers::command_to_string(&cmd));
-    let result = cmd.output()?;
-    Ok(String::from_utf8(result.stdout)?)
+    cmd_output!(CRONTAB_BIN, "-u", username, "-l")
 }
 
 fn write_crontab(username: &str, content: &str) -> anyhow::Result<ApplySummary> {

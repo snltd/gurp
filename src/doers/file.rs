@@ -89,10 +89,7 @@ impl GurpFileEnsure {
 
         if !self.path.exists() {
             tracing::info!("creating: {}", self.path);
-
-            if opts.noop {
-                return Ok(ONE_RESOURCE_NOOP);
-            }
+            return_if_noop!(opts);
 
             self.write_contents_to_file(&desired)?;
             need_to_read_hash = false;
@@ -106,10 +103,9 @@ impl GurpFileEnsure {
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
-        if opts.noop {
-            tracing::info!("{} change: {}", self.path, changes.join(", "));
-            return Ok(ONE_RESOURCE_NOOP);
-        }
+        tracing::info!("{} change: {}", self.path, changes.join(", "));
+        return_if_noop!(opts);
+
         if changes.contains(&"content") {
             tracing::info!("change content: {}", self.path);
             self.write_contents_to_file(&desired)?;
@@ -260,13 +256,10 @@ impl GurpFileRemove {
             }
 
             tracing::info!("removing: {}", self.path);
+            return_if_noop!(opts);
 
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                fs::remove_file(&self.path)?;
-                Ok(ONE_RESOURCE_ONE_CHANGE)
-            }
+            fs::remove_file(&self.path)?;
+            Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
             tracing::debug!("not present: {}", self.path);
             Ok(ONE_RESOURCE_NO_CHANGE)

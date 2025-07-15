@@ -20,13 +20,24 @@ macro_rules! apply_resources {
 }
 
 macro_rules! one_change_or_stderr {
+    ($cmd:expr, $msg:expr) => {{
+        let output = $cmd.output()?;
+
+        if output.status.success() {
+            Ok($crate::common::constants::ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!("{}: {}", $msg, stderr.trim());
+        }
+    }};
+
     ($cmd:expr) => {{
         let output = $cmd.output()?;
 
         if output.status.success() {
             Ok($crate::common::constants::ONE_RESOURCE_ONE_CHANGE)
         } else {
-            anyhow::bail!(String::from_utf8_lossy(&output.stderr).into_owned())
+            anyhow::bail!("{}", String::from_utf8_lossy(&output.stderr).trim());
         }
     }};
 }

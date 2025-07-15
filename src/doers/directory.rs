@@ -47,11 +47,7 @@ impl GurpDirectoryEnsure {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         if !self.path.exists() {
             tracing::info!("creating directory: {}", self.path);
-
-            if opts.noop {
-                return Ok(ONE_RESOURCE_NOOP);
-            }
-
+            return_if_noop!(opts);
             fs::create_dir_all(&self.path)?;
         }
 
@@ -137,13 +133,9 @@ impl GurpDirectoryRemove {
             }
 
             tracing::info!("removing directory: {}", self.path);
-
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                fs::remove_dir_all(&self.path)?;
-                Ok(ONE_RESOURCE_ONE_CHANGE)
-            }
+            return_if_noop!(opts);
+            fs::remove_dir_all(&self.path)?;
+            Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
             tracing::debug!("not present: {}", self.path);
             Ok(ONE_RESOURCE_NO_CHANGE)

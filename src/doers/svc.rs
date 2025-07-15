@@ -41,20 +41,14 @@ impl GurpSvcEnsure {
 
                 if !changed_ids.is_disjoint(&self.restarters) {
                     tracing::info!("{}: restarting service", self.name);
-                    if opts.noop {
-                        Ok(ONE_RESOURCE_NOOP)
-                    } else {
-                        svcs::run_svcadm(&self.name, "restart")?;
-                        Ok(ONE_RESOURCE_ONE_CHANGE)
-                    }
+                    let mut cmd = cmd!(SVCADM_BIN, "restart", &self.name);
+                    return_if_noop!(opts);
+                    one_change_or_stderr!(cmd, format!("error restarting svc '{}'", self.name))
                 } else if !changed_ids.is_disjoint(&self.reloaders) {
                     tracing::info!("{}: reloading service", self.name);
-                    if opts.noop {
-                        Ok(ONE_RESOURCE_NOOP)
-                    } else {
-                        svcs::run_svcadm(&self.name, "reload")?;
-                        Ok(ONE_RESOURCE_ONE_CHANGE)
-                    }
+                    let mut cmd = cmd!(SVCADM_BIN, "reload", &self.name);
+                    return_if_noop!(opts);
+                    one_change_or_stderr!(cmd, format!("error reloading svc '{}'", self.name))
                 } else {
                     tracing::debug!("{}: no service trigger", self.name);
                     Ok(ONE_RESOURCE_NO_CHANGE)
@@ -68,12 +62,10 @@ impl GurpSvcEnsure {
                 self.desired_state
             );
 
-            if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
-            } else {
-                svcs::set_state(&self.name, &current_state, &self.desired_state)?;
-                Ok(ONE_RESOURCE_ONE_CHANGE)
-            }
+            return_if_noop!(opts);
+
+            svcs::set_state(&self.name, &current_state, &self.desired_state)?;
+            Ok(ONE_RESOURCE_ONE_CHANGE)
         }
     }
 }

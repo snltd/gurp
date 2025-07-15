@@ -1,53 +1,15 @@
 use crate::prelude::*;
-use std::process::{Command, Stdio};
 
 pub fn current_state(svc: &str) -> anyhow::Result<String> {
-    let mut cmd = Command::new(SVCS_BIN);
-    cmd.arg("-Ho").arg("state").arg(svc).stderr(Stdio::piped());
-
-    tracing::debug!(command = helpers::command_to_string(&cmd));
-
-    let output = cmd.output()?;
-
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
-    } else {
-        bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-    }
-}
-
-pub fn run_svcadm(svc: &str, action: &str) -> anyhow::Result<String> {
-    let mut cmd = Command::new(SVCADM_BIN);
-    cmd.arg(action).arg(svc).stderr(Stdio::piped());
-
-    tracing::debug!(command = helpers::command_to_string(&cmd));
-    let output = cmd.output()?;
-
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).into_owned())
-    } else {
-        bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-    }
+    cmd_output!(SVCS_BIN, "-Ho", "state", svc)
 }
 
 pub fn run_svccfg(arg1: &str, arg2: &str) -> anyhow::Result<String> {
-    let mut cmd = Command::new(SVCCFG_BIN);
-    cmd.arg(arg1).arg(arg2).stderr(Stdio::piped());
-
-    tracing::debug!(command = helpers::command_to_string(&cmd));
-    let output = cmd.output()?;
-
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).into_owned())
-    } else {
-        bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-    }
+    cmd_output!(SVCCFG_BIN, arg1, arg2)
 }
 
 pub fn exists(svc: &str) -> anyhow::Result<bool> {
-    let mut cmd = Command::new(SVCS_BIN);
-    cmd.arg(svc);
-    tracing::debug!(command = helpers::command_to_string(&cmd));
+    let mut cmd = cmd!(SVCS_BIN, svc);
     let output = cmd.output()?;
 
     if output.status.success() {
@@ -77,5 +39,6 @@ pub fn set_state(svc: &str, current_state: &str, desired_state: &str) -> anyhow:
         current_state,
         desired_state
     );
-    run_svcadm(svc, action)
+
+    cmd_output!(SVCADM_BIN, svc, action)
 }
