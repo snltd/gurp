@@ -250,10 +250,16 @@ You can also use this doer to enable SMB shares for a user:
 
 There is no `(misc/remove)`.
 
+The misc doer can also set the scheduler class of a global zone:
+
+```janet
+(misc/ensure :scheduler "FSS")
+```
+
 ## SMF
 
-The `Smf` doer lets you define (limited) SMF services as Janet code. It supports
-just the things I needed up to now.
+The `Smf` doer (not to be confused with `Svc`) lets you define (limited) SMF
+services as Janet code. It supports just the things I need now.
 
 ```janet
 (smf/ensure "telegraf"
@@ -318,39 +324,115 @@ missing gems, and installs them all with a single `gem` invocation.
 ## ZFS
 
 This manages ZFS filesystems. Again, it is as simple as it could possibly be.
-The name is the filesystem name, and any other parameters are applied though
-`zfs set`. There's no checking your parameters are valid, so if you get them
-wrong the first you'll know about it is when you get an error from `zfs(8)`.
+The name is the filesystem name, and at the moment you have to group all your
+other parameters in a `:properties` struct. There's no checking those parameters
+are valid, so if you get them wrong the first you'll know about it is when you
+get an error from `zfs(8)`.
 
-It can't create volumes (as in `-V size`).
+It can't create volumes (as in `-V size`), but will soon.
 
 ```janet
 (zfs/ensure "tank/my_volume"
-  :mountpoint "/data/u01"
-  :compression "gzip-9"
-  :setuid "off")
+    :properties {
+    :mountpoint "/data/u01"
+    :compression "gzip-9"
+    :setuid "off"})
+
 (zfs/remove "tanks/that_stupid_other_dataset")
 ```
-
-You can't currently label a ZFS resource.
 
 ## Svcprop
 
 Lets you set or remove SMF properties. It is, of course, super-simple, and can't
-handly anything more involved than a list of values.
+handle anything more involved than a list of values. Like the `zfs` doer, it
+expects properties to be key-values in a `:properties` struct.
 
 ```janet
 (svcprop/ensure "vendor/service"
-  :group/property/string_value "la-de-da"
-  :group/property/bool_value true
-  :group/property/int_value 123)
+  :properties {
+    :group/property/string_value "la-de-da"
+    :group/property/bool_value true
+    :group/property/int_value 123})
 ```
 
-`gurp` will infer and add the types.
+`gurp` will infer and add the types. You can also clear properties.
 
 ```janet
 (svcprop/ensure "vendor/service"
                 :properties ["group/property" "group/other_property"])
 ```
 
-You can't currently label a `svcprop` resource.
+## Publisher
+
+This lets you add or remove a `pkg` publisher. It only does origins, so you
+can't configure mirrors.
+
+```janet
+(publisher/ensure "sysdef" :uri "http://pkg.lan.id264.net/")
+
+(publisher/remove "sysdef")
+```
+
+## Zone
+
+This lets you create and remove zones. It can't modify an existing zone.
+
+At the moment you can't set all of the things a zone supports. I'm adding them
+as I need them. I chose to make what I hope is a reasonably sensible DSL rather
+than a simple Janet implementation of `zonecfg` syntax.
+
+```janet
+(zone/ensure "serv-build"
+  :brand "lipkg"
+  :recreate 0
+  :clone-from gold-zone
+  (zone-fs "/home" :special "/export/home")
+  :datasets ["fast/zone/build"]
+  :capped-memory {:physical "500m" :swap "500m"}
+  (zone-network "build_net0"
+    :allowed-address "192.168.1.32/24"
+    :defrouter "192.168.1.1")
+  :dns {:domain local-domain
+       :nameservers ["192.168.1.53" "192.168.1.1"]}
+  :bootstrap-from "/export/gurp/zone-build.janet")
+```
+
+You have to specify a `:brand`. At the moment only native brands like `lipkg`
+and `sparse` will work. You can specify `:autoboot` if you wish, but it defaults
+to `true`.
+
+Note `:recreate`. This must be an integer, and it is the `n:1` odds of a zone
+being destroyed and recreated. So, `0` means "never recreate this zone", and `1`
+means "recreate this zone on every run". `2` You can set the number as high as
+you like, so if you run `gurp` every 15 minutes and want your zone rebuilt from
+scratch about once a week, you'd set it to `672`. If you don't set it, it
+defaults to `0`.
+
+`:clone-from` says "clone this zone from the named zone". That zone must be
+halted, and `gurp` won't do that for you. If `:clone-from` is omitted, `gurp`
+will `install` the zone from a `pkg` repository.
+
+Some of the properties of a zone are written as standard resource types. I think
+this makes them clearer than cramming everything into a struct.
+
+`zone-fs` is like this. Its first argument (name) is the mountpoint in the zone,
+and you must specify `:special`. The type defaults to `lofs`, because I've never
+used anything else.
+
+`:datasets` is an optional list of datasets to delegate.
+
+`:capped-memory` is a straight representation of the zone property of the same
+name.
+
+`zone-network` is another function-like setting. The name is the VNIC name, and
+you can set `:allowed-address`, `:defrouter`, `:mac-address`, and `:physical` if
+you wish. If the last in unset it will default to `auto`.
+
+`:dns` lets you define the zone DNS client settings, for those zone brands which
+support it. You can set a string `:domain`, and an array of `:nameservers`.
+
+`:bootstrap-from` will create, install/clone and boot the zone, then copy the
+running `gurp` binary into the zone, and use `zlogin` to execute it against the
+given config file, giving you a fully configured zone. At the moment you'll need
+to use NFS or something to make your config visible in the zone, but I have
+tentative plans to let it use HTTP to get config and files.
