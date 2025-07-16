@@ -4,24 +4,6 @@ use serde::Deserialize;
 
 // Turns Janet into Rust into zonecfg input
 
-macro_rules! set {
-    // indented for subsections
-    ($ret:expr, $conf:expr, indent: $indent:expr, $($field:ident),+ $(,)?) => {
-        $(
-            $ret.push_str(&format!(
-                "{}set {}={}\n",
-                $indent,
-                stringify!($field),
-                $conf.$field
-            ));
-        )+
-    };
-
-    ($ret:expr, $conf:expr, $($field:ident),+ $(,)?) => {
-        set!($ret, $conf, indent: "", $($field),+);
-    };
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpZoneConfig {
@@ -78,7 +60,9 @@ impl GurpZoneConfig {
     pub fn to_zonecfg(&self) -> String {
         let mut ret = "create -b\n".to_owned();
 
-        set!(ret, self, brand, zonepath, autoboot);
+        ret.push_str(&format!("set brand={}\n", &self.brand));
+        ret.push_str(&format!("set zonepath={}\n", &self.zonepath));
+        ret.push_str(&format!("set autoboot={}\n", &self.autoboot));
 
         for network_conf in &self.networks {
             ret.push_str(&self.zone_network(network_conf));
@@ -109,29 +93,29 @@ impl GurpZoneConfig {
 
     // We may want to add "create dataset" logic here
     fn zone_dataset(&self, ds_name: &str) -> String {
-        format!("add dataset\n  set name={ds_name}\nend\n")
+        format!("add dataset\n\tset name={ds_name}\nend\n")
     }
 
     fn zone_fs(&self, conf: &GurpZoneFilesystem) -> String {
         formatdoc! { "add fs
-          set dir={}
-          set special={}
-          set type={}
+        \tset dir={}
+        \tset special={}
+        \tset type={}
         end\n", conf.dir, conf.special, conf.fs_type }
     }
 
     fn zone_capped_memory(&self, conf: &GurpZoneCappedMemory) -> String {
         formatdoc! { "add capped-memory
-          set physical={}
-          set swap={}
+        \tset physical={}
+        \tset swap={}
         end\n", conf.physical, conf.swap}
     }
 
     fn string_attr(&self, name: &str, value: &str) -> String {
         formatdoc! { "add attr
-       set name={}
-       set type=string
-       set value={}
+     \tset name={}
+     \tset type=string
+     \tset value={}
      end\n", name, value}
     }
 
@@ -145,15 +129,15 @@ impl GurpZoneConfig {
 
     fn zone_network(&self, conf: &GurpZoneNetwork) -> String {
         let mut ret = "add net\n".to_owned();
-        ret.push_str(&format!("  set physical={}\n", conf.physical));
-        ret.push_str(&format!("  set global-nic={}\n", conf.global_nic));
+        ret.push_str(&format!("\tset physical={}\n", conf.physical));
+        ret.push_str(&format!("\tset global-nic={}\n", conf.global_nic));
 
         if let Some(addr) = &conf.allowed_address {
-            ret.push_str(&format!("  set allowed-address={addr}\n"));
+            ret.push_str(&format!("\tset allowed-address={addr}\n"));
         }
 
         if let Some(defrouter) = &conf.defrouter {
-            ret.push_str(&format!("  set defrouter={defrouter}\n"));
+            ret.push_str(&format!("\tset defrouter={defrouter}\n"));
         }
 
         ret.push_str("end\n");

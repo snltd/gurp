@@ -39,8 +39,13 @@ pub struct GurpZoneRemove {
 
 impl GurpZoneEnsure {
     fn recreate(&self) -> bool {
-        let num = rand::random_range(1..100);
-        self.config.recreate > num
+        if self.config.recreate == 0 {
+            false
+        } else {
+            let num = rand::random_range(1..=self.config.recreate);
+            tracing::debug!("zone recreate random: {} == {}", self.config.recreate, num);
+            num == 1
+        }
     }
 
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
@@ -74,7 +79,9 @@ impl GurpZoneEnsure {
         }
     }
 
-    fn modify_from_config(&self, _config: &str) -> anyhow::Result<ApplySummary> {
+    fn modify_from_config(&self, config: &str) -> anyhow::Result<ApplySummary> {
+        println!("{config}");
+
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 

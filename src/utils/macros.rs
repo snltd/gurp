@@ -72,7 +72,7 @@ macro_rules! cmd_output {
 
         if output.status.success() {
             Result::<String, anyhow::Error>::Ok(
-                String::from_utf8_lossy(&output.stdout).into_owned()
+                String::from_utf8_lossy(&output.stdout).trim().to_owned()
             )
         } else {
             anyhow::bail!(
