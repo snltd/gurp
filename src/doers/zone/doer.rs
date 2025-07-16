@@ -10,6 +10,7 @@ use std::process::{Command, Stdio};
 use std::sync::LazyLock;
 
 // THINGS TO KNOW / THINGS TO DO.
+// Creates and removes zones. Doesn't modify existing ones. Only supports some resources.
 
 const ZONEADM_FIELDS: usize = 8;
 
@@ -58,7 +59,7 @@ impl GurpZoneEnsure {
                 tracing::info!("zone {}: remove", self.name);
                 control::remove_zone(&self.name)?;
             } else {
-                return self.modify_from_config(&config_input);
+                return Ok(ONE_RESOURCE_NO_CHANGE);
             }
         }
 
@@ -77,12 +78,6 @@ impl GurpZoneEnsure {
                 self.install_zone()
             }
         }
-    }
-
-    fn modify_from_config(&self, config: &str) -> anyhow::Result<ApplySummary> {
-        println!("{config}");
-
-        Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
     fn create_from_config(&self, config: &str) -> anyhow::Result<()> {
@@ -118,7 +113,6 @@ impl GurpZoneEnsure {
         self.exec()?;
         self.bootstrap_zone()?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
-        // self.bootstrap_zone()
     }
 
     fn clone_zone(&self, source_zone: &str) -> anyhow::Result<ApplySummary> {
@@ -129,7 +123,6 @@ impl GurpZoneEnsure {
         self.exec()?;
         self.bootstrap_zone()?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
-        // self.bootstrap_zone()
     }
 
     fn boot_zone(&self) -> anyhow::Result<ApplySummary> {
