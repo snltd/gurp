@@ -179,35 +179,35 @@ mod test {
             set zonepath=/zones/test-zone
             set autoboot=false
             add net
-              set physical=test_net0
-              set global-nic=auto
-              set allowed-address=192.168.1.33/24
-              set defrouter=192.168.1.1
+            \tset physical=test_net0
+            \tset global-nic=auto
+            \tset allowed-address=192.168.1.33/24
+            \tset defrouter=192.168.1.1
             end
             add attr
-              set name=dns-domain
-              set type=string
-              set value=lan.id264.net
+            \tset name=dns-domain
+            \tset type=string
+            \tset value=lan.id264.net
             end
             add attr
-              set name=resolvers
-              set type=string
-              set value=192.168.1.53,192.168.1.1
+            \tset name=resolvers
+            \tset type=string
+            \tset value=192.168.1.53,192.168.1.1
             end
             add fs
-              set dir=/home
-              set special=/export/home
-              set type=lofs
+            \tset dir=/home
+            \tset special=/export/home
+            \tset type=lofs
             end
             add dataset
-              set name=big/zone/fs
+            \tset name=big/zone/fs
             end
             add dataset
-              set name=fast/zone/fs
+            \tset name=fast/zone/fs
             end
             add capped-memory
-              set physical=500M
-              set swap=500M
+            \tset physical=500M
+            \tset swap=500M
             end
             "};
 

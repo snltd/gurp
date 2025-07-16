@@ -115,7 +115,7 @@ mod test {
     #[test]
     fn test_cmd_output_macro_valid_command_with_args() -> anyhow::Result<()> {
         let output = cmd_output!("/bin/echo", "merp", "merp", "merp")?;
-        assert_eq!("merp merp merp\n", &output);
+        assert_eq!("merp merp merp", &output);
         Ok(())
     }
 
