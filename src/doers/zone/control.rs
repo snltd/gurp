@@ -163,6 +163,14 @@ pub fn wait_for_readiness(zone: &str) -> anyhow::Result<()> {
 }
 
 fn is_ready(zone: &str) -> anyhow::Result<bool> {
-    let status = cmd_output!(SVCS_BIN, "-z", zone, "-Ho", "state", READY_SVC)?;
-    Ok(status.trim() == "online")
+    let mut cmd = cmd!(SVCS_BIN, "-z", zone, "-Ho", "state", READY_SVC);
+
+    let output = cmd.output()?;
+
+    if output.status.success() {
+        let status = String::from_utf8_lossy(&output.stdout);
+        Ok(status.trim() == "online")
+    } else {
+        Ok(false)
+    }
 }

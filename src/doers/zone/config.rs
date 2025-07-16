@@ -4,24 +4,6 @@ use serde::Deserialize;
 
 // Turns Janet into Rust into zonecfg input
 
-macro_rules! set {
-    // indented for subsections
-    ($ret:expr, $conf:expr, indent: $indent:expr, $($field:ident),+ $(,)?) => {
-        $(
-            $ret.push_str(&format!(
-                "{}set {}={}\n",
-                $indent,
-                stringify!($field),
-                $conf.$field
-            ));
-        )+
-    };
-
-    ($ret:expr, $conf:expr, $($field:ident),+ $(,)?) => {
-        set!($ret, $conf, indent: "", $($field),+);
-    };
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpZoneConfig {
@@ -78,7 +60,9 @@ impl GurpZoneConfig {
     pub fn to_zonecfg(&self) -> String {
         let mut ret = "create -b\n".to_owned();
 
-        set!(ret, self, brand, zonepath, autoboot);
+        ret.push_str(&format!("set brand={}\n", &self.brand));
+        ret.push_str(&format!("set zonepath={}\n", &self.zonepath));
+        ret.push_str(&format!("set autoboot={}\n", &self.autoboot));
 
         for network_conf in &self.networks {
             ret.push_str(&self.zone_network(network_conf));
@@ -109,29 +93,29 @@ impl GurpZoneConfig {
 
     // We may want to add "create dataset" logic here
     fn zone_dataset(&self, ds_name: &str) -> String {
-        format!("add dataset\n  set name={ds_name}\nend\n")
+        format!("add dataset\n\tset name={ds_name}\nend\n")
     }
 
     fn zone_fs(&self, conf: &GurpZoneFilesystem) -> String {
         formatdoc! { "add fs
-          set dir={}
-          set special={}
-          set type={}
+        \tset dir={}
+        \tset special={}
+        \tset type={}
         end\n", conf.dir, conf.special, conf.fs_type }
     }
 
     fn zone_capped_memory(&self, conf: &GurpZoneCappedMemory) -> String {
         formatdoc! { "add capped-memory
-          set physical={}
-          set swap={}
+        \tset physical={}
+        \tset swap={}
         end\n", conf.physical, conf.swap}
     }
 
     fn string_attr(&self, name: &str, value: &str) -> String {
         formatdoc! { "add attr
-       set name={}
-       set type=string
-       set value={}
+     \tset name={}
+     \tset type=string
+     \tset value={}
      end\n", name, value}
     }
 
@@ -145,15 +129,15 @@ impl GurpZoneConfig {
 
     fn zone_network(&self, conf: &GurpZoneNetwork) -> String {
         let mut ret = "add net\n".to_owned();
-        ret.push_str(&format!("  set physical={}\n", conf.physical));
-        ret.push_str(&format!("  set global-nic={}\n", conf.global_nic));
+        ret.push_str(&format!("\tset physical={}\n", conf.physical));
+        ret.push_str(&format!("\tset global-nic={}\n", conf.global_nic));
 
         if let Some(addr) = &conf.allowed_address {
-            ret.push_str(&format!("  set allowed-address={addr}\n"));
+            ret.push_str(&format!("\tset allowed-address={addr}\n"));
         }
 
         if let Some(defrouter) = &conf.defrouter {
-            ret.push_str(&format!("  set defrouter={defrouter}\n"));
+            ret.push_str(&format!("\tset defrouter={defrouter}\n"));
         }
 
         ret.push_str("end\n");
@@ -195,35 +179,35 @@ mod test {
             set zonepath=/zones/test-zone
             set autoboot=false
             add net
-              set physical=test_net0
-              set global-nic=auto
-              set allowed-address=192.168.1.33/24
-              set defrouter=192.168.1.1
+            \tset physical=test_net0
+            \tset global-nic=auto
+            \tset allowed-address=192.168.1.33/24
+            \tset defrouter=192.168.1.1
             end
             add attr
-              set name=dns-domain
-              set type=string
-              set value=lan.id264.net
+            \tset name=dns-domain
+            \tset type=string
+            \tset value=lan.id264.net
             end
             add attr
-              set name=resolvers
-              set type=string
-              set value=192.168.1.53,192.168.1.1
+            \tset name=resolvers
+            \tset type=string
+            \tset value=192.168.1.53,192.168.1.1
             end
             add fs
-              set dir=/home
-              set special=/export/home
-              set type=lofs
+            \tset dir=/home
+            \tset special=/export/home
+            \tset type=lofs
             end
             add dataset
-              set name=big/zone/fs
+            \tset name=big/zone/fs
             end
             add dataset
-              set name=fast/zone/fs
+            \tset name=fast/zone/fs
             end
             add capped-memory
-              set physical=500M
-              set swap=500M
+            \tset physical=500M
+            \tset swap=500M
             end
             "};
 

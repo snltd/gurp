@@ -72,7 +72,7 @@ macro_rules! cmd_output {
 
         if output.status.success() {
             Result::<String, anyhow::Error>::Ok(
-                String::from_utf8_lossy(&output.stdout).into_owned()
+                String::from_utf8_lossy(&output.stdout).trim().to_owned()
             )
         } else {
             anyhow::bail!(
@@ -115,7 +115,7 @@ mod test {
     #[test]
     fn test_cmd_output_macro_valid_command_with_args() -> anyhow::Result<()> {
         let output = cmd_output!("/bin/echo", "merp", "merp", "merp")?;
-        assert_eq!("merp merp merp\n", &output);
+        assert_eq!("merp merp merp", &output);
         Ok(())
     }
 

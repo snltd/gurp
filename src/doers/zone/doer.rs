@@ -10,6 +10,7 @@ use std::process::{Command, Stdio};
 use std::sync::LazyLock;
 
 // THINGS TO KNOW / THINGS TO DO.
+// Creates and removes zones. Doesn't modify existing ones. Only supports some resources.
 
 const ZONEADM_FIELDS: usize = 8;
 
@@ -39,8 +40,13 @@ pub struct GurpZoneRemove {
 
 impl GurpZoneEnsure {
     fn recreate(&self) -> bool {
-        let num = rand::random_range(1..100);
-        self.config.recreate > num
+        if self.config.recreate == 0 {
+            false
+        } else {
+            let num = rand::random_range(1..=self.config.recreate);
+            tracing::debug!("zone recreate random: {} == {}", self.config.recreate, num);
+            num == 1
+        }
     }
 
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
@@ -53,7 +59,7 @@ impl GurpZoneEnsure {
                 tracing::info!("zone {}: remove", self.name);
                 control::remove_zone(&self.name)?;
             } else {
-                return self.modify_from_config(&config_input);
+                return Ok(ONE_RESOURCE_NO_CHANGE);
             }
         }
 
@@ -72,10 +78,6 @@ impl GurpZoneEnsure {
                 self.install_zone()
             }
         }
-    }
-
-    fn modify_from_config(&self, _config: &str) -> anyhow::Result<ApplySummary> {
-        Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
     fn create_from_config(&self, config: &str) -> anyhow::Result<()> {
@@ -111,7 +113,6 @@ impl GurpZoneEnsure {
         self.exec()?;
         self.bootstrap_zone()?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
-        // self.bootstrap_zone()
     }
 
     fn clone_zone(&self, source_zone: &str) -> anyhow::Result<ApplySummary> {
@@ -122,7 +123,6 @@ impl GurpZoneEnsure {
         self.exec()?;
         self.bootstrap_zone()?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
-        // self.bootstrap_zone()
     }
 
     fn boot_zone(&self) -> anyhow::Result<ApplySummary> {
