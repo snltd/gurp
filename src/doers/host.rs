@@ -95,8 +95,8 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     apply_resources!(summary_total, changed_ids, &ensure.symlink, opts);
     apply_resources!(summary_total, changed_ids, &ensure.file, opts);
     apply_resources!(summary_total, changed_ids, &ensure.file_line, opts);
-    apply_resources!(summary_total, changed_ids, &ensure.smf, opts);
     apply_resources!(summary_total, changed_ids, &ensure.svcprop, opts);
+    apply_resources!(summary_total, changed_ids, &ensure.smf, opts);
     apply_resources!(summary_total, changed_ids, &ensure.misc, opts);
 
     apply_resources!(summary_total, changed_ids, &remove.file_line, opts);

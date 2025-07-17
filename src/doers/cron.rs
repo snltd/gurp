@@ -2,7 +2,7 @@ use crate::prelude::*;
 use serde::Deserialize;
 use std::fmt;
 use std::io::Write;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 const TAG_LINE: &str = "# gurp managed ID";
 
@@ -178,19 +178,13 @@ fn current_crontab(username: &str) -> anyhow::Result<String> {
     let mut cmd = Command::new(CRONTAB_BIN);
     cmd.arg("-u").arg(username).arg("-l");
     tracing::debug!(command = helpers::command_to_string(&cmd));
+
     let result = cmd.output()?;
     Ok(String::from_utf8(result.stdout)?)
 }
 
 fn write_crontab(username: &str, content: &str) -> anyhow::Result<ApplySummary> {
-    let mut cmd = Command::new(CRONTAB_BIN);
-    cmd.arg("-u")
-        .arg(username)
-        .stdin(Stdio::piped())
-        .stderr(Stdio::piped());
-
-    tracing::debug!(command = helpers::command_to_string(&cmd));
-
+    let mut cmd = cmd_with_stdin!(CRONTAB_BIN, "-u", username);
     let mut child = cmd.spawn()?;
 
     if let Some(stdin) = child.stdin.as_mut() {

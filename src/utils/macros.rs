@@ -65,6 +65,22 @@ macro_rules! cmd {
     }};
 }
 
+macro_rules! cmd_with_stdin {
+    ( $bin:expr $(, $arg:expr )* $(,)? ) => {{
+        use std::process::{Command, Stdio};
+        let mut cmd = Command::new($bin);
+        $(
+            cmd.arg($arg);
+        )*
+        cmd.stdin(Stdio::piped());
+        cmd.stderr(Stdio::piped());
+
+        tracing::debug!(command = $crate::utils::helpers::command_to_string(&cmd));
+
+        cmd
+    }};
+}
+
 macro_rules! cmd_output {
     ( $bin:expr, $( $arg:expr ),+ $(,)? ) => {{
         let mut cmd = cmd!($bin, $($arg), +);

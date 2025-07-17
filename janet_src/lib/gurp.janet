@@ -259,7 +259,7 @@
          :mandatory [:description :fmri]}
    :svc {:supported [:state :restarted-by :reloaded-by]
          :mandatory [:state]}
-   :svcprop {:supported [:properties]
+   :svcprop {:supported [:properties :property-groups]
              :mandatory [:properties]}
    :symlink {:supported [:source]
              :mandatory [:source]}
@@ -433,7 +433,9 @@
              :number {:type "integer" :value v}
              :boolean {:type "boolean" :value v}
              _ {:type "astring" :value v})) (flatten (pairs (spec-table :properties)))))
-  (ensure-resource :svcprop name (tuple :properties (struct ;new-properties)) :no-validate))
+
+  (set (spec-table :properties) (table ;new-properties))
+  (ensure-resource :svcprop name (kvs spec-table) :no-validate))
 
 
 (defn svcprop/remove
