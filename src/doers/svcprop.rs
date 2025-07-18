@@ -218,40 +218,31 @@ impl GurpSvcpropEnsure {
             tracing::debug!("{}: looking for '{}' property", self.service, property);
 
             if let Some(current_val) = all_values.properties.get(property) {
-                tracing::debug!("{} found '{}'", self.service, property);
-                tracing::debug!("{} == {}", current_val.value, desired.value);
+                tracing::debug!("{} found {}", self.service, property);
                 if current_val.value == desired.value {
                     tracing::debug!(
-                        "{}: '{}' already '{}'",
+                        "{} {}: already {}",
                         &self.service,
                         property,
                         current_val.value
                     );
                     continue;
+                } else {
+                    tracing::info!(
+                        "{} {}: {} -> {}",
+                        self.service,
+                        property,
+                        current_val.value,
+                        desired.value,
+                    );
                 }
             } else {
                 tracing::debug!("{} svcprop: did not find '{}'", self.service, property);
             }
 
-            let rendered;
-            let value = if desired.prop_type == "astring" {
-                rendered = format!("\"{}\"", desired.value);
-                &rendered
-            } else {
-                rendered = desired.value.to_string();
-                &rendered
-            };
-
-            tracing::info!(
-                "{} svcprop: setting '{}' to '{}'",
-                self.service,
-                property,
-                rendered,
-            );
-
             svccfg_script.push_str(&format!(
                 "setprop {} = {}: {}\n",
-                property, desired.prop_type, value
+                property, desired.prop_type, desired.value
             ));
 
             changes += 1;
