@@ -4,9 +4,9 @@
 (deftest "templates"
   (test
     (template-out
-      "I {{ sentiment }} {{ language }}"
+      "I, {{ sentiment}}, {{ sentiment }} {{ language }}"
       {:sentiment "like" :language "Janet"})
-    "I like Janet")
+    "I, like, like Janet")
 
   (test
     (template-out

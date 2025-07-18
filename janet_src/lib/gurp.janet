@@ -195,7 +195,15 @@
     (error (string "unpopulated fields in template: "
                    (string/join (filter |(not (nil? $)) leftovers) ", "))))
 
-  (if-not (= (length find->replace) (length vars))
+  (def patterns
+    (map
+      |(keyword (string/trim (peg/replace-all '(set "{} ") "" $)))
+      (keys find->replace)))
+
+  (def unused-vars
+    (filter |(not (has-value? patterns $)) (keys vars)))
+
+  (if-not (empty? unused-vars)
     (error (string/format "unused vars: expected %s : got %s"
                           (string/join
                             (map |(peg/replace-all '(set "{} \t\r\n\0\f\v") "" $)
