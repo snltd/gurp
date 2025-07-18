@@ -45,7 +45,7 @@
                        (def hi (+ (brshift (- cp 0x10000) 10) 0xd800))
                        (def lo (+ (band (- cp 0x10000) 0x3ff) 0xdc00))
                        (string/format "\\u%04x\\u%04x" hi lo))
-                     (error (string "invalid byte:" c))))
+                     (error (string/format "INVALID BYTE: '%v' in '%s'" c b))))
     (++ i))
   b)
 

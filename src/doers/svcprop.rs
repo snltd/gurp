@@ -1,6 +1,10 @@
+use crate::common::svcs;
 use crate::prelude::*;
+use anyhow::Context;
+use regex::Regex;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::io::Write;
 use std::thread::sleep;
 use std::time::Duration;
@@ -30,6 +34,24 @@ pub struct GurpSvcpropRemove {
     pub property_groups: PropertyGroupList,
 }
 
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(untagged)]
+pub enum PropertyValue {
+    Bool(bool),
+    Int(i64),
+    String(String),
+}
+
+impl fmt::Display for PropertyValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PropertyValue::Bool(b) => write!(f, "{b}"),
+            PropertyValue::Int(i) => write!(f, "{i}"),
+            PropertyValue::String(s) => write!(f, "\"{s}\""),
+        }
+    }
+}
+
 type PropertyName = String;
 type PropertyGroupName = String;
 type PropertyGroupType = String;
@@ -45,9 +67,9 @@ struct SvcView {
     pub property_groups: PropertyGroupList,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 pub struct PropertyStruct {
-    pub value: String,
+    pub value: PropertyValue,
     #[serde(rename = "type")]
     pub prop_type: String,
 }
@@ -73,25 +95,40 @@ fn process_property_groups(raw: &str) -> PropertyGroupList {
         .collect()
 }
 
-fn process_svc_properties(raw: &str) -> SvcProps {
-    raw.lines()
-        .filter_map(|l| {
-            let chunks: Vec<_> = l.splitn(3, ' ').collect();
-            if chunks.len() == 3 {
-                // Empty string values show as "". That *might* be a problem one day
-                let value = if chunks[2] == "\"\"" { "" } else { chunks[2] }.to_owned();
-                Some((
-                    chunks[0].to_owned(),
-                    PropertyStruct {
-                        prop_type: chunks[1].to_owned(),
-                        value: value.replace("\\ ", " "), // svcprop escapes spaces
-                    },
-                ))
-            } else {
-                None
-            }
-        })
-        .collect()
+pub fn parse_svccfg_line(line: &str) -> Option<(String, PropertyStruct)> {
+    let rx = Regex::new(r"\s+").unwrap();
+    let mut chunks = rx.splitn(line, 3);
+
+    let key = chunks.next()?.trim().to_string();
+    let prop_type = chunks.next()?.trim();
+    let raw_value = chunks.next()?.trim();
+
+    // I can't see that you'd ever want to compare times or counts
+    let value = match prop_type {
+        "boolean" => match raw_value {
+            "true" => PropertyValue::Bool(true),
+            "false" => PropertyValue::Bool(false),
+            _ => return None,
+        },
+        "integer" => raw_value.parse::<i64>().ok().map(PropertyValue::Int)?,
+        "astring" => {
+            let stripped = raw_value.trim_matches('"').to_string();
+            PropertyValue::String(stripped)
+        }
+        _ => return None,
+    };
+
+    Some((
+        key,
+        PropertyStruct {
+            value,
+            prop_type: prop_type.to_owned(),
+        },
+    ))
+}
+
+fn process_properties(raw: &str) -> SvcProps {
+    raw.lines().filter_map(parse_svccfg_line).collect()
 }
 
 fn current_svc_props(svc: &str) -> anyhow::Result<SvcView> {
@@ -99,13 +136,55 @@ fn current_svc_props(svc: &str) -> anyhow::Result<SvcView> {
     let raw_property_groups = svc_property_groups(svc)?;
 
     Ok(SvcView {
-        properties: process_svc_properties(&raw_properties),
+        properties: process_properties(&raw_properties),
         property_groups: process_property_groups(&raw_property_groups),
     })
 }
 
+// It's possible we're being asked to set properties on a service instance which does not yet exist.
+fn ensure_instance(svc: &str, opts: &Opts) -> anyhow::Result<()> {
+    let chunks: Vec<_> = svc.rsplitn(2, ":").collect();
+
+    let instance = chunks
+        .first()
+        .context(format!("could not get service of {svc}"))?;
+
+    let service = chunks
+        .last()
+        .context(format!("could not get instance of {svc}"))?;
+
+    if svcs::exists(svc)? {
+        tracing::debug!("svc instance {} exists", svc);
+    } else {
+        tracing::debug!("adding instance '{}' to service '{}'", instance, service);
+        let mut cmd = cmd_with_stdin!(SVCCFG_BIN, "-s", &service);
+
+        if opts.noop {
+            return Ok(());
+        }
+
+        let mut child = cmd.spawn()?;
+
+        if let Some(stdin) = child.stdin.as_mut() {
+            stdin.write_all(format!("add {instance}").as_bytes())?;
+        }
+
+        let output = child.wait_with_output()?;
+
+        if output.status.success() {
+            tracing::debug!("created instance {}", svc);
+        } else {
+            bail!(String::from_utf8_lossy(&output.stderr).into_owned())
+        }
+    }
+
+    Ok(())
+}
+
 impl GurpSvcpropEnsure {
     pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        ensure_instance(&self.service, opts)?;
+
         let all_values = current_svc_props(&self.service)?;
         let resources = self.properties.len() as u32 + self.property_groups.len() as u32;
         let mut changes = 0;
@@ -139,36 +218,31 @@ impl GurpSvcpropEnsure {
             tracing::debug!("{}: looking for '{}' property", self.service, property);
 
             if let Some(current_val) = all_values.properties.get(property) {
-                tracing::debug!("{} found '{}'", self.service, property);
+                tracing::debug!("{} found {}", self.service, property);
                 if current_val.value == desired.value {
                     tracing::debug!(
-                        "{}: '{}' already '{}'",
+                        "{} {}: already {}",
                         &self.service,
                         property,
                         current_val.value
                     );
                     continue;
+                } else {
+                    tracing::info!(
+                        "{} {}: {} -> {}",
+                        self.service,
+                        property,
+                        current_val.value,
+                        desired.value,
+                    );
                 }
             } else {
                 tracing::debug!("{} svcprop: did not find '{}'", self.service, property);
             }
 
-            let value = if desired.prop_type == "astring" {
-                &format!("\"{}\"", desired.value)
-            } else {
-                &desired.value
-            };
-
-            tracing::info!(
-                "{} svcprop: setting '{}' to '{}'",
-                self.service,
-                property,
-                value,
-            );
-
             svccfg_script.push_str(&format!(
                 "setprop {} = {}: {}\n",
-                property, desired.prop_type, value
+                property, desired.prop_type, desired.value
             ));
 
             changes += 1;
@@ -276,5 +350,70 @@ impl GurpSvcpropRemove {
             changes,
             errors,
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use indoc::indoc;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_process_property_groups() {
+        let input = indoc! { r#"
+            general                            framework
+            general/enabled                    boolean  true
+            restarter                          framework	NONPERSISTENT
+            restarter/logfile                  astring  /var/svc/log/system-console-login:default.log
+            restarter/start_method_waitstatus  integer  0
+            restarter/auxiliary_state          astring  dependencies_satisfied
+            restarter/start_pid                count    5508
+            restarter/state                    astring  online
+            restarter/start_method_timestamp   time     1752853169.630361000
+            "#
+        };
+
+        let propmap: SvcProps = HashMap::from([
+            (
+                "restarter/auxiliary_state".into(),
+                PropertyStruct {
+                    value: PropertyValue::String("dependencies_satisfied".to_owned()),
+                    prop_type: "astring".to_owned(),
+                },
+            ),
+            (
+                "general/enabled".to_owned(),
+                PropertyStruct {
+                    value: PropertyValue::Bool(true),
+                    prop_type: "boolean".to_owned(),
+                },
+            ),
+            (
+                "restarter/start_method_waitstatus".to_owned(),
+                PropertyStruct {
+                    value: PropertyValue::Int(0),
+                    prop_type: "integer".to_owned(),
+                },
+            ),
+            (
+                "restarter/logfile".into(),
+                PropertyStruct {
+                    value: PropertyValue::String(
+                        "/var/svc/log/system-console-login:default.log".to_owned(),
+                    ),
+                    prop_type: "astring".to_owned(),
+                },
+            ),
+            (
+                "restarter/state".into(),
+                PropertyStruct {
+                    value: PropertyValue::String("online".to_owned()),
+                    prop_type: "astring".to_owned(),
+                },
+            ),
+        ]);
+
+        assert_eq!(propmap, process_properties(input));
     }
 }
