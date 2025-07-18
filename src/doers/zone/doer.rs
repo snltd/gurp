@@ -73,9 +73,9 @@ impl GurpZoneEnsure {
         } else {
             self.create_from_config(&config_input)?;
             if let Some(clone_source) = &self.config.clone_from {
-                self.clone_zone(clone_source)
+                self.clone_zone(clone_source, opts)
             } else {
-                self.install_zone()
+                self.install_zone(opts)
             }
         }
     }
@@ -105,23 +105,23 @@ impl GurpZoneEnsure {
         }
     }
 
-    fn install_zone(&self) -> anyhow::Result<ApplySummary> {
+    fn install_zone(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
         tracing::info!("zone {}: installing", self.name);
         cmd_output!(ZONEADM_BIN, "-z", &self.name, "install")?;
         tracing::debug!("zone {}: installed", self.name);
         self.boot_zone()?;
         self.exec()?;
-        self.bootstrap_zone()?;
+        self.bootstrap_zone(opts)?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
-    fn clone_zone(&self, source_zone: &str) -> anyhow::Result<ApplySummary> {
-        tracing::info!("zone {}: installing", self.name);
+    fn clone_zone(&self, source_zone: &str, opts: &Opts) -> anyhow::Result<ApplySummary> {
+        tracing::info!("zone {}: cloning from {}", self.name, source_zone);
         cmd_output!(ZONEADM_BIN, "-z", &self.name, "clone", source_zone)?;
-        tracing::debug!("zone {}: installed", self.name);
+        tracing::debug!("zone {}: cloned", self.name);
         self.boot_zone()?;
         self.exec()?;
-        self.bootstrap_zone()?;
+        self.bootstrap_zone(opts)?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
@@ -147,7 +147,7 @@ impl GurpZoneEnsure {
         Ok(())
     }
 
-    fn bootstrap_zone(&self) -> anyhow::Result<()> {
+    fn bootstrap_zone(&self, opts: &Opts) -> anyhow::Result<()> {
         // Like everything else, this is super-minimal, at least for now, possibly for ever. Copy
         // our own executable into the zone, and trust the user that the file they gave us is
         // there, and can access all the roles and files it needs.
@@ -162,7 +162,13 @@ impl GurpZoneEnsure {
             }
 
             let zone_gurp = zone_dir.join("gurp");
-            let bootstrap_command = format!("/var/tmp/gurp apply {host_config}");
+            let mut bootstrap_command = "/var/tmp/gurp ".to_owned();
+
+            if opts.debug {
+                bootstrap_command.push_str("--debug ");
+            }
+
+            bootstrap_command.push_str(&format!("apply {host_config}"));
 
             fs::copy(env::current_exe()?, zone_gurp)?;
             run_zlogin_cmd(&self.name, &bootstrap_command)?;
