@@ -255,7 +255,8 @@
    :misc {:supported [:nfs-domain :enable-smb :scheduler]}
    :publisher {:supported [:uri] :mandatory [:uri]}
    :smf {:supported [:description :fmri :default-enabled :single-instance
-                     :start-method :stop-method :refresh-method :svc-name]
+                     :start-method :stop-method :refresh-method :svc-name
+                     :duration]
          :mandatory [:description :fmri]}
    :svc {:supported [:state :restarted-by :reloaded-by]
          :mandatory [:state]}
