@@ -18,5 +18,11 @@
 
   (test
     (svcprop/ensure "mariadb"
-                    :property-groups {:application "framework"}
-                    :properties {:application/datadir "/data"})))
+                    :property-groups {:application "application"}
+                    :properties {:application/datadir "/data"})
+    {:svcprop {:_id "/test-role/svcprop/mariadb"
+               :action :ensure
+               :name "mariadb"
+               :properties @{:application/datadir {:type "astring" :value "/data"}}
+               :property-groups {:application "application"}
+               :role "test-role"}}))
