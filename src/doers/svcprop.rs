@@ -2,6 +2,8 @@ use crate::prelude::*;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
+use std::thread::sleep;
+use std::time::Duration;
 
 // THINGS TO KNOW / THINGS TO DO.
 // As always, limited. Sets and removes service properties and property groups. You can't change
@@ -205,7 +207,7 @@ impl GurpSvcpropEnsure {
                 bail!(String::from_utf8_lossy(&output.stderr).into_owned())
             }
 
-            sleep(Duration::from_secs(1));
+            sleep(Duration::from_secs(1)); // I hate this, but it appears to make the difference
             tracing::debug!("{}: refreshing svc", self.service);
             cmd_output!(SVCADM_BIN, "refresh", &self.service)?;
         }
