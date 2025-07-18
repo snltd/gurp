@@ -152,6 +152,7 @@ mod test {
 
         let expected = SmfDefinition {
             name: "telegraf".to_owned(),
+            duration: None,
             description: "Run Telegraf agent".to_owned(),
             fmri: "sysdef/telegraf".to_owned(),
             single_instance: true,

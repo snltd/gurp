@@ -137,6 +137,7 @@ impl Add for ApplySummary {
 #[serde(rename_all = "kebab-case")]
 pub struct SmfDefinition {
     pub name: String,
+    pub duration: Option<String>,
     pub description: String,
     pub fmri: String,
     pub default_enabled: bool,

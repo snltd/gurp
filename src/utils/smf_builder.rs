@@ -60,9 +60,11 @@ impl ServiceBuilder<'_> {
         self.xml.write_attribute("grouping", "require_all");
         self.xml.write_attribute("restart_on", &def.restart_on);
         self.xml.write_attribute("type", "service");
+
         self.xml.start_element("service_fmri");
         self.xml.write_attribute("value", &def.fmri);
         self.xml.end_element();
+
         self.xml.end_element();
     }
 
@@ -75,6 +77,7 @@ impl ServiceBuilder<'_> {
 
         if let Some(context) = def.context.as_ref() {
             self.xml.start_element("method_context");
+
             self.xml.start_element("method_credential");
             self.xml.write_attribute("user", &context.user);
 
@@ -86,6 +89,7 @@ impl ServiceBuilder<'_> {
                 self.xml.write_attribute("privileges", &privileges);
             }
             self.xml.end_element();
+
             self.xml.end_element();
         }
 
@@ -99,15 +103,33 @@ impl ServiceBuilder<'_> {
         self.xml.end_element();
     }
 
+    pub fn add_duration_pg(&mut self, duration: &str) {
+        self.xml.start_element("property_group");
+        self.xml.write_attribute("name", "startd");
+        self.xml.write_attribute("type", "framework");
+
+        self.xml.start_element("propval");
+        self.xml.write_attribute("name", "duration");
+        self.xml.write_attribute("type", "astring");
+        self.xml.write_attribute("value", duration);
+        self.xml.end_element();
+
+        self.xml.end_element();
+    }
+
     // do you actually need this? It's in my manifests
     pub fn add_template(&mut self, description: &str) {
         self.xml.start_element("template");
+
         self.xml.start_element("common_name");
+
         self.xml.start_element("loctext");
         self.xml.write_attribute("xml:lang", "C");
         self.xml.write_text(description);
         self.xml.end_element();
+
         self.xml.end_element();
+
         self.xml.end_element();
     }
 
@@ -126,12 +148,14 @@ pub fn make_manifest(def: &SmfDefinition) -> String {
         if def.single_instance {
             svc.add_single_instance();
         }
+
         // we'll always expect network and local filesystem
         svc.add_svc_dependency(&SmfDefinitionDependencySvc {
             name: "physical".to_owned(),
             restart_on: "none".to_owned(),
             fmri: "svc:/network/physical:default".to_owned(),
         });
+
         svc.add_svc_dependency(&SmfDefinitionDependencySvc {
             name: "fs-local".to_owned(),
             restart_on: "none".to_owned(),
@@ -141,11 +165,17 @@ pub fn make_manifest(def: &SmfDefinition) -> String {
         if let Some(method) = def.start_method.as_ref() {
             svc.add_exec_method("start", method)
         }
+
         if let Some(method) = def.stop_method.as_ref() {
             svc.add_exec_method("stop", method)
         }
+
         if let Some(method) = def.refresh_method.as_ref() {
             svc.add_exec_method("refresh", method)
+        }
+
+        if let Some(duration) = def.duration.as_ref() {
+            svc.add_duration_pg(duration);
         }
 
         svc.add_stability();
@@ -173,6 +203,7 @@ mod test {
         let test_svc = SmfDefinition {
             name: "export".to_owned(),
             description: "Run Telegraf agent".to_owned(),
+            duration: None,
             fmri: "sysdef/telegraf".to_owned(),
             single_instance: true,
             default_enabled: true,
@@ -201,6 +232,40 @@ mod test {
 
         let result = make_manifest(&test_svc);
         let expected = load_fixture("util/smf_helper/telegraf.xml");
+        let result_xml = helpers::parse_xml(&result);
+        let expected_xml = helpers::parse_xml(&expected);
+
+        assert_eq!(&expected_xml, &result_xml);
+    }
+
+    #[test]
+    fn test_make_transient_manifest() {
+        let test_svc = SmfDefinition {
+            name: "export".to_owned(),
+            description: "Run boot-service".to_owned(),
+            duration: Some("transient".to_owned()),
+            fmri: "sysdef/boot-service".to_owned(),
+            single_instance: true,
+            default_enabled: true,
+            start_method: Some(SmfDefinitionExecMethod {
+                exec: "/opt/site/lib/smf/method/boot-service.sh".to_owned(),
+                timeout: 60,
+                context: None,
+            }),
+            stop_method: Some(SmfDefinitionExecMethod {
+                exec: ":kill".to_owned(),
+                timeout: 10,
+                context: None,
+            }),
+            refresh_method: Some(SmfDefinitionExecMethod {
+                exec: ":kill -THAW".to_owned(),
+                timeout: 60,
+                context: None,
+            }),
+        };
+
+        let result = make_manifest(&test_svc);
+        let expected = load_fixture("util/smf_helper/boot-service.xml");
         let result_xml = helpers::parse_xml(&result);
         let expected_xml = helpers::parse_xml(&expected);
 
