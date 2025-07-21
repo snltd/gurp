@@ -63,10 +63,12 @@ impl GurpMiscEnsure {
     fn enable_smb_share(&self, username: &str, opts: &Opts) -> anyhow::Result<ApplySummary> {
         tracing::debug!("calling misc/enable_smb_share");
 
+        println!("{}", cmd_output!(SMBADM_BIN, "lookup", username)?);
+
         match cmd_output!(SMBADM_BIN, "lookup", username) {
             // if it returns 0 and doesn't say "NONE_MAPPED" then I think it's configured
             Ok(txt) => {
-                if txt.contains("NONE_MAPPED") {
+                if !txt.contains("NONE_MAPPED") {
                     tracing::debug!("no change: smb config {}", username);
                     return Ok(ONE_RESOURCE_NO_CHANGE);
                 }

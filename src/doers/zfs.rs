@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use byte_unit::Byte;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
@@ -71,6 +72,17 @@ impl GurpZfsEnsure {
                         if current_value == desired_value {
                             tracing::debug!("{}: already {}", property, desired_value);
                         } else {
+                            // Catch size properties. Putting the iB is a nasty, but it works
+                            if desired_value.ends_with(['M', 'G', 'k', 'E']) {
+                                if let Ok(desired_bytes) =
+                                    Byte::parse_str(format!("{desired_value}iB"), true)
+                                {
+                                    if desired_bytes.to_string() == *current_value {
+                                        break;
+                                    }
+                                }
+                            }
+
                             tracing::info!(
                                 "change zfs {}: [{}] {} -> {}",
                                 property,
