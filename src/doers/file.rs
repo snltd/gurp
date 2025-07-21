@@ -6,6 +6,7 @@ use blake3::Hash;
 use nix::unistd::{Gid, Uid};
 use regex::Regex;
 use serde::Deserialize;
+use std::borrow::Cow;
 use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
@@ -43,6 +44,7 @@ pub struct FileState<'a> {
     pub filtered_content: Option<String>,
     pub ignore_pattern: Option<String>,
     pub hash: Option<Hash>,
+    pub from: Option<Utf8PathBuf>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -65,45 +67,58 @@ impl GurpFileEnsure {
         }
 
         let raw_content = if let Some(content_str) = &self.desired_state.content {
-            content_str
-        } else {
+            Some(Cow::Borrowed(content_str))
+        } else if self.desired_state.ignore_pattern.is_some() {
             let from_path = self
                 .desired_state
                 .from
                 .as_ref()
                 .context("no from or content")?;
-            &fs::read_to_string(from_path)?
+            Some(Cow::Owned(fs::read_to_string(from_path)?))
+        } else {
+            None
         };
 
-        let filtered_content = if let Some(filter) = &self.desired_state.ignore_pattern {
-            Some(self.filter_content(raw_content, filter)?)
+        let filtered_content = if let Some(raw) = &raw_content
+            && let Some(filter) = &self.desired_state.ignore_pattern
+        {
+            Some(self.filter_content(raw, filter)?)
         } else {
             None
         };
 
         let hash = if let Some(fc) = &filtered_content {
-            self.content_hash(fc)
+            Some(self.content_hash(fc))
+        } else if let Some(raw) = &raw_content {
+            Some(self.content_hash(raw))
+        } else if let Some(from_path) = &self.desired_state.from {
+            Some(self.file_hash(from_path)?)
         } else {
-            self.content_hash(raw_content)
+            None
         };
 
+        let raw_content_ref: Option<&str> = raw_content.as_deref().map(|x| x.as_str());
+
         let desired = FileState {
-            raw_content: Some(raw_content),
+            raw_content: raw_content_ref,
             filtered_content,
             uid: users_and_groups::owner_from(&self.desired_state.owner)?,
             gid: users_and_groups::group_from(&self.desired_state.group)?,
             ignore_pattern: self.desired_state.ignore_pattern.clone(),
             mode: self.desired_state.mode.clone(),
-            hash: Some(hash),
+            hash,
+            from: self.desired_state.from.clone(),
         };
 
         let mut need_to_read_hash = true;
+        let mut file_was_created = false;
 
         if !self.path.exists() {
             tracing::info!("creating: {}", self.path);
             return_if_noop!(opts);
 
             self.write_content_to_file(&desired)?;
+            file_was_created = true;
             need_to_read_hash = false;
         }
 
@@ -111,8 +126,12 @@ impl GurpFileEnsure {
         let changes = self.changes(&current, &desired)?;
 
         if changes.is_empty() {
-            tracing::debug!("no change: {}", self.path);
-            return Ok(ONE_RESOURCE_NO_CHANGE);
+            if file_was_created {
+                return Ok(ONE_RESOURCE_ONE_CHANGE);
+            } else {
+                tracing::debug!("no change: {}", self.path);
+                return Ok(ONE_RESOURCE_NO_CHANGE);
+            }
         }
 
         tracing::info!("{} change: {}", self.path, changes.join(", "));
@@ -152,14 +171,11 @@ impl GurpFileEnsure {
         let mut to_change = Vec::new();
 
         if let Some(current_hash) = current.hash {
-            println!("doing hash compare");
             // File existed before this run. Are its contents correct? We already have its hash,
             // and if the user gave us a filter, that hash is of the filtered file.
             //
             if let Some(desired_hash) = desired.hash {
-                println!("doing inner hash compare");
                 if desired_hash != current_hash {
-                    println!("different hash");
                     to_change.push("content");
                     to_change.push("owner");
                     to_change.push("mode");
@@ -208,7 +224,7 @@ impl GurpFileEnsure {
             if let Some(pattern) = &self.desired_state.ignore_pattern {
                 Some(self.hash_of_filtered_file(&self.path, pattern)?)
             } else {
-                Some(self.file_hash()?)
+                Some(self.file_hash(&self.path)?)
             }
         } else {
             None
@@ -221,6 +237,7 @@ impl GurpFileEnsure {
             raw_content: None,
             filtered_content: None,
             mode: mode.to_owned(),
+            from: None,
             hash,
         })
     }
@@ -229,19 +246,23 @@ impl GurpFileEnsure {
         blake3::hash(content.as_bytes())
     }
 
-    fn file_hash(&self) -> anyhow::Result<Hash> {
+    fn file_hash(&self, path: &Utf8PathBuf) -> anyhow::Result<Hash> {
         let mut hasher = blake3::Hasher::new();
-        let mut fh = fs::File::open(&self.path)?;
+        let mut fh = fs::File::open(path)?;
         std::io::copy(&mut fh, &mut hasher)?;
         Ok(hasher.finalize())
     }
 
     fn write_content_to_file(&self, desired_state: &FileState) -> anyhow::Result<()> {
-        if let Some(raw_content) = &desired_state.raw_content {
+        if let Some(content) = &desired_state.raw_content {
             let mut fh = fs::File::create(&self.path)?;
-            Ok(fh.write_all(raw_content.as_bytes())?)
+            Ok(fh.write_all(content.as_bytes())?)
+        } else if let Some(from) = &self.desired_state.from {
+            tracing::debug!("copying {} -> {}", from, self.path);
+            fs::copy(from, &self.path)?;
+            Ok(())
         } else {
-            bail!("no content to write")
+            bail!("can write neither :from nor :content");
         }
     }
 }
@@ -327,6 +348,30 @@ mod test {
         let metadata = fs::metadata(&path).unwrap();
         assert_eq!(metadata.permissions().mode() & 0o777, 0o640);
         assert_eq!("stuff", fs::read_to_string(path).unwrap());
+    }
+
+    #[test]
+    fn test_create_binary_file() {
+        let temp = TempDir::new().unwrap();
+        let file = temp.join("binary-file");
+        let path = Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap();
+        assert!(!path.exists());
+
+        let sut = GurpFileEnsure {
+            id: "IRRELEVANT".to_owned(),
+            path: path.clone(),
+            desired_state: DesiredFileState {
+                group: my_group(),
+                mode: "0755".to_owned(),
+                owner: my_user(),
+                content: None,
+                ignore_pattern: None,
+                from: Some(fixture("doers/file/binary-file")),
+            },
+        };
+
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert!(path.exists());
     }
 
     #[test]
