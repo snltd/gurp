@@ -81,6 +81,12 @@ impl GurpFileEnsure {
             None
         };
 
+        let hash = if let Some(fc) = &filtered_content {
+            self.content_hash(fc)
+        } else {
+            self.content_hash(raw_content)
+        };
+
         let desired = FileState {
             raw_content: Some(raw_content),
             filtered_content,
@@ -88,7 +94,7 @@ impl GurpFileEnsure {
             gid: users_and_groups::group_from(&self.desired_state.group)?,
             ignore_pattern: self.desired_state.ignore_pattern.clone(),
             mode: self.desired_state.mode.clone(),
-            hash: None,
+            hash: Some(hash),
         };
 
         let mut need_to_read_hash = true;
@@ -146,11 +152,14 @@ impl GurpFileEnsure {
         let mut to_change = Vec::new();
 
         if let Some(current_hash) = current.hash {
+            println!("doing hash compare");
             // File existed before this run. Are its contents correct? We already have its hash,
             // and if the user gave us a filter, that hash is of the filtered file.
             //
             if let Some(desired_hash) = desired.hash {
+                println!("doing inner hash compare");
                 if desired_hash != current_hash {
+                    println!("different hash");
                     to_change.push("content");
                     to_change.push("owner");
                     to_change.push("mode");
