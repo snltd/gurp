@@ -17,7 +17,9 @@
 
 (deftest zfscat
   (def big-pool "big")
-  (test (zfscat big-pool "export" "flac") "big/export/flac"))
+  (test (zfscat big-pool "export" "flac") "big/export/flac")
+  (test (zfscat big-pool "") "big")
+  )
 
 (deftest argcat
   (test (argcat "/bin/cat" "file1" "file2") "/bin/cat file1 file2")

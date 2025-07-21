@@ -66,7 +66,7 @@ impl GurpMiscEnsure {
         match cmd_output!(SMBADM_BIN, "lookup", username) {
             // if it returns 0 and doesn't say "NONE_MAPPED" then I think it's configured
             Ok(txt) => {
-                if txt.contains("NONE_MAPPED") {
+                if !txt.contains("NONE_MAPPED") {
                     tracing::debug!("no change: smb config {}", username);
                     return Ok(ONE_RESOURCE_NO_CHANGE);
                 }

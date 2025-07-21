@@ -15,12 +15,17 @@
 (defn pathcat
   "Joins tokens to make a path"
   [& chunks]
-  (string/join (map |(string/trim $ "/") (tuple "" ;chunks)) "/"))
+  (->
+    (map |(string/trim $ "/") (tuple "" ;chunks))
+    (string/join "/")))
 
 (defn zfscat
   "Joins tokens to make a ZFS dataset name"
   [& chunks]
-  (string/join (map |(string/trim $ "/") (tuple ;chunks)) "/"))
+  (->
+    (map |(string/trim $ "/") (tuple ;chunks))
+    (string/join "/")
+    (string/trim "/")))
 
 (defn- clean-data
   "Removes anything which is not a struct from a list"
