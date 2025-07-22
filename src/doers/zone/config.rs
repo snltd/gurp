@@ -1,6 +1,7 @@
 use camino::Utf8PathBuf;
 use indoc::formatdoc;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 // Turns Janet into Rust into zonecfg input
 
@@ -16,10 +17,12 @@ pub struct GurpZoneConfig {
     pub capped_memory: Option<GurpZoneCappedMemory>,
     pub dns: Option<GurpZoneDns>,
     pub fs: Option<GurpZoneFilesystems>,
-    pub exec: Option<Vec<String>>,
+    pub exec_in: Option<Vec<String>>,
     pub boot_after_install: bool,
     pub bootstrap_from: Option<Utf8PathBuf>,
     pub recreate: u8,
+    pub image: Option<String>,
+    pub copy_in: Option<HashMap<Utf8PathBuf, String>>,
 }
 
 #[derive(Debug, Deserialize)]

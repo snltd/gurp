@@ -1,6 +1,8 @@
 use crate::doers::zone::config::GurpZoneConfig;
 use crate::doers::zone::control::{self, ZoneadmState};
+use crate::doers::zone::lx;
 use crate::prelude::*;
+use fs_extra::dir::CopyOptions;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::env;
@@ -106,13 +108,42 @@ impl GurpZoneEnsure {
     }
 
     fn install_zone(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
-        tracing::info!("zone {}: installing", self.name);
-        cmd_output!(ZONEADM_BIN, "-z", &self.name, "install")?;
+        tracing::info!("installing {} [{}]", self.name, self.config.brand);
+        match self.config.brand.as_str() {
+            "lx" => {
+                let img_path = self.install_zone_lx_path()?;
+                cmd_output!(ZONEADM_BIN, "-z", &self.name, "install", "-s", img_path)?
+            }
+            _ => cmd_output!(ZONEADM_BIN, "-z", &self.name, "install")?,
+        };
+
         tracing::debug!("zone {}: installed", self.name);
         self.boot_zone()?;
-        self.exec()?;
+        self.postinstall_zone()?;
+        self.exec_in()?;
+        self.copy_in()?;
         self.bootstrap_zone(opts)?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
+    }
+
+    fn postinstall_zone(&self) -> anyhow::Result<()> {
+        if self.config.brand.as_str() == "lx" {
+            if let Some(dns_config) = &self.config.dns {
+                lx::set_up_dns(&self.config.zonepath, dns_config)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn install_zone_lx_path(&self) -> anyhow::Result<Utf8PathBuf> {
+        if let Some(img_pattern) = &self.config.image {
+            match lx::image_path(img_pattern)? {
+                Some(path) => Ok(path),
+                None => bail!("did not find a suitable LX image"),
+            }
+        } else {
+            bail!("LX zones require an :image")
+        }
     }
 
     fn clone_zone(&self, source_zone: &str, opts: &Opts) -> anyhow::Result<ApplySummary> {
@@ -120,7 +151,9 @@ impl GurpZoneEnsure {
         cmd_output!(ZONEADM_BIN, "-z", &self.name, "clone", source_zone)?;
         tracing::debug!("zone {}: cloned", self.name);
         self.boot_zone()?;
-        self.exec()?;
+        self.postinstall_zone()?;
+        self.exec_in()?;
+        self.copy_in()?;
         self.bootstrap_zone(opts)?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
@@ -131,17 +164,56 @@ impl GurpZoneEnsure {
             cmd_output!(ZONEADM_BIN, "-z", &self.name, "boot")?;
         }
 
-        control::wait_for_readiness(&self.name)?;
+        match self.config.brand.as_str() {
+            "lx" => control::wait_for_readiness_lx(&self.name)?,
+            _ => control::wait_for_readiness(&self.name)?,
+        };
+
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
-    fn exec(&self) -> anyhow::Result<()> {
-        if let Some(cmds) = &self.config.exec {
+    fn exec_in(&self) -> anyhow::Result<()> {
+        if let Some(cmds) = &self.config.exec_in {
             for cmd in cmds {
                 tracing::debug!("zone {}; exec '{}'", self.name, cmd);
                 run_zlogin_cmd(&self.name, cmd)?;
                 tracing::debug!("zone {}; exec '{}' OK", self.name, cmd);
             }
+        }
+
+        Ok(())
+    }
+
+    fn copy_in(&self) -> anyhow::Result<()> {
+        if let Some(files) = &self.config.copy_in {
+            for (src, dest) in files {
+                self.copy_to_zone(src, dest)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn copy_to_zone(&self, src: &Utf8PathBuf, dest: &str) -> anyhow::Result<()> {
+        let zone_root = &self.config.zonepath.join("root");
+
+        if !zone_root.exists() {
+            bail!("cannot find zone root {}", zone_root);
+        }
+
+        let relative_dest = dest.trim_matches('/');
+        let zone_dest = zone_root.join(relative_dest);
+        tracing::info!("copying {} -> {}", src, zone_dest);
+
+        if src.is_file() {
+            fs::copy(src, zone_dest)?;
+        } else if src.is_dir() {
+            let mut options = CopyOptions::new();
+            options.overwrite = true;
+            options.copy_inside = true;
+            fs_extra::dir::copy(src, zone_dest, &options)?;
+        } else {
+            bail!("{} is neither a file nor a directory", src);
         }
 
         Ok(())
@@ -154,14 +226,6 @@ impl GurpZoneEnsure {
         //
         //
         if let Some(host_config) = &self.config.bootstrap_from {
-            let zone_root = &self.config.zonepath.join("root");
-            let zone_dir = zone_root.join("var").join("tmp");
-
-            if !zone_dir.exists() {
-                bail!("bootstrapper cannot find {}", zone_dir);
-            }
-
-            let zone_gurp = zone_dir.join("gurp");
             let mut bootstrap_command = "/var/tmp/gurp ".to_owned();
 
             if opts.debug {
@@ -170,7 +234,10 @@ impl GurpZoneEnsure {
 
             bootstrap_command.push_str(&format!("apply {host_config}"));
 
-            fs::copy(env::current_exe()?, zone_gurp)?;
+            let this_exec =
+                Utf8PathBuf::from_path_buf(env::current_exe()?).expect("can't get my path");
+
+            self.copy_to_zone(&this_exec, "/var/tmp/gurp")?;
             run_zlogin_cmd(&self.name, &bootstrap_command)?;
         }
 
@@ -233,7 +300,7 @@ fn run_zlogin_cmd(zone: &str, command: &str) -> anyhow::Result<()> {
     let mut cmd = Command::new(ZLOGIN_BIN);
     cmd.arg(zone);
     cmd.env("RUST_LOG", env::var_os("RUST_LOG").unwrap_or_default());
-    cmd.arg(command);
+    cmd.args(command.split_whitespace().collect::<Vec<_>>());
     cmd.stdout(Stdio::inherit());
     cmd.stderr(Stdio::inherit());
 

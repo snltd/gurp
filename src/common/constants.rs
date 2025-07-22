@@ -12,6 +12,7 @@ pub const CRONTAB_BIN: &str = "/bin/crontab";
 pub const DISPADMIN_BIN: &str = "/usr/sbin/dispadmin";
 pub const GEM_BIN: &str = "/opt/ooce/bin/gem";
 pub const PKG_BIN: &str = "/bin/pkg";
+pub const PS_BIN: &str = "/bin/ps";
 pub const SHARECTL_BIN: &str = "/usr/sbin/sharectl";
 pub const SMBADM_BIN: &str = "/usr/sbin/smbadm";
 pub const SVCADM_BIN: &str = "/usr/sbin/svcadm";

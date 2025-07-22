@@ -284,7 +284,7 @@
                       :autoboot :fs :datasets :exec :attrs :clone-from
                       :boot-after-install :bootstrap-from :recreate
                       :capped-cpu :capped-memory :dedicated-cpu :devices :rctls
-                      :security-flags :admins]
+                      :security-flags :admins :image :copy-in :exec-in]
           :mandatory [:brand]}})
 
 (defn- validate-ensure-spec
@@ -505,6 +505,12 @@
   :publisher {:supported [:uri] :mandatory [:uri]}
 
   (var resource (struct/to-table (result :zone)))
+
+  (if-let [copy-resource (resource :copy-in)]
+    (set (resource :copy-in)
+         (table/to-struct
+           (zipcoll (map qualify-from-path (keys copy-resource))
+                    (values copy-resource)))))
 
   (if-not (has-key? resource :zonepath)
     (set (resource :zonepath) (pathcat "/zones" name)))

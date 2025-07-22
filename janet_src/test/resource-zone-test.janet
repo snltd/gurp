@@ -3,7 +3,7 @@
 
 (deftest "test-zone-network"
   (test
-    (zone-network "test_net0" :allowed-address: "1.2.3.4" :defrouter "1.2.3.1" )
+    (zone-network "test_net0" :allowed-address: "1.2.3.4" :defrouter "1.2.3.1")
     {:allowed-address: "1.2.3.4"
      :defrouter "1.2.3.1"
      :global-nic "auto"
@@ -23,6 +23,29 @@
             :recreate 0
             :role "test-role"
             :zonepath "/zones/test-zone"}}))
+
+
+(deftest "test zone lx"
+  (setdyn :gurp-config-root "/gurpdir")
+  (setdyn :role-dyn "test-role")
+  (test
+    (zone/ensure "test-lx-zone"
+                 :exec-in ["/bin/exec1" "/bin/exec2"]
+                 :copy-in {"lx-test/f1" "/etc/file1"
+                           "lx-test/f2" "/bin/exec2"}
+                 :brand "lx")
+    {:zone {:_id "/test-role/zone/test-lx-zone"
+            :action :ensure
+            :autoboot true
+            :boot-after-install true
+            :brand "lx"
+            :copy-in {"/gurpdir/files/lx-test/f1" "/etc/file1"
+                      "/gurpdir/files/lx-test/f2" "/bin/exec2"}
+            :exec-in ["/bin/exec1" "/bin/exec2"]
+            :name "test-lx-zone"
+            :recreate 0
+            :role "test-role"
+            :zonepath "/zones/test-lx-zone"}}))
 
 (deftest "test zone functions"
   (setdyn :role-dyn "test-role")

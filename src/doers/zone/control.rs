@@ -162,6 +162,25 @@ pub fn wait_for_readiness(zone: &str) -> anyhow::Result<()> {
     }
 }
 
+pub fn wait_for_readiness_lx(zone: &str) -> anyhow::Result<()> {
+    // Because there are a bunch of possible images, it's hard to know what to look for here. For
+    // starters I'm going to try, "are you running half-a-dozen processes"?
+    //
+    let elapsed = Duration::from_secs(0);
+    loop {
+        if is_ready_lx(zone)? {
+            return Ok(());
+        }
+
+        sleep(READINESS_WAIT_INTERVAL);
+        let elapsed = elapsed + READINESS_WAIT_INTERVAL;
+
+        if elapsed >= READINESS_WAIT_TIMEOUT {
+            bail!("Timed out waiting for {} be ready", zone)
+        }
+    }
+}
+
 fn is_ready(zone: &str) -> anyhow::Result<bool> {
     let mut cmd = cmd!(SVCS_BIN, "-z", zone, "-Ho", "state", READY_SVC);
 
@@ -173,4 +192,9 @@ fn is_ready(zone: &str) -> anyhow::Result<bool> {
     } else {
         Ok(false)
     }
+}
+
+fn is_ready_lx(zone: &str) -> anyhow::Result<bool> {
+    let ps_output = cmd_output!(PS_BIN, "-e", "-z", zone)?;
+    Ok(ps_output.lines().count() > 5)
 }
