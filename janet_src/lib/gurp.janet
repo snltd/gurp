@@ -280,8 +280,8 @@
    :user {:supported [:uid :primary-group :home-dir :shell :gecos :password-hash]
           :mandatory [:uid :primary-group :home-dir :shell :gecos]}
    :zfs {:supported [:properties]}
-   :zone {:supported [:brand :run-cmd :dns :properties :zonepath :networks
-                      :autoboot :fs :datasets :exec :attrs :clone-from
+   :zone {:supported [:brand :run-cmd :dns :properties :zonepath :net
+                      :autoboot :fs :datasets :exec :attr :clone-from
                       :boot-after-install :bootstrap-from :recreate
                       :capped-cpu :capped-memory :dedicated-cpu :devices :rctls
                       :security-flags :admins :image :copy-in :exec-in]
@@ -487,35 +487,37 @@
   [name & specs]
   (remove-resource :zfs name specs))
 
+(defmacro expand-zone-fn
+  "Split a specs tuple into 'is' and 'is-not', and turn the 'is'es into a flat
+  array of items"
+  [key]
+  ~(do
+     (def is-key
+       (group-by |(and (struct? $) (deep= @[,key] (keys $))) modified-specs))
+
+     (if-let [key-list (is-key true)]
+       (set modified-specs (tuple ;(is-key false) ,key (mapcat values key-list))))))
+
 (defn zone/ensure
   "Given a zone name and specification, return a zone ensure struct"
   [name & specs]
+  (var modified-specs specs)
+  (expand-zone-fn :net)
+  (expand-zone-fn :attr)
+  (expand-zone-fn :fs)
+  (let [result (ensure-resource :zone name modified-specs)
+        resource (struct/to-table (result :zone))]
 
-  (def separated-networks
-    (group-by (fn [i] (and (struct? i) (has-key? i :global-nic))) specs))
+    (if-let [copy-resource (resource :copy-in)]
+      (set (resource :copy-in)
+           (table/to-struct
+             (zipcoll (map qualify-from-path (keys copy-resource))
+                      (values copy-resource)))))
 
-  (var modified-specs (tuple ;(separated-networks false) :networks (separated-networks true)))
+    (if-not (has-key? resource :zonepath)
+      (set (resource :zonepath) (pathcat "/zones" name)))
 
-  (def separated-fs
-    (group-by (fn [i] (and (struct? i) (has-key? i :special))) modified-specs))
-
-  (set modified-specs (tuple ;(separated-fs false) :fs (separated-fs true)))
-
-  (def result (ensure-resource :zone name modified-specs))
-  :publisher {:supported [:uri] :mandatory [:uri]}
-
-  (var resource (struct/to-table (result :zone)))
-
-  (if-let [copy-resource (resource :copy-in)]
-    (set (resource :copy-in)
-         (table/to-struct
-           (zipcoll (map qualify-from-path (keys copy-resource))
-                    (values copy-resource)))))
-
-  (if-not (has-key? resource :zonepath)
-    (set (resource :zonepath) (pathcat "/zones" name)))
-
-  {:zone (table/to-struct resource)})
+    {:zone (table/to-struct resource)}))
 
 (defn zone/remove
   "Given a zone name and specification, return a zone remove struct"
@@ -524,12 +526,33 @@
 
 (defn zone-network
   [physical & specs]
-  (struct/proto-flatten
-    (struct/with-proto {:global-nic "auto"}
-                       :physical physical ;specs)))
+  (struct :net
+          (struct/proto-flatten
+            (struct/with-proto {:global-nic "auto"}
+                               :physical physical ;specs))))
 
 (defn zone-fs
   [mountpoint & specs]
-  (struct/proto-flatten
-    (struct/with-proto {:type "lofs"}
-                       :dir mountpoint ;specs)))
+  (struct :fs
+          (struct/proto-flatten
+            (struct/with-proto {:type "lofs"}
+                               :dir mountpoint ;specs))))
+
+(defn zone-attr
+  [name & specs]
+  (def spec-table (table :name name ;specs))
+  (if-not
+    (has-key? spec-table :value)
+    (error "zone-attr requires a :value"))
+
+  (if-not (has-key? spec-table :type)
+    (set (spec-table :type)
+         (match (type (spec-table :value))
+           :number "uint"
+           :boolean "boolean"
+           _ "astring")))
+
+  (if (= "astring" (spec-table :type))
+    (set (spec-table :value) (string (spec-table :value))))
+
+  (struct :attr (table/to-struct spec-table)))

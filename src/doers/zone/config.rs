@@ -2,6 +2,7 @@ use camino::Utf8PathBuf;
 use indoc::formatdoc;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::fmt;
 
 // Turns Janet into Rust into zonecfg input
 
@@ -12,11 +13,12 @@ pub struct GurpZoneConfig {
     pub brand: String,
     pub autoboot: bool,
     pub zonepath: Utf8PathBuf,
-    pub networks: GurpZoneNetworks,
     pub datasets: Option<Vec<String>>,
     pub capped_memory: Option<GurpZoneCappedMemory>,
     pub dns: Option<GurpZoneDns>,
+    pub net: GurpZoneNetworks,
     pub fs: Option<GurpZoneFilesystems>,
+    pub attr: Option<GurpZoneAttrs>,
     pub exec_in: Option<Vec<String>>,
     pub boot_after_install: bool,
     pub bootstrap_from: Option<Utf8PathBuf>,
@@ -37,7 +39,34 @@ pub struct GurpZoneDns {
     pub nameservers: Vec<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum AttrValue {
+    Str(String),
+    Bool(bool),
+    Number(u32),
+}
+
+impl fmt::Display for AttrValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AttrValue::Str(s) => write!(f, "{s}"),
+            AttrValue::Bool(b) => write!(f, "{b}"),
+            AttrValue::Number(n) => write!(f, "{n}"),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GurpZoneAttr {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub attr_type: String,
+    pub value: AttrValue,
+}
+
 type GurpZoneFilesystems = Vec<GurpZoneFilesystem>;
+type GurpZoneAttrs = Vec<GurpZoneAttr>;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -67,8 +96,8 @@ impl GurpZoneConfig {
         ret.push_str(&format!("set zonepath={}\n", &self.zonepath));
         ret.push_str(&format!("set autoboot={}\n", &self.autoboot));
 
-        for network_conf in &self.networks {
-            ret.push_str(&self.zone_network(network_conf));
+        for network_conf in &self.net {
+            ret.push_str(&self.zone_net(network_conf));
         }
 
         if let Some(conf) = &self.dns {
@@ -89,6 +118,12 @@ impl GurpZoneConfig {
 
         if let Some(conf) = &self.capped_memory {
             ret.push_str(&self.zone_capped_memory(conf));
+        }
+
+        if let Some(attrs) = &self.attr {
+            for attr in attrs {
+                ret.push_str(&self.zone_attr(attr));
+            }
         }
 
         ret
@@ -114,6 +149,14 @@ impl GurpZoneConfig {
         end\n", conf.physical, conf.swap}
     }
 
+    fn zone_attr(&self, conf: &GurpZoneAttr) -> String {
+        formatdoc! { "add attr
+     \tset name={}
+     \tset type={}
+     \tset value={}
+     end\n", conf.name, conf.attr_type, conf.value}
+    }
+
     fn string_attr(&self, name: &str, value: &str) -> String {
         formatdoc! { "add attr
      \tset name={}
@@ -130,7 +173,7 @@ impl GurpZoneConfig {
         )
     }
 
-    fn zone_network(&self, conf: &GurpZoneNetwork) -> String {
+    fn zone_net(&self, conf: &GurpZoneNetwork) -> String {
         let mut ret = "add net\n".to_owned();
         ret.push_str(&format!("\tset physical={}\n", conf.physical));
         ret.push_str(&format!("\tset global-nic={}\n", conf.global_nic));
@@ -169,6 +212,9 @@ mod test {
                     :physical "500M"
                     :swap "500M"
                 }
+                (zone-attr "numeric-attr" :value 123)
+                (zone-attr "bool-attr" :type "boolean" :value false)
+                (zone-attr "string-attr" :value "la-de-da")
                 :datasets ["big/zone/fs" "fast/zone/fs"]
                 :dns {:domain "lan.id264.net"
                       :nameservers ["192.168.1.53"
@@ -211,6 +257,21 @@ mod test {
             add capped-memory
             \tset physical=500M
             \tset swap=500M
+            end
+            add attr
+            \tset name=numeric-attr
+            \tset type=uint
+            \tset value=123
+            end
+            add attr
+            \tset name=bool-attr
+            \tset type=boolean
+            \tset value=false
+            end
+            add attr
+            \tset name=string-attr
+            \tset type=astring
+            \tset value=la-de-da
             end
             "};
 
