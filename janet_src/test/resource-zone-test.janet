@@ -1,13 +1,42 @@
 (use judge)
 (use ../lib/gurp)
 
+(deftest "test-zone-attr"
+  (test-error
+    (zone-attr "thing" :type "astring")
+    "zone-attr requires a :value")
+
+  (test
+    (zone-attr "turn-it-on" :value false)
+    {:attr {:name "turn-it-on"
+            :type "boolean"
+            :value false}})
+
+  (test
+    (zone-attr "spandau-ballet-number-1" :value true :type "astring")
+    {:attr {:name "spandau-ballet-number-1"
+            :type "astring"
+            :value "true"}})
+
+  (test
+    (zone-attr "this-is-a-number" :value 123)
+    {:attr {:name "this-is-a-number"
+            :type "uint"
+            :value 123}})
+
+  (test
+    (zone-attr "kernel-ver" :value "4.4")
+    {:attr {:name "kernel-ver"
+            :type "astring"
+            :value "4.4"}}))
+
 (deftest "test-zone-network"
   (test
     (zone-network "test_net0" :allowed-address: "1.2.3.4" :defrouter "1.2.3.1")
-    {:allowed-address: "1.2.3.4"
-     :defrouter "1.2.3.1"
-     :global-nic "auto"
-     :physical "test_net0"}))
+    {:net {:allowed-address: "1.2.3.4"
+           :defrouter "1.2.3.1"
+           :global-nic "auto"
+           :physical "test_net0"}}))
 
 (deftest "test zone padding"
   (setdyn :role-dyn "test-role")
@@ -24,18 +53,21 @@
             :role "test-role"
             :zonepath "/zones/test-zone"}}))
 
-
 (deftest "test zone lx"
   (setdyn :gurp-config-root "/gurpdir")
   (setdyn :role-dyn "test-role")
   (test
     (zone/ensure "test-lx-zone"
+                 (zone-attr "kernel-ver" :value "4.4")
                  :exec-in ["/bin/exec1" "/bin/exec2"]
                  :copy-in {"lx-test/f1" "/etc/file1"
                            "lx-test/f2" "/bin/exec2"}
                  :brand "lx")
     {:zone {:_id "/test-role/zone/test-lx-zone"
             :action :ensure
+            :attrs @[{:attr {:name "kernel-ver"
+                             :type "astring"
+                             :value "4.4"}}]
             :autoboot true
             :boot-after-install true
             :brand "lx"
@@ -72,17 +104,17 @@
             :datasets ["big/zone/fs"]
             :dns {:domain "lan.id264.net"
                   :nameservers ["192.168.1.53" "192.168.1.1"]}
-            :fs @[{:dir "/home"
-                   :special "/export/home"
-                   :type "lofs"}
-                  {:dir "/data"
-                   :special "/export/data"
-                   :type "lofs"}]
+            :fs @[{:fs {:dir "/home"
+                        :special "/export/home"
+                        :type "lofs"}}
+                  {:fs {:dir "/data"
+                        :special "/export/data"
+                        :type "lofs"}}]
             :name "test-zone"
-            :networks @[{:allowed-address "192.168.1.33/24"
-                         :defrouter "192.168.1.1"
-                         :global-nic "auto"
-                         :physical "fs_net0"}]
+            :networks @[{:net {:allowed-address "192.168.1.33/24"
+                               :defrouter "192.168.1.1"
+                               :global-nic "auto"
+                               :physical "fs_net0"}}]
             :recreate 0
             :role "test-role"
             :run-cmd ["/usr/bin/pkg refresh"]

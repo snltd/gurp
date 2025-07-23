@@ -491,18 +491,23 @@
   "Given a zone name and specification, return a zone ensure struct"
   [name & specs]
 
-  (def separated-networks
-    (group-by (fn [i] (and (struct? i) (has-key? i :global-nic))) specs))
+  (def is-net
+    (group-by |(and (struct? $) (deep= @[:net] (keys $))) specs))
 
-  (var modified-specs (tuple ;(separated-networks false) :networks (separated-networks true)))
+  (var modified-specs (tuple ;(is-net false) :networks (is-net true)))
 
-  (def separated-fs
-    (group-by (fn [i] (and (struct? i) (has-key? i :special))) modified-specs))
+  (def is-fs
+    (group-by |(and (struct? $) (deep= @[:fs] (keys $))) modified-specs))
 
-  (set modified-specs (tuple ;(separated-fs false) :fs (separated-fs true)))
+  (if-let fs-list (is-fs true)
+    (set modified-specs (tuple ;(is-fs false) :fs (values fs-list))))
+
+  (def is-attr
+    (group-by |(and (struct? $) (deep= @[:attr] (keys $))) modified-specs))
+
+  (set modified-specs (tuple ;(is-attr false) :attrs (is-attr true)))
 
   (def result (ensure-resource :zone name modified-specs))
-  :publisher {:supported [:uri] :mandatory [:uri]}
 
   (var resource (struct/to-table (result :zone)))
 
@@ -524,12 +529,33 @@
 
 (defn zone-network
   [physical & specs]
-  (struct/proto-flatten
-    (struct/with-proto {:global-nic "auto"}
-                       :physical physical ;specs)))
+  (struct :net
+          (struct/proto-flatten
+            (struct/with-proto {:global-nic "auto"}
+                               :physical physical ;specs))))
 
 (defn zone-fs
   [mountpoint & specs]
-  (struct/proto-flatten
-    (struct/with-proto {:type "lofs"}
-                       :dir mountpoint ;specs)))
+  (struct :fs
+          (struct/proto-flatten
+            (struct/with-proto {:type "lofs"}
+                               :dir mountpoint ;specs))))
+
+(defn zone-attr
+  [name & specs]
+  (def spec-table (table :name name ;specs))
+  (if-not
+    (has-key? spec-table :value)
+    (error "zone-attr requires a :value"))
+
+  (if-not (has-key? spec-table :type)
+    (set (spec-table :type)
+         (match (type (spec-table :value))
+           :number "uint"
+           :boolean "boolean"
+           _ "astring")))
+
+  (if (= "astring" (spec-table :type))
+    (set (spec-table :value) (string (spec-table :value))))
+
+  (struct :attr (table/to-struct spec-table)))
