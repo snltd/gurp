@@ -1,6 +1,13 @@
 (use judge)
 (use ../lib/gurp)
 
+(test-macro
+  (expand-zone-fn :attr)
+  (do
+    (def is-key (group-by (short-fn (and (struct? $) (deep= @[:attr] (keys $)))) modified-specs))
+    (if-let [key-list (is-key true)]
+      (set modified-specs (tuple (splice (is-key false)) :attr (mapcat values key-list))))))
+
 (deftest "test-zone-attr"
   (test-error
     (zone-attr "thing" :type "astring")
@@ -65,9 +72,9 @@
                  :brand "lx")
     {:zone {:_id "/test-role/zone/test-lx-zone"
             :action :ensure
-            :attrs @[{:attr {:name "kernel-ver"
-                             :type "astring"
-                             :value "4.4"}}]
+            :attr @[{:name "kernel-ver"
+                     :type "astring"
+                     :value "4.4"}]
             :autoboot true
             :boot-after-install true
             :brand "lx"
@@ -104,17 +111,17 @@
             :datasets ["big/zone/fs"]
             :dns {:domain "lan.id264.net"
                   :nameservers ["192.168.1.53" "192.168.1.1"]}
-            :fs @[{:fs {:dir "/home"
-                        :special "/export/home"
-                        :type "lofs"}}
-                  {:fs {:dir "/data"
-                        :special "/export/data"
-                        :type "lofs"}}]
+            :fs @[{:dir "/home"
+                   :special "/export/home"
+                   :type "lofs"}
+                  {:dir "/data"
+                   :special "/export/data"
+                   :type "lofs"}]
             :name "test-zone"
-            :networks @[{:net {:allowed-address "192.168.1.33/24"
-                               :defrouter "192.168.1.1"
-                               :global-nic "auto"
-                               :physical "fs_net0"}}]
+            :net @[{:allowed-address "192.168.1.33/24"
+                    :defrouter "192.168.1.1"
+                    :global-nic "auto"
+                    :physical "fs_net0"}]
             :recreate 0
             :role "test-role"
             :run-cmd ["/usr/bin/pkg refresh"]

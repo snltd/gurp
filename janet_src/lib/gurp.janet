@@ -280,8 +280,8 @@
    :user {:supported [:uid :primary-group :home-dir :shell :gecos :password-hash]
           :mandatory [:uid :primary-group :home-dir :shell :gecos]}
    :zfs {:supported [:properties]}
-   :zone {:supported [:brand :run-cmd :dns :properties :zonepath :networks
-                      :autoboot :fs :datasets :exec :attrs :clone-from
+   :zone {:supported [:brand :run-cmd :dns :properties :zonepath :net
+                      :autoboot :fs :datasets :exec :attr :clone-from
                       :boot-after-install :bootstrap-from :recreate
                       :capped-cpu :capped-memory :dedicated-cpu :devices :rctls
                       :security-flags :admins :image :copy-in :exec-in]
@@ -487,40 +487,37 @@
   [name & specs]
   (remove-resource :zfs name specs))
 
+(defmacro expand-zone-fn
+  "Split a specs tuple into 'is' and 'is-not', and turn the 'is'es into a flat
+  array of items"
+  [key]
+  ~(do
+     (def is-key
+       (group-by |(and (struct? $) (deep= @[,key] (keys $))) modified-specs))
+
+     (if-let [key-list (is-key true)]
+       (set modified-specs (tuple ;(is-key false) ,key (mapcat values key-list))))))
+
 (defn zone/ensure
   "Given a zone name and specification, return a zone ensure struct"
   [name & specs]
+  (var modified-specs specs)
+  (expand-zone-fn :net)
+  (expand-zone-fn :attr)
+  (expand-zone-fn :fs)
+  (let [result (ensure-resource :zone name modified-specs)
+        resource (struct/to-table (result :zone))]
 
-  (def is-net
-    (group-by |(and (struct? $) (deep= @[:net] (keys $))) specs))
+    (if-let [copy-resource (resource :copy-in)]
+      (set (resource :copy-in)
+           (table/to-struct
+             (zipcoll (map qualify-from-path (keys copy-resource))
+                      (values copy-resource)))))
 
-  (var modified-specs (tuple ;(is-net false) :networks (is-net true)))
+    (if-not (has-key? resource :zonepath)
+      (set (resource :zonepath) (pathcat "/zones" name)))
 
-  (def is-fs
-    (group-by |(and (struct? $) (deep= @[:fs] (keys $))) modified-specs))
-
-  (if-let fs-list (is-fs true)
-    (set modified-specs (tuple ;(is-fs false) :fs (values fs-list))))
-
-  (def is-attr
-    (group-by |(and (struct? $) (deep= @[:attr] (keys $))) modified-specs))
-
-  (set modified-specs (tuple ;(is-attr false) :attrs (is-attr true)))
-
-  (def result (ensure-resource :zone name modified-specs))
-
-  (var resource (struct/to-table (result :zone)))
-
-  (if-let [copy-resource (resource :copy-in)]
-    (set (resource :copy-in)
-         (table/to-struct
-           (zipcoll (map qualify-from-path (keys copy-resource))
-                    (values copy-resource)))))
-
-  (if-not (has-key? resource :zonepath)
-    (set (resource :zonepath) (pathcat "/zones" name)))
-
-  {:zone (table/to-struct resource)})
+    {:zone (table/to-struct resource)}))
 
 (defn zone/remove
   "Given a zone name and specification, return a zone remove struct"

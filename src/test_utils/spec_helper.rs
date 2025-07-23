@@ -66,11 +66,15 @@ pub fn janet2json(janet_defn: &str) -> String {
     let full_janet = reader::janet_conf("", &dir, GURP_LIB, &defopts(), false).unwrap();
     let json_wrapped_host_config =
         format!("{JSON_LIB}\n{full_janet}\n(encode (first (values {janet_defn})))");
+    println!("{json_wrapped_host_config}");
     let client = janet_client();
     let ret = match client.run(json_wrapped_host_config) {
         Ok(janet) => janet,
-        Err(e) => panic!("janet2jason ERROR: {e}"),
+        Err(e) => panic!("janet2json ERROR: {e}"),
     };
+
+    println!("{:?}", ret);
+
     match ret.unwrap() {
         TaggedJanet::Buffer(str) => str.to_string(),
         _ => panic!("no buffer from Janet"),
