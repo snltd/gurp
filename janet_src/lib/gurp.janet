@@ -552,7 +552,7 @@
            :boolean "boolean"
            _ "string")))
 
-  (if (= "astring" (spec-table :type))
+  (if (= "string" (spec-table :type))
     (set (spec-table :value) (string (spec-table :value))))
 
   (struct :attr (table/to-struct spec-table)))
