@@ -550,9 +550,9 @@
          (match (type (spec-table :value))
            :number "uint"
            :boolean "boolean"
-           _ "astring")))
+           _ "string")))
 
-  (if (= "astring" (spec-table :type))
+  (if (= "string" (spec-table :type))
     (set (spec-table :value) (string (spec-table :value))))
 
   (struct :attr (table/to-struct spec-table)))

@@ -270,7 +270,7 @@ mod test {
             end
             add attr
             \tset name=string-attr
-            \tset type=astring
+            \tset type=string
             \tset value=la-de-da
             end
             "};
