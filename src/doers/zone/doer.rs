@@ -120,9 +120,9 @@ impl GurpZoneEnsure {
         tracing::debug!("zone {}: installed", self.name);
         self.boot_zone()?;
         self.postinstall_zone()?;
-        self.exec_in()?;
         self.copy_in()?;
         self.bootstrap_zone(opts)?;
+        self.exec_in()?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
@@ -152,9 +152,9 @@ impl GurpZoneEnsure {
         tracing::debug!("zone {}: cloned", self.name);
         self.boot_zone()?;
         self.postinstall_zone()?;
-        self.exec_in()?;
         self.copy_in()?;
         self.bootstrap_zone(opts)?;
+        self.exec_in()?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
@@ -226,6 +226,7 @@ impl GurpZoneEnsure {
         //
         //
         if let Some(host_config) = &self.config.bootstrap_from {
+            tracing::info!("BEGIN BOOTSTRAP {} [{}]", self.name, host_config);
             let mut bootstrap_command = "/var/tmp/gurp ".to_owned();
 
             if opts.debug {
@@ -239,6 +240,7 @@ impl GurpZoneEnsure {
 
             self.copy_to_zone(&this_exec, "/var/tmp/gurp")?;
             run_zlogin_cmd(&self.name, &bootstrap_command)?;
+            tracing::info!("END BOOTSTRAP {}", self.name);
         }
 
         Ok(())
@@ -305,12 +307,6 @@ fn run_zlogin_cmd(zone: &str, command: &str) -> anyhow::Result<()> {
     cmd.stderr(Stdio::inherit());
 
     tracing::debug!(command = helpers::command_to_string(&cmd));
-
-    let status = cmd.status()?;
-
-    if !status.success() {
-        anyhow::bail!("command failed with status: {}", status);
-    }
 
     let output = cmd.output()?;
 
