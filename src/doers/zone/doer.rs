@@ -224,10 +224,15 @@ impl GurpZoneEnsure {
         // our own executable into the zone, and trust the user that the file they gave us is
         // there, and can access all the roles and files it needs.
         //
-        //
         if let Some(host_config) = &self.config.bootstrap_from {
             tracing::info!("BEGIN BOOTSTRAP {} [{}]", self.name, host_config);
-            let mut bootstrap_command = "/var/tmp/gurp ".to_owned();
+            let mut bootstrap_command = String::new();
+
+            if let Some(log_level) = env::var_os("RUST_LOG") {
+                bootstrap_command.push_str(&format!("RUST_LOG={} ", log_level.to_string_lossy()));
+            }
+
+            bootstrap_command.push_str("/var/tmp/gurp ");
 
             if opts.debug {
                 bootstrap_command.push_str("--debug ");
@@ -301,7 +306,6 @@ fn run_zlogin_cmd(zone: &str, command: &str) -> anyhow::Result<()> {
     // Pass the RUST_LOG env var through, because we may be running an instance of this program
     let mut cmd = Command::new(ZLOGIN_BIN);
     cmd.arg(zone);
-    cmd.env("RUST_LOG", env::var_os("RUST_LOG").unwrap_or_default());
     cmd.args(command.split_whitespace().collect::<Vec<_>>());
     cmd.stdout(Stdio::inherit());
     cmd.stderr(Stdio::inherit());
