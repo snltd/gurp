@@ -66,6 +66,13 @@ impl GurpFileEnsure {
             );
         }
 
+        if let Some(source_file) = &self.desired_state.from {
+            if !source_file.exists() {
+                tracing::error!("source file {} not found", source_file);
+                bail!("Fatal error in file doer");
+            }
+        }
+
         let raw_content = if let Some(content_str) = &self.desired_state.content {
             Some(Cow::Borrowed(content_str))
         } else if self.desired_state.ignore_pattern.is_some() {

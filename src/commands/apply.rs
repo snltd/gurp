@@ -12,7 +12,7 @@ pub fn run(
     let apply_summary = match host::apply(host_config_file, gurp_lib_path, global_opts) {
         Ok(result) => result,
         Err(e) => {
-            tracing::error!("apply error: {}", e);
+            tracing::error!("apply error on {}: {}", host_config_file, e);
             return 1;
         }
     };
