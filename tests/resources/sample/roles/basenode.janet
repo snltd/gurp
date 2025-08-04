@@ -50,6 +50,8 @@
 
       (section good-sense
                (file-line/ensure "/etc/profile"
+                                 :label "set-vi"
                                  :line "set -o vi")
                (file-line/ensure "/etc/profile"
+                                 :label "set-path"
                                  :line "PATH=${PATH}:/opt/ooce/bin")))

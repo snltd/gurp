@@ -1,21 +1,25 @@
 (use judge)
 (use ../lib/gurp)
 
-(deftest publisher
-  (test
-    (publisher/ensure "sysdef"
-                      :uri "http://pkg.lan.id264.net")
-    {:publisher {:_id "/NO-ROLE/publisher/sysdef"
-                 :action :ensure
-                 :name "sysdef"
-                 :uri "http://pkg.lan.id264.net"}})
+(deftest "publisher-resources"
+  (setdyn :role-dyn "test-role")
+  (set *collector* (new-collector))
 
+  (publisher/ensure "sysdef"
+                    :uri "http://pkg.lan.id264.net")
+
+  (publisher/remove "sysdef")
+
+  (test *collector*
+        @{:ensure @{:publisher @[{:_id "/test-role/publisher/sysdef"
+                                  :name "sysdef"
+                                  :role "test-role"
+                                  :uri "http://pkg.lan.id264.net"}]}
+          :remove @{:publisher @[{:_id "/test-role/publisher/sysdef"
+                                  :name "sysdef"
+                                  :role "test-role"}]}}))
+
+(deftest "publisher-error"
   (test-error
     (publisher/ensure "sysdef")
-    "Failed to validate user input for publisher 'sysdef' : publisher missing required key(s): uri")
-
-  (test
-    (publisher/remove "sysdef")
-    {:publisher {:_id "/NO-ROLE/publisher/sysdef"
-                 :action :remove
-                 :name "sysdef"}}))
+    "Failed to validate user input for publisher 'sysdef' : publisher missing required key(s): uri"))

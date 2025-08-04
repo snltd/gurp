@@ -1,6 +1,8 @@
 (use judge)
 (use ../lib/gurp)
 
+(set *collector* (new-collector))
+
 # These files should all end up with the same owner
 
 (role role-a
@@ -28,38 +30,35 @@
 
 (deftest "references-should-all-resolve"
   (test (machine-config)
-    {:metadata {:name "circular-dependency"}
-     :resources {:ensure {:file @[{:_id "/role-a/file/a1"
-                                   :action :ensure
-                                   :content "blah"
-                                   :group "sysadmin"
-                                   :label "a1"
-                                   :mode "0644"
-                                   :name "/tmp/a1"
-                                   :owner "tester"
-                                   :role "role-a"}
-                                  {:_id "/role-b/file/_tmp_b1"
-                                   :action :ensure
-                                   :content "blah-blah"
-                                   :group "sysadmin"
-                                   :mode "0644"
-                                   :name "/tmp/b1"
-                                   :owner "tester"
-                                   :role "role-b"}
-                                  {:_id "/role-b/file/b2"
-                                   :action :ensure
-                                   :content "blah-blah-blah"
-                                   :group "root"
-                                   :label "b2"
-                                   :mode "0644"
-                                   :name "/tmp/b2"
-                                   :owner "tester"
-                                   :role "role-b"}
-                                  {:_id "/role-b/file/_tmp_b3"
-                                   :action :ensure
-                                   :content "blah-blah-blah"
-                                   :group "root"
-                                   :mode "0644"
-                                   :name "/tmp/b3"
-                                   :owner "tester"
-                                   :role "role-b"}]}}}))
+        {:metadata {:name "circular-dependency"}
+         :resources {:ensure @{:file @[{:_id "/role-a/file/a1"
+                                         :content "blah"
+                                         :group "sysadmin"
+                                         :label "a1"
+                                         :mode "0644"
+                                         :name "/tmp/a1"
+                                         :owner "tester"
+                                         :role "role-a"}
+                                        {:_id "/role-b/file/_tmp_b1"
+                                         :content "blah-blah"
+                                         :group "sysadmin"
+                                         :mode "0644"
+                                         :name "/tmp/b1"
+                                         :owner "tester"
+                                         :role "role-b"}
+                                        {:_id "/role-b/file/b2"
+                                         :content "blah-blah-blah"
+                                         :group "root"
+                                         :label "b2"
+                                         :mode "0644"
+                                         :name "/tmp/b2"
+                                         :owner "tester"
+                                         :role "role-b"}
+                                        {:_id "/role-b/file/_tmp_b3"
+                                         :content "blah-blah-blah"
+                                         :group "root"
+                                         :mode "0644"
+                                         :name "/tmp/b3"
+                                         :owner "tester"
+                                         :role "role-b"}]}
+         :remove @{}}}))

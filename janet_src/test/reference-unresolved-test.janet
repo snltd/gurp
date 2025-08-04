@@ -1,6 +1,8 @@
 (use judge)
 (use ../lib/gurp)
 
+(set *collector* (new-collector))
+
 # The reference points to something which does not exist, so should error
 
 (role role-a

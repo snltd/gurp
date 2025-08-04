@@ -1,5 +1,13 @@
 (use ./defaults) ## removed in internal library
 
+(defn new-collector [] @{:ensure @{} :remove @{}})
+
+# Yes, a global variable. It collects all the resources from the host we
+# are configuring. :ensure and :remove are tables whose keys are resource
+# types and values are arrays of resources
+# 
+(var *collector* (new-collector))
+
 # For now this is a shim around the hardcoded fallbacks. In the future we'll
 # let the user supply their own. Not sure how, yet.
 (defn- proto
@@ -51,12 +59,13 @@
     (pathcat (dyn :gurp-config-root) "files" file-name)))
 
 (defn resource-id
+  "Uniformly generate a resource ID"
   [resource-type resource-name resource-spec]
-  (string "/" (dyn :role-dyn "NO-ROLE")
-          "/" resource-type
-          "/" (get (table ;resource-spec) :label
-                   (string/replace-all "/" "_" resource-name))))
-
+  (string/format "/%s/%s/%s"
+                 (dyn :role-dyn "NO-ROLE")
+                 resource-type
+                 (get (table ;resource-spec) :label
+                      (string/replace-all "/" "_" resource-name))))
 
 (defn this-host
   "Returns the name of the host, which is set by a dyn in the host macro"
@@ -78,6 +87,70 @@
   []
   (keyword (this-role)))
 
+(defn check-unique-ids
+  "If there are any duplicate resource IDs, thrown an error"
+  [resource-list]
+  (let [seen (table)]
+    (loop [id :in (map |($ :_id) resource-list)]
+      (if (has-key? seen id) (error (string "duplicate key: " id))
+        (set (seen id) true)))
+    true))
+
+(defn- resolve-reference
+  "Recursively chase down references. Catches circular and dangling"
+  [target flat-resources seen]
+  (let [last-sep (last (string/find-all "/" target))
+        chunks (string/split "/" target last-sep)
+        id (first chunks)
+        field (keyword (last chunks))
+        referenced-struct (find |(= id (get $ :_id)) flat-resources)]
+
+    (if (nil? referenced-struct)
+      (error (string/format "Referenced resource '%s' not found" id)))
+
+    (if (has-value? seen id)
+      (error (string/format "Detected circular reference [%q]" seen)))
+
+    (set (seen id) true)
+    (def referenced-val (referenced-struct field))
+
+    (if (keyword? referenced-val)
+      (resolve-reference referenced-val flat-resources seen)
+      referenced-val)))
+
+(defn- resolve-resource-references
+  "Update any references in a resource with their final targets"
+  [resource flat-resources]
+  (loop [[k v] :pairs resource]
+    (if (keyword? v)
+      (set (resource k) (resolve-reference v flat-resources @{}))))
+  resource)
+
+(defn resolved-list
+  "resource-list is a list of resources of the same type"
+  [resource-list flat-resources]
+  (map
+    |(table/to-struct (resolve-resource-references (struct/to-table $)
+                                                   flat-resources))
+    resource-list))
+
+(defn- finalise-action
+  "Check there are no duplicate IDs, and resolve any references"
+  [resources]
+  (let [flat-resources (mapcat values resources)]
+    (var ret @{})
+
+    (loop [[resource-type resource-list] :pairs resources]
+      (do
+        (check-unique-ids resource-list)
+        (set (ret resource-type) (resolved-list resource-list flat-resources))))
+    ret))
+
+(defn finalise
+  [collector]
+  {:ensure (finalise-action (collector :ensure))
+   :remove (finalise-action (collector :remove))})
+
 (defmacro host
   "The top-level wrapper used to define a host to be configured"
   [host-name & host-definition]
@@ -85,86 +158,17 @@
      (setdyn :host-dyn (string ,host-name))
      (defn machine-config
        []
+       ,;host-definition
        {:metadata {:name ,host-name}
-        :resources (group-by-action-and-type (flatten (tuple ,;host-definition)))})))
-
-
-(defn group-by-action-and-type
-  "Turns an array of resources into a struct of structs, and resolves references."
-  [data]
-
-  # We'll assume all structs are resources. That lets us put any other code
-  # anywhere we like
-  # 
-  (def data (clean-data data))
-  (def flat-data (mapcat values data))
-
-  (var resolve-reference nil)
-  (set resolve-reference
-       (fn [val seen]
-         (if (keyword? val)
-           (let [last-sep (last (string/find-all "/" val))
-                 chunks (string/split "/" val last-sep)
-                 id (first chunks)
-                 field (keyword (last chunks))
-                 referenced-struct (find |(= id (get $ :_id)) flat-data)]
-
-             (if (nil? referenced-struct)
-               (error (string/format "Referenced resource '%s' not found" id)))
-
-             (if (has-value? seen id)
-               (error (string/format "Detected circular reference [%q]" seen)))
-
-             (array/push seen id)
-
-             (def referenced-val (referenced-struct field))
-
-             (if (keyword? referenced-val)
-               (resolve-reference referenced-val seen)
-               referenced-val))
-           val)))
-
-  (defn resolve-resource [res]
-    (struct
-      ;(mapcat |
-               [$ (if (= $ :action) (res $) (resolve-reference (res $) @[]))]
-               (keys res))))
-
-  (defn collate [aggr item]
-    (each resource-type (keys item)
-      (let [resource-raw (item resource-type)
-            resource (resolve-resource resource-raw)
-            action (resource :action)]
-        (when action
-          (if-not (aggr action)
-            (put aggr action @{}))
-          (put aggr action
-               (let [curr-map (aggr action)
-                     curr-list (get curr-map resource-type @[])]
-                 (put curr-map resource-type (array/concat curr-list [resource]))
-                 curr-map))))) aggr)
-
-  (var ret (reduce collate @{} data))
-  (each k (keys ret) (put ret k (table/to-struct (ret k))))
-  (table/to-struct ret))
-
-(defn collect-resources
-  "Helper function for the role macro"
-  [& resource-structs]
-  (flatten (array ;resource-structs)))
-
+        :resources (finalise *collector*)})))
 
 (defmacro role
   "Holder for role definitions"
   [role-name & role-definition]
   ~(defn ,role-name
      []
-     (def collector @[])
      (setdyn :role-dyn (string ',role-name))
-     (collect-resources collector ,;role-definition)))
-
-(defmacro add [& args]
-  ~(array/push collector ,;args))
+     ,;role-definition))
 
 (defmacro section
   "A no-op which might help you write readable definitions"
@@ -289,21 +293,36 @@
 
 (defn- validate-ensure-spec
   [resource-type resource-name resource-spec]
-  (def user-keys (filter |(not (= :label $)) (keys (struct ;resource-spec))))
-  (def valid-keys (get resource-ensure-keys resource-type {}))
-  (def mandatory-keys (get valid-keys :mandatory []))
-  (def supported-keys (tuple :label ;(get valid-keys :supported [])))
+  (let [user-keys (filter |(not (= :label $)) (keys (struct ;resource-spec)))
+        valid-keys (get resource-ensure-keys resource-type {})
+        mandatory-keys (get valid-keys :mandatory [])
+        supported-keys (tuple :label ;(get valid-keys :supported []))]
 
-  (def missing-mandatory (filter |(not (has-value? user-keys $)) mandatory-keys))
-  (if-not (empty? missing-mandatory)
-    (error (string resource-type " missing required key(s): " (string/join missing-mandatory ", "))))
+    (let [missing-mandatory (filter |(not (has-value? user-keys $)) mandatory-keys)]
+      (if-not (empty? missing-mandatory)
+        (error
+          (string/format "%s missing required key(s): %s"
+                         resource-type
+                         (string/join missing-mandatory ", ")))))
 
-  (def unrecognised (filter |(not (has-value? supported-keys $)) user-keys))
-  (if-not (empty? unrecognised)
-    (error (string/format "%s '%s' has unrecognised key(s): %s" resource-type resource-name (string/join unrecognised ", ")))))
+    (let [unrecognised (filter |(not (has-value? supported-keys $)) user-keys)]
+      (if-not (empty? unrecognised)
+        (error
+          (string/format "%s '%s' has unrecognised key(s): %s"
+                         resource-type
+                         resource-name
+                         (string/join unrecognised ", ")))))))
 
 (defn- validate-remove-spec
   [resource-type resource-spec])
+
+(defn- collect
+  "Put a resource into the collector"
+  [action resource-type resource]
+  (let [action-struct (*collector* action)]
+    (if-not (has-key? action-struct resource-type)
+      (set (action-struct resource-type) (array)))
+    (array/concat (action-struct resource-type) (first (values resource)))))
 
 (defn- ensure-resource
   "Creates a resource struct of the given type and name. The role is picked up
@@ -321,7 +340,6 @@
       :_id (resource-id resource-type resource-name resource-spec)
       :role (dyn :role-dyn)
       :name resource-name
-      :action :ensure
       (splice resource-spec))
     (struct/proto-flatten)
     (merge)
@@ -335,7 +353,6 @@
   (validate-remove-spec resource-type resource-spec)
   (struct resource-type
           (struct :_id (resource-id resource-type resource-name resource-spec)
-                  :action :remove
                   :role (dyn :role-dyn)
                   :name resource-name
                   (splice resource-spec))))
@@ -343,153 +360,156 @@
 (defn cron/ensure
   "Given a name and specification, return a cron ensure struct"
   [name & specs]
-  (ensure-resource :cron name specs))
+  (collect :ensure :cron (ensure-resource :cron name specs)))
 
 (defn cron/remove
   "Given a name and specification, return a cron remove struct"
   [name & specs]
-  (remove-resource :cron name specs))
+  (collect :remove :cron (remove-resource :cron name specs)))
 
 (defn directory/ensure
   "Given a directory name and specification, return a directory ensure struct"
   [name & specs]
-  (ensure-resource :directory name specs))
+  (collect :ensure :directory (ensure-resource :directory name specs)))
 
 (defn directory/remove
   "Given a directory name and specification, return a directory remove struct"
   [name & specs]
-  (remove-resource :directory name specs))
+  (collect :remove :directory (remove-resource :directory name specs)))
 
 (defn file/ensure
   "Given a file name and specification, return a file ensure struct"
   [name & specs]
-  (def result (ensure-resource :file name specs))
-  (var resource (struct/to-table (result :file)))
+  (let [result (ensure-resource :file name specs)
+        resource (struct/to-table (result :file))]
 
-  (if-let [from-path (resource :from)]
-    (do
-      (set (resource :from) (qualify-from-path from-path))
-      {:file (table/to-struct resource)})
-    result))
+    (def final-resource
+      (if-let [from-path (resource :from)]
+        (do
+          (set (resource :from) (qualify-from-path from-path))
+          {:file (table/to-struct resource)})
+        result))
+
+    (collect :ensure :file final-resource)))
 
 (defn file/remove
   "Given a file name and specification, return a file remove struct"
   [name & specs]
-  (remove-resource :file name specs))
+  (collect :remove :file (remove-resource :file name specs)))
 
 (defn file-line/ensure
   "Given a file name and a line pattern, make sure the file contains the line"
   [name & specs]
-  (ensure-resource :file-line name specs))
+  (collect :ensure :file-line (ensure-resource :file-line name specs)))
 
 (defn file-line/remove
   "Given a file name and a line pattern, make sure the file does not contain the line"
   [name & specs]
-  (remove-resource :file-line name specs))
+  (collect :remove :file-line (remove-resource :file-line name specs)))
 
 (defn gem/ensure
   "Given a a gem name, return a gem ensure struct"
   [name & specs]
-  (ensure-resource :gem name specs))
+  (collect :ensure :gem (ensure-resource :gem name specs)))
 
 (defn gem/remove
   "Given a gem name, return a gem remove struct"
   [name & specs]
-  (remove-resource :gem name specs))
+  (collect :remove :gem (remove-resource :gem name specs)))
 
 (defn misc/ensure
   "Sets miscellaneous system properties"
   [& specs]
-  (ensure-resource :misc "GENERIC" specs))
+  (collect :ensure :misc (ensure-resource :misc "GENERIC" specs)))
 
 (defn pkg/ensure
   "Given a a pkg name, return a pkg ensure struct. In OmniOS, the
   pkg version is effectively part of the name, so there are no parameters"
   [name & specs]
-  (ensure-resource :pkg name specs))
+  (collect :ensure :pkg (ensure-resource :pkg name specs)))
 
 (defn pkg/remove
   "Given a pkg name, return a pkg remove struct"
   [name & specs]
-  (remove-resource :pkg name specs))
+  (collect :remove :pkg (remove-resource :pkg name specs)))
 
 (defn publisher/ensure
   "Given a a publisher name, return a publisher ensure struct"
   [name & specs]
-  (ensure-resource :publisher name specs))
+  (collect :ensure :publisher (ensure-resource :publisher name specs)))
 
 (defn publisher/remove
   "Given a publisher name, return a publisher remove struct"
   [name & specs]
-  (remove-resource :publisher name specs))
+  (collect :remove :publisher (remove-resource :publisher name specs)))
 
 (defn smf/ensure
   "Given a name and a manifest description, return an smf ensure struct"
   [name & specs]
-  (def res (ensure-resource :smf name specs))
-
-  # Protos don't nest, so we need to do a little bit of work on the sub-structs
-  (var result @{:svc-name name})
-  (loop [[k v] :pairs (res :smf)]
-    (put result k
-         (if (struct? v) (table/to-struct (merge (proto k) v)) v)))
-  {:smf (table/to-struct result)})
+  (let [res (ensure-resource :smf name specs)
+        result @{:svc-name name}]
+    (loop [[k v] :pairs (res :smf)]
+      (put result k
+           (if (struct? v) (table/to-struct (merge (proto k) v)) v)))
+    (collect :ensure :smf {:smf (table/to-struct result)})))
 
 (defn svc/ensure
   "Given a name and state, return a svc ensure struct"
   [name & specs]
-  (ensure-resource :svc name specs))
+  (collect :ensure :svc (ensure-resource :svc name specs)))
 
 (defn svcprop/ensure
   "Given a name and state, return a svcprop ensure struct"
   [name & specs]
-  (def spec-table (table ;specs))
-  (var new-properties
-    (map (fn [v]
-           (match (type v)
-             :keyword v
-             :number {:type "integer" :value v}
-             :boolean {:type "boolean" :value v}
-             _ {:type "astring" :value v})) (flatten (pairs (spec-table :properties)))))
+  (let [result (ensure-resource :svcprop name specs)]
+    (var resource (struct/to-table (result :svcprop)))
 
-  (set (spec-table :properties) (table ;new-properties))
-  (ensure-resource :svcprop name (kvs spec-table) :no-validate))
+    (var new-properties
+      (map (fn [v]
+             (match (type v)
+               :keyword v
+               :number {:type "integer" :value v}
+               :boolean {:type "boolean" :value v}
+               _ {:type "astring" :value v}))
+           (flatten (pairs (resource :properties)))))
 
+    (set (resource :properties) (struct ;new-properties))
+    (collect :ensure :svcprop (struct :svcprop (table/to-struct resource)))))
 
 (defn svcprop/remove
   "Given a name and state, return a svcprop remove struct"
   [name & specs]
-  (remove-resource :svcprop name specs))
+  (collect :remove :svcprop (remove-resource :svcprop name specs)))
 
 (defn symlink/ensure
   "Given a symlink name and specification, return a symlink ensure struct"
   [name & specs]
-  (ensure-resource :symlink name specs))
+  (collect :ensure :symlink (ensure-resource :symlink name specs)))
 
 (defn symlink/remove
   "Given a symlink name and specification, return a symlink remove struct"
   [name & specs]
-  (remove-resource :symlink name specs))
+  (collect :remove :symlink (remove-resource :symlink name specs)))
 
 (defn user/ensure
   "Given a user name and specification, return a user ensure struct"
   [name & specs]
-  (ensure-resource :user name specs))
+  (collect :ensure :user (ensure-resource :user name specs)))
 
 (defn user/remove
   "Given a user name and specification, return a user remove struct"
   [name & specs]
-  (remove-resource :user name specs))
+  (collect :remove :user (remove-resource :user name specs)))
 
 (defn zfs/ensure
   "Given a zfs dataset name and specification, return a zfs ensure struct"
   [name & specs]
-  (ensure-resource :zfs name specs :no-validate))
+  (collect :ensure :zfs (ensure-resource :zfs name specs)))
 
 (defn zfs/remove
   "Given a zfs dataset name and specification, return a zfs remove struct"
   [name & specs]
-  (remove-resource :zfs name specs))
+  (collect :remove :zfs (remove-resource :zfs name specs)))
 
 (defmacro expand-zone-fn
   "Split a specs tuple into 'is' and 'is-not', and turn the 'is'es into a flat
@@ -521,12 +541,12 @@
     (if-not (has-key? resource :zonepath)
       (set (resource :zonepath) (pathcat "/zones" name)))
 
-    {:zone (table/to-struct resource)}))
+    (collect :ensure :zone {:zone (table/to-struct resource)})))
 
 (defn zone/remove
   "Given a zone name and specification, return a zone remove struct"
   [name & specs]
-  (remove-resource :zone name specs))
+  (collect :remove :zone (remove-resource :zone name specs)))
 
 (defn zone-network
   [physical & specs]
@@ -544,7 +564,7 @@
 
 (defn zone-attr
   [name & specs]
-  (def spec-table (table :name name ;specs))
+  (var spec-table (table :name name ;specs))
   (if-not
     (has-key? spec-table :value)
     (error "zone-attr requires a :value"))
