@@ -27,4 +27,4 @@
     (misc/ensure
       :scheduler-class "FSS"
       :enable-smb "rob")
-    "misc 'GENERIC' has unrecognised key(s): scheduler-class"))
+    "Failed to validate user input for misc 'GENERIC' : misc 'GENERIC' has unrecognised key(s): scheduler-class"))

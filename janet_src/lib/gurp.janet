@@ -310,7 +310,11 @@
   from a role-specific dynamic binding, to cut down on user boilerplate"
   [resource-type resource-name resource-spec & opts]
   (if-not (has-value? opts :no-validate)
-    (validate-ensure-spec resource-type resource-name resource-spec))
+    (try
+      (validate-ensure-spec resource-type resource-name resource-spec)
+      ([e]
+        (error
+          (string "Failed to validate user input for " resource-type " '" resource-name "' : " e)))))
   (->>
     (struct/with-proto
       (proto resource-type)

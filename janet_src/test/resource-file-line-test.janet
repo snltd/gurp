@@ -14,14 +14,14 @@
 
   (test-error
     (file-line/ensure "/missing/line")
-    "file-line missing required key(s): line")
+    "Failed to validate user input for file-line '/missing/line' : file-line missing required key(s): line")
 
   (test-error
     (file-line/ensure "/missing/line"
                       :line "and"
                       :after "gibbus"
                       :before "chubb")
-    "file-line '/missing/line' has unrecognised key(s): before, after")
+    "Failed to validate user input for file-line '/missing/line' : file-line '/missing/line' has unrecognised key(s): before, after")
 
   (test
     (file-line/remove "/path/to/file"

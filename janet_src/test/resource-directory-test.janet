@@ -46,7 +46,7 @@
                       :owner "me"
                       :gid 234
                       :recursive true)
-    "directory '/extra/keys' has unrecognised key(s): recursive, gid")
+    "Failed to validate user input for directory '/extra/keys' : directory '/extra/keys' has unrecognised key(s): recursive, gid")
 
   (test
     (directory/remove "/path/to/dir")

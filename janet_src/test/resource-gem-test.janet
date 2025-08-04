@@ -13,7 +13,7 @@
   (test-error
     (gem/ensure "wavefront-sdk"
                 :version 11)
-    "gem 'wavefront-sdk' has unrecognised key(s): version")
+    "Failed to validate user input for gem 'wavefront-sdk' : gem 'wavefront-sdk' has unrecognised key(s): version")
 
   (test
     (gem/remove "webscale")
