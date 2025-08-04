@@ -20,6 +20,7 @@
    :directory {:owner "root"
                :mode "0755"
                :group "root"}
+   :zfs {:properties {:mountpoint: "none"}}
    :zone {:autoboot true
           :recreate 0
           :boot-after-install true}})
