@@ -17,8 +17,8 @@
 
 (role physical
       (zfs/ensure "rpool/zones/gurp/test"
-                  :options {:compression "on"
-                            :devices "on"})
+                  :properties {:compression "on"
+                               :devices "on"})
       (section "dns"
                (file/ensure "/etc/resolv.conf" :content resolv.conf))
 
