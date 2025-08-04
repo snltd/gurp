@@ -1,6 +1,8 @@
 (use judge)
 (use ../lib/gurp)
 
+(set *collector* (new-collector))
+
 # The references are circular, so should cause an error. We also test references
 # using a label and a derived name.
 

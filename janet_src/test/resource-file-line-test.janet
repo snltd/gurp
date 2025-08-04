@@ -3,19 +3,25 @@
 
 (deftest "test file-line functions"
   (setdyn :role-dyn "test-role")
-  (test
-    (file-line/ensure "/path/to/file"
-                      :line "i-want-to-see-this")
-    {:file-line {:_id "/test-role/file-line/_path_to_file"
-                 :action :ensure
-                 :line "i-want-to-see-this"
-                 :name "/path/to/file"
-                 :role "test-role"}})
+  (set *collector* (new-collector))
 
-  (test-error
-    (file-line/ensure "/missing/line")
-    "Failed to validate user input for file-line '/missing/line' : file-line missing required key(s): line")
+  (file-line/ensure "/path/to/file"
+                    :line "i-want-to-see-this")
 
+  (file-line/remove "/path/to/file"
+                    :line "this-is-an-awful-line")
+
+  (test *collector*
+        @{:ensure @{:file-line @[{:_id "/test-role/file-line/_path_to_file"
+                                  :line "i-want-to-see-this"
+                                  :name "/path/to/file"
+                                  :role "test-role"}]}
+          :remove @{:file-line @[{:_id "/test-role/file-line/_path_to_file"
+                                  :line "this-is-an-awful-line"
+                                  :name "/path/to/file"
+                                  :role "test-role"}]}}))
+
+(deftest "file-line-error"
   (test-error
     (file-line/ensure "/missing/line"
                       :line "and"
@@ -23,11 +29,6 @@
                       :before "chubb")
     "Failed to validate user input for file-line '/missing/line' : file-line '/missing/line' has unrecognised key(s): before, after")
 
-  (test
-    (file-line/remove "/path/to/file"
-                      :line "this-is-an-awful-line")
-    {:file-line {:_id "/test-role/file-line/_path_to_file"
-                 :action :remove
-                 :line "this-is-an-awful-line"
-                 :name "/path/to/file"
-                 :role "test-role"}}))
+  (test-error
+    (file-line/ensure "/missing/line")
+    "Failed to validate user input for file-line '/missing/line' : file-line missing required key(s): line"))
