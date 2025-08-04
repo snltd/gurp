@@ -375,6 +375,32 @@ mod test {
     }
 
     #[test]
+    fn test_create_binary_file_setuid() {
+        let temp = TempDir::new().unwrap();
+        let file = temp.join("binary-file");
+        let path = Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap();
+        assert!(!path.exists());
+
+        let sut = GurpFileEnsure {
+            id: "IRRELEVANT".to_owned(),
+            path: path.clone(),
+            desired_state: DesiredFileState {
+                group: my_group(),
+                mode: "2755".to_owned(),
+                owner: my_user(),
+                content: None,
+                ignore_pattern: None,
+                from: Some(fixture("doers/file/binary-file")),
+            },
+        };
+
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        let metadata = fs::metadata(&path).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o7777, 0o2755);
+        assert!(path.exists());
+    }
+
+    #[test]
     fn test_file_create_from_template() {
         let temp = TempDir::new().unwrap();
         let file = temp.join("test-file");
