@@ -26,4 +26,4 @@
 (deftest "circular-reference-should-error"
   (test-error
   (machine-config)
-    "file 'b2' has unrecognised key(s): path"))
+    "Failed to validate user input for file 'b2' : file 'b2' has unrecognised key(s): path"))

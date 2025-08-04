@@ -34,7 +34,7 @@
                 :start-method {:exec "/opt/site/lib/smf/method/telegraf.sh" }
                 :refresh-method {:exec ":kill -THAW"}
                 :gibbus-method {:exec "gibbus"})
-    "smf 'telegraf' has unrecognised key(s): gibbus-method")
+    "Failed to validate user input for smf 'telegraf' : smf 'telegraf' has unrecognised key(s): gibbus-method")
 
   (test-error
     (smf/ensure "telegraf"
@@ -42,4 +42,4 @@
                                :context {:user "telegraf"
                                          :group "daemon"
                                          :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"}})
-    "smf missing required key(s): description, fmri"))
+    "Failed to validate user input for smf 'telegraf' : smf missing required key(s): description, fmri"))

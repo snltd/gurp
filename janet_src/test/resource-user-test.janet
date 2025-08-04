@@ -25,7 +25,7 @@
   (test-error
     (user/ensure "wat"
                  :uid 100)
-    "user missing required key(s): primary-group, home-dir, shell, gecos")
+    "Failed to validate user input for user 'wat' : user missing required key(s): primary-group, home-dir, shell, gecos")
 
   (test-error
     (user/ensure "rob"
@@ -37,7 +37,7 @@
                  :shell "/bin/zsh"
                  :gecos "Test User"
                  :password-hash "w0934cm-4i5c-42u5cn492hrc97h234ui")
-    "user 'rob' has unrecognised key(s): height, hair")
+    "Failed to validate user input for user 'rob' : user 'rob' has unrecognised key(s): height, hair")
 
   (test
     (user/remove "lolex")
