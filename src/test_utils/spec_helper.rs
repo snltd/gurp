@@ -1,16 +1,17 @@
 #[cfg(test)]
-use crate::common::types::Opts;
-use camino::Utf8PathBuf;
-use std::env::current_dir;
-
+use crate::common::constants::GURP_LIB;
 #[cfg(test)]
-use crate::common::constants::{GURP_LIB, JSON_LIB};
+use crate::common::types::Opts;
+#[cfg(test)]
+use crate::utils::janet_helpers;
 #[cfg(test)]
 use crate::utils::janet_helpers::janet_client;
 #[cfg(test)]
 use crate::utils::reader;
+use camino::Utf8PathBuf;
 #[cfg(test)]
-use janetrs::TaggedJanet;
+use janetrs::{TaggedJanet, env::CFunOptions};
+use std::env::current_dir;
 
 #[cfg(test)]
 use std::fs;
@@ -64,19 +65,19 @@ pub fn my_group() -> String {
 pub fn janet2json(janet_defn: &str) -> String {
     let dir = Utf8PathBuf::from_path_buf(current_dir().unwrap()).unwrap();
     let full_janet = reader::janet_conf("", &dir, GURP_LIB, &defopts(), false).unwrap();
-    let json_wrapped_host_config =
-        format!("{JSON_LIB}\n{full_janet}\n(encode (first (values {janet_defn})))");
-    println!("{json_wrapped_host_config}");
-    let client = janet_client();
+    let json_wrapped_host_config = format!("{full_janet}\n(encode (first (values {janet_defn})))");
+    // println!("{json_wrapped_host_config}");
+    let mut client = janet_client();
+    client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
     let ret = match client.run(json_wrapped_host_config) {
         Ok(janet) => janet,
         Err(e) => panic!("janet2json ERROR: {e}"),
     };
 
-    println!("{:?}", ret);
+    println!("{ret:?}");
 
     match ret.unwrap() {
-        TaggedJanet::Buffer(str) => str.to_string(),
-        _ => panic!("no buffer from Janet"),
+        TaggedJanet::String(str) => str.to_string(),
+        other => panic!("no buffer from Janet: got {other}"),
     }
 }
