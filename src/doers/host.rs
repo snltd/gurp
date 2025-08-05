@@ -21,11 +21,11 @@ pub fn apply(
     let mut client = janet_helpers::janet_client();
     client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
     let json_wrapped_host_config = format!("{host_config}\n(encode (machine-config))");
-    let json_buffer = client.run(json_wrapped_host_config)?;
+    let json_config = client.run(json_wrapped_host_config)?;
 
-    let json = match json_buffer.unwrap() {
-        TaggedJanet::Buffer(buf) => buf.to_string(),
-        other => bail!("expected Janet::Buffer, got {}", other),
+    let json = match json_config.unwrap() {
+        TaggedJanet::String(buf) => buf.to_string(),
+        other => bail!("expected JSON config as Janet::String; got {}", other),
     };
 
     tracing::debug!("Janet returned {} char JSON buffer", json.len());
