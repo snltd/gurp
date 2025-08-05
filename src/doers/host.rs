@@ -1,7 +1,7 @@
 use crate::common::types::{ChangedIds, HostConfig};
 use crate::prelude::*;
 use crate::utils::{janet_helpers, reader};
-use janetrs::TaggedJanet;
+use janetrs::{TaggedJanet, env::CFunOptions};
 use std::collections::HashSet;
 
 pub fn apply(
@@ -18,8 +18,9 @@ pub fn apply(
         reader::format_janet_listing(&host_config)
     );
 
-    let client = janet_helpers::janet_client();
-    let json_wrapped_host_config = format!("{JSON_LIB}\n{host_config}\n(encode (machine-config))");
+    let mut client = janet_helpers::janet_client();
+    client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
+    let json_wrapped_host_config = format!("{host_config}\n(encode (machine-config))");
     let json_buffer = client.run(json_wrapped_host_config)?;
 
     let json = match json_buffer.unwrap() {

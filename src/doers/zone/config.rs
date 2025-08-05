@@ -45,6 +45,7 @@ pub enum AttrValue {
     Str(String),
     Bool(bool),
     Number(u32),
+    Float(f64),
 }
 
 impl fmt::Display for AttrValue {
@@ -53,6 +54,7 @@ impl fmt::Display for AttrValue {
             AttrValue::Str(s) => write!(f, "{s}"),
             AttrValue::Bool(b) => write!(f, "{b}"),
             AttrValue::Number(n) => write!(f, "{n}"),
+            AttrValue::Float(n) => write!(f, "{n}"),
         }
     }
 }

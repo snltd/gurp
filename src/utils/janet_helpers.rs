@@ -1,6 +1,135 @@
+use crate::utils::janet_helpers;
 use janetrs::client::JanetClient;
+use janetrs::{Janet, TaggedJanet};
+use serde_json::{Map, Value};
 
 pub fn janet_client() -> JanetClient {
     tracing::debug!("Initialising janet client");
     JanetClient::init_with_default_env().expect("Failed to create Janet client")
+}
+
+pub fn janet_to_json(j: &Janet) -> Value {
+    // I'm going to leave the :s at the beginning of the key names for now, because it will
+    // make it clear we're talking about user data.
+    match j.unwrap() {
+        TaggedJanet::Nil => Value::Null,
+        TaggedJanet::Boolean(b) => Value::Bool(b),
+        TaggedJanet::Number(n) => {
+            if n.fract() == 0.0 {
+                match serde_json::Number::from_f64(n) {
+                    Some(_num) => Value::Number(serde_json::Number::from(n as i64)),
+                    None => Value::Null,
+                }
+            } else {
+                match serde_json::Number::from_f64(n) {
+                    Some(num) => Value::Number(num),
+                    None => Value::Null,
+                }
+            }
+        }
+
+        TaggedJanet::String(s) => Value::String(s.to_string()),
+        TaggedJanet::Symbol(s) => Value::String(s.to_string()),
+        TaggedJanet::Keyword(k) => Value::String(k.to_string()),
+        TaggedJanet::Array(arr) => {
+            let vec = arr.iter().map(janet_to_json).collect();
+            Value::Array(vec)
+        }
+        TaggedJanet::Tuple(tup) => {
+            let vec = tup.iter().map(janet_to_json).collect();
+            Value::Array(vec)
+        }
+        TaggedJanet::Table(tab) => {
+            let mut map = Map::new();
+            for (k, v) in tab.iter() {
+                let key = k.to_string().trim_start_matches(':').to_string();
+                map.insert(key, janet_to_json(v));
+            }
+            Value::Object(map)
+        }
+        TaggedJanet::Struct(tab) => {
+            let mut map = Map::new();
+            for (k, v) in tab.iter() {
+                let key = k.to_string().trim_start_matches(':').to_string();
+                map.insert(key, janet_to_json(v));
+            }
+            Value::Object(map)
+        }
+        // I don't think we'll need any more exotic types
+        other => Value::String(format!("<{other:?}>")),
+    }
+}
+
+#[janetrs::janet_fn(arity(fix(1)))]
+pub fn encode(config: &mut [Janet]) -> Janet {
+    let json_string = janet_helpers::janet_to_json(&config[0]).to_string();
+    Janet::wrap(json_string.as_str())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use janetrs::{Janet, JanetTable, array};
+    use serde_json::json;
+
+    #[test]
+    fn test_janet_to_json_string() {
+        init_janet();
+        assert_eq!(janet_to_json(&Janet::from("merp merp")), json!("merp merp"));
+    }
+
+    #[test]
+    fn test_janet_to_json_number() {
+        init_janet();
+        assert_eq!(janet_to_json(&Janet::from(12.3)), json!(12.3));
+    }
+
+    #[test]
+    fn test_janet_to_json_array() {
+        init_janet();
+        let arr = Janet::wrap(array![
+            Janet::from(1),
+            Janet::from("two"),
+            Janet::from(false)
+        ]);
+        assert_eq!(janet_to_json(&arr), json!([1, "two", false]));
+    }
+
+    #[test]
+    fn test_janet_to_json_table() {
+        init_janet();
+        let mut table = JanetTable::new();
+        table.insert(Janet::keyword("number".into()), Janet::from(12.3));
+        table.insert(Janet::keyword("word".into()), Janet::from("grease"));
+        assert_eq!(
+            janet_to_json(&Janet::table(table)),
+            json!({ "number": 12.3, "word": "grease" })
+        );
+    }
+
+    #[test]
+    fn test_janet_to_json_nested_table() {
+        init_janet();
+        let mut inner = JanetTable::new();
+        inner.insert(Janet::keyword("x".into()), Janet::from(1.1));
+        inner.insert(Janet::keyword("y".into()), Janet::from(2));
+
+        let mut outer = JanetTable::new();
+        outer.insert(Janet::keyword("point".into()), Janet::table(inner));
+        outer.insert(Janet::keyword("label".into()), Janet::from("A"));
+
+        assert_eq!(
+            janet_to_json(&Janet::table(outer)),
+            json!({
+                "point": { "x": 1.1, "y": 2 },
+                "label": "A"
+            })
+        );
+    }
+
+    fn init_janet() {
+        unsafe {
+            janetrs::lowlevel::janet_init();
+        }
+    }
 }
