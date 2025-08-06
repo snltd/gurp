@@ -7,18 +7,18 @@ use tracing_subscriber::EnvFilter;
 #[derive(Parser)]
 #[clap(version, about = "Configures hosts, or might do one day", long_about = None)]
 struct Cli {
-    /// Be verbose
-    #[arg(short, long, global = true)]
-    verbose: bool,
-    /// Be very verbose
-    #[arg(short, long, global = true)]
-    debug: bool,
     /// Say what would happen, without actually doing it
     #[arg(short, long, global = true)]
     noop: bool,
-    /// Don't colour things which can be coloured
+    /// Dump intermediate config files to stdout
+    #[arg(short, long, global = true)]
+    dump_config: bool,
+    /// When dumping configs, use syntax colouring where possible
+    #[arg(short = 'C', long, global = true)]
+    colour: bool,
+    /// When dumping configs, number lines
     #[arg(short = 'N', long, global = true)]
-    no_colour: bool,
+    line_no: bool,
     #[command(subcommand)]
     command: Commands,
 } // might not need the global. Will there be subcommands?
@@ -66,9 +66,10 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     let global_opts = Opts {
-        debug: cli.debug,
         noop: cli.noop,
-        no_colour: cli.no_colour,
+        dump_config: cli.dump_config,
+        colour: cli.colour,
+        line_no: cli.line_no,
     };
 
     let exit_code = match cli.command {

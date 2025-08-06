@@ -11,12 +11,12 @@ pub fn apply(
 ) -> anyhow::Result<ApplySummary> {
     let host_config = reader::read_and_enrich_host_config(host_file, gurp_lib_path, opts, false)?;
 
-    debug!(
-        opts,
-        "host-apply",
-        "Janet host config follows:\n{}",
-        reader::format_janet_listing(&host_config)
-    );
+    if opts.dump_config {
+        println!(
+            "{}",
+            helpers::dump_config(&host_config, "Janet config", opts)
+        );
+    }
 
     let mut client = janet_helpers::janet_client();
     client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
@@ -40,10 +40,12 @@ pub fn apply(
         }
     };
 
-    debug!(
-        opts,
-        "host-apply", "JSON host config follows:\n{}", formatted_json
-    );
+    if opts.dump_config {
+        println!(
+            "{}",
+            helpers::dump_config(&formatted_json, "JSON Config", opts)
+        );
+    }
 
     let host_config: HostConfig = match serde_json::from_str(&formatted_json) {
         Ok(conf) => conf,
@@ -61,11 +63,6 @@ pub fn apply(
             bail!("end of deserializing error output")
         }
     };
-
-    debug!(
-        opts,
-        "host-apply", "Rust host config follows:\n{:#?}", host_config
-    );
 
     ensure_and_remove(&host_config, opts)
 }

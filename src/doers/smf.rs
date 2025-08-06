@@ -1,6 +1,7 @@
 use crate::common::svcs;
 use crate::common::types::SmfDefinition;
 use crate::prelude::*;
+use crate::utils::helpers;
 use crate::utils::smf_builder;
 use serde::Deserialize;
 use std::fs;
@@ -55,7 +56,13 @@ impl GurpSmfEnsure {
 
         return_if_noop!(opts);
 
-        debug!(opts, "doer/smf", "SMF manifest follows:\n{}", new_manifest);
+        if opts.dump_config {
+            println!(
+                "{}",
+                helpers::dump_config(&new_manifest, "SMF manifest", opts)
+            );
+        }
+
         fs::write(manifest_path, &new_manifest)?;
         self.ensure_service(opts)
     }

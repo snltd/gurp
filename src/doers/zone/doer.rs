@@ -65,10 +65,12 @@ impl GurpZoneEnsure {
             }
         }
 
-        debug!(
-            opts,
-            "zone/create", "raw zonecfg config follows:\n{}", &config_input
-        );
+        if opts.dump_config {
+            println!(
+                "{}",
+                helpers::dump_config(&config_input, "zonecfg config", opts)
+            );
+        }
 
         if opts.noop {
             Ok(ONE_RESOURCE_NOOP)
@@ -234,8 +236,16 @@ impl GurpZoneEnsure {
 
             bootstrap_command.push_str("/var/tmp/gurp ");
 
-            if opts.debug {
-                bootstrap_command.push_str("--debug ");
+            if opts.dump_config {
+                bootstrap_command.push_str("--dump-config ");
+            }
+
+            if opts.colour {
+                bootstrap_command.push_str("--colour ");
+            }
+
+            if opts.line_no {
+                bootstrap_command.push_str("--line-no ");
             }
 
             bootstrap_command.push_str(&format!("apply {host_config}"));

@@ -38,10 +38,10 @@ pub fn janet_conf(
     ret.push_str(config);
 
     if compile_only {
-        if opts.no_colour {
-            ret.push_str("\n(prinf \"%m\" (machine-config))");
-        } else {
+        if opts.colour {
             ret.push_str("\n(prinf \"%M\" (machine-config))");
+        } else {
+            ret.push_str("\n(prinf \"%m\" (machine-config))");
         }
     }
 
@@ -74,18 +74,6 @@ pub fn read_and_enrich_host_config(
         opts,
         compile_only,
     )
-}
-
-pub fn format_janet_listing(janet_code: &str) -> String {
-    let mut ret = "-".repeat(80);
-    ret.push('\n');
-    janet_code
-        .lines()
-        .enumerate()
-        .for_each(|(i, l)| ret.push_str(&format!("{:>5} | {}\n", i + 1, l)));
-    ret.push_str("-".repeat(80).as_str());
-    ret.push('\n');
-    ret
 }
 
 fn load_lib_from_disk(lib_path: &Utf8PathBuf) -> anyhow::Result<String> {
