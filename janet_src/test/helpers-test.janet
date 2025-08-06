@@ -1,6 +1,12 @@
 (use judge)
 (use ../lib/gurp)
 
+(deftest labelise
+  (test (labelise "/some/file" 1 2 3) "_some_file-1-2-3")
+  (test (labelise :key1 :key2 :key3) "key1-key2-key3")
+  (test (labelise "string" 123 :keyword) "string-123-keyword"))
+  
+
 (deftest this
   (setdyn :role-dyn (string (quote basenode)))
   (test (this "file" "the-label" "owner") :/basenode/file/the-label/owner)
