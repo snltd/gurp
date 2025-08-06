@@ -35,6 +35,12 @@
     (string/join "/")
     (string/trim "/")))
 
+(defn labelise
+  "Turns tokens into a safe label"
+  [& chunks]
+  (string/replace-all "/" "_"
+    (string/join (map string chunks) "-")))
+  
 (defn- clean-data
   "Removes anything which is not a struct from a list"
   [list]
