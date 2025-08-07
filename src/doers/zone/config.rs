@@ -305,9 +305,7 @@ mod test {
             end
             add rctl
             \tset name=zone.max-swap
-            \tset value=(priv=privileged,limit=524288000,action=deny)    
-            end
-            "};
+            \tset value=(priv=privileged,limit=524288000,action=deny)\nend\n"};
 
         let sut: GurpZoneEnsure = serde_json::from_str(&json_def).unwrap();
 
