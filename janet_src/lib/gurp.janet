@@ -39,8 +39,8 @@
   "Turns tokens into a safe label"
   [& chunks]
   (string/replace-all "/" "_"
-    (string/join (map string chunks) "-")))
-  
+                      (string/join (map string chunks) "-")))
+
 (defn- clean-data
   "Removes anything which is not a struct from a list"
   [list]
@@ -586,3 +586,14 @@
     (set (spec-table :value) (string (spec-table :value))))
 
   (struct :attr (table/to-struct spec-table)))
+
+(defn zone-rctl
+  [name & specs]
+  (let [spec-struct
+        (struct/with-proto (proto :zone-rctl) :name name (splice specs))]
+
+    (if-not
+      (has-key? spec-struct :limit)
+      (error "zone-rctl requires a :limit"))
+
+    (struct :rctl (struct/proto-flatten spec-struct))))

@@ -23,4 +23,6 @@
    :zfs {:properties {:mountpoint: "none"}}
    :zone {:autoboot true
           :recreate 0
-          :boot-after-install true}})
+          :boot-after-install true}
+   :zone-rctl {:priv "privileged"
+               :action "deny"}})

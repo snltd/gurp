@@ -19,12 +19,22 @@ pub struct GurpZoneConfig {
     pub net: GurpZoneNetworks,
     pub fs: Option<GurpZoneFilesystems>,
     pub attr: Option<GurpZoneAttrs>,
+    pub rctl: Option<GurpZoneRctls>,
     pub exec_in: Option<Vec<String>>,
     pub boot_after_install: bool,
     pub bootstrap_from: Option<Utf8PathBuf>,
     pub recreate: u8,
     pub image: Option<String>,
     pub copy_in: Option<HashMap<Utf8PathBuf, String>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GurpZoneRctl {
+    pub name: String,
+    #[serde(rename = "priv")]
+    pub rctl_priv: String,
+    pub limit: u64,
+    pub action: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -69,6 +79,7 @@ pub struct GurpZoneAttr {
 
 type GurpZoneFilesystems = Vec<GurpZoneFilesystem>;
 type GurpZoneAttrs = Vec<GurpZoneAttr>;
+type GurpZoneRctls = Vec<GurpZoneRctl>;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -128,6 +139,12 @@ impl GurpZoneConfig {
             }
         }
 
+        if let Some(rctls) = &self.rctl {
+            for rctl in rctls {
+                ret.push_str(&self.zone_rctl(rctl));
+            }
+        }
+
         ret
     }
 
@@ -157,6 +174,13 @@ impl GurpZoneConfig {
      \tset type={}
      \tset value={}
      end\n", conf.name, conf.attr_type, conf.value}
+    }
+
+    fn zone_rctl(&self, conf: &GurpZoneRctl) -> String {
+        formatdoc! { "add rctl
+     \tset name={}
+     \tset value=(priv={},limit={},action={})
+     end\n", conf.name, conf.rctl_priv, conf.limit, conf.action}
     }
 
     fn string_attr(&self, name: &str, value: &str) -> String {
@@ -217,6 +241,10 @@ mod test {
                 (zone-attr "numeric-attr" :value 123)
                 (zone-attr "bool-attr" :type "boolean" :value false)
                 (zone-attr "string-attr" :value "la-de-da")
+                (zone-rctl "zone.max-swap"
+                    :priv "privileged"
+                    :limit 524288000
+                    :action "deny")
                 :datasets ["big/zone/fs" "fast/zone/fs"]
                 :dns {:domain "lan.id264.net"
                       :nameservers ["192.168.1.53"
@@ -274,6 +302,10 @@ mod test {
             \tset name=string-attr
             \tset type=string
             \tset value=la-de-da
+            end
+            add rctl
+            \tset name=zone.max-swap
+            \tset value=(priv=privileged,limit=524288000,action=deny)    
             end
             "};
 

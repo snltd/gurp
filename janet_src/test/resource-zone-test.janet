@@ -90,6 +90,15 @@
                              :name "defunct-zone"
                              :role "test-role"}]}}))
 
+(deftest "test-zone-rctl-resource"
+  (test
+    (zone-rctl "zone.max-physical-memory"
+      :value 524288000)
+    {:rctl {:action "deny"
+            :name "zone.max-physical-memory"
+            :priv "privileged"
+            :value 524288000}}) )
+
 (deftest "test-zone-attr-resource"
   (test
     (zone-attr "turn-it-on" :value false)

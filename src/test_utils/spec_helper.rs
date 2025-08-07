@@ -14,6 +14,9 @@ use janetrs::{TaggedJanet, env::CFunOptions};
 use std::env::current_dir;
 
 #[cfg(test)]
+use crate::utils::helpers;
+
+#[cfg(test)]
 use std::fs;
 
 #[allow(dead_code)]
@@ -73,7 +76,11 @@ pub fn janet2json(janet_defn: &str) -> String {
     client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
     let ret = match client.run(json_wrapped_host_config) {
         Ok(janet) => janet,
-        Err(e) => panic!("janet2json ERROR: {e}"),
+        Err(e) => {
+            helpers::Command    
+            println!("{janet_defn}");
+            panic!("janet2json ERROR: {e}");
+        }
     };
 
     println!("{ret:?}");
