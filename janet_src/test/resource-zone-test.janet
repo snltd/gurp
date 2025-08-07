@@ -93,11 +93,24 @@
 (deftest "test-zone-rctl-resource"
   (test
     (zone-rctl "zone.max-physical-memory"
-      :value 524288000)
+               :limit 524288000)
     {:rctl {:action "deny"
+            :limit 524288000
             :name "zone.max-physical-memory"
-            :priv "privileged"
-            :value 524288000}}) )
+            :priv "privileged"}})
+
+  (test
+    (zone-rctl "zone.max-physical-memory"
+               :action "allow"
+               :limit 12345678)
+    {:rctl {:action "allow"
+            :limit 12345678
+            :name "zone.max-physical-memory"
+            :priv "privileged"}})
+
+  (test-error
+    (zone-rctl "zone.max-physical-memory")
+    "zone-rctl requires a :limit"))
 
 (deftest "test-zone-attr-resource"
   (test
