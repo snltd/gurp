@@ -10,6 +10,9 @@ pub const MANIFEST_DIR: &str = "/opt/site/lib/smf/manifest";
 pub const CRONTAB_BIN: &str = "/bin/crontab";
 pub const DISPADMIN_BIN: &str = "/usr/sbin/dispadmin";
 pub const GEM_BIN: &str = "/opt/ooce/bin/gem";
+pub const GROUPADD_BIN: &str = "/usr/sbin/groupadd";
+pub const GROUPDEL_BIN: &str = "/usr/sbin/groupdel";
+pub const GROUPMOD_BIN: &str = "/usr/sbin/groupmod";
 pub const PKG_BIN: &str = "/bin/pkg";
 pub const PS_BIN: &str = "/bin/ps";
 pub const SHARECTL_BIN: &str = "/usr/sbin/sharectl";
@@ -77,3 +80,6 @@ pub static PROTECTED_USERS: LazyLock<Vec<&str>> = LazyLock::new(|| {
         "listen", "gdm", "unknown", "nobody", "noaccess", "nobody4", "pkg5srv",
     ]
 });
+
+pub static PROTECTED_GROUPS: LazyLock<Vec<&str>> =
+    LazyLock::new(|| vec!["root", "other", "bin", "sys", "adm", "tty", "daemon"]);

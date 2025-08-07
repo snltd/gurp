@@ -1,12 +1,13 @@
 pub mod cron;
-pub mod publisher;
 pub mod directory;
 pub mod file;
 pub mod file_line;
 pub mod gem;
+pub mod group;
 pub mod host;
 pub mod misc;
 pub mod pkg;
+pub mod publisher;
 pub mod smf;
 pub mod svc;
 pub mod svcprop;

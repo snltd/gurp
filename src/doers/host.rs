@@ -87,6 +87,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
         summary_total = summary_total + crate::doers::gem::collect_and_ensure(&ensure.gem, opts)?;
     }
 
+    apply_resources!(summary_total, changed_ids, &ensure.group, opts);
     apply_resources!(summary_total, changed_ids, &ensure.user, opts);
     apply_resources!(summary_total, changed_ids, &ensure.cron, opts);
     apply_resources!(summary_total, changed_ids, &ensure.directory, opts);
@@ -105,6 +106,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     apply_resources!(summary_total, changed_ids, &remove.smf, opts);
     apply_resources!(summary_total, changed_ids, &remove.cron, opts);
     apply_resources!(summary_total, changed_ids, &remove.user, opts);
+    apply_resources!(summary_total, changed_ids, &remove.group, opts);
     apply_resources!(summary_total, changed_ids, &remove.publisher, opts);
 
     if !&remove.pkg.is_empty() {

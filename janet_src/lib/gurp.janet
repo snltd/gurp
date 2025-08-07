@@ -289,6 +289,8 @@
              :mandatory [:source]}
    :user {:supported [:uid :primary-group :home-dir :shell :gecos :password-hash]
           :mandatory [:uid :primary-group :home-dir :shell :gecos]}
+   :group {:supported [:gid]
+           :mandatory [:gid]}
    :zfs {:supported [:properties]}
    :zone {:supported [:brand :run-cmd :dns :properties :zonepath :net
                       :autoboot :fs :datasets :exec :attr :clone-from
@@ -526,7 +528,8 @@
        (group-by |(and (struct? $) (deep= @[,key] (keys $))) modified-specs))
 
      (if-let [key-list (is-key true)]
-       (set modified-specs (tuple ;(is-key false) ,key (mapcat values key-list))))))
+       (set modified-specs
+            (tuple ;(is-key false) ,key (mapcat values key-list))))))
 
 (defn zone/ensure
   "Given a zone name and specification, return a zone ensure struct"
@@ -598,3 +601,13 @@
       (error "zone-rctl requires a :limit"))
 
     (struct :rctl (struct/proto-flatten spec-struct))))
+
+(defn group/ensure
+  "Given a group name and specification, return a group ensure struct"
+  [name & specs]
+  (collect :ensure :group (ensure-resource :group name specs)))
+
+(defn group/remove
+  "Given a group name and specification, return a group remove struct"
+  [name & specs]
+  (collect :remove :group (remove-resource :group name specs)))
