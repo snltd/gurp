@@ -1,11 +1,3 @@
-macro_rules! debug {
-    ($opts:expr, $component:literal, $($arg:tt)*) => {
-        if $opts.debug {
-            println!("DEBUG [{}] {}", $component, format!($($arg)*));
-        }
-    };
-}
-
 macro_rules! apply_resources {
     ($summary_total:ident, $changed_ids:ident, $resources:expr, $opts:expr) => {
         let total_count = $resources.len();

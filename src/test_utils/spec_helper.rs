@@ -33,18 +33,20 @@ pub fn load_fixture(file: &str) -> String {
 #[cfg(test)]
 pub fn defopts() -> Opts {
     Opts {
-        debug: false,
+        dump_config: false,
         noop: false,
-        no_colour: true,
+        colour: false,
+        line_no: false,
     }
 }
 
 #[cfg(test)]
 pub fn defopts_noop() -> Opts {
     Opts {
-        debug: false,
+        dump_config: false,
         noop: true,
-        no_colour: true,
+        colour: true,
+        line_no: false,
     }
 }
 

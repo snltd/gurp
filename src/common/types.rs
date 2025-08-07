@@ -19,9 +19,10 @@ use std::ops::Add;
 
 #[derive(Clone)]
 pub struct Opts {
-    pub debug: bool,
     pub noop: bool,
-    pub no_colour: bool,
+    pub colour: bool,
+    pub line_no: bool,
+    pub dump_config: bool,
 }
 
 #[derive(Deserialize, Debug)]

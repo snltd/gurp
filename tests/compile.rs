@@ -55,6 +55,6 @@ mod test {
             .arg(fixture("sample/serv-gurp.janet"))
             .assert()
             .success()
-            .stdout(predicate::str::contains("\x1b[33m:directory\x1b"));
+            .stdout(predicate::str::contains(":directory"));
     }
 }
