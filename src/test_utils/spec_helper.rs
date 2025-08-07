@@ -77,7 +77,19 @@ pub fn janet2json(janet_defn: &str) -> String {
     let ret = match client.run(json_wrapped_host_config) {
         Ok(janet) => janet,
         Err(e) => {
-            helpers::Command    
+            println!(
+                "{}",
+                helpers::dump_config(
+                    &full_janet,
+                    "complete Janet",
+                    &Opts {
+                        noop: false,
+                        colour: false,
+                        line_no: true,
+                        dump_config: true,
+                    },
+                )
+            );
             println!("{janet_defn}");
             panic!("janet2json ERROR: {e}");
         }
