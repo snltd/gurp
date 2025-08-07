@@ -293,7 +293,7 @@
    :zone {:supported [:brand :run-cmd :dns :properties :zonepath :net
                       :autoboot :fs :datasets :exec :attr :clone-from
                       :boot-after-install :bootstrap-from :recreate
-                      :capped-cpu :capped-memory :dedicated-cpu :devices :rctls
+                      :capped-cpu :capped-memory :dedicated-cpu :devices :rctl
                       :security-flags :admins :image :copy-in :exec-in]
           :mandatory [:brand]}})
 
@@ -535,6 +535,7 @@
   (expand-zone-fn :net)
   (expand-zone-fn :attr)
   (expand-zone-fn :fs)
+  (expand-zone-fn :rctl)
   (let [result (ensure-resource :zone name modified-specs)
         resource (struct/to-table (result :zone))]
 
