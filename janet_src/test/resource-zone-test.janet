@@ -90,6 +90,28 @@
                              :name "defunct-zone"
                              :role "test-role"}]}}))
 
+(deftest "test-zone-rctl-resource"
+  (test
+    (zone-rctl "zone.max-physical-memory"
+               :limit 524288000)
+    {:rctl {:action "deny"
+            :limit 524288000
+            :name "zone.max-physical-memory"
+            :priv "privileged"}})
+
+  (test
+    (zone-rctl "zone.max-physical-memory"
+               :action "allow"
+               :limit 12345678)
+    {:rctl {:action "allow"
+            :limit 12345678
+            :name "zone.max-physical-memory"
+            :priv "privileged"}})
+
+  (test-error
+    (zone-rctl "zone.max-physical-memory")
+    "zone-rctl requires a :limit"))
+
 (deftest "test-zone-attr-resource"
   (test
     (zone-attr "turn-it-on" :value false)

@@ -39,8 +39,8 @@
   "Turns tokens into a safe label"
   [& chunks]
   (string/replace-all "/" "_"
-    (string/join (map string chunks) "-")))
-  
+                      (string/join (map string chunks) "-")))
+
 (defn- clean-data
   "Removes anything which is not a struct from a list"
   [list]
@@ -293,7 +293,7 @@
    :zone {:supported [:brand :run-cmd :dns :properties :zonepath :net
                       :autoboot :fs :datasets :exec :attr :clone-from
                       :boot-after-install :bootstrap-from :recreate
-                      :capped-cpu :capped-memory :dedicated-cpu :devices :rctls
+                      :capped-cpu :capped-memory :dedicated-cpu :devices :rctl
                       :security-flags :admins :image :copy-in :exec-in]
           :mandatory [:brand]}})
 
@@ -535,6 +535,7 @@
   (expand-zone-fn :net)
   (expand-zone-fn :attr)
   (expand-zone-fn :fs)
+  (expand-zone-fn :rctl)
   (let [result (ensure-resource :zone name modified-specs)
         resource (struct/to-table (result :zone))]
 
@@ -586,3 +587,14 @@
     (set (spec-table :value) (string (spec-table :value))))
 
   (struct :attr (table/to-struct spec-table)))
+
+(defn zone-rctl
+  [name & specs]
+  (let [spec-struct
+        (struct/with-proto (proto :zone-rctl) :name name (splice specs))]
+
+    (if-not
+      (has-key? spec-struct :limit)
+      (error "zone-rctl requires a :limit"))
+
+    (struct :rctl (struct/proto-flatten spec-struct))))
