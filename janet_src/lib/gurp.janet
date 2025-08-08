@@ -287,7 +287,8 @@
              :mandatory [:properties]}
    :symlink {:supported [:source]
              :mandatory [:source]}
-   :user {:supported [:uid :primary-group :home-dir :shell :gecos :password-hash]
+   :user {:supported [:uid :primary-group :home-dir :shell :gecos :password-hash
+                      :other-groups :profiles]
           :mandatory [:uid :primary-group :home-dir :shell :gecos]}
    :group {:supported [:gid]
            :mandatory [:gid]}

@@ -25,6 +25,7 @@ pub struct GurpUserEnsure {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct UserState {
     pub uid: u32,
     #[serde(rename = "home-dir")]
@@ -35,7 +36,8 @@ pub struct UserState {
     pub primary_group: String,
     #[serde(rename = "password-hash")]
     pub password_hash: Option<String>,
-    // pub other_groups: Vec<String>,
+    pub profiles: Option<Vec<String>>,
+    pub other_groups: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -97,9 +99,35 @@ impl GurpUserEnsure {
             run_cmd = true;
         }
 
-        // if changes.contains(&"other-groups") {
-        // cmd.arg("-G").arg(desired.other_groups.join(","));
-        // } // Doesn't do anything now
+        if changes.contains(&"other-groups") {
+            if let Some(groups) = desired.other_groups.as_ref() {
+                tracing::info!(
+                    "change other-groups: [{}] -> {}",
+                    self.name,
+                    groups.join(",")
+                );
+                cmd.arg("-G");
+                cmd.arg(groups.join(","));
+            } else {
+                tracing::info!("clear other-groups: [{}]", self.name);
+                cmd.arg("-G");
+                cmd.arg("");
+            }
+            run_cmd = true;
+        }
+
+        if changes.contains(&"profiles") {
+            if let Some(profiles) = desired.profiles.as_ref() {
+                tracing::info!("change profiles: [{}] -> {}", self.name, profiles.join(","));
+                cmd.arg("-P");
+                cmd.arg(profiles.join(","));
+            } else {
+                tracing::info!("clear profiles: [{}]", self.name);
+                cmd.arg("-P");
+                cmd.arg("");
+            }
+            run_cmd = true;
+        }
 
         if changes.contains(&"shell") {
             tracing::info!(
@@ -160,8 +188,19 @@ impl GurpUserEnsure {
             &self.desired_state.shell,
             "-u",
             self.desired_state.uid.to_string(),
-            &self.name
         );
+
+        if let Some(other_groups) = &self.desired_state.other_groups {
+            cmd.arg("-G");
+            cmd.arg(other_groups.join(","));
+        }
+
+        if let Some(profiles) = &self.desired_state.profiles {
+            cmd.arg("-P");
+            cmd.arg(profiles.join(","));
+        }
+
+        cmd.arg(&self.name);
 
         return_if_noop!(opts);
 
@@ -204,9 +243,13 @@ impl GurpUserEnsure {
             to_change.push("password-hash");
         }
 
-        // if current.other_groups != desired.other_groups {
-        // to_change.push("other-groups");
-        // } // doesn't do anything now
+        if current.other_groups != desired.other_groups {
+            to_change.push("other-groups");
+        }
+
+        if current.profiles != desired.profiles {
+            to_change.push("profiles");
+        }
 
         if !to_change.is_empty() {
             tracing::debug!("to change for {}: {}", self.name, to_change.join(", "));
@@ -220,7 +263,7 @@ impl GurpUserEnsure {
         match User::from_name(&self.name)? {
             Some(user) => {
                 let primary_group = Group::from_gid(user.gid)?.context(format!(
-                    "Group d '{}' not found for user '{}'",
+                    "Group id '{}' not found for user '{}'",
                     user.gid, self.name
                 ))?;
 
@@ -235,9 +278,10 @@ impl GurpUserEnsure {
                     home_dir: Utf8PathBuf::try_from(user.dir)?,
                     shell: Utf8PathBuf::try_from(user.shell)?,
                     gecos: user.gecos.to_string_lossy().to_string(),
-                    primary_group: primary_group.name,
+                    primary_group: primary_group.name.clone(),
                     password_hash,
-                    // other_groups: Vec::new(), // we don't do anything with this field
+                    profiles: user_profiles(&user.name)?,
+                    other_groups: user_groups(&user.name, &primary_group.name)?,
                 })
             }
             None => bail!("Could not find user {}", self.name),
@@ -321,6 +365,51 @@ impl GurpUserRemove {
     }
 }
 
+fn user_groups(username: &str, primary_group: &str) -> anyhow::Result<Option<Vec<String>>> {
+    let raw = cmd_output!(GROUPS_BIN, username)?;
+    let groups: Vec<_> = raw
+        .split_whitespace()
+        .filter_map(|g| {
+            if g == primary_group {
+                None
+            } else {
+                Some(g.to_owned())
+            }
+        })
+        .collect();
+
+    if groups.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(groups))
+    }
+}
+
+fn user_profiles(username: &str) -> anyhow::Result<Option<Vec<String>>> {
+    let raw = cmd_output!(PROFILES_BIN, username)?;
+    let profiles: Vec<_> = raw
+        .lines()
+        .filter_map(|l| {
+            let profile = l.trim();
+
+            if profile != format!("{username}:")
+                && profile != "All"
+                && profile != "Basic Solaris User"
+            {
+                Some(profile.to_owned())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    if profiles.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(profiles))
+    }
+}
+
 fn user_exists(username: &str) -> anyhow::Result<bool> {
     Ok(User::from_name(username)?.is_some())
 }
@@ -338,6 +427,8 @@ mod tests {
             gecos: "Test User".into(),
             primary_group: "users".into(),
             password_hash: Some("hash1".into()),
+            other_groups: None,
+            profiles: None,
         }
     }
 
@@ -349,6 +440,8 @@ mod tests {
             gecos: "Tester User".into(),
             primary_group: "staff".into(),
             password_hash: Some("hash2".into()),
+            other_groups: None,
+            profiles: None,
         }
     }
 
