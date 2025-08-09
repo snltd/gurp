@@ -6,6 +6,7 @@ use crate::doers::gem::{GurpGemEnsure, GurpGemRemove};
 use crate::doers::group::{GurpGroupEnsure, GurpGroupRemove};
 use crate::doers::misc::GurpMiscEnsure;
 use crate::doers::pkg::{GurpPkgEnsure, GurpPkgRemove};
+use crate::doers::pkgin::{GurpPkginEnsure, GurpPkginRemove};
 use crate::doers::publisher::{GurpPublisherEnsure, GurpPublisherRemove};
 use crate::doers::smf::{GurpSmfEnsure, GurpSmfRemove};
 use crate::doers::svc::GurpSvcEnsure;
@@ -65,6 +66,8 @@ pub struct EnsureResources {
     #[serde(default)]
     pub pkg: Vec<GurpPkgEnsure>,
     #[serde(default)]
+    pub pkgin: Vec<GurpPkginEnsure>,
+    #[serde(default)]
     pub publisher: Vec<GurpPublisherEnsure>,
     #[serde(default)]
     pub svcprop: Vec<GurpSvcpropEnsure>,
@@ -101,6 +104,8 @@ pub struct RemoveResources {
     pub gem: Vec<GurpGemRemove>,
     #[serde(default)]
     pub pkg: Vec<GurpPkgRemove>,
+    #[serde(default)]
+    pub pkgin: Vec<GurpPkginRemove>,
     #[serde(default)]
     pub publisher: Vec<GurpPublisherRemove>,
     #[serde(default)]
