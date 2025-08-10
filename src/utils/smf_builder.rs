@@ -75,7 +75,7 @@ impl ServiceBuilder<'_> {
         self.xml.write_attribute("exec", &def.exec);
         self.xml.write_attribute("timeout_seconds", &def.timeout);
 
-        if let Some(context) = def.context.as_ref() {
+        if let Some(context) = &def.context {
             self.xml.start_element("method_context");
 
             self.xml.start_element("method_credential");
@@ -90,10 +90,20 @@ impl ServiceBuilder<'_> {
             }
             self.xml.end_element();
 
-            self.xml.end_element();
+            if let Some(environment) = &context.environment {
+                self.xml.start_element("method_environment");
+                for (k, v) in environment {
+                    self.xml.start_element("envvar");
+                    self.xml.write_attribute("name", k);
+                    self.xml.write_attribute("value", v);
+                    self.xml.end_element();
+                }
+                self.xml.end_element();
+            }
+            self.xml.end_element(); // method_context
         }
 
-        self.xml.end_element();
+        self.xml.end_element(); // e
     }
 
     // do you actually need this? It's in my manifests
@@ -162,19 +172,19 @@ pub fn make_manifest(def: &SmfDefinition) -> String {
             fmri: "svc:/system/filesystem/local".to_owned(),
         });
 
-        if let Some(method) = def.start_method.as_ref() {
+        if let Some(method) = &def.start_method {
             svc.add_exec_method("start", method)
         }
 
-        if let Some(method) = def.stop_method.as_ref() {
+        if let Some(method) = &def.stop_method {
             svc.add_exec_method("stop", method)
         }
 
-        if let Some(method) = def.refresh_method.as_ref() {
+        if let Some(method) = &def.refresh_method {
             svc.add_exec_method("refresh", method)
         }
 
-        if let Some(duration) = def.duration.as_ref() {
+        if let Some(duration) = &def.duration {
             svc.add_duration_pg(duration);
         }
 
@@ -197,6 +207,7 @@ mod test {
     use crate::test_utils::spec_helper::load_fixture;
     use crate::utils::helpers;
     use pretty_assertions::assert_eq;
+    use std::collections::BTreeMap;
 
     #[test]
     fn test_make_manifest() {
@@ -216,6 +227,10 @@ mod test {
                     privileges: Some(
                         "basic,file_dac_search,sys_admin,proc_owner,proc_zone".to_owned(),
                     ),
+                    environment: Some(BTreeMap::from([
+                        ("LC_CTYPE".to_owned(), "en_US.UTF-8".to_owned()),
+                        ("PATH".to_owned(), "/opt/site/bin".to_owned()),
+                    ])),
                 }),
             }),
             stop_method: Some(SmfDefinitionExecMethod {

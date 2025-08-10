@@ -15,6 +15,7 @@ use crate::doers::user::{GurpUserEnsure, GurpUserRemove};
 use crate::doers::zfs::{GurpZfsEnsure, GurpZfsRemove};
 use crate::doers::zone::{GurpZoneEnsure, GurpZoneRemove};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::collections::HashSet;
 use std::ops::Add;
 
@@ -176,4 +177,5 @@ pub struct SmfDefinitionExecMethodContext {
     pub user: String,
     pub group: Option<String>,
     pub privileges: Option<String>,
+    pub environment: Option<BTreeMap<String, String>>,
 }
