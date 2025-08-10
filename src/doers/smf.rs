@@ -131,6 +131,8 @@ fn manifest_path(svc_name: &str) -> Utf8PathBuf {
 
 #[cfg(test)]
 mod test {
+    use std::collections::BTreeMap;
+
     use super::*;
     use crate::common::types::{SmfDefinitionExecMethod, SmfDefinitionExecMethodContext};
     use crate::test_utils::spec_helper::janet2json;
@@ -150,6 +152,7 @@ mod test {
                         :user "telegraf"
                         :group "daemon"
                         :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"
+                        :environment {:LC_CTYPE "en_US.UTF-8"}
                     }
                 }
                 :refresh-method {
@@ -173,6 +176,10 @@ mod test {
                     privileges: Some(
                         "basic,file_dac_search,sys_admin,proc_owner,proc_zone".to_owned(),
                     ),
+                    environment: Some(BTreeMap::from([(
+                        "LC_CTYPE".to_owned(),
+                        "en_US.UTF-8".to_owned(),
+                    )])),
                 }),
             }),
             stop_method: Some(SmfDefinitionExecMethod {
