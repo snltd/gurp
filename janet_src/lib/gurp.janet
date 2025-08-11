@@ -93,6 +93,23 @@
   []
   (keyword (this-role)))
 
+(defmacro expand-resource
+  "Group the results of in-resource functions like (zone-fs) into a list under
+  a single key. Partitions `modified-specs` items whose keys do or do not match
+  the given `key`. The matches ('is' group) are flattened into a single array
+  (or, if `:as-struct` is passed, reduced to the first matching struct) and
+  stored under `key`. Non-matching items ('is-not' group) are preserved."
+  [key &keys {:as-struct as-struct}]
+  (with-syms [$is-key $key-list $vals]
+    ~(do
+       (let [$is-key
+             (group-by |(and (struct? $) (deep= @[,key] (keys $))) modified-specs)]
+
+         (if-let [$key-list ($is-key true)]
+           (let [$vals (mapcat values $key-list)]
+             (set modified-specs
+                  (tuple ;(get $is-key false @[]) ,key (if ,as-struct (first $vals) $vals)))))))))
+
 (defn check-unique-ids
   "If there are any duplicate resource IDs, thrown an error"
   [resource-list]
@@ -279,7 +296,7 @@
    :publisher {:supported [:uri] :mandatory [:uri]}
    :smf {:supported [:description :fmri :default-enabled :single-instance
                      :start-method :stop-method :refresh-method :svc-name
-                     :duration]
+                     :duration :property]
          :mandatory [:description :fmri]}
    :svc {:supported [:state :restarted-by :reloaded-by]
          :mandatory [:state]}
@@ -455,12 +472,42 @@
 (defn smf/ensure
   "Given a name and a manifest description, return an smf ensure struct"
   [name & specs]
-  (let [res (ensure-resource :smf name specs)
-        result @{:svc-name name}]
-    (loop [[k v] :pairs (res :smf)]
-      (put result k
-           (if (struct? v) (table/to-struct (merge (proto k) v)) v)))
-    (collect :ensure :smf {:smf (table/to-struct result)})))
+  (var modified-specs specs)
+  (expand-resource :start-method :as-struct true)
+  (expand-resource :stop-method :as-struct true)
+  (expand-resource :restart-method :as-struct true)
+  (expand-resource :refresh-method :as-struct true)
+  (collect :ensure :smf (ensure-resource :smf name modified-specs)))
+
+(def smf-context-keys [:user :group :privileges :environment])
+
+(defn smf-method
+  "A convenience function to help produce an SMF exec_method, with a context"
+  [action & specs]
+  (let [actions ["start" "stop" "refresh" "reload"]]
+    (if-not (has-value? actions action)
+      (error (string "action must be one of " (string/join actions ", ")))))
+
+  (let [spec-table (table (splice specs))
+        context-keys (filter |(has-value? smf-context-keys $) (keys spec-table))
+        context @{}]
+
+    (if-not (has-key? spec-table :exec)
+      (error "smf-method requires an :exec"))
+
+    (table/setproto spec-table (struct/to-table (proto :smf-method)))
+
+    (each k context-keys
+      (set (context k)
+           (if (= k :privileges) (string/join (spec-table k) ",") (spec-table k)))
+      (set (spec-table k) nil))
+
+    (if-not (empty? context)
+      (set (spec-table :context) (table/to-struct context)))
+
+    (struct
+      (keyword (string action "-method"))
+      (table/proto-flatten spec-table))))
 
 (defn svc/ensure
   "Given a name and state, return a svc ensure struct"
@@ -520,26 +567,14 @@
   [name & specs]
   (collect :remove :zfs (remove-resource :zfs name specs)))
 
-(defmacro expand-zone-fn
-  "Split a specs tuple into 'is' and 'is-not', and turn the 'is'es into a flat
-  array of items"
-  [key]
-  ~(do
-     (def is-key
-       (group-by |(and (struct? $) (deep= @[,key] (keys $))) modified-specs))
-
-     (if-let [key-list (is-key true)]
-       (set modified-specs
-            (tuple ;(is-key false) ,key (mapcat values key-list))))))
-
 (defn zone/ensure
   "Given a zone name and specification, return a zone ensure struct"
   [name & specs]
   (var modified-specs specs)
-  (expand-zone-fn :net)
-  (expand-zone-fn :attr)
-  (expand-zone-fn :fs)
-  (expand-zone-fn :rctl)
+  (expand-resource :net)
+  (expand-resource :attr)
+  (expand-resource :fs)
+  (expand-resource :rctl)
   (let [result (ensure-resource :zone name modified-specs)
         resource (struct/to-table (result :zone))]
 

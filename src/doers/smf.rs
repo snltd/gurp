@@ -146,18 +146,15 @@ mod test {
                 :svc-name "export"
                 :description "Run Telegraf agent"
                 :fmri "sysdef/telegraf"
-                :start-method {
+                (smf-method "start"
                     :exec "/opt/site/lib/smf/method/telegraf.sh"
-                    :context {
-                        :user "telegraf"
-                        :group "daemon"
-                        :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"
-                        :environment {:LC_CTYPE "en_US.UTF-8"}
-                    }
-                }
-                :refresh-method {
+                    :user "telegraf"
+                    :group "daemon"
+                    :privileges ["basic" "file_dac_search" "sys_admin" "proc_owner" "proc_zone"]
+                    :environment {:LC_CTYPE "en_US.UTF-8"})
+                (smf-method "refresh"
                     :exec ":kill -THAW"
-                    :timeout 60 })
+                    :timeout 60))
             "#};
 
         let expected = SmfDefinition {

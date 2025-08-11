@@ -8,7 +8,7 @@
    :smf {:single-instance true
          :stop-method {:exec ":kill" :timeout 10}
          :default-enabled true}
-   :start-method {:timeout 60}
+   :smf-method {:timeout 60}
    :cron {:hour "*"
           :minute "*"
           :day-of-month "*"
