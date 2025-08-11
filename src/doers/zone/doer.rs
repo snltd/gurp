@@ -129,10 +129,10 @@ impl GurpZoneEnsure {
     }
 
     fn postinstall_zone(&self) -> anyhow::Result<()> {
-        if self.config.brand.as_str() == "lx" {
-            if let Some(dns_config) = &self.config.dns {
-                lx::set_up_dns(&self.config.zonepath, dns_config)?;
-            }
+        if self.config.brand.as_str() == "lx"
+            && let Some(dns_config) = &self.config.dns
+        {
+            lx::set_up_dns(&self.config.zonepath, dns_config)?;
         }
         Ok(())
     }
