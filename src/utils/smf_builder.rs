@@ -218,6 +218,8 @@ mod test {
             fmri: "sysdef/telegraf".to_owned(),
             single_instance: true,
             default_enabled: true,
+            property_groups: None,
+            properties: None,
             start_method: Some(SmfDefinitionExecMethod {
                 exec: "/opt/site/lib/smf/method/telegraf.sh".to_owned(),
                 timeout: 60,
@@ -262,6 +264,8 @@ mod test {
             fmri: "sysdef/boot-service".to_owned(),
             single_instance: true,
             default_enabled: true,
+            property_groups: None,
+            properties: None,
             start_method: Some(SmfDefinitionExecMethod {
                 exec: "/opt/site/lib/smf/method/boot-service.sh".to_owned(),
                 timeout: 60,

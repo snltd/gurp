@@ -1,13 +1,6 @@
 (use judge)
 (use ../lib/gurp)
 
-(test-macro
-  (expand-zone-fn :attr)
-  (do
-    (def is-key (group-by (short-fn (and (struct? $) (deep= @[:attr] (keys $)))) modified-specs))
-    (if-let [key-list (is-key true)]
-      (set modified-specs (tuple (splice (is-key false)) :attr (mapcat values key-list))))))
-
 (deftest "zone-resources"
   (setdyn :role-dyn "test-role")
   (setdyn :gurp-config-root "/gurpdir")

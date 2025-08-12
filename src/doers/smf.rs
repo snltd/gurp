@@ -134,7 +134,10 @@ mod test {
     use std::collections::BTreeMap;
 
     use super::*;
-    use crate::common::types::{SmfDefinitionExecMethod, SmfDefinitionExecMethodContext};
+    use crate::common::types::{
+        PropertyGroupMap, PropertyMap, PropertyStruct, PropertyValue, SmfDefinitionExecMethod,
+        SmfDefinitionExecMethodContext,
+    };
     use crate::test_utils::spec_helper::janet2json;
     use indoc::indoc;
     use pretty_assertions::assert_eq;
@@ -146,18 +149,17 @@ mod test {
                 :svc-name "export"
                 :description "Run Telegraf agent"
                 :fmri "sysdef/telegraf"
-                :start-method {
+                :property-groups {:application "application"}
+                :properties {:application/datadir "/data"}
+                (smf-method "start"
                     :exec "/opt/site/lib/smf/method/telegraf.sh"
-                    :context {
-                        :user "telegraf"
-                        :group "daemon"
-                        :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"
-                        :environment {:LC_CTYPE "en_US.UTF-8"}
-                    }
-                }
-                :refresh-method {
+                    :user "telegraf"
+                    :group "daemon"
+                    :privileges ["basic" "file_dac_search" "sys_admin" "proc_owner" "proc_zone"]
+                    :environment {:LC_CTYPE "en_US.UTF-8"})
+                (smf-method "refresh"
                     :exec ":kill -THAW"
-                    :timeout 60 })
+                    :timeout 60))
             "#};
 
         let expected = SmfDefinition {
@@ -167,6 +169,17 @@ mod test {
             fmri: "sysdef/telegraf".to_owned(),
             single_instance: true,
             default_enabled: true,
+            property_groups: Some(PropertyGroupMap::from([(
+                "application".to_owned(),
+                "application".to_owned(),
+            )])),
+            properties: Some(PropertyMap::from([(
+                "application/datadir".to_owned(),
+                PropertyStruct {
+                    value: PropertyValue::String("/data".to_owned()),
+                    prop_type: "astring".to_owned(),
+                },
+            )])),
             start_method: Some(SmfDefinitionExecMethod {
                 exec: "/opt/site/lib/smf/method/telegraf.sh".to_owned(),
                 timeout: 60,

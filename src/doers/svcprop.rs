@@ -1,9 +1,12 @@
 use crate::common::svcs;
+use crate::common::types::{
+    PropertyGroupList, PropertyGroupMap, PropertyList, PropertyMap, PropertyStruct, PropertyValue,
+    SvcProps,
+};
 use crate::prelude::*;
 use anyhow::Context;
 use regex::Regex;
 use serde::Deserialize;
-use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::io::Write;
 use std::thread::sleep;
@@ -34,14 +37,6 @@ pub struct GurpSvcpropRemove {
     pub property_groups: PropertyGroupList,
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(untagged)]
-pub enum PropertyValue {
-    Bool(bool),
-    Int(i64),
-    String(String),
-}
-
 impl fmt::Display for PropertyValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -52,26 +47,10 @@ impl fmt::Display for PropertyValue {
     }
 }
 
-type PropertyName = String;
-type PropertyGroupName = String;
-type PropertyGroupType = String;
-type PropertyList = Vec<PropertyName>;
-type PropertyMap = HashMap<String, PropertyStruct>;
-type PropertyGroupMap = HashMap<PropertyGroupName, PropertyGroupType>;
-type PropertyGroupList = HashSet<PropertyGroupName>;
-type SvcProps = HashMap<PropertyName, PropertyStruct>;
-
 #[derive(Debug, Default)]
 struct SvcView {
     pub properties: SvcProps,
     pub property_groups: PropertyGroupList,
-}
-
-#[derive(Debug, Deserialize, PartialEq)]
-pub struct PropertyStruct {
-    pub value: PropertyValue,
-    #[serde(rename = "type")]
-    pub prop_type: String,
 }
 
 fn svc_property_values(svc: &str) -> anyhow::Result<String> {
@@ -371,7 +350,7 @@ mod test {
             "#
         };
 
-        let propmap: SvcProps = HashMap::from([
+        let propmap = SvcProps::from([
             (
                 "restarter/auxiliary_state".into(),
                 PropertyStruct {

@@ -66,11 +66,11 @@ impl GurpFileEnsure {
             );
         }
 
-        if let Some(source_file) = &self.desired_state.from {
-            if !source_file.exists() {
-                tracing::error!("source file {} not found", source_file);
-                bail!("Fatal error in file doer");
-            }
+        if let Some(source_file) = &self.desired_state.from
+            && !source_file.exists()
+        {
+            tracing::error!("source file {} not found", source_file);
+            bail!("Fatal error in file doer");
         }
 
         let raw_content = if let Some(content_str) = &self.desired_state.content {
@@ -181,12 +181,12 @@ impl GurpFileEnsure {
             // File existed before this run. Are its contents correct? We already have its hash,
             // and if the user gave us a filter, that hash is of the filtered file.
             //
-            if let Some(desired_hash) = desired.hash {
-                if desired_hash != current_hash {
-                    to_change.push("content");
-                    to_change.push("owner");
-                    to_change.push("mode");
-                }
+            if let Some(desired_hash) = desired.hash
+                && desired_hash != current_hash
+            {
+                to_change.push("content");
+                to_change.push("owner");
+                to_change.push("mode");
             }
         } // else the file has just been created and we know its contents are correct
 
@@ -218,7 +218,7 @@ impl GurpFileEnsure {
         Ok(filtered_lines.join("\n"))
     }
 
-    fn current_state(&self, need_to_read_hash: bool) -> anyhow::Result<FileState> {
+    fn current_state(&self, need_to_read_hash: bool) -> anyhow::Result<FileState<'_>> {
         tracing::debug!("getting state: {}", &self.path);
         let path = &self.path.as_path();
         let metadata = nix::sys::stat::stat(path.as_std_path())?;
