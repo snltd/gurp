@@ -93,6 +93,20 @@
   []
   (keyword (this-role)))
 
+(defmacro- flat-table
+  "Flattens a struct or table, including its keys"
+  [table]
+  ~(flatten (pairs ,table)))
+
+(defn- expand-svc-property
+  "Turns a svcprop value into a struct describing a typed value"
+  [value]
+  (match (type value)
+    :keyword value
+    :number {:type "integer" :value value}
+    :boolean {:type "boolean" :value value}
+    _ {:type "astring" :value value}))
+
 (defmacro expand-resource
   "Group the results of in-resource functions like (zone-fs) into a list under
   a single key. Partitions `modified-specs` items whose keys do or do not match
@@ -296,7 +310,7 @@
    :publisher {:supported [:uri] :mandatory [:uri]}
    :smf {:supported [:description :fmri :default-enabled :single-instance
                      :start-method :stop-method :refresh-method :svc-name
-                     :duration :property]
+                     :duration :properties :property-groups]
          :mandatory [:description :fmri]}
    :svc {:supported [:state :restarted-by :reloaded-by]
          :mandatory [:state]}
@@ -352,7 +366,8 @@
 
 (defn- ensure-resource
   "Creates a resource struct of the given type and name. The role is picked up
-  from a role-specific dynamic binding, to cut down on user boilerplate"
+  from a role-specific dynamic binding, to cut down on user boilerplate.
+  resource-spec is an even-length tuple"
   [resource-type resource-name resource-spec & opts]
   (if-not (has-value? opts :no-validate)
     (try
@@ -477,7 +492,15 @@
   (expand-resource :stop-method :as-struct true)
   (expand-resource :restart-method :as-struct true)
   (expand-resource :refresh-method :as-struct true)
-  (collect :ensure :smf (ensure-resource :smf name modified-specs)))
+
+  (let [spec-table (table (splice modified-specs))]
+    (when (has-key? spec-table :properties)
+      (def expanded-properties
+        (struct
+          ;(map expand-svc-property (flat-table (spec-table :properties)))))
+      (set (spec-table :properties) expanded-properties))
+
+    (collect :ensure :smf (ensure-resource :smf name (flat-table spec-table)))))
 
 (def smf-context-keys [:user :group :privileges :environment])
 
@@ -521,13 +544,7 @@
     (var resource (struct/to-table (result :svcprop)))
 
     (var new-properties
-      (map (fn [v]
-             (match (type v)
-               :keyword v
-               :number {:type "integer" :value v}
-               :boolean {:type "boolean" :value v}
-               _ {:type "astring" :value v}))
-           (flatten (pairs (resource :properties)))))
+      (map expand-svc-property (flat-table (resource :properties))))
 
     (set (resource :properties) (struct ;new-properties))
     (collect :ensure :svcprop (struct :svcprop (table/to-struct resource)))))

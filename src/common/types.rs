@@ -15,8 +15,7 @@ use crate::doers::user::{GurpUserEnsure, GurpUserRemove};
 use crate::doers::zfs::{GurpZfsEnsure, GurpZfsRemove};
 use crate::doers::zone::{GurpZoneEnsure, GurpZoneRemove};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
-use std::collections::HashSet;
+use std::collections::{BTreeMap, BTreeSet}; // Because they are hashable
 use std::ops::Add;
 
 #[derive(Clone)]
@@ -117,7 +116,7 @@ pub struct RemoveResources {
 }
 
 pub type Changes<'a> = Vec<&'a str>;
-pub type ChangedIds = HashSet<String>;
+pub type ChangedIds = BTreeSet<String>;
 pub type ExitCode = u8;
 
 #[derive(Debug, Default, PartialEq, Copy, Clone)]
@@ -152,6 +151,8 @@ pub struct SmfDefinition {
     pub start_method: Option<SmfDefinitionExecMethod>,
     pub stop_method: Option<SmfDefinitionExecMethod>,
     pub refresh_method: Option<SmfDefinitionExecMethod>,
+    pub property_groups: Option<PropertyGroupMap>,
+    pub properties: Option<PropertyMap>,
 }
 
 #[cfg_attr(test, derive(PartialEq))]
@@ -179,3 +180,27 @@ pub struct SmfDefinitionExecMethodContext {
     pub privileges: Option<String>,
     pub environment: Option<BTreeMap<String, String>>,
 }
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Hash)]
+#[serde(untagged)]
+pub enum PropertyValue {
+    Bool(bool),
+    Int(i64),
+    String(String),
+}
+
+#[derive(Debug, Deserialize, PartialEq, Hash)]
+pub struct PropertyStruct {
+    pub value: PropertyValue,
+    #[serde(rename = "type")]
+    pub prop_type: String,
+}
+
+pub type PropertyName = String;
+pub type PropertyGroupName = String;
+pub type PropertyGroupType = String;
+pub type PropertyList = Vec<PropertyName>;
+pub type PropertyMap = BTreeMap<String, PropertyStruct>;
+pub type PropertyGroupMap = BTreeMap<PropertyGroupName, PropertyGroupType>;
+pub type PropertyGroupList = BTreeSet<PropertyGroupName>;
+pub type SvcProps = BTreeMap<PropertyName, PropertyStruct>;

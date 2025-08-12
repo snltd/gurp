@@ -2,7 +2,7 @@ use crate::common::svcs;
 use crate::common::types::ChangedIds;
 use crate::prelude::*;
 use serde::Deserialize;
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 // THINGS TO KNOW / THINGS TO DO.
 // There's no svc/remove, only svc/ensure
@@ -16,9 +16,9 @@ pub struct GurpSvcEnsure {
     #[serde(rename = "state")]
     pub desired_state: String,
     #[serde(rename = "restarted-by")]
-    pub restarters: HashSet<String>,
+    pub restarters: BTreeSet<String>,
     #[serde(rename = "reloaded-by")]
-    pub reloaders: HashSet<String>,
+    pub reloaders: BTreeSet<String>,
 }
 
 impl GurpSvcEnsure {

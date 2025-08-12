@@ -134,7 +134,10 @@ mod test {
     use std::collections::BTreeMap;
 
     use super::*;
-    use crate::common::types::{SmfDefinitionExecMethod, SmfDefinitionExecMethodContext};
+    use crate::common::types::{
+        PropertyGroupMap, PropertyMap, PropertyStruct, PropertyValue, SmfDefinitionExecMethod,
+        SmfDefinitionExecMethodContext,
+    };
     use crate::test_utils::spec_helper::janet2json;
     use indoc::indoc;
     use pretty_assertions::assert_eq;
@@ -146,6 +149,8 @@ mod test {
                 :svc-name "export"
                 :description "Run Telegraf agent"
                 :fmri "sysdef/telegraf"
+                :property-groups {:application "application"}
+                :properties {:application/datadir "/data"}
                 (smf-method "start"
                     :exec "/opt/site/lib/smf/method/telegraf.sh"
                     :user "telegraf"
@@ -164,6 +169,17 @@ mod test {
             fmri: "sysdef/telegraf".to_owned(),
             single_instance: true,
             default_enabled: true,
+            property_groups: Some(PropertyGroupMap::from([(
+                "application".to_owned(),
+                "application".to_owned(),
+            )])),
+            properties: Some(PropertyMap::from([(
+                "application/datadir".to_owned(),
+                PropertyStruct {
+                    value: PropertyValue::String("/data".to_owned()),
+                    prop_type: "astring".to_owned(),
+                },
+            )])),
             start_method: Some(SmfDefinitionExecMethod {
                 exec: "/opt/site/lib/smf/method/telegraf.sh".to_owned(),
                 timeout: 60,

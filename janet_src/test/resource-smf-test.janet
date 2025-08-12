@@ -13,23 +13,25 @@
                           :group "daemon"
                           :privileges ["basic" "file_dac_search" "sys_admin"
                                        "proc_owner" "proc_zone"])
-              (smf-method "refresh" :exec ":kill -THAW"))
+              :property-groups {:application "application"}
+              :properties {:application/datadir "/data"})
 
   (test *collector*
-        @{:ensure @{:smf @[{:_id "/NO-ROLE/smf/telegraf"
-                            :default-enabled true
-                            :description "Run Telegraf agent"
-                            :fmri "sysdef/telegraf"
-                            :name "telegraf"
-                            :refresh-method @{:exec ":kill -THAW" :timeout 60}
-                            :single-instance true
-                            :start-method @{:context {:group "daemon"
-                                                      :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"
-                                                      :user "telegraf"}
-                                            :exec "/opt/site/lib/smf/method/telegraf.sh"
-                                            :timeout 60}
-                            :stop-method {:exec ":kill" :timeout 10}}]}
-          :remove @{}}))
+    @{:ensure @{:smf @[{:_id "/NO-ROLE/smf/telegraf"
+                        :default-enabled true
+                        :description "Run Telegraf agent"
+                        :fmri "sysdef/telegraf"
+                        :name "telegraf"
+                        :properties {:application/datadir {:type "astring" :value "/data"}}
+                        :property-groups {:application "application"}
+                        :single-instance true
+                        :start-method @{:context {:group "daemon"
+                                                  :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"
+                                                  :user "telegraf"}
+                                        :exec "/opt/site/lib/smf/method/telegraf.sh"
+                                        :timeout 60}
+                        :stop-method {:exec ":kill" :timeout 10}}]}
+      :remove @{}}))
 
 (deftest "smf-error"
   (test-error

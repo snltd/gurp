@@ -2,7 +2,7 @@ use crate::common::types::{ChangedIds, HostConfig};
 use crate::prelude::*;
 use crate::utils::{janet_helpers, reader};
 use janetrs::{TaggedJanet, env::CFunOptions};
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 pub fn apply(
     host_file: &Utf8PathBuf,
@@ -73,7 +73,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
     let remove = &config.resources.remove;
 
     let mut summary_total = ApplySummary::default();
-    let mut changed_ids: ChangedIds = HashSet::new();
+    let mut changed_ids: ChangedIds = BTreeSet::new();
 
     apply_resources!(summary_total, changed_ids, &ensure.publisher, opts);
     apply_resources!(summary_total, changed_ids, &ensure.zfs, opts);
