@@ -6,6 +6,7 @@ pub const GURP_LIB: &str = include_str!("../../janet_src/lib/gurp.janet");
 pub const GURP_DEFAULTS: &str = include_str!("../../janet_src/lib/defaults.janet");
 
 pub const MANIFEST_DIR: &str = "/opt/site/lib/smf/manifest";
+pub const GEM_BIN_DIR: &str = "/opt/ooce/bin";
 
 pub const CRONTAB_BIN: &str = "/bin/crontab";
 pub const DISPADMIN_BIN: &str = "/usr/sbin/dispadmin";

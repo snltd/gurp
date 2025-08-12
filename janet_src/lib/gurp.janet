@@ -306,6 +306,9 @@
    :file-line {:supported [:line]
                :mandatory [:line]}
    :file {:supported [:owner :mode :group :content :ignore-pattern :from]}
+   :gem {:supported [:version :source]}
+   :group {:supported [:gid]
+           :mandatory [:gid]}
    :misc {:supported [:nfs-domain :enable-smb :scheduler]}
    :publisher {:supported [:uri] :mandatory [:uri]}
    :smf {:supported [:description :fmri :default-enabled :single-instance
@@ -321,8 +324,6 @@
    :user {:supported [:uid :primary-group :home-dir :shell :gecos :password-hash
                       :other-groups :profiles]
           :mandatory [:uid :primary-group :home-dir :shell :gecos]}
-   :group {:supported [:gid]
-           :mandatory [:gid]}
    :zfs {:supported [:properties]}
    :zone {:supported [:brand :run-cmd :dns :properties :zonepath :net
                       :autoboot :fs :datasets :exec :attr :clone-from
