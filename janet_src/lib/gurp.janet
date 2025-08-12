@@ -475,6 +475,16 @@
   [name & specs]
   (collect :remove :pkg (remove-resource :pkg name specs)))
 
+(defn pkgin/ensure
+  "Given a a pkgin name, return a pkgin ensure struct."
+  [name & specs]
+  (collect :ensure :pkgin (ensure-resource :pkgin name specs)))
+
+(defn pkgin/remove
+  "Given a pkgin name, return a pkgin remove struct"
+  [name & specs]
+  (collect :remove :pkgin (remove-resource :pkgin name specs)))
+
 (defn publisher/ensure
   "Given a a publisher name, return a publisher ensure struct"
   [name & specs]

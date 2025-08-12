@@ -7,6 +7,7 @@ pub mod group;
 pub mod host;
 pub mod misc;
 pub mod pkg;
+pub mod pkgin;
 pub mod publisher;
 pub mod smf;
 pub mod svc;

@@ -83,6 +83,11 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
         summary_total = summary_total + crate::doers::pkg::collect_and_ensure(&ensure.pkg, opts)?;
     }
 
+    if !&ensure.pkgin.is_empty() {
+        summary_total =
+            summary_total + crate::doers::pkgin::collect_and_ensure(&ensure.pkgin, opts)?;
+    }
+
     if !&ensure.gem.is_empty() {
         summary_total = summary_total + crate::doers::gem::collect_and_ensure(&ensure.gem, opts)?;
     }
@@ -111,6 +116,11 @@ fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySu
 
     if !&remove.pkg.is_empty() {
         summary_total = summary_total + crate::doers::pkg::collect_and_remove(&remove.pkg, opts)?;
+    }
+
+    if !&remove.pkgin.is_empty() {
+        summary_total =
+            summary_total + crate::doers::pkgin::collect_and_remove(&remove.pkgin, opts)?;
     }
 
     if !&remove.gem.is_empty() {
