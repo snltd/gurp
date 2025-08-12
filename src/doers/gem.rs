@@ -1,6 +1,6 @@
 use crate::prelude::*;
 use serde::Deserialize;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::sync::LazyLock;
 
 // THINGS TO KNOW / THINGS TO DO.
@@ -38,6 +38,8 @@ pub struct GurpGemRemove {
 }
 
 fn install_specific(gem: &GurpGemEnsure, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    tracing::debug!("installing specific gem {}", gem.name);
+
     if let Some(desired_version) = &gem.version {
         // If a version is specified, no change if that version is installed, regardless of source
         if INSTALLED_GEMS
@@ -52,27 +54,32 @@ fn install_specific(gem: &GurpGemEnsure, opts: &Opts) -> anyhow::Result<ApplySum
         return Ok(ONE_RESOURCE_NO_CHANGE);
     }
 
-    return_if_noop!(opts);
-
     // If we're still here, we need to install something
 
-    let mut cmd = cmd!(
-        GEM_BIN,
-        "install",
-        "--bindir",
-        GEM_BIN_DIR,
-        "--silent",
-        "--no-document"
-    );
-
-    if let Some(desired_version) = &gem.version {
-        cmd.args(["--version", desired_version]);
-    }
+    let mut cmd = Command::new(GEM_BIN);
+    cmd.arg("install");
+    cmd.arg("--bindir");
+    cmd.arg(GEM_BIN_DIR);
+    cmd.arg("--silent");
+    cmd.arg("--no-document");
 
     if let Some(source) = &gem.source {
-        cmd.args(["--source", source]);
+        cmd.arg("--source");
+        cmd.arg(source);
     }
 
+    cmd.arg(&gem.name);
+
+    if let Some(desired_version) = &gem.version {
+        cmd.arg("--version");
+        cmd.arg(desired_version);
+    }
+
+    tracing::debug!(command = helpers::command_to_string(&cmd));
+
+    return_if_noop!(opts);
+
+    let output = cmd.output()?;
     one_change_or_stderr!(cmd, format!("failed to install gem {}", gem.name))
 }
 
@@ -108,18 +115,16 @@ pub fn collect_and_ensure(gem_list: &EnsureList, opts: &Opts) -> anyhow::Result<
     } else {
         tracing::info!("batch installing: {}", install_list.join(", "));
 
-        let mut cmd = cmd!(
-            GEM_BIN,
-            "install",
-            "--bindir",
-            GEM_BIN_DIR,
-            "--silent",
-            "--no-document"
-        );
-
+        let mut cmd = Command::new(GEM_BIN);
+        cmd.arg("install");
+        cmd.arg("--bindir");
+        cmd.arg(GEM_BIN_DIR);
+        cmd.arg("--silent");
+        cmd.arg("--no-document");
         cmd.args(&install_list);
 
         tracing::debug!(command = helpers::command_to_string(&cmd));
+
         let output = cmd.output()?;
 
         if output.status.success() {
@@ -142,7 +147,7 @@ pub fn collect_and_remove(gem_list: &RemoveList, opts: &Opts) -> anyhow::Result<
     let mut remove_list = Vec::new();
 
     for gem in gem_names {
-        if installed_gems.contains(&gem) {
+        if !installed_gems.contains(&gem) {
             tracing::debug!("gem {}: not installed", gem);
             continue;
         }
@@ -171,8 +176,16 @@ pub fn collect_and_remove(gem_list: &RemoveList, opts: &Opts) -> anyhow::Result<
 
     tracing::info!("removing: {}", remove_list.join(", "));
 
-    let mut cmd = cmd!(GEM_BIN, "uninstall", "--silent", "--executables", "--all");
-    cmd.args(remove_list);
+    let mut cmd = Command::new(GEM_BIN);
+    cmd.arg("uninstall");
+    cmd.arg("--silent");
+    cmd.arg("--executables");
+    cmd.arg("--all");
+    cmd.args(&remove_list);
+    cmd.stderr(Stdio::piped());
+
+    tracing::debug!(command = helpers::command_to_string(&cmd));
+
     let output = cmd.output()?;
 
     if output.status.success() {
