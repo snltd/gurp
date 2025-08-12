@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use serde::Deserialize;
+use std::process::{Command, Stdio};
 use std::sync::LazyLock;
 
 // THINGS TO KNOW / THINGS TO DO.
@@ -12,6 +13,7 @@ static CURRENT_PKG_OUTPUT: LazyLock<String> =
 
 type PkginName = String;
 
+#[derive(Debug, PartialEq)]
 struct GlobalPkgins {
     installed: Vec<PkginName>,
 }
@@ -55,8 +57,12 @@ pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &Opts) -> anyhow::Result<
     } else {
         tracing::info!("installing: {}", install_list.join(", "));
 
-        let mut cmd = cmd!(PKGIN_BIN, "install");
+        let mut cmd = Command::new(PKGIN_BIN);
+        cmd.arg("-y");
+        cmd.arg("install");
         cmd.args(&install_list);
+
+        tracing::debug!(command = helpers::command_to_string(&cmd));
 
         return_if_noop!(opts);
 
@@ -109,8 +115,12 @@ pub fn collect_and_remove(pkg_list: &RemoveList, opts: &Opts) -> anyhow::Result<
     } else {
         tracing::info!("removing: {}", remove_list.join(", "));
 
-        let mut cmd = cmd!(PKGIN_BIN, "remove");
+        let mut cmd = Command::new(PKGIN_BIN);
+        cmd.arg("-y");
+        cmd.arg("remove");
         cmd.args(&remove_list);
+
+        tracing::debug!(command = helpers::command_to_string(&cmd));
 
         return_if_noop!(opts);
 
@@ -152,16 +162,40 @@ fn parse_pkg_output(output: &str) -> GlobalPkgins {
     for l in output.trim().lines() {
         let bits: Vec<_> = l.split_whitespace().collect();
 
-        if bits.len() != 2 {
-            continue;
-        }
-
-        let name_bits: Vec<_> = bits[0].rsplitn(2, "-").collect();
-
-        if bits[1].starts_with('i') {
-            installed.push(name_bits[0].to_owned());
+        if bits.len() >= 2
+            && let Some(pkg_name) = bits[0].rsplitn(2, "-").last()
+        {
+            installed.push(pkg_name.to_owned());
         }
     }
 
     GlobalPkgins { installed }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::test_utils::spec_helper::load_fixture;
+
+    #[test]
+    fn test_parse_gem_output() {
+        let result = parse_pkg_output(&load_fixture("doers/pkgin/sample_output"));
+
+        assert_eq!(
+            GlobalPkgins {
+                installed: vec![
+                    "libxml2".to_owned(),
+                    "ruby33".to_owned(),
+                    "ruby33-mini_portile2".to_owned(),
+                    "Zlib".to_owned(),
+                ]
+            },
+            result
+        );
+    }
+}
+
+// #libxml2-2.12.9nb2    XML parser library from the GNOME project
+// ruby33-3.3.6         Ruby 3.3.6 release package
+// ruby33-mini_portile2-2.8.7 Simple autoconf builder for developers
+// Zlib-1.3.1           General purpose data compression library
