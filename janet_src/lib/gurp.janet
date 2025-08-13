@@ -133,6 +133,7 @@
    {:optional
     {:attr ["See 'zone-attr'"]
      :autoboot ["Boot the zone on system boot" :string]
+     :bhyve ["See 'zone-bhyve'"]
      :boot-after-install ["Boot the zone n it is installed" :string]
      :bootstrap-from ["Copy gurp into the zone, and apply the given file, relative to zone root" :string]
      :capped-memory ["Set memory cap. Keys must be :physical and :swap, values are strings like '4G'" :struct]
@@ -156,6 +157,13 @@
     {:type ["The type of the value. Gurp will take a pretty good guess though" :string]}
     :mandatory
     {:value ["Attribute value" :string :boolean :number]}}
+
+   :zone-bhyve
+   {:optional
+    {:ram ["How much RAM to allocate (e.g. '4G')" :string]
+     :vcpus ["How many VCPUs to allocate" :number]
+     :install-image ["Install image" :string]
+     :cloudinit ["Whether to install the zone with cloudinit" :boolean]}}
 
    :zone-network
    {:optional
@@ -892,6 +900,7 @@
   (expand-resource :attr)
   (expand-resource :fs)
   (expand-resource :rctl)
+  (expand-resource :bhyve :as-struct true)
   (let [result (make-resource :ensure :zone name modified-specs)
         resource (struct/to-table (result :zone))]
 
@@ -956,3 +965,13 @@
       (error "zone-rctl requires a :limit"))
 
     (struct :rctl (struct/proto-flatten spec-struct))))
+
+(defn zone-bhyve
+  [& specs]
+  (let [spec-struct (struct/with-proto (proto :ensure :zone-bhyve) (splice specs))]
+
+    (each prop [:ram :vcpus :volume-size]
+      (if-not (has-key? spec-struct prop)
+        (error (string "zone-bhyve requires a " prop))))
+
+    (struct :bhyve (struct/proto-flatten spec-struct))))

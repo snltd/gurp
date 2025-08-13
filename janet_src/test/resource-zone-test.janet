@@ -31,6 +31,20 @@
                                    "192.168.1.1"]}
                :exec-in ["/usr/bin/pkg refresh"])
 
+  (zone/ensure "test-zone-bhyve"
+               :brand "bhyve"
+               :autoboot false
+               (zone-network "fs_net0" :global-nic "auto")
+               (zone-bhyve
+                 :ram "3G"
+                 :vcpus 4
+                 :volume-size "10G"
+                 :install-image "noble-server-cloudimg-amd64.img.raw"
+                 :cloudinit true)
+               :dns {:domain "lan.id264.net"
+                     :nameservers ["192.168.1.53"
+                                   "192.168.1.1"]})
+
   (zone/remove "defunct-zone")
 
   (test *collector*
@@ -77,7 +91,23 @@
                                  :physical "fs_net0"}]
                          :recreate 0
                          :role "test-role"
-                         :zonepath "/zones/test-zone-fat"}]}
+                         :zonepath "/zones/test-zone-fat"}
+                        {:_id "/test-role/zone/test-zone-bhyve"
+                         :autoboot false
+                         :bhyve {:cloudinit true
+                                 :install-image "noble-server-cloudimg-amd64.img.raw"
+                                 :ram "3G"
+                                 :vcpus 4
+                                 :volume-size "10G"}
+                         :boot-after-install true
+                         :brand "bhyve"
+                         :dns {:domain "lan.id264.net"
+                               :nameservers ["192.168.1.53" "192.168.1.1"]}
+                         :name "test-zone-bhyve"
+                         :net @[{:global-nic "auto" :physical "fs_net0"}]
+                         :recreate 0
+                         :role "test-role"
+                         :zonepath "/zones/test-zone-bhyve"}]}
       :remove @{:zone @[{:_id "/test-role/zone/defunct-zone"
                          :name "defunct-zone"
                          :role "test-role"}]}}))

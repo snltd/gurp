@@ -43,6 +43,9 @@
      :recreate 0
      :boot-after-install true}
 
+    :zone-bhyve
+    {:cloudinit false}
+
     :zone-fs
     {:type "lofs"}
 
