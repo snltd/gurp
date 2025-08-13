@@ -79,7 +79,6 @@ fn install_specific(gem: &GurpGemEnsure, opts: &Opts) -> anyhow::Result<ApplySum
 
     return_if_noop!(opts);
 
-    let output = cmd.output()?;
     one_change_or_stderr!(cmd, format!("failed to install gem {}", gem.name))
 }
 
