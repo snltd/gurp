@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod test {
     use assert_cmd::Command;
-    use gurp::test_utils::spec_helper::fixture;
     use predicates::prelude::*;
 
     #[test]
@@ -39,7 +38,7 @@ mod test {
             .unwrap()
             .env("GURP_NO_COLOUR", "1")
             .arg("apply")
-            .arg(fixture("bad.janet"))
+            .arg("tests/resources/bad.janet")
             .assert()
             .failure()
             .stderr(predicate::str::ends_with(

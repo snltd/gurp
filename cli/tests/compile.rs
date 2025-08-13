@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod test {
     use assert_cmd::Command;
-    use gurp::test_utils::spec_helper::fixture;
     use predicates::prelude::*;
 
     #[test]
@@ -38,7 +37,7 @@ mod test {
         Command::cargo_bin("gurp")
             .unwrap()
             .arg("compile")
-            .arg(fixture("bad.janet"))
+            .arg("tests/resources/bad.janet")
             .assert()
             .failure()
             .stderr(predicate::str::contains(
@@ -52,7 +51,7 @@ mod test {
         Command::cargo_bin("gurp")
             .unwrap()
             .arg("compile")
-            .arg(fixture("sample/serv-gurp.janet"))
+            .arg("tests/resources/sample/serv-gurp.janet")
             .assert()
             .success()
             .stdout(predicate::str::contains(":directory"));

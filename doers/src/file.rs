@@ -591,7 +591,7 @@ mod test {
                 :group \"{}\")
             ",
             path,
-            fixture("ignore-line-file"),
+            fixture("file/ignore-line-file"),
             my_user(),
             my_group(),
         });
