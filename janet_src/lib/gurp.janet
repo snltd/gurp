@@ -324,7 +324,7 @@
    :user {:supported [:uid :primary-group :home-dir :shell :gecos :password-hash
                       :other-groups :profiles]
           :mandatory [:uid :primary-group :home-dir :shell :gecos]}
-   :zfs {:supported [:properties]}
+   :zfs {:supported [:properties :size]}
    :zone {:supported [:brand :run-cmd :dns :properties :zonepath :net
                       :autoboot :fs :datasets :exec :attr :clone-from
                       :boot-after-install :bootstrap-from :recreate
