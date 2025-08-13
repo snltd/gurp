@@ -742,6 +742,16 @@
   [name & specs]
   (collect :remove :group (make-resource :remove :group name specs)))
 
+(defn group/ensure
+  "Given a group name and specification, return a group ensure struct"
+  [name & specs]
+  (collect :ensure :group (ensure-resource :group name specs)))
+
+(defn group/remove
+  "Given a group name and specification, return a group remove struct"
+  [name & specs]
+  (collect :remove :group (remove-resource :group name specs)))
+
 (defn misc/ensure
   "Sets miscellaneous system properties"
   [& specs]
