@@ -15,6 +15,7 @@ pub const PKG_BIN: &str = "/bin/pkg";
 pub const PKGIN_BIN: &str = "/opt/local/bin/pkgin";
 pub const PROFILES_BIN: &str = "/bin/profiles";
 pub const PS_BIN: &str = "/bin/ps";
+pub const QEMU_IMG_BIN: &str = "/opt/ooce/bin/qemu-img";
 pub const SHARECTL_BIN: &str = "/usr/sbin/sharectl";
 pub const SMBADM_BIN: &str = "/usr/sbin/smbadm";
 pub const SVCADM_BIN: &str = "/usr/sbin/svcadm";
@@ -49,3 +50,5 @@ pub const NO_RESOURCES_TO_CHANGE: ApplySummary = ApplySummary {
     resources: 0,
     changes: 0,
 };
+
+pub const IMG_CACHE: &str = "/var/tmp";

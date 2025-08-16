@@ -1,6 +1,9 @@
 use common::prelude::*;
+use portable_pty::{CommandBuilder, native_pty_system};
+use std::io::{Read, Write};
 use std::str::FromStr;
-use std::thread::sleep;
+use std::sync::mpsc;
+use std::thread::{self, sleep};
 use std::time::Duration;
 
 const ZONEADM_FIELDS: usize = 8;
@@ -149,13 +152,13 @@ fn wait_for_state(zone: &str, desired_state: ZoneState) -> anyhow::Result<()> {
     }
 }
 
-pub fn wait_for_readiness(zone: &str) -> anyhow::Result<()> {
+pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
     // This goes a bit further than waiting for the zone state. It checks it's up and in multi-user
     // mode
     let elapsed = Duration::from_secs(0);
     loop {
         if is_ready(zone)? {
-            return Ok(());
+            return Ok(true);
         }
 
         sleep(READINESS_WAIT_INTERVAL);
@@ -167,14 +170,14 @@ pub fn wait_for_readiness(zone: &str) -> anyhow::Result<()> {
     }
 }
 
-pub fn wait_for_readiness_lx(zone: &str) -> anyhow::Result<()> {
+pub fn wait_for_readiness_lx(zone: &str) -> anyhow::Result<bool> {
     // Because there are a bunch of possible images, it's hard to know what to look for here. For
     // starters I'm going to try, "are you running half-a-dozen processes"?
     //
     let elapsed = Duration::from_secs(0);
     loop {
         if is_ready_lx(zone)? {
-            return Ok(());
+            return Ok(true);
         }
 
         sleep(READINESS_WAIT_INTERVAL);
@@ -184,6 +187,74 @@ pub fn wait_for_readiness_lx(zone: &str) -> anyhow::Result<()> {
             bail!("Timed out waiting for {} be ready", zone)
         }
     }
+}
+
+pub fn wait_for_readiness_bhyve(zone: &str, opts: &Opts) -> anyhow::Result<bool> {
+    // It's hard to know when a bhyve zone is fully booted. Here we look for a login prompt,
+    // which seems universal across distributions.
+    //
+    // Zlogin requires a PTY, hence the use of portable_pty. We scan the raw bytes of what
+    // zlogin sees in a separate thread, because that was the only way I could avoid choking
+    // on non-UTF8 data.
+    //
+    // When the console mentions ttyS0, we "press return", otherwise we might not get a login
+    // prompt. When we see the login prompt, we send an escape to end the console session, then
+    // pass true back to the main thread and the function returns. If we hit EOF before that, we
+    // send back false.
+    //
+    // I might replace this all of this with a ping...
+    //
+    let pty_system = native_pty_system();
+    let pair = pty_system.openpty(Default::default())?;
+
+    let mut cmd = CommandBuilder::new(ZLOGIN_BIN);
+    cmd.arg("-C");
+    cmd.arg(zone);
+
+    let mut child = pair.slave.spawn_command(cmd)?;
+    drop(pair.slave);
+
+    let mut writer = pair.master.take_writer()?;
+    let mut reader = pair.master.try_clone_reader()?;
+
+    let (tx, rx) = mpsc::channel::<bool>();
+    let dump_config = opts.dump_config;
+
+    thread::spawn(move || {
+        let mut buf = [0u8; 1024];
+        let mut window = Vec::new();
+
+        while let Ok(n) = reader.read(&mut buf) {
+            if n == 0 {
+                break;
+            }
+
+            window.extend_from_slice(&buf[..n]);
+            if window.len() > 4096 {
+                window.drain(..window.len() - 4096);
+            }
+
+            if dump_config {
+                println!("{}", String::from_utf8_lossy(&buf[..n]));
+            }
+
+            if window.windows(5).any(|w| w == b"ttyS0") {
+                let _ = writeln!(writer);
+            }
+
+            if window.windows(7).any(|w| w == b" login:") {
+                let _ = writeln!(writer, "~.");
+                let _ = tx.send(true);
+                return;
+            }
+        }
+
+        let _ = tx.send(false);
+    });
+
+    let ready = rx.recv().unwrap_or(false);
+    let _ = child.wait();
+    Ok(ready)
 }
 
 fn is_ready(zone: &str) -> anyhow::Result<bool> {

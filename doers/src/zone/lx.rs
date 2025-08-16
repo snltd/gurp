@@ -1,12 +1,10 @@
-use super::config::GurpZoneDns;
-use anyhow::bail;
+use crate::zone::config::GurpZoneDns;
 use camino::Utf8PathBuf;
 use serde_json::Value;
-use std::fs::{self, File};
-use std::io::copy;
+use std::fs;
+use util::http;
 
 const RELEASES_URL: &str = "https://api.github.com/repos/omniosorg/lx-images/releases";
-const IMG_CACHE: &str = "/var/tmp";
 
 pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &GurpZoneDns) -> anyhow::Result<()> {
     let resolv_path = zonepath.join("root").join("etc").join("resolv.conf");
@@ -65,20 +63,8 @@ fn find_image(pattern: &str) -> anyhow::Result<Option<String>> {
 
 pub fn image_path(pattern: &str) -> anyhow::Result<Option<Utf8PathBuf>> {
     if let Some(img_url) = find_image(pattern)? {
-        let chunks = img_url.split("/");
-        if let Some(img_basename) = chunks.last() {
-            let img_path = Utf8PathBuf::from(IMG_CACHE).join(img_basename);
-            if img_path.exists() {
-                tracing::debug!("found image at {img_path}");
-            } else {
-                tracing::debug!("no image at {img_path}: downloading");
-                get_image(&img_url, &img_path)?;
-            }
-
-            Ok(Some(img_path))
-        } else {
-            bail!("could not get image basename");
-        }
+        let img_path = http::image_in_cache(&img_url)?;
+        Ok(Some(img_path))
     } else {
         Ok(None)
     }

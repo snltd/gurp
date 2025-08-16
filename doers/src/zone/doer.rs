@@ -1,7 +1,8 @@
+use crate::zone::bhyve;
 use crate::zone::config::GurpZoneConfig;
 use crate::zone::control::{self, ZoneadmState};
 use crate::zone::lx;
-use anyhow::bail;
+use anyhow::{Context, bail};
 use common::prelude::*;
 use fs_extra::dir::CopyOptions;
 use serde::Deserialize;
@@ -117,6 +118,10 @@ impl GurpZoneEnsure {
                 let img_path = self.install_zone_lx_path()?;
                 cmd_output!(ZONEADM_BIN, "-z", &self.name, "install", "-s", img_path)?
             }
+            "bhyve" => {
+                bhyve::pre_install(&self.config)?;
+                cmd_output!(ZONEADM_BIN, "-z", &self.name, "install")?
+            }
             _ => cmd_output!(ZONEADM_BIN, "-z", &self.name, "install")?,
         };
 
@@ -181,6 +186,7 @@ impl GurpZoneEnsure {
         }
 
         match self.config.brand.as_str() {
+            "bhyve" => control::wait_for_readiness_bhyve(&self.name, opts)?,
             "lx" => control::wait_for_readiness_lx(&self.name)?,
             _ => control::wait_for_readiness(&self.name)?,
         };

@@ -904,6 +904,9 @@
   (let [result (make-resource :ensure :zone name modified-specs)
         resource (struct/to-table (result :zone))]
 
+    (if (and (has-key? resource :bhyve) (not= "bhyve" (resource :brand)))
+      (error "found bhyve config but brand is not bhyve"))
+
     (if-let [copy-resource (resource :copy-in)]
       (set (resource :copy-in)
            (table/to-struct
@@ -912,6 +915,8 @@
 
     (if-not (has-key? resource :zonepath)
       (set (resource :zonepath) (pathcat "/zones" name)))
+
+    (set (resource :name) name)
 
     (collect :ensure :zone {:zone (table/to-struct resource)})))
 
@@ -961,8 +966,9 @@
   [name & specs]
   (let [spec-struct (struct/with-proto (proto :ensure :zone-rctl) :name name (splice specs))]
 
-    (if-not (has-key? spec-struct :limit)
-      (error "zone-rctl requires a :limit"))
+    (if-not
+      (has-key? spec-struct :limit)
+      (error "zone-rctl requires :limit"))
 
     (struct :rctl (struct/proto-flatten spec-struct))))
 
@@ -970,8 +976,8 @@
   [& specs]
   (let [spec-struct (struct/with-proto (proto :ensure :zone-bhyve) (splice specs))]
 
-    (each prop [:ram :vcpus :volume-size]
+    (each prop [:ram :vcpus]
       (if-not (has-key? spec-struct prop)
-        (error (string "zone-bhyve requires a " prop))))
+        (error (string "zone-bhyve requires :" prop))))
 
     (struct :bhyve (struct/proto-flatten spec-struct))))

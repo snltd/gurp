@@ -38,9 +38,9 @@
                (zone-bhyve
                  :ram "3G"
                  :vcpus 4
-                 :volume-size "10G"
-                 :install-image "noble-server-cloudimg-amd64.img.raw"
+                 :boot-volume "tank/bhyve/test"
                  :cloudinit true)
+               :image "/var/tmp/noble-server-cloudimg-amd64.img.raw"
                :dns {:domain "lan.id264.net"
                      :nameservers ["192.168.1.53"
                                    "192.168.1.1"]})
@@ -94,15 +94,15 @@
                          :zonepath "/zones/test-zone-fat"}
                         {:_id "/test-role/zone/test-zone-bhyve"
                          :autoboot false
-                         :bhyve {:cloudinit true
-                                 :install-image "noble-server-cloudimg-amd64.img.raw"
+                         :bhyve {:boot-volume "tank/bhyve/test"
+                                 :cloudinit true
                                  :ram "3G"
-                                 :vcpus 4
-                                 :volume-size "10G"}
+                                 :vcpus 4}
                          :boot-after-install true
                          :brand "bhyve"
                          :dns {:domain "lan.id264.net"
                                :nameservers ["192.168.1.53" "192.168.1.1"]}
+                         :image "/var/tmp/noble-server-cloudimg-amd64.img.raw"
                          :name "test-zone-bhyve"
                          :net @[{:global-nic "auto" :physical "fs_net0"}]
                          :recreate 0
@@ -111,6 +111,19 @@
       :remove @{:zone @[{:_id "/test-role/zone/defunct-zone"
                          :name "defunct-zone"
                          :role "test-role"}]}}))
+
+(deftest "test-zone-errors"
+  (test-error
+    (zone/ensure "test-zone"
+                 :brand "lipkg"
+                 (zone-bhyve
+                   :ram "3G"
+                   :vcpus 4
+                   :volume-size "10G"
+                   :install-image "noble-server-cloudimg-amd64.img.raw"
+                   :cloudinit true))
+    "found bhyve config but brand is not bhyve"))
+
 
 (deftest "test-zone-rctl-resource"
   (test

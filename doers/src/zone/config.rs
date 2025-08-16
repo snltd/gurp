@@ -1,10 +1,9 @@
+use crate::zone::bhyve;
 use camino::Utf8PathBuf;
 use indoc::formatdoc;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt;
-
-// Turns Janet into Rust into zonecfg input
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -28,6 +27,14 @@ pub struct GurpZoneConfig {
     pub rctl: Option<GurpZoneRctls>,
     pub recreate: u8,
     pub zonepath: Utf8PathBuf,
+
+pub struct GurpBhyve {
+    pub ram: String,
+    pub vcpus: u8,
+    pub cloudinit: bool,
+    pub boot_volume: String,
+    pub image_url: String,
+    pub image_format: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -104,6 +111,32 @@ pub struct GurpZoneNetwork {
     pub defrouter: Option<String>,
 }
 
+// Turns Janet into Rust into zonecfg input
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GurpZoneConfig {
+    pub name: String,
+    pub clone_from: Option<String>,
+    pub brand: String,
+    pub autoboot: bool,
+    pub zonepath: Utf8PathBuf,
+    pub datasets: Option<Vec<String>>,
+    pub capped_memory: Option<GurpZoneCappedMemory>,
+    pub dns: Option<GurpZoneDns>,
+    pub net: GurpZoneNetworks,
+    pub fs: Option<GurpZoneFilesystems>,
+    pub attr: Option<GurpZoneAttrs>,
+    pub rctl: Option<GurpZoneRctls>,
+    pub exec_in: Option<Vec<String>>,
+    pub boot_after_install: bool,
+    pub bootstrap_from: Option<Utf8PathBuf>,
+    pub recreate: u8,
+    pub image: Option<String>,
+    pub copy_in: Option<HashMap<Utf8PathBuf, String>>,
+    pub bhyve: Option<GurpBhyve>,
+}
+
 impl GurpZoneConfig {
     pub fn to_zonecfg(&self) -> String {
         let mut ret = "create -b\n".to_owned();
@@ -138,7 +171,7 @@ impl GurpZoneConfig {
 
         if let Some(attrs) = &self.attr {
             for attr in attrs {
-                ret.push_str(&self.zone_attr(attr));
+                ret.push_str(&zone_attr!(attr.name, attr.attr_type, attr.value));
             }
         }
 
@@ -148,10 +181,13 @@ impl GurpZoneConfig {
             }
         }
 
+        if &self.brand == "bhyve" {
+            ret.push_str(&bhyve::bhyve_zone_config(&self));
+        }
+
         ret
     }
 
-    // We may want to add "create dataset" logic here
     fn zone_dataset(&self, ds_name: &str) -> String {
         format!("add dataset\n\tset name={ds_name}\nend\n")
     }
@@ -170,21 +206,6 @@ impl GurpZoneConfig {
         ret
     }
 
-    fn zone_capped_memory(&self, conf: &GurpZoneCappedMemory) -> String {
-        formatdoc! { "add capped-memory
-        \tset physical={}
-        \tset swap={}
-        end\n", conf.physical, conf.swap}
-    }
-
-    fn zone_attr(&self, conf: &GurpZoneAttr) -> String {
-        formatdoc! { "add attr
-     \tset name={}
-     \tset type={}
-     \tset value={}
-     end\n", conf.name, conf.attr_type, conf.value}
-    }
-
     fn zone_rctl(&self, conf: &GurpZoneRctl) -> String {
         formatdoc! { "add rctl
      \tset name={}
@@ -192,19 +213,18 @@ impl GurpZoneConfig {
      end\n", conf.name, conf.rctl_priv, conf.limit, conf.action}
     }
 
-    fn string_attr(&self, name: &str, value: &str) -> String {
-        formatdoc! { "add attr
-     \tset name={}
-     \tset type=string
-     \tset value={}
-     end\n", name, value}
+    fn zone_capped_memory(&self, conf: &GurpZoneCappedMemory) -> String {
+        formatdoc! { "add capped-memory
+        \tset physical={}
+        \tset swap={}
+        end\n", conf.physical, conf.swap}
     }
 
     fn zone_dns(&self, conf: &GurpZoneDns) -> String {
         format!(
             "{}{}",
-            self.string_attr("dns-domain", &conf.domain),
-            self.string_attr("resolvers", &conf.nameservers.join(","))
+            zone_attr!("dns-domain", "string", &conf.domain),
+            zone_attr!("resolvers", "string", &conf.nameservers.join(","))
         )
     }
 
@@ -228,7 +248,7 @@ impl GurpZoneConfig {
 
 #[cfg(test)]
 mod test {
-    use crate::zone::GurpZoneEnsure;
+    use crate::zone::doer::GurpZoneEnsure;
     use indoc::indoc;
     use pretty_assertions::assert_eq;
     use tester::janet2json;
