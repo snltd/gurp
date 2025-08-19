@@ -1,7 +1,6 @@
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
 use common::types::Opts;
-use gurp::commands;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
