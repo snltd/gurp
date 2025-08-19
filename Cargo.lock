@@ -373,6 +373,7 @@ dependencies = [
  "common",
  "doers",
  "janet_int",
+ "janetrs",
  "tracing",
 ]
 

@@ -4,7 +4,7 @@ use common::types::ApplyOpts;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
-#[clap(version, about = "Configures hosts, or might do one day", long_about = None)]
+#[clap(version, about = "gurp configures illumos systems", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -15,34 +15,37 @@ enum Commands {
     /// Configure the host with the supplied configuration
     Apply {
         /// Specify a gurp Janet library, in preference to the built-in
-        #[arg(short = 'L', long = "gurp-lib", global = true)]
+        #[arg(short = 'L', long = "gurp-lib")]
         gurp_lib_path: Option<Utf8PathBuf>,
         /// Say what would happen, without actually doing it
-        #[arg(short, long, global = true)]
+        #[arg(short, long)]
         noop: bool,
         /// Dump intermediate config files to stdout
-        #[arg(short, long, global = true)]
+        #[arg(short, long)]
         dump_config: bool,
         /// When dumping configs, use syntax colouring where possible
-        #[arg(short = 'C', long, global = true)]
+        #[arg(short = 'C', long)]
         colour: bool,
         /// When dumping configs, number lines
-        #[arg(short = 'N', long, global = true)]
+        #[arg(short = 'N', long)]
         line_no: bool,
 
         /// Host configuration file
         #[arg(required = true)]
         host_config_file: Utf8PathBuf,
     },
-    /// Compile the Janet description and dump it to stdout
+    /// Compile the Janet description, and optionally write it to stdout
     Compile {
         /// Specify a gurp Janet library, in preference to the built-in
-        #[arg(short = 'L', long = "gurp-lib", global = true)]
+        #[arg(short = 'L', long = "gurp-lib")]
         gurp_lib_path: Option<Utf8PathBuf>,
         /// When displaying compiled config, number lines
-        #[arg(short = 'N', long, global = true)]
+        #[arg(short = 'N', long)]
         line_no: bool,
 
+        /// Output in the given format: 'janet' or 'json'
+        #[arg(short, long)]
+        format: Option<String>,
         /// Host configuration file
         #[arg(required = true)]
         host_config_file: Utf8PathBuf,
@@ -90,6 +93,7 @@ fn main() -> anyhow::Result<()> {
             gurp_lib_path,
             line_no,
             host_config_file,
+            format,
         } => {
             // Compile is the first part of run's code path, so we'll fake the apply options
             let opts = ApplyOpts {
@@ -100,7 +104,7 @@ fn main() -> anyhow::Result<()> {
                 gurp_lib_path,
                 compile_only: true,
             };
-            commands::compile::run(&host_config_file, &opts)
+            commands::compile::run(&host_config_file, format.as_deref(), &opts)
         }
         Commands::Show { thing } => commands::show::run(&thing),
     };

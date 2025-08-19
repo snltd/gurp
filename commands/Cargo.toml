@@ -9,3 +9,4 @@ camino = { version = "1.1.9" }
 common = { path = "../common"} 
 doers = { path = "../doers" }
 janet_int = { path = "../janet_int"} 
+janetrs = "0.8.0"

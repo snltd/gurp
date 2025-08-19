@@ -6,7 +6,7 @@ use janetrs::{TaggedJanet, env::CFunOptions};
 use std::collections::BTreeSet;
 
 pub fn apply(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    let host_config = reader::read_and_enrich_host_config(host_file, opts)?;
+    let host_config = reader::read_and_enrich_host_config(host_file, None, opts)?;
 
     if opts.dump_config {
         println!(
