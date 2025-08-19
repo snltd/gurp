@@ -19,7 +19,7 @@ pub struct GurpGroupRemove {
 }
 
 impl GurpGroupEnsure {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if let Some(group) = Group::from_name(&self.name)? {
             if group.gid.as_raw() == self.gid {
                 tracing::debug!("group {} is gid {}", self.name, self.gid);
@@ -34,7 +34,7 @@ impl GurpGroupEnsure {
         }
     }
 
-    fn group_cmd(&self, command: &str, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn group_cmd(&self, command: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut cmd = cmd!(command, "-g", &self.gid.to_string(), &self.name);
 
         return_if_noop!(opts);
@@ -44,7 +44,7 @@ impl GurpGroupEnsure {
 }
 
 impl GurpGroupRemove {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if Group::from_name(&self.name)?.is_some() {
             if PROTECTED_GROUPS.contains(&self.name.as_str()) {
                 tracing::warn!("protected resource: {}", self.name);

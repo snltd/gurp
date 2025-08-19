@@ -45,7 +45,7 @@ pub struct GurpDirectoryRemove {
 }
 
 impl GurpDirectoryEnsure {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if !self.path.exists() {
             tracing::info!("creating directory: {}", self.path);
             return_if_noop!(opts);
@@ -126,7 +126,7 @@ impl GurpDirectoryEnsure {
 }
 
 impl GurpDirectoryRemove {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if self.path.exists() {
             if PROTECTED_DIRS.contains(&self.path) {
                 tracing::warn!("protected resource: {}", self.path);

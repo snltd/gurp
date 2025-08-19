@@ -57,7 +57,7 @@ pub struct GurpFileRemove {
 }
 
 impl GurpFileEnsure {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if (self.desired_state.content.is_none() && self.desired_state.from.is_none())
             || (self.desired_state.content.is_some() && self.desired_state.from.is_some())
         {
@@ -276,7 +276,7 @@ impl GurpFileEnsure {
 }
 
 impl GurpFileRemove {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if self.path.exists() {
             if PROTECTED_FILES.contains(&self.path) {
                 tracing::warn!("protected resource: {}", self.path);

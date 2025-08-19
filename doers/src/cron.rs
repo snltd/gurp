@@ -57,7 +57,7 @@ pub struct GurpCronRemove {
 }
 
 impl GurpCronEnsure {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let content = current_crontab(&self.user)?;
         match self.ensured_crontab(&content)? {
             Some(new_crontab) => {
@@ -115,7 +115,7 @@ impl GurpCronEnsure {
 }
 
 impl GurpCronRemove {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let content = current_crontab(&self.user)?;
         match self.removed_crontab(&content)? {
             // If you try to write an empty file, crontab(1) will reject it. If we take out the

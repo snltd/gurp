@@ -1,3 +1,4 @@
+use camino::Utf8PathBuf;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -6,11 +7,13 @@ use std::ops::Add;
 pub type ExitCode = u8;
 
 #[derive(Clone)]
-pub struct Opts {
+pub struct ApplyOpts {
     pub noop: bool,
     pub colour: bool,
     pub line_no: bool,
+    pub gurp_lib_path: Option<Utf8PathBuf>,
     pub dump_config: bool,
+    pub compile_only: bool,
 }
 
 #[derive(Debug, Default, PartialEq, Copy, Clone)]

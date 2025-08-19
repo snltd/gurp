@@ -28,7 +28,7 @@ type Username = String;
 type SchedulerClass = String;
 
 impl GurpMiscEnsure {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut aggr = ApplySummary::default();
 
         if let Some(domain) = &self.desired_state.nfs_domain {
@@ -60,7 +60,7 @@ impl GurpMiscEnsure {
         Ok(aggr)
     }
 
-    fn enable_smb_share(&self, username: &str, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn enable_smb_share(&self, username: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         tracing::debug!("calling misc/enable_smb_share");
 
         match cmd_output!(SMBADM_BIN, "lookup", username) {
@@ -85,7 +85,7 @@ impl GurpMiscEnsure {
         one_change_or_stderr!(cmd, "error enabling SMB share")
     }
 
-    fn ensure_nfs_domain(&self, desired_domain: &str, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn ensure_nfs_domain(&self, desired_domain: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         tracing::debug!("calling misc/ensure_nfs_domain");
 
         let status = cmd_output!(SHARECTL_BIN, "get", "-p", "nfsmapid_domain", "nfs")?;
@@ -123,7 +123,7 @@ impl GurpMiscEnsure {
     fn set_scheduler_class(
         &self,
         desired_class: &str,
-        opts: &Opts,
+        opts: &ApplyOpts,
     ) -> anyhow::Result<ApplySummary> {
         tracing::debug!("calling misc/set_scheduler_class");
         let mut get_cmd = Command::new(DISPADMIN_BIN);
