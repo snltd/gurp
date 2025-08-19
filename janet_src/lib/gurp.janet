@@ -306,7 +306,7 @@
    :file-line {:supported [:line]
                :mandatory [:line]}
    :file {:supported [:owner :mode :group :content :ignore-pattern :from]}
-   :gem {:supported [:version :source]}
+   :gem {:supported [:version :source :gem-path]}
    :group {:supported [:gid]
            :mandatory [:gid]}
    :misc {:supported [:nfs-domain :enable-smb :scheduler]}
