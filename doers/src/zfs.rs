@@ -24,6 +24,7 @@ pub struct GurpZfsEnsure {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
+    pub size: Option<String>,
     pub properties: Option<ZfsProperties>,
 }
 
@@ -130,20 +131,21 @@ impl GurpZfsEnsure {
             }
         }
 
+        if let Some(size) = &self.size {
+            cmd.arg("-V");
+            cmd.arg(size);
+        }
+
         if opts.noop {
             cmd.arg("-n");
         }
 
         cmd.arg(&self.name).stderr(Stdio::piped());
         tracing::debug!(command = helpers::command_to_string(&cmd));
-        let output = cmd.output()?;
 
-        if output.status.success() {
-            return_if_noop!(opts);
-            Ok(ONE_RESOURCE_ONE_CHANGE)
-        } else {
-            bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-        }
+        return_if_noop!(opts);
+
+        one_change_or_stderr!(cmd, "creating ZFS dataset")
     }
 }
 
