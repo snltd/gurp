@@ -1,0 +1,12 @@
+[package]
+name = "commands"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tracing = "0.1.41"
+camino = { version = "1.1.9" }
+common = { path = "../common"} 
+doers = { path = "../doers" }
+janet_int = { path = "../janet_int"} 
+janetrs = "0.8.0"

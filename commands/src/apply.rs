@@ -1,15 +1,11 @@
 use camino::Utf8PathBuf;
-use common::types::{ApplySummary, ExitCode, Opts};
+use common::types::{ApplyOpts, ApplySummary, ExitCode};
 use doers::host;
 use std::time::{Duration, Instant};
 
-pub fn run(
-    host_config_file: &Utf8PathBuf,
-    gurp_lib_path: &Option<Utf8PathBuf>,
-    global_opts: &Opts,
-) -> ExitCode {
+pub fn run(host_config_file: &Utf8PathBuf, opts: &ApplyOpts) -> ExitCode {
     let start_time = Instant::now();
-    let apply_summary = match host::apply(host_config_file, gurp_lib_path, global_opts) {
+    let apply_summary = match host::apply(host_config_file, opts) {
         Ok(result) => result,
         Err(e) => {
             tracing::error!("apply error on {}: {}", host_config_file, e);

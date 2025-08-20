@@ -1,4 +1,4 @@
-use crate::types::Opts;
+use crate::types::ApplyOpts;
 use serde_json::Value;
 use std::process::Command;
 use xml::reader::{EventReader, XmlEvent};
@@ -25,7 +25,7 @@ pub fn pretty_json(json_str: &str) -> anyhow::Result<String> {
     Ok(serde_json::to_string_pretty(&value)?)
 }
 
-pub fn dump_config(code: &str, description: &str, opts: &Opts) -> String {
+pub fn dump_config(code: &str, description: &str, opts: &ApplyOpts) -> String {
     let mut banner_begin = format!("--- BEGIN {description} ");
     let mut banner_end = format!("--- END {description} ");
     banner_begin.push_str("-".repeat(TW - banner_begin.len()).as_str());

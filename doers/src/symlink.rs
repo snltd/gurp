@@ -25,7 +25,7 @@ pub struct GurpSymlinkRemove {
 }
 
 impl GurpSymlinkEnsure {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let target = &self.path;
         let source = &self.source;
 
@@ -64,7 +64,7 @@ impl GurpSymlinkEnsure {
 }
 
 impl GurpSymlinkRemove {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if self.path.exists() {
             tracing::info!("removing symlink: {}", self.path);
             return_if_noop!(opts);

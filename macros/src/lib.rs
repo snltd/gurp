@@ -107,7 +107,7 @@ macro_rules! cmd_output {
 #[cfg(test)]
 mod test {
     use common::constants::{ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE};
-    use common::types::{ApplySummary, Opts};
+    use common::types::{ApplySummary, ApplyOpts};
     use predicates::prelude::*;
     use tester::{defopts, defopts_noop};
 
@@ -149,7 +149,7 @@ mod test {
 
     #[test]
     fn test_return_if_noop_macro() {
-        fn wrapper(opts: &Opts) -> anyhow::Result<ApplySummary> {
+        fn wrapper(opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
             return_if_noop!(opts);
             Ok(ONE_RESOURCE_ONE_CHANGE)
         }

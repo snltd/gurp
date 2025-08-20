@@ -1,6 +1,6 @@
 use camino::Utf8PathBuf;
 use common::helpers;
-use common::types::Opts;
+use common::types::ApplyOpts;
 use janet_int::constants::GURP_LIB;
 use janet_int::helpers as janet_helpers;
 use janet_int::reader;
@@ -21,21 +21,25 @@ pub fn load_fixture(file: &str) -> String {
     fs::read_to_string(fixture(file)).unwrap_or_else(|_| panic!("Did not find {file}"))
 }
 
-pub fn defopts() -> Opts {
-    Opts {
+pub fn defopts() -> ApplyOpts {
+    ApplyOpts {
         dump_config: false,
         noop: false,
         colour: false,
         line_no: false,
+        gurp_lib_path: None,
+        compile_only: false,
     }
 }
 
-pub fn defopts_noop() -> Opts {
-    Opts {
+pub fn defopts_noop() -> ApplyOpts {
+    ApplyOpts {
         dump_config: false,
         noop: true,
         colour: true,
         line_no: false,
+        gurp_lib_path: None,
+        compile_only: false,
     }
 }
 
@@ -49,7 +53,7 @@ pub fn my_group() -> String {
 
 pub fn janet2json(janet_defn: &str) -> String {
     let dir = Utf8PathBuf::from_path_buf(current_dir().unwrap()).unwrap();
-    let full_janet = reader::janet_conf("", &dir, GURP_LIB, &defopts(), false).unwrap();
+    let full_janet = reader::janet_conf("", &dir, GURP_LIB, None, &defopts()).unwrap();
     let json_wrapped_host_config = format!("{full_janet}\n(encode (first (values {janet_defn})))");
     let mut client = janet_helpers::janet_client();
     client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
@@ -61,11 +65,13 @@ pub fn janet2json(janet_defn: &str) -> String {
                 helpers::dump_config(
                     &full_janet,
                     "complete Janet",
-                    &Opts {
+                    &ApplyOpts {
                         noop: false,
                         colour: false,
                         line_no: true,
                         dump_config: true,
+                        gurp_lib_path: None,
+                        compile_only: false,
                     },
                 )
             );

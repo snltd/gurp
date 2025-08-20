@@ -33,7 +33,7 @@
   (test-error
     (user/ensure "wat"
                  :uid 100)
-    "Failed to validate user input for user 'wat' : user missing required key(s): primary-group, home-dir, shell, gecos")
+    "Failed to validate user input for user 'wat' : user missing required key(s): home-dir, primary-group, gecos, shell")
 
   (test-error
     (user/ensure "rob"

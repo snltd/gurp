@@ -59,7 +59,7 @@ fn zfs_exists(name: &str) -> bool {
 }
 
 impl GurpZfsEnsure {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if zfs_exists(&self.name) {
             tracing::debug!("zfs: {} exists", &self.name);
             if let Some(state) = self.properties.as_ref() {
@@ -118,7 +118,7 @@ impl GurpZfsEnsure {
         }
     }
 
-    fn create_filesystem(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn create_filesystem(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         tracing::info!("creating filesystem: {}", self.name);
 
         let mut cmd = Command::new(ZFS_BIN);
@@ -150,7 +150,7 @@ impl GurpZfsEnsure {
 }
 
 impl GurpZfsRemove {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         tracing::debug!("zfs: looking for {}", self.name);
         if zfs_exists(&self.name) {
             tracing::info!("removing filesystem: {}", self.name);
@@ -162,7 +162,7 @@ impl GurpZfsRemove {
         }
     }
 
-    fn remove_filesystem(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn remove_filesystem(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut cmd = cmd!(ZFS_BIN, "destroy", "-r", &self.name);
         return_if_noop!(opts);
         one_change_or_stderr!(cmd)

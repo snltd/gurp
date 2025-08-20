@@ -1,49 +1,60 @@
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
-use common::types::Opts;
-use gurp::commands;
+use common::types::ApplyOpts;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
-#[clap(version, about = "Configures hosts, or might do one day", long_about = None)]
+#[clap(version, about = "gurp configures illumos systems", long_about = None)]
 struct Cli {
-    /// Say what would happen, without actually doing it
-    #[arg(short, long, global = true)]
-    noop: bool,
-    /// Dump intermediate config files to stdout
-    #[arg(short, long, global = true)]
-    dump_config: bool,
-    /// When dumping configs, use syntax colouring where possible
-    #[arg(short = 'C', long, global = true)]
-    colour: bool,
-    /// When dumping configs, number lines
-    #[arg(short = 'N', long, global = true)]
-    line_no: bool,
     #[command(subcommand)]
     command: Commands,
-} // might not need the global. Will there be subcommands?
+}
 
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Configure the host with the supplied configuration
     Apply {
         /// Specify a gurp Janet library, in preference to the built-in
-        #[arg(short = 'L', long = "gurp-lib", global = true)]
+        #[arg(short = 'L', long = "gurp-lib")]
         gurp_lib_path: Option<Utf8PathBuf>,
+        /// Say what would happen, without actually doing it
+        #[arg(short, long)]
+        noop: bool,
+        /// Dump intermediate config files to stdout
+        #[arg(short, long)]
+        dump_config: bool,
+        /// When dumping configs, use syntax colouring where possible
+        #[arg(short = 'C', long)]
+        colour: bool,
+        /// When dumping configs, number lines
+        #[arg(short = 'N', long)]
+        line_no: bool,
 
         /// Host configuration file
         #[arg(required = true)]
         host_config_file: Utf8PathBuf,
     },
-    /// Compile the Janet description and dump it to stdout
+    /// Compile the Janet description, and optionally write it to stdout
     Compile {
         /// Specify a gurp Janet library, in preference to the built-in
-        #[arg(short = 'L', long = "gurp-lib", global = true)]
+        #[arg(short = 'L', long = "gurp-lib")]
         gurp_lib_path: Option<Utf8PathBuf>,
+        /// When displaying compiled config, number lines
+        #[arg(short = 'N', long)]
+        line_no: bool,
 
+        /// Output in the given format: 'janet' or 'json'
+        #[arg(short, long)]
+        format: Option<String>,
         /// Host configuration file
         #[arg(required = true)]
         host_config_file: Utf8PathBuf,
+    },
+    /// Describe a resource type
+    Describe {
+        /// Resource type you wish to see described
+        #[arg(required = true)]
+        resource: String,
     },
     /// Show Janet builtins
     Show {
@@ -65,22 +76,43 @@ fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    let global_opts = Opts {
-        noop: cli.noop,
-        dump_config: cli.dump_config,
-        colour: cli.colour,
-        line_no: cli.line_no,
-    };
-
     let exit_code = match cli.command {
         Commands::Apply {
-            gurp_lib_path,
             host_config_file,
-        } => commands::apply::run(&host_config_file, &gurp_lib_path, &global_opts),
+            noop,
+            dump_config,
+            colour,
+            line_no,
+            gurp_lib_path,
+        } => {
+            let opts = ApplyOpts {
+                noop,
+                dump_config,
+                colour,
+                line_no,
+                gurp_lib_path,
+                compile_only: false,
+            };
+            commands::apply::run(&host_config_file, &opts)
+        }
         Commands::Compile {
             gurp_lib_path,
+            line_no,
             host_config_file,
-        } => commands::compile::run(&host_config_file, &gurp_lib_path, &global_opts),
+            format,
+        } => {
+            // Compile is the first part of run's code path, so we'll fake the apply options
+            let opts = ApplyOpts {
+                noop: false,
+                dump_config: false,
+                colour: false,
+                line_no,
+                gurp_lib_path,
+                compile_only: true,
+            };
+            commands::compile::run(&host_config_file, format.as_deref(), &opts)
+        }
+        Commands::Describe { resource } => commands::describe::run(&resource),
         Commands::Show { thing } => commands::show::run(&thing),
     };
 

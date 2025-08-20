@@ -54,6 +54,32 @@ mod test {
             .arg("tests/resources/sample/serv-gurp.janet")
             .assert()
             .success()
+            .stdout("");
+    }
+
+    #[test]
+    #[ignore]
+    fn test_compile_janet() {
+        Command::cargo_bin("gurp")
+            .unwrap()
+            .arg("compile")
+            .arg("tests/resources/sample/serv-gurp.janet")
+            .arg("--format=janet")
+            .assert()
+            .success()
             .stdout(predicate::str::contains(":directory"));
+    }
+
+    #[test]
+    #[ignore]
+    fn test_compile_json() {
+        Command::cargo_bin("gurp")
+            .unwrap()
+            .arg("compile")
+            .arg("tests/resources/sample/serv-gurp.janet")
+            .arg("--format=json")
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("\"directory\":"));
     }
 }

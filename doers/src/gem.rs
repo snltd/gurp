@@ -82,7 +82,7 @@ fn installed_gems<T: GurpGem>(gem_list: &[T]) -> InstalledGems {
 fn install_specific(
     gem: &GurpGemEnsure,
     installed_gems: &InstalledGems,
-    opts: &Opts,
+    opts: &ApplyOpts,
 ) -> anyhow::Result<ApplySummary> {
     tracing::debug!("installing specific gem {}", gem.name);
     let gem_path: Utf8PathBuf;
@@ -141,7 +141,7 @@ fn install_specific(
 
 // Makes a single call to RubyGems to install things which don't specify an alternate source or
 // specific version
-pub fn collect_and_ensure(gem_list: &EnsureList, opts: &Opts) -> anyhow::Result<ApplySummary> {
+pub fn collect_and_ensure(gem_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     if gem_list.is_empty() {
         return Ok(NO_RESOURCES_TO_CHANGE);
     }
@@ -195,7 +195,7 @@ pub fn collect_and_ensure(gem_list: &EnsureList, opts: &Opts) -> anyhow::Result<
     }
 }
 
-pub fn collect_and_remove(gem_list: &RemoveList, opts: &Opts) -> anyhow::Result<ApplySummary> {
+pub fn collect_and_remove(gem_list: &RemoveList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     if gem_list.is_empty() {
         return Ok(NO_RESOURCES_TO_CHANGE);
     }

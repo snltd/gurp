@@ -39,7 +39,7 @@ pub struct GurpPkgRemove {
 type EnsureList = Vec<GurpPkgEnsure>;
 type RemoveList = Vec<GurpPkgRemove>;
 
-pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &Opts) -> anyhow::Result<ApplySummary> {
+pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     let resources = pkg_list.len() as u32;
     let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
     let pkg_names: Vec<_> = pkg_list.iter().map(|r| &r.name).collect();
@@ -109,7 +109,7 @@ pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &Opts) -> anyhow::Result<
     }
 }
 
-pub fn collect_and_remove(pkg_list: &RemoveList, opts: &Opts) -> anyhow::Result<ApplySummary> {
+pub fn collect_and_remove(pkg_list: &RemoveList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     let resources = pkg_list.len() as u32;
     let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
     let pkg_names: Vec<_> = pkg_list.iter().map(|r| &r.name).collect();

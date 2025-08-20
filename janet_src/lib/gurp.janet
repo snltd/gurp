@@ -1,12 +1,154 @@
-(use ./defaults) ## removed in internal library
+(if-not (get (curenv) (symbol :default-protos))
+  (use ./defaults))
 
-(defn new-collector [] @{:ensure @{} :remove @{}})
+(defn new-collector
+  "Sets en emptyu *collector*. In a function as most tests use it"
+  [] @{:ensure @{} :remove @{}})
 
 # Yes, a global variable. It collects all the resources from the host we
 # are configuring. :ensure and :remove are tables whose keys are resource
 # types and values are arrays of resources
 # 
 (var *collector* (new-collector))
+
+(def resource-ensure-keys
+  "Pretty much the instructions for Gurp. Defines the specs for all resource
+  types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
+  to display help"
+
+  {:cron
+   {:optional
+    {:day-of-month ["Day(s) of month on which job runs" :string :number]
+     :day-of-week ["Numeric day(s) on  which job runs. 0=Sunday" :string :number]
+     :hour ["Hour(s) at which job runs" :string :number]
+     :minute ["Minute(s) job runs at. Accepts divisions and ranges" :string :number]
+     :month-of-year ["Month(s) in which job runs" :string :number]
+     :user ["Username which runs job. Must already exist" :string]}
+    :mandatory
+    {:command ["Command which runs" :string]}}
+
+   :directory
+   {:optional
+    {:group ["The group name or GID of the for this directory" :string :number]
+     :mode ["Permissions written as a four-digit octal" :string]
+     :owner ["The username or UID of the user who owns this directory" :string :number]}}
+
+   :file-line
+   {:mandatory
+    {:line ["The line which must exist" :string]}}
+
+   :file
+   {:optional
+    {:group ["The group name or GID of the for this file" :string :number]
+     :mode ["Permissions written as a four-digit octal" :string]
+     :owner ["The username or UID of the user who owns this file" :string :number]
+     :content ["Literal content of the file. Must have :content xor :from" :string]
+     :from ["Copy content from this file. If relative, looks in ../files" :string]
+     :ignore-pattern ["When comparing, ignore lines matching this Rust regex" :string]}}
+
+   :gem
+   {:optional
+    {:gem-path ["Path to gem executable other than /opt/ooce/bin/gem" :string]
+     :source ["Source other than RubyGems. Can contain tokens and usernames" :string]
+     :version ["Gem version" :string]}}
+
+   :group
+   {:mandatory
+    {:gid ["The group ID" :number]}}
+
+   :misc
+   {:optional
+    {:enable-smb ["Enable SMB sharing for this username" :string]
+     :nfs-domain ["NFS domain name" :string]
+     :scheduler ["The scheduler class to set via dispamdin" :string]}}
+
+   :publisher
+   {:mandatory
+    {:uri ["Add a pkg publiser with this URI" :string]}}
+
+   :smf
+   {:optional
+    {:description ["What the service does" :string]
+     :duration ["Use this to specify 'transient' or 'wait' services" :string]
+     :properties ["Create/set properties.(:keyword :string|:boolean|:number)" :struct]
+     :property-groups ["Create property groups (:string)" :tuple]
+     :refresh-method ["See 'smf-method'"]
+     :single-instance ["Is this a single-instance service" :boolean]
+     :start-method ["See 'smf-method'"]
+     :stop-method ["See 'smf-method'"]
+     :default-enabled ["Start the service when the manifest installs" :boolean]}
+    :mandatory
+    {:fmri ["Service FMRI" :string]}}
+
+   :svc
+   {:optional
+    {:reloaded-by ["Labels of resources whose alteration triggers service restart" :tuple]
+     :restarted-by ["Labels of resources whose alteration triggers service restart" :tuple]}
+    :mandatory
+    {:state ["Desired state of service, e.g. 'online'" :string]}}
+
+   :svcprop
+   {:optional
+    {:property-groups ["Property groups (:string) to create" :tuple]}
+    :mandatory
+    {:properties ["Properties to create. (:keyword :string|:boolean|:number)" :struct]}}
+
+   :symlink
+   {:mandatory
+    {:source ["The file the symlink points to" :string]}}
+
+   :user
+   {:optional
+    {:other-groups ["Group names (:string) or GIDs (:number) to which user belongs" :tuple]
+     :password-hash ["Hash to insert in /etc/shadow" :string]
+     :profiles ["List of existing profiles (:string)" :tuple]}
+    :mandatory
+    {:gecos ["User's name or description" :string]
+     :home-dir ["User's home dir" :string]
+     :primary-group ["Group name or GID to which user belongs" :string :number]
+     :shell ["User's shell" :string]
+     :uid ["UID of user" :number]}}
+
+   :zfs
+   {:optional
+    {:properties ["ZFS properties (:keyword) paired with desired value (:string)" :struct]
+     :size ["If specified, creates a ZFS volume of given size (e.g. '10G')" :string]}}
+
+   :zone
+   {:optional
+    {:attr ["See 'zone-attr'"]
+     :autoboot ["Boot the zone on system boot" :string]
+     :boot-after-install ["Boot the zone n it is installed" :string]
+     :bootstrap-from ["Copy gurp into the zone, and apply the given file, relative to zone root" :string]
+     :capped-memory ["Set memory cap. Keys must be :physical and :swap, values are strings like '4G'" :struct]
+     :clone-from ["Instead of installing, clone from the given zone, which must exist and be halted" :string]
+     :copy-in ["Copy files into the zone. Key (keyword) is src, val is dest, relative to zone root. Unqualified src is assumed to be in ../files/" :struct]
+     :datasets ["ZFS datasets (as strings) to be delegated to zone" :tuple]
+     :dns ["DNS info. :domain is a string; :nameservers a tuple of strings" :struct]
+     :exec-in ["Runs the given commands (:string) in the zone after booting" :tuple]
+     :fs ["See 'zone-fs'"]
+     :lx-image ["Install zone using this image. See docs for pattern rules" :string]
+     :net ["See 'zone-net'"]
+     :rctl ["See 'zone-rctl'"]
+     :recreate ["1-in-n chance the zone will be destroyed and recreated" :number]
+     :zonepath ["Path to zone root" :string]}
+    :mandatory
+    {:brand ["Zone brand. byhve and illumos are not " :string]}}
+
+   :zone-attr
+   {:optional
+    {:type ["The type of the value. Gurp will take a pretty good guess though" :string]}
+    :mandatory
+    {:value ["Attribute value" :string :boolean :number]}}
+
+   :zone-rctl
+   {:mandatory
+    {:value ["rctl value" :string :number]}}
+
+   :zone-fs
+   {:optional
+    {:type ["The type of fs mount" :string]}
+    :mandatory {:special ["The directory in the global zone" :string]}}})
 
 # For now this is a shim around the hardcoded fallbacks. In the future we'll
 # let the user supply their own. Not sure how, yet.
@@ -15,31 +157,12 @@
   [resource-type]
   (get default-protos resource-type {}))
 
-(defn argcat
-  "Joins arguments to make a command"
-  [& chunks]
-  (string/join (tuple ;chunks) " "))
-
 (defn pathcat
   "Joins tokens to make a path"
   [& chunks]
   (->
     (map |(string/trim $ "/") (tuple "" ;chunks))
     (string/join "/")))
-
-(defn zfscat
-  "Joins tokens to make a ZFS dataset name"
-  [& chunks]
-  (->
-    (map |(string/trim $ "/") (tuple ;chunks))
-    (string/join "/")
-    (string/trim "/")))
-
-(defn labelise
-  "Turns tokens into a safe label"
-  [& chunks]
-  (string/replace-all "/" "_"
-                      (string/join (map string chunks) "-")))
 
 (defn- clean-data
   "Removes anything which is not a struct from a list"
@@ -54,7 +177,7 @@
   (array/pop components)
   (string "/" (string/join components "/")))
 
-(defn qualify-from-path
+(defn- qualify-from-path
   "We expect files to be in a directory `files/` at the same level as
   the role file which references those files. This expects a path relative
   to that directory, and returns the fully qualified path, but if it gets
@@ -64,7 +187,7 @@
     file-name
     (pathcat (dyn :gurp-config-root) "files" file-name)))
 
-(defn resource-id
+(defn- resource-id
   "Uniformly generate a resource ID"
   [resource-type resource-name resource-spec]
   (string/format "/%s/%s/%s"
@@ -72,26 +195,6 @@
                  resource-type
                  (get (table ;resource-spec) :label
                       (string/replace-all "/" "_" resource-name))))
-
-(defn this-host
-  "Returns the name of the host, which is set by a dyn in the host macro"
-  []
-  (dyn :host-dyn))
-
-(defn this-host-k
-  "Returns the name of the host as a keyword. This is set by a dyn in the host macro"
-  []
-  (keyword (this-host)))
-
-(defn this-role
-  "Returns the name of the role, set by a dyn in the role macro"
-  []
-  (dyn :role-dyn))
-
-(defn this-role-k
-  "Returns the name of the role as a keyword, set by a dyn in the role macro"
-  []
-  (keyword (this-role)))
 
 (defmacro- flat-table
   "Flattens a struct or table, including its keys"
@@ -125,7 +228,7 @@
                   (tuple ;(get $is-key false @[]) ,key (if ,as-struct (first $vals) $vals)))))))))
 
 (defn check-unique-ids
-  "If there are any duplicate resource IDs, thrown an error"
+  "If there are any duplicate resource IDs, throw an error"
   [resource-list]
   (let [seen (table)]
     (loop [id :in (map |($ :_id) resource-list)]
@@ -163,7 +266,7 @@
       (set (resource k) (resolve-reference v flat-resources @{}))))
   resource)
 
-(defn resolved-list
+(defn- resolved-list
   "resource-list is a list of resources of the same type"
   [resource-list flat-resources]
   (map
@@ -188,165 +291,25 @@
   {:ensure (finalise-action (collector :ensure))
    :remove (finalise-action (collector :remove))})
 
-(defmacro host
-  "The top-level wrapper used to define a host to be configured"
-  [host-name & host-definition]
-  ~(upscope
-     (setdyn :host-dyn (string ,host-name))
-     (defn machine-config
-       []
-       ,;host-definition
-       {:metadata {:name ,host-name}
-        :resources (finalise *collector*)})))
-
-(defmacro role
-  "Holder for role definitions"
-  [role-name & role-definition]
-  ~(defn ,role-name
-     []
-     (setdyn :role-dyn (string ',role-name))
-     ,;role-definition))
-
-(defmacro section
-  "A no-op which might help you write readable definitions"
-  [name & body]
-  ~(array ,;body))
-
-(defn this
-  "A convenient way to reference a resource in the current role"
-  [& args]
-  (keyword (string/join (tuple "" (this-role) ;args) "/")))
-
-(defn template-out
-  "Takes a template with vars in {{ brackets }} and a table of vars to values.
-  Returns a string or an error"
-  [template vars]
-
-  (def peg
-    ~{:main (some (choice :subst 1))
-      :subst (capture (* :open :value :close))
-      :open (* "{{" (any :s))
-      :close (* (any :s) "}}")
-      :value (/ (capture (some (if-not (set " \t\r\n\0\f\v}") 1))) ,|(vars (keyword $)))})
-
-  (def find->replace (table ;(reverse (peg/match peg template))))
-  (var result template)
-
-  (loop [[str-f str-r] :pairs find->replace]
-    (set result (string/replace-all str-f str-r result)))
-
-  (def leftovers (peg/match peg result))
-
-  (if-not (empty? leftovers)
-    (error (string "unpopulated fields in template: "
-                   (string/join (filter |(not (nil? $)) leftovers) ", "))))
-
-  (def patterns
-    (map
-      |(keyword (string/trim (peg/replace-all '(set "{} ") "" $)))
-      (keys find->replace)))
-
-  (def unused-vars
-    (filter |(not (has-value? patterns $)) (keys vars)))
-
-  (if-not (empty? unused-vars)
-    (error (string/format "unused vars: expected %s : got %s"
-                          (string/join
-                            (map |(peg/replace-all '(set "{} \t\r\n\0\f\v") "" $)
-                                 (keys find->replace)) ", ")
-                          (string/join (keys vars) ", "))))
-
-  result)
-
-(defmacro indoc
-  "Removes common leading spaces from multiline strings"
-  [name str]
-  ~(def ,name (string
-                (if-not (string? ,str)
-                  (error "indoc: expected a string literal"))
-                (->
-                  (->>
-                    ,str
-                    (string/split "\n")
-                    (filter |(not (empty? (string/trim $))))
-                    (map |(peg/find :S $))
-                    (min-of)
-                    (string/repeat " ")
-                    (string "\n"))
-                  (string/split (string "\n" ,str))
-                  (string/join "\n")
-                  (string/triml)))))
-
-
-(defn fields
-  "Returns an array of the whitespace-separated elements in a string"
-  [str]
-  (peg/match ~{:main (some (choice (capture :S+) 1))} str))
-
-(defn run-cmd
-  "Returns stdout of the given command, or an error containting stderr"
-  [cmd]
-  (def proc (os/spawn (fields cmd) :p {:out :pipe :err :pipe}))
-  (:wait proc)
-  (def stdout (:read (proc :out) :all))
-  (if (nil? stdout)
-    (error (string/trim (:read (proc :err) :all)))
-    (string/trim stdout)))
-
-(defn hostname
-  "Returns the name of the current host"
-  []
-  (run-cmd "/bin/uname -n"))
-
-(def resource-ensure-keys
-  {:cron {:supported [:user :minute :hour :day-of-month :month-of-year
-                      :day-of-week :command]
-          :mandatory [:command]}
-   :directory {:supported [:owner :mode :group]}
-   :file-line {:supported [:line]
-               :mandatory [:line]}
-   :file {:supported [:owner :mode :group :content :ignore-pattern :from]}
-   :gem {:supported [:version :source :gem-path]}
-   :group {:supported [:gid]
-           :mandatory [:gid]}
-   :misc {:supported [:nfs-domain :enable-smb :scheduler]}
-   :publisher {:supported [:uri] :mandatory [:uri]}
-   :smf {:supported [:description :fmri :default-enabled :single-instance
-                     :start-method :stop-method :refresh-method :svc-name
-                     :duration :properties :property-groups]
-         :mandatory [:description :fmri]}
-   :svc {:supported [:state :restarted-by :reloaded-by]
-         :mandatory [:state]}
-   :svcprop {:supported [:properties :property-groups]
-             :mandatory [:properties]}
-   :symlink {:supported [:source]
-             :mandatory [:source]}
-   :user {:supported [:uid :primary-group :home-dir :shell :gecos :password-hash
-                      :other-groups :profiles]
-          :mandatory [:uid :primary-group :home-dir :shell :gecos]}
-   :zfs {:supported [:properties :size]}
-   :zone {:supported [:brand :run-cmd :dns :properties :zonepath :net
-                      :autoboot :fs :datasets :exec :attr :clone-from
-                      :boot-after-install :bootstrap-from :recreate
-                      :capped-cpu :capped-memory :dedicated-cpu :devices :rctl
-                      :security-flags :admins :image :copy-in :exec-in]
-          :mandatory [:brand]}})
-
 (defn- validate-ensure-spec
+  "Checks a resource has the keys it should have, according to the 
+  resource-ensure-keys struct"
   [resource-type resource-name resource-spec]
   (let [user-keys (filter |(not (= :label $)) (keys (struct ;resource-spec)))
         valid-keys (get resource-ensure-keys resource-type {})
-        mandatory-keys (get valid-keys :mandatory [])
-        supported-keys (tuple :label ;(get valid-keys :supported []))]
+        mandatory-keys (keys (get valid-keys :mandatory []))
+        optional-keys (tuple :label ;(keys (get valid-keys :optional {})))
+        missing-mandatory (filter |(not (has-value? user-keys $)) mandatory-keys)]
 
-    (let [missing-mandatory (filter |(not (has-value? user-keys $)) mandatory-keys)]
-      (if-not (empty? missing-mandatory)
-        (error
-          (string/format "%s missing required key(s): %s"
-                         resource-type
-                         (string/join missing-mandatory ", ")))))
+    (if-not (empty? missing-mandatory)
+      (error
+        (string/format "%s missing required key(s): %s"
+                       resource-type
+                       (string/join missing-mandatory ", "))))
 
-    (let [unrecognised (filter |(not (has-value? supported-keys $)) user-keys)]
+    (let [unrecognised (filter
+                         |(not (has-value? (tuple/join optional-keys mandatory-keys) $))
+                         user-keys)]
       (if-not (empty? unrecognised)
         (error
           (string/format "%s '%s' has unrecognised key(s): %s"
@@ -398,6 +361,209 @@
                   :role (dyn :role-dyn)
                   :name resource-name
                   (splice resource-spec))))
+(defn help-for
+  "Returns a multiline string showing keys supported by the given resource"
+  [resource]
+
+  (defn- field-width
+    "Returns the width of a field wide enough to accomodate the longest keys"
+    [keys]
+    (+ 2 (max (splice (map length keys)))))
+
+  (defn- format-string
+    "Returns a format string used to lay out resource key information"
+    [key-field-width]
+    (string "  %-" key-field-width "s %-15s %s%s"))
+
+  (defn- default-suffix
+    "Returns a string snippet displaying a key's default value, if it has one"
+    [default-value]
+    (if default-value
+      (string/format ". Default '%s'" (string default-value))
+      ""))
+
+  (defn- keys-for-resource
+    [info]
+    (tuple/join (keys (get info :mandatory {})) (keys (get info :optional {}))))
+
+  (defn- keys-of-type
+    "Returns an array of lines describing either mandatory or optional keys for
+    the given 'info' object taken from the resource-ensure-keys struct"
+    [info key-type key-field-width]
+    (if-let [key-info (info key-type)]
+      (let [ret (array (string key-type " keys"))]
+        (loop [[key desc] :pairs key-info]
+          (let [default-val (get-in default-protos [(keyword resource) key])]
+            (array/push ret
+                        (string/format (format-string key-field-width)
+                                       key
+                                       (string/join (array/slice desc 1) "|")
+                                       (first desc)
+                                       (default-suffix default-val)))))
+        ret)
+      (string "No " key-type " keys")))
+
+  (if-let [info (resource-ensure-keys (keyword resource))
+           key-field-width (field-width (keys-for-resource info))]
+    (string/join
+      (array/concat
+        @[resource]
+        (keys-of-type info :mandatory key-field-width)
+        (keys-of-type info :optional key-field-width))
+      "\n")
+    (string/format "No help for '%s'" resource)))
+
+#---- HELPERS FOR THE USER ---------------------------------------------------
+
+(defmacro host
+  "The top-level wrapper used to define a host to be configured"
+  [host-name & host-definition]
+  ~(upscope
+     (setdyn :host-dyn (string ,host-name))
+     (defn machine-config
+       []
+       ,;host-definition
+       {:metadata {:name ,host-name}
+        :resources (finalise *collector*)})))
+
+(defmacro role
+  "Holder for role definitions"
+  [role-name & role-definition]
+  ~(defn ,role-name
+     []
+     (setdyn :role-dyn (string ',role-name))
+     ,;role-definition))
+
+(defmacro section
+  "A no-op which might help you write readable definitions"
+  [name & body]
+  ~(array ,;body))
+
+(defn this-host
+  "Returns the name of the host, which is set by a dyn in the host macro"
+  []
+  (dyn :host-dyn))
+
+(defn this-host-k
+  "Returns the name of the host as a keyword. This is set by a dyn in the host macro"
+  []
+  (keyword (this-host)))
+
+(defn this-role
+  "Returns the name of the role, set by a dyn in the role macro"
+  []
+  (dyn :role-dyn))
+
+(defn this-role-k
+  "Returns the name of the role as a keyword, set by a dyn in the role macro"
+  []
+  (keyword (this-role)))
+
+(defn this
+  "A convenient way to reference a resource in the current role"
+  [& args]
+  (keyword (string/join (tuple "" (this-role) ;args) "/")))
+
+(defn argcat
+  "Joins arguments to make a command"
+  [& chunks]
+  (string/join (tuple ;chunks) " "))
+
+(defn zfscat
+  "Joins tokens to make a ZFS dataset name"
+  [& chunks]
+  (->
+    (map |(string/trim $ "/") (tuple ;chunks))
+    (string/join "/")
+    (string/trim "/")))
+
+(defn labelise
+  "Turns tokens into a safe label"
+  [& chunks]
+  (string/replace-all "/" "_"
+                      (string/join (map string chunks) "-")))
+
+(defn template-out
+  "Takes a template with vars in {{ brackets }} and a table of vars to values.
+  Returns a string or an error"
+  [template vars]
+
+  (def peg
+    ~{:main (some (choice :subst 1))
+      :subst (capture (* :open :value :close))
+      :open (* "{{" (any :s))
+      :close (* (any :s) "}}")
+      :value (/ (capture (some (if-not (set " \t\r\n\0\f\v}") 1))) ,|(vars (keyword $)))})
+
+  (def find->replace (table ;(reverse (peg/match peg template))))
+  (var result template)
+
+  (loop [[str-f str-r] :pairs find->replace]
+    (set result (string/replace-all str-f str-r result)))
+
+  (def leftovers (peg/match peg result))
+
+  (if-not (empty? leftovers)
+    (error (string "unpopulated fields in template: "
+                   (string/join (filter |(not (nil? $)) leftovers) ", "))))
+
+  (def patterns
+    (map
+      |(keyword (string/trim (peg/replace-all '(set "{} ") "" $)))
+      (keys find->replace)))
+
+  (def unused-vars
+    (filter |(not (has-value? patterns $)) (keys vars)))
+
+  (if-not (empty? unused-vars)
+    (error (string/format "unused vars: expected %s : got %s"
+                          (string/join
+                            (map |(peg/replace-all '(set "{} \t\r\n\0\f\v") "" $)
+                                 (keys find->replace)) ", ")
+                          (string/join (keys vars) ", "))))
+  result)
+
+(defmacro indoc
+  "Removes common leading spaces from multiline strings"
+  [name str]
+  ~(def ,name (string
+                (if-not (string? ,str)
+                  (error "indoc: expected a string literal"))
+                (->
+                  (->>
+                    ,str
+                    (string/split "\n")
+                    (filter |(not (empty? (string/trim $))))
+                    (map |(peg/find :S $))
+                    (min-of)
+                    (string/repeat " ")
+                    (string "\n"))
+                  (string/split (string "\n" ,str))
+                  (string/join "\n")
+                  (string/triml)))))
+
+
+(defn fields
+  "Returns an array of the whitespace-separated elements in a string"
+  [str]
+  (peg/match ~{:main (some (choice (capture :S+) 1))} str))
+
+(defn run-cmd
+  "Returns stdout of the given command, or an error containting stderr"
+  [cmd]
+  (def proc (os/spawn (fields cmd) :p {:out :pipe :err :pipe}))
+  (:wait proc)
+  (def stdout (:read (proc :out) :all))
+  (if (nil? stdout)
+    (error (string/trim (:read (proc :err) :all)))
+    (string/trim stdout)))
+
+(defn hostname
+  "Returns the name of the current host"
+  []
+  (run-cmd "/bin/uname -n"))
+
+#---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
 
 (defn cron/ensure
   "Given a name and specification, return a cron ensure struct"
@@ -458,6 +624,16 @@
   "Given a gem name, return a gem remove struct"
   [name & specs]
   (collect :remove :gem (remove-resource :gem name specs)))
+
+(defn group/ensure
+  "Given a group name and specification, return a group ensure struct"
+  [name & specs]
+  (collect :ensure :group (ensure-resource :group name specs)))
+
+(defn group/remove
+  "Given a group name and specification, return a group remove struct"
+  [name & specs]
+  (collect :remove :group (remove-resource :group name specs)))
 
 (defn misc/ensure
   "Sets miscellaneous system properties"
@@ -623,20 +799,23 @@
   (collect :remove :zone (remove-resource :zone name specs)))
 
 (defn zone-network
+  "Given specs, return a zone network struct. This is embedded in a zone/ensure"
   [physical & specs]
   (struct :net
           (struct/proto-flatten
-            (struct/with-proto {:global-nic "auto"}
+            (struct/with-proto (proto :zone-network)
                                :physical physical ;specs))))
 
 (defn zone-fs
+  "Given specs, return a zone fs struct. This is embedded in a zone/ensure"
   [mountpoint & specs]
   (struct :fs
           (struct/proto-flatten
-            (struct/with-proto {:type "lofs"}
+            (struct/with-proto (proto :zone-fs)
                                :dir mountpoint ;specs))))
 
 (defn zone-attr
+  "Given specs, return a zone attr struct. This is embedded in a zone/ensure"
   [name & specs]
   (var spec-table (table :name name ;specs))
   (if-not
@@ -656,22 +835,11 @@
   (struct :attr (table/to-struct spec-table)))
 
 (defn zone-rctl
+  "Given specs, return a zone rctl struct. This is embedded in a zone/ensure"
   [name & specs]
-  (let [spec-struct
-        (struct/with-proto (proto :zone-rctl) :name name (splice specs))]
+  (let [spec-struct (struct/with-proto (proto :zone-rctl) :name name (splice specs))]
 
-    (if-not
-      (has-key? spec-struct :limit)
+    (if-not (has-key? spec-struct :limit)
       (error "zone-rctl requires a :limit"))
 
     (struct :rctl (struct/proto-flatten spec-struct))))
-
-(defn group/ensure
-  "Given a group name and specification, return a group ensure struct"
-  [name & specs]
-  (collect :ensure :group (ensure-resource :group name specs)))
-
-(defn group/remove
-  "Given a group name and specification, return a group remove struct"
-  [name & specs]
-  (collect :remove :group (remove-resource :group name specs)))

@@ -9,23 +9,24 @@ use std::fmt;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpZoneConfig {
-    pub clone_from: Option<String>,
-    pub brand: String,
-    pub autoboot: bool,
-    pub zonepath: Utf8PathBuf,
-    pub datasets: Option<Vec<String>>,
-    pub capped_memory: Option<GurpZoneCappedMemory>,
-    pub dns: Option<GurpZoneDns>,
-    pub net: GurpZoneNetworks,
-    pub fs: Option<GurpZoneFilesystems>,
     pub attr: Option<GurpZoneAttrs>,
-    pub rctl: Option<GurpZoneRctls>,
-    pub exec_in: Option<Vec<String>>,
+    pub autoboot: bool,
     pub boot_after_install: bool,
     pub bootstrap_from: Option<Utf8PathBuf>,
-    pub recreate: u8,
-    pub image: Option<String>,
+    pub brand: String,
+    pub capped_memory: Option<GurpZoneCappedMemory>,
+    pub clone_from: Option<String>,
     pub copy_in: Option<HashMap<Utf8PathBuf, String>>,
+    pub datasets: Option<Vec<String>>,
+    pub dns: Option<GurpZoneDns>,
+    pub exec_in: Option<Vec<String>>,
+    pub fs: Option<GurpZoneFilesystems>,
+    #[serde(rename = "lx-image")]
+    pub image: Option<String>,
+    pub net: GurpZoneNetworks,
+    pub rctl: Option<GurpZoneRctls>,
+    pub recreate: u8,
+    pub zonepath: Utf8PathBuf,
 }
 
 #[derive(Debug, Deserialize)]
