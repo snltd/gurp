@@ -22,7 +22,7 @@ pub struct GurpSvcEnsure {
 }
 
 impl GurpSvcEnsure {
-    pub fn apply(&self, changed_ids: &ChangedIds, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, changed_ids: &ChangedIds, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let current_state = svcs::current_state(&self.name)?;
 
         if current_state == self.desired_state {

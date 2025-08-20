@@ -29,59 +29,58 @@
                :dns {:domain "lan.id264.net"
                      :nameservers ["192.168.1.53"
                                    "192.168.1.1"]}
-               :run-cmd ["/usr/bin/pkg refresh"])
+               :exec-in ["/usr/bin/pkg refresh"])
 
   (zone/remove "defunct-zone")
 
   (test *collector*
-        @{:ensure @{:zone @[{:_id "/test-role/zone/test-zone-thin"
-                             :autoboot true
-                             :boot-after-install true
-                             :brand "lipkg"
-                             :name "test-zone-thin"
-                             :recreate 0
-                             :role "test-role"
-                             :zonepath "/zones/test-zone-thin"}
-                            {:_id "/test-role/zone/test-lx-zone"
-                             :attr @[{:name "kernel-ver"
-                                      :type "string"
-                                      :value "4.4"}]
-                             :autoboot true
-                             :boot-after-install true
-                             :brand "lx"
-                             :copy-in {"/gurpdir/files/lx-test/f1" "/etc/file1"
-                                       "/gurpdir/files/lx-test/f2" "/bin/exec2"}
-                             :exec-in ["/bin/exec1" "/bin/exec2"]
-                             :name "test-lx-zone"
-                             :recreate 0
-                             :role "test-role"
-                             :zonepath "/zones/test-lx-zone"}
-                            {:_id "/test-role/zone/test-zone-fat"
-                             :autoboot false
-                             :boot-after-install true
-                             :brand "lipkg"
-                             :datasets ["big/zone/fs"]
-                             :dns {:domain "lan.id264.net"
-                                   :nameservers ["192.168.1.53" "192.168.1.1"]}
-                             :fs @[{:dir "/home"
-                                    :special "/export/home"
-                                    :type "lofs"}
-                                   {:dir "/data"
-                                    :special "/export/data"
-                                    :type "lofs"}]
-                             :name "test-zone-fat"
-                             :net @[{:allowed-address "192.168.1.33/24"
-                                     :defrouter "192.168.1.1"
-                                     :global-nic "auto"
-                                     :physical "fs_net0"}]
-                             :recreate 0
-                             :role "test-role"
-                             :run-cmd ["/usr/bin/pkg refresh"]
-                             :zonepath "/zones/test-zone-fat"}]}
-
-          :remove @{:zone @[{:_id "/test-role/zone/defunct-zone"
-                             :name "defunct-zone"
-                             :role "test-role"}]}}))
+    @{:ensure @{:zone @[{:_id "/test-role/zone/test-zone-thin"
+                         :autoboot true
+                         :boot-after-install true
+                         :brand "lipkg"
+                         :name "test-zone-thin"
+                         :recreate 0
+                         :role "test-role"
+                         :zonepath "/zones/test-zone-thin"}
+                        {:_id "/test-role/zone/test-lx-zone"
+                         :attr @[{:name "kernel-ver"
+                                  :type "string"
+                                  :value "4.4"}]
+                         :autoboot true
+                         :boot-after-install true
+                         :brand "lx"
+                         :copy-in {"/gurpdir/files/lx-test/f1" "/etc/file1"
+                                   "/gurpdir/files/lx-test/f2" "/bin/exec2"}
+                         :exec-in ["/bin/exec1" "/bin/exec2"]
+                         :name "test-lx-zone"
+                         :recreate 0
+                         :role "test-role"
+                         :zonepath "/zones/test-lx-zone"}
+                        {:_id "/test-role/zone/test-zone-fat"
+                         :autoboot false
+                         :boot-after-install true
+                         :brand "lipkg"
+                         :datasets ["big/zone/fs"]
+                         :dns {:domain "lan.id264.net"
+                               :nameservers ["192.168.1.53" "192.168.1.1"]}
+                         :exec-in ["/usr/bin/pkg refresh"]
+                         :fs @[{:dir "/home"
+                                :special "/export/home"
+                                :type "lofs"}
+                               {:dir "/data"
+                                :special "/export/data"
+                                :type "lofs"}]
+                         :name "test-zone-fat"
+                         :net @[{:allowed-address "192.168.1.33/24"
+                                 :defrouter "192.168.1.1"
+                                 :global-nic "auto"
+                                 :physical "fs_net0"}]
+                         :recreate 0
+                         :role "test-role"
+                         :zonepath "/zones/test-zone-fat"}]}
+      :remove @{:zone @[{:_id "/test-role/zone/defunct-zone"
+                         :name "defunct-zone"
+                         :role "test-role"}]}}))
 
 (deftest "test-zone-rctl-resource"
   (test

@@ -51,7 +51,7 @@ impl GurpZoneEnsure {
         }
     }
 
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let config_input = self.config.to_zonecfg();
 
         if CURRENT_ZONE_LIST.contains_key(&self.name) {
@@ -109,7 +109,7 @@ impl GurpZoneEnsure {
         }
     }
 
-    fn install_zone(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn install_zone(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         tracing::info!("installing {} [{}]", self.name, self.config.brand);
         match self.config.brand.as_str() {
             "lx" => {
@@ -148,7 +148,7 @@ impl GurpZoneEnsure {
         }
     }
 
-    fn clone_zone(&self, source_zone: &str, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn clone_zone(&self, source_zone: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         tracing::info!("zone {}: cloning from {}", self.name, source_zone);
         cmd_output!(ZONEADM_BIN, "-z", &self.name, "clone", source_zone)?;
         tracing::debug!("zone {}: cloned", self.name);
@@ -221,7 +221,7 @@ impl GurpZoneEnsure {
         Ok(())
     }
 
-    fn bootstrap_zone(&self, opts: &Opts) -> anyhow::Result<()> {
+    fn bootstrap_zone(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
         // Like everything else, this is super-minimal, at least for now, possibly for ever. Copy
         // our own executable into the zone, and trust the user that the file they gave us is
         // there, and can access all the roles and files it needs.
@@ -263,7 +263,7 @@ impl GurpZoneEnsure {
 }
 
 impl GurpZoneRemove {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if CURRENT_ZONE_LIST.contains_key(&self.name) {
             tracing::info!("zone {}: remove", self.name);
             if opts.noop {

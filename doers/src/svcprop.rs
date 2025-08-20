@@ -106,7 +106,7 @@ fn current_svc_props(svc: &str) -> anyhow::Result<SvcView> {
 }
 
 // It's possible we're being asked to set properties on a service instance which does not yet exist.
-fn ensure_instance(svc: &str, opts: &Opts) -> anyhow::Result<()> {
+fn ensure_instance(svc: &str, opts: &ApplyOpts) -> anyhow::Result<()> {
     let chunks: Vec<_> = svc.rsplitn(2, ":").collect();
 
     let instance = chunks
@@ -146,7 +146,7 @@ fn ensure_instance(svc: &str, opts: &Opts) -> anyhow::Result<()> {
 }
 
 impl GurpSvcpropEnsure {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         ensure_instance(&self.service, opts)?;
 
         let all_values = current_svc_props(&self.service)?;
@@ -256,7 +256,7 @@ impl GurpSvcpropEnsure {
 }
 
 impl GurpSvcpropRemove {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let all_values = current_svc_props(&self.service)?;
         let resources = self.properties.len() as u32;
         let mut changes = 0;

@@ -49,7 +49,7 @@ pub struct GurpUserRemove {
 }
 
 impl GurpUserEnsure {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if !user_exists(&self.name)? {
             tracing::info!("creating user: {}", self.name);
             return self.create(opts);
@@ -176,7 +176,7 @@ impl GurpUserEnsure {
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
-    fn create(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn create(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut cmd = cmd!(
             USERADD_BIN,
             "-c",
@@ -347,7 +347,7 @@ impl GurpUserEnsure {
 }
 
 impl GurpUserRemove {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if user_exists(&self.name)? {
             if PROTECTED_USERS.contains(&self.name.as_str()) {
                 tracing::warn!("protected resource: {}", self.name);

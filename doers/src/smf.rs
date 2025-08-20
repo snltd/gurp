@@ -28,7 +28,7 @@ pub struct GurpSmfRemove {
 }
 
 impl GurpSmfEnsure {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let new_manifest = smf_builder::make_manifest(&self.desired_state);
         let manifest_path = &manifest_path(&self.name);
 
@@ -67,7 +67,7 @@ impl GurpSmfEnsure {
         self.ensure_service(opts)
     }
 
-    fn ensure_service(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    fn ensure_service(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if svcs::exists(&self.name)? {
             let current_state = svcs::current_state(&self.name)?;
 
@@ -88,7 +88,7 @@ impl GurpSmfEnsure {
 }
 
 impl GurpSmfRemove {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if svcs::exists(&self.name)? {
             let current_state = svcs::current_state(&self.name)?;
 
@@ -145,7 +145,6 @@ mod test {
     fn test_smf_conversion() {
         let janet_desc = indoc! {r#"
             (smf/ensure "telegraf"
-                :svc-name "export"
                 :description "Run Telegraf agent"
                 :fmri "sysdef/telegraf"
                 :property-groups {:application "application"}
@@ -164,7 +163,7 @@ mod test {
         let expected = SmfDefinition {
             name: "telegraf".to_owned(),
             duration: None,
-            description: "Run Telegraf agent".to_owned(),
+            description: Some("Run Telegraf agent".to_owned()),
             fmri: "sysdef/telegraf".to_owned(),
             single_instance: true,
             default_enabled: true,

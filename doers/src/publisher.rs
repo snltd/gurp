@@ -35,7 +35,7 @@ struct Publisher {
 }
 
 impl GurpPublisherEnsure {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let current_publishers = &CURRENT_PKG_OUTPUT;
 
         if let Some(existing) = &current_publishers.iter().find(|p| p.name == self.name) {
@@ -61,7 +61,7 @@ impl GurpPublisherEnsure {
 }
 
 impl GurpPublisherRemove {
-    pub fn apply(&self, opts: &Opts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let current_publishers = &CURRENT_PKG_OUTPUT;
 
         if current_publishers.iter().any(|p| p.name == self.name) {

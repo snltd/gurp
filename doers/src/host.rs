@@ -5,12 +5,8 @@ use janet_int::reader;
 use janetrs::{TaggedJanet, env::CFunOptions};
 use std::collections::BTreeSet;
 
-pub fn apply(
-    host_file: &Utf8PathBuf,
-    gurp_lib_path: &Option<Utf8PathBuf>,
-    opts: &Opts,
-) -> anyhow::Result<ApplySummary> {
-    let host_config = reader::read_and_enrich_host_config(host_file, gurp_lib_path, opts, false)?;
+pub fn apply(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    let host_config = reader::read_and_enrich_host_config(host_file, None, opts)?;
 
     if opts.dump_config {
         println!(
@@ -68,7 +64,7 @@ pub fn apply(
     ensure_and_remove(&host_config, opts)
 }
 
-fn ensure_and_remove(config: &HostConfig, opts: &Opts) -> anyhow::Result<ApplySummary> {
+fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     tracing::info!("Configuring host: {}", config.metadata.name);
     let ensure = &config.resources.ensure;
     let remove = &config.resources.remove;
