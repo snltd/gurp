@@ -45,14 +45,7 @@ pub fn janet_conf(
     let mut ret = format!("(setdyn *syspath* \"{conf_root}\")\n\n");
     ret.push_str(&format!("(setdyn :gurp-config-root \"{conf_root}\")\n\n"));
     ret.push_str(crate::constants::GURP_DEFAULTS);
-    ret.push_str(
-        gurp_lib
-            .lines()
-            .skip(1)
-            .map(|s| format!("{s}\n").to_owned())
-            .collect::<String>()
-            .as_str(),
-    );
+    ret.push_str(gurp_lib);
     ret.push('\n');
     ret.push_str(config);
 

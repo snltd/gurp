@@ -189,7 +189,10 @@ pub fn make_manifest(def: &SmfDefinition) -> String {
         }
 
         svc.add_stability();
-        svc.add_template(&def.description);
+
+        if let Some(description) = &def.description {
+            svc.add_template(description);
+        }
     });
 
     let mut ret = "<?xml version='1.0'?>\n".to_owned();
@@ -213,7 +216,7 @@ mod test {
     fn test_make_manifest() {
         let test_svc = SmfDefinition {
             name: "export".to_owned(),
-            description: "Run Telegraf agent".to_owned(),
+            description: Some("Run Telegraf agent".to_owned()),
             duration: None,
             fmri: "sysdef/telegraf".to_owned(),
             single_instance: true,
@@ -259,7 +262,7 @@ mod test {
     fn test_make_transient_manifest() {
         let test_svc = SmfDefinition {
             name: "export".to_owned(),
-            description: "Run boot-service".to_owned(),
+            description: Some("Run boot-service".to_owned()),
             duration: Some("transient".to_owned()),
             fmri: "sysdef/boot-service".to_owned(),
             single_instance: true,

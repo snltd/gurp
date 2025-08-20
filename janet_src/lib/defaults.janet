@@ -24,5 +24,7 @@
    :zone {:autoboot true
           :recreate 0
           :boot-after-install true}
+   :zone-fs {:type "lofs"}
+   :zone-network {:global-nic "auto"}
    :zone-rctl {:priv "privileged"
                :action "deny"}})

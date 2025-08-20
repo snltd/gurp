@@ -40,7 +40,7 @@ impl Add for ApplySummary {
 pub struct SmfDefinition {
     pub name: String,
     pub duration: Option<String>,
-    pub description: String,
+    pub description: Option<String>,
     pub fmri: String,
     pub default_enabled: bool,
     pub single_instance: bool,

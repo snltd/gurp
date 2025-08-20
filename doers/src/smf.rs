@@ -145,7 +145,6 @@ mod test {
     fn test_smf_conversion() {
         let janet_desc = indoc! {r#"
             (smf/ensure "telegraf"
-                :svc-name "export"
                 :description "Run Telegraf agent"
                 :fmri "sysdef/telegraf"
                 :property-groups {:application "application"}
@@ -164,7 +163,7 @@ mod test {
         let expected = SmfDefinition {
             name: "telegraf".to_owned(),
             duration: None,
-            description: "Run Telegraf agent".to_owned(),
+            description: Some("Run Telegraf agent".to_owned()),
             fmri: "sysdef/telegraf".to_owned(),
             single_instance: true,
             default_enabled: true,

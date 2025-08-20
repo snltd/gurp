@@ -50,6 +50,12 @@ enum Commands {
         #[arg(required = true)]
         host_config_file: Utf8PathBuf,
     },
+    /// Describe a resource type
+    Describe {
+        /// Resource type you wish to see described
+        #[arg(required = true)]
+        resource: String,
+    },
     /// Show Janet builtins
     Show {
         /// Thing to show: one of library, defaults
@@ -106,6 +112,7 @@ fn main() -> anyhow::Result<()> {
             };
             commands::compile::run(&host_config_file, format.as_deref(), &opts)
         }
+        Commands::Describe { resource } => commands::describe::run(&resource),
         Commands::Show { thing } => commands::show::run(&thing),
     };
 
