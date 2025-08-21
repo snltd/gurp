@@ -14,8 +14,6 @@ use util::svcs;
 pub struct GurpSmfEnsure {
     #[serde(rename = "_id")]
     pub id: String,
-    #[serde(rename = "svc-name")]
-    pub name: String,
     #[serde(flatten)]
     pub desired_state: SmfDefinition,
 }
@@ -30,26 +28,26 @@ pub struct GurpSmfRemove {
 impl GurpSmfEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let new_manifest = smf_builder::make_manifest(&self.desired_state);
-        let manifest_path = &manifest_path(&self.name);
+        let manifest_path = &manifest_path(&self.desired_state.name);
 
-        if svcs::exists(&self.name)? {
-            tracing::debug!("service exists: {}", &self.name);
+        if svcs::exists(&self.desired_state.name)? {
+            tracing::debug!("service exists: {}", &self.desired_state.name);
 
             if manifest_path.exists() {
                 let current_manifest = fs::read_to_string(manifest_path)?;
                 let desired_xml = helpers::parse_xml(&new_manifest)?;
                 let current_xml = helpers::parse_xml(&current_manifest)?;
                 if desired_xml == current_xml {
-                    tracing::debug!("no change: {}", self.name);
+                    tracing::debug!("no change: {}", self.desired_state.name);
                     return Ok(ONE_RESOURCE_NO_CHANGE);
                 }
             } else {
                 tracing::debug!("creating manifest: {} ", manifest_path);
             }
 
-            tracing::info!("change service: {}", self.name);
+            tracing::info!("change service: {}", self.desired_state.name);
         } else {
-            tracing::info!("create service: {}", self.name);
+            tracing::info!("create service: {}", self.desired_state.name);
         };
 
         tracing::debug!("rewriting manifest: {}", manifest_path);
@@ -68,20 +66,24 @@ impl GurpSmfEnsure {
     }
 
     fn ensure_service(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        if svcs::exists(&self.name)? {
-            let current_state = svcs::current_state(&self.name)?;
+        if svcs::exists(&self.desired_state.name)? {
+            let current_state = svcs::current_state(&self.desired_state.name)?;
 
             if current_state != "disabled" {
-                svcs::set_state(&self.name, &current_state, "disabled")?;
+                svcs::set_state(&self.desired_state.name, &current_state, "disabled")?;
             }
 
-            let mut cmd = cmd!(SVCCFG_BIN, "delete", &self.name);
+            let mut cmd = cmd!(SVCCFG_BIN, "delete", &self.desired_state.name);
             if !opts.noop {
                 cmd.status()?;
             }
         }
 
-        let mut cmd = cmd!(SVCCFG_BIN, "import", manifest_path(&self.name).as_str());
+        let mut cmd = cmd!(
+            SVCCFG_BIN,
+            "import",
+            manifest_path(&self.desired_state.name).as_str()
+        );
         return_if_noop!(opts);
         one_change_or_stderr!(cmd)
     }
