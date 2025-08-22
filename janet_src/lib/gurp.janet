@@ -566,6 +566,16 @@
 
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
 
+(defn apk/ensure
+  "Given a a apk name, return a apk ensure struct"
+  [name & specs]
+  (collect :ensure :apk (ensure-resource :apk name specs)))
+
+(defn apk/remove
+  "Given a apk name, return a apk remove struct"
+  [name & specs]
+  (collect :remove :apk (remove-resource :apk name specs)))
+
 (defn cron/ensure
   "Given a name and specification, return a cron ensure struct"
   [name & specs]

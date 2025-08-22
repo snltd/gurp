@@ -1,6 +1,7 @@
 use crate::types::ApplySummary;
 
 // Binaries gurp is allowed to run
+pub const APK_BIN: &str = "/sbin/apk";
 pub const CRONTAB_BIN: &str = "/bin/crontab";
 pub const DISPADMIN_BIN: &str = "/usr/sbin/dispadmin";
 pub const GEM_BIN: &str = "/opt/ooce/bin/gem";
