@@ -62,10 +62,15 @@ impl GurpGem for GurpGemRemove {
 }
 
 fn installed_gems<T: GurpGem>(gem_list: &[T]) -> InstalledGems {
-    let mut installed_gems: InstalledGems = HashMap::from([(
-        Utf8PathBuf::from(GEM_BIN),
-        parse_gem_output(&gem_output(&Utf8PathBuf::from(GEM_BIN)).expect("Could not get gem list")),
-    )]);
+    let mut installed_gems: InstalledGems = HashMap::new();
+    let ooce_bin = Utf8PathBuf::from(GEM_BIN);
+
+    if ooce_bin.exists() {
+        installed_gems.insert(
+            ooce_bin.clone(),
+            parse_gem_output(&gem_output(&ooce_bin).expect("Could not get gem list")),
+        );
+    }
 
     let alternate_gem_bins: HashSet<_> = gem_list.iter().map(|g| g.gem_bin_path()).collect();
 
@@ -113,7 +118,7 @@ fn install_specific(
 
     // If we're still here, we need to install something
 
-    let mut cmd = Command::new(GEM_BIN);
+    let mut cmd = Command::new(gem_path);
     cmd.arg("install");
     cmd.arg("--bindir");
     cmd.arg(GEM_BIN_DIR);
@@ -150,14 +155,15 @@ pub fn collect_and_ensure(gem_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
     let mut install_list = Vec::new();
     let installed_gems = installed_gems(gem_list);
     let default_gem_bin = Utf8PathBuf::from(GEM_BIN);
-    let default_gem_list = installed_gems
-        .get(&default_gem_bin)
-        .context("no gem list for GEM_BIN")?;
+
+    let default_gem_list = installed_gems.get(&default_gem_bin);
 
     for gem in gem_list {
         if gem.version.is_some() || gem.source.is_some() || gem.gem_path.is_some() {
             summary = summary + install_specific(gem, &installed_gems, opts)?;
-        } else if default_gem_list.iter().any(|g| g.name == gem.name) {
+        } else if let Some(default_list) = default_gem_list
+            && default_list.iter().any(|g| g.name == gem.name)
+        {
             summary.resources += 1;
             tracing::debug!("gem {}: already installed", gem.name);
         } else {
