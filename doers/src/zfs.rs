@@ -10,10 +10,22 @@ use std::sync::LazyLock;
 // sizes.
 
 static CURRENT_ZFS_OUTPUT: LazyLock<Vec<String>> =
-    LazyLock::new(|| zfs_output().expect("Could not get zfs list"));
+    LazyLock::new(|| zfs_output().expect("Could not run ZFS"));
+
+static ZFS_BIN_PATH: LazyLock<&'static str> = LazyLock::new(zfs_bin);
+
+fn zfs_bin() -> &'static str {
+    if Utf8PathBuf::from(ZFS_BIN).exists() {
+        ZFS_BIN
+    } else if Utf8PathBuf::from(ZFS_LX_BIN).exists() {
+        ZFS_LX_BIN
+    } else {
+        panic!("No ZFS binary");
+    }
+}
 
 fn zfs_output() -> anyhow::Result<Vec<String>> {
-    Ok(cmd_output!(ZFS_BIN, "list", "-H", "-o", "name")?
+    Ok(cmd_output!(*ZFS_BIN_PATH, "list", "-H", "-o", "name")?
         .lines()
         .map(|s| s.to_owned())
         .collect())
@@ -39,7 +51,7 @@ pub struct GurpZfsRemove {
 
 fn zfs_state(name: &str) -> anyhow::Result<ZfsProperties> {
     let mut ret = HashMap::new();
-    let prop_vals = cmd_output!(ZFS_BIN, "get", "-pHo", "property,value", "all", name)?;
+    let prop_vals = cmd_output!(*ZFS_BIN_PATH, "get", "-pHo", "property,value", "all", name)?;
 
     for l in prop_vals.lines() {
         let bits: Vec<_> = l.split_whitespace().collect();
@@ -65,7 +77,7 @@ impl GurpZfsEnsure {
             if let Some(state) = self.properties.as_ref() {
                 let current_state = zfs_state(&self.name)?;
                 let mut run_cmd = false;
-                let mut cmd = Command::new(ZFS_BIN);
+                let mut cmd = Command::new(*ZFS_BIN_PATH);
                 cmd.arg("set");
 
                 for (property, desired_value) in state {
@@ -121,7 +133,7 @@ impl GurpZfsEnsure {
     fn create_filesystem(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         tracing::info!("creating filesystem: {}", self.name);
 
-        let mut cmd = Command::new(ZFS_BIN);
+        let mut cmd = Command::new(*ZFS_BIN_PATH);
         cmd.arg("create");
 
         if let Some(properties) = &self.properties {
@@ -163,7 +175,7 @@ impl GurpZfsRemove {
     }
 
     fn remove_filesystem(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let mut cmd = cmd!(ZFS_BIN, "destroy", "-r", &self.name);
+        let mut cmd = cmd!(*ZFS_BIN_PATH, "destroy", "-r", &self.name);
         return_if_noop!(opts);
         one_change_or_stderr!(cmd)
     }

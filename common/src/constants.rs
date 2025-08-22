@@ -22,6 +22,7 @@ pub const USERADD_BIN: &str = "/usr/sbin/useradd";
 pub const USERDEL_BIN: &str = "/usr/sbin/userdel";
 pub const USERMOD_BIN: &str = "/usr/sbin/usermod";
 pub const ZFS_BIN: &str = "/usr/sbin/zfs";
+pub const ZFS_LX_BIN: &str = "/native/usr/sbin/zfs";
 pub const ZLOGIN_BIN: &str = "/usr/sbin/zlogin";
 pub const ZONEADM_BIN: &str = "/usr/sbin/zoneadm";
 pub const ZONECFG_BIN: &str = "/usr/sbin/zonecfg";
