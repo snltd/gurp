@@ -128,7 +128,7 @@ impl GurpSmfRemove {
 }
 
 fn manifest_path(svc_name: &str) -> Utf8PathBuf {
-    Utf8PathBuf::from(MANIFEST_DIR).join(format!("gurp-{svc_name}.xml"))
+    Utf8PathBuf::from(MANIFEST_DIR).join(format!("gurp-{}.xml", svc_name.replace('/', "_")))
 }
 
 #[cfg(test)]
