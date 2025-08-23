@@ -1,3 +1,4 @@
+# We only need this import for testing. Gurp bundles the defaults file.
 (if-not (get (curenv) (symbol :default-protos))
   (use ./defaults))
 
@@ -5,7 +6,7 @@
   "Sets en emptyu *collector*. In a function as most tests use it"
   [] @{:ensure @{} :remove @{}})
 
-# Yes, a global variable. It collects all the resources from the host we
+# Yes, a GLOBAL VARIABLE! It collects all the resources from the host we
 # are configuring. :ensure and :remove are tables whose keys are resource
 # types and values are arrays of resources
 # 
@@ -638,7 +639,7 @@
 (defn misc/ensure
   "Sets miscellaneous system properties"
   [& specs]
-  (collect :ensure :misc (ensure-resource :misc "GENERIC" specs)))
+  (collect :ensure :misc (ensure-resource :misc (labelise ;specs) specs)))
 
 (defn pkg/ensure
   "Given a a pkg name, return a pkg ensure struct. In OmniOS, the
