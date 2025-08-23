@@ -3,7 +3,7 @@
   (use ./defaults))
 
 (defn new-collector
-  "Sets en emptyu *collector*. In a function as most tests use it"
+  "Returns an empty *collector*. In a function as most tests use it"
   [] @{:ensure @{} :remove @{}})
 
 # Yes, a GLOBAL VARIABLE! It collects all the resources from the host we
@@ -151,12 +151,31 @@
     {:type ["The type of fs mount" :string]}
     :mandatory {:special ["The directory in the global zone" :string]}}})
 
+(def resource-remove-keys
+  "Like resource-ensure-keys but for removing resources"
+  {:gem
+   {:optional
+    {:gem-path ["Path to gem executable other than /opt/ooce/bin/gem" :string]
+     :version ["Gem version" :string]}}
+
+   :file-line
+   {:mandatory
+    {:pattern ["The line or pattern which must be removed" :string]}
+    :optional {:match ["How to match the line: 'exact', 'starts_with', 'ends_with', 'contains', or 'regex'" :string]
+               :apply-to ["Which matches to act on: 'first', 'last', 'all'" :string]}}
+
+   :svcprop
+   {:optional
+    {:property-groups ["Property groups (:string) to create" :tuple]}
+    :mandatory
+    {:properties ["Properties to create. (:keyword :string|:boolean|:number)" :struct]}}})
+
 # For now this is a shim around the hardcoded fallbacks. In the future we'll
 # let the user supply their own. Not sure how, yet.
 (defn- proto
   "Retrieve resource default values for use as table protos"
-  [resource-type]
-  (get default-protos resource-type {}))
+  [action resource-type]
+  (get-in default-protos [action resource-type] {}))
 
 (defn pathcat
   "Joins tokens to make a path"
@@ -164,19 +183,6 @@
   (->
     (map |(string/trim $ "/") (tuple "" ;chunks))
     (string/join "/")))
-
-(defn- clean-data
-  "Removes anything which is not a struct from a list"
-  [list]
-  (filter |(struct? $) list))
-
-(defn parent
-  [path]
-  (def components
-    (peg/match ~{:main (some (choice (capture (some (if-not "/" 1))) 1))} path))
-
-  (array/pop components)
-  (string "/" (string/join components "/")))
 
 (defn- qualify-from-path
   "We expect files to be in a directory `files/` at the same level as
@@ -292,12 +298,18 @@
   {:ensure (finalise-action (collector :ensure))
    :remove (finalise-action (collector :remove))})
 
-(defn- validate-ensure-spec
-  "Checks a resource has the keys it should have, according to the 
-  resource-ensure-keys struct"
-  [resource-type resource-name resource-spec]
+(defn- validate-spec
+  "Checks a resource has the keys it should have, according to the correct
+  resource-action-keys struct"
+  [action resource-type resource-name resource-spec]
+
+  (def valid-keys
+    (match action
+      :ensure (get resource-ensure-keys resource-type {})
+      :remove (get resource-remove-keys resource-type {})
+      _ (error (string "Unknown action. Got " action " expected :ensure or :remove"))))
+
   (let [user-keys (filter |(not (= :label $)) (keys (struct ;resource-spec)))
-        valid-keys (get resource-ensure-keys resource-type {})
         mandatory-keys (keys (get valid-keys :mandatory []))
         optional-keys (tuple :label ;(keys (get valid-keys :optional {})))
         missing-mandatory (filter |(not (has-value? user-keys $)) mandatory-keys)]
@@ -318,9 +330,6 @@
                          resource-name
                          (string/join unrecognised ", ")))))))
 
-(defn- validate-remove-spec
-  [resource-type resource-spec])
-
 (defn- collect
   "Put a resource into the collector"
   [action resource-type resource]
@@ -329,20 +338,20 @@
       (set (action-struct resource-type) (array)))
     (array/concat (action-struct resource-type) (first (values resource)))))
 
-(defn- ensure-resource
+(defn- make-resource
   "Creates a resource struct of the given type and name. The role is picked up
   from a role-specific dynamic binding, to cut down on user boilerplate.
   resource-spec is an even-length tuple"
-  [resource-type resource-name resource-spec & opts]
+  [action resource-type resource-name resource-spec & opts]
   (if-not (has-value? opts :no-validate)
     (try
-      (validate-ensure-spec resource-type resource-name resource-spec)
+      (validate-spec action resource-type resource-name resource-spec)
       ([e]
         (error
           (string "Failed to validate user input for " resource-type " '" resource-name "' : " e)))))
   (->>
     (struct/with-proto
-      (proto resource-type)
+      (proto action resource-type)
       :_id (resource-id resource-type resource-name resource-spec)
       :role (dyn :role-dyn)
       :name resource-name
@@ -352,16 +361,6 @@
     (table/to-struct)
     (struct resource-type)))
 
-(defn- remove-resource
-  "Creates a resource struct of the given type and name. The role is picked up
-  from a role-specific dynamic binding, to cut down on user boilerplate"
-  [resource-type resource-name resource-spec]
-  (validate-remove-spec resource-type resource-spec)
-  (struct resource-type
-          (struct :_id (resource-id resource-type resource-name resource-spec)
-                  :role (dyn :role-dyn)
-                  :name resource-name
-                  (splice resource-spec))))
 (defn help-for
   "Returns a multiline string showing keys supported by the given resource"
   [resource]
@@ -390,11 +389,11 @@
   (defn- keys-of-type
     "Returns an array of lines describing either mandatory or optional keys for
     the given 'info' object taken from the resource-ensure-keys struct"
-    [info key-type key-field-width]
+    [action info key-type key-field-width]
     (if-let [key-info (info key-type)]
       (let [ret (array (string key-type " keys"))]
         (loop [[key desc] :pairs key-info]
-          (let [default-val (get-in default-protos [(keyword resource) key])]
+          (let [default-val (get-in default-protos [action (keyword resource) key])]
             (array/push ret
                         (string/format (format-string key-field-width)
                                        key
@@ -404,14 +403,22 @@
         ret)
       (string "No " key-type " keys")))
 
-  (if-let [info (resource-ensure-keys (keyword resource))
-           key-field-width (field-width (keys-for-resource info))]
-    (string/join
-      (array/concat
-        @[resource]
-        (keys-of-type info :mandatory key-field-width)
-        (keys-of-type info :optional key-field-width))
-      "\n")
+  (if-let [ensure-info (resource-ensure-keys (keyword resource))
+           key-field-width (field-width (keys-for-resource ensure-info))]
+    (do
+      (def remove-info (resource-remove-keys (keyword resource)))
+      (string/join
+        (array/concat
+          @[(string "(" resource "/ensure)")]
+          (keys-of-type :ensure ensure-info :mandatory key-field-width)
+          (keys-of-type :ensure ensure-info :optional key-field-width)
+          (if (nil? remove-info)
+            []
+            (array/concat
+              @["" (string "(" resource "/remove)")]
+              (keys-of-type :remove remove-info :mandatory key-field-width)
+              (keys-of-type :remove remove-info :optional key-field-width))))
+        "\n"))
     (string/format "No help for '%s'" resource)))
 
 #---- HELPERS FOR THE USER ---------------------------------------------------
@@ -477,6 +484,15 @@
     (map |(string/trim $ "/") (tuple ;chunks))
     (string/join "/")
     (string/trim "/")))
+
+(defn parent
+  "Returns the parent directory of the given path"
+  [path]
+  (def components
+    (peg/match ~{:main (some (choice (capture (some (if-not "/" 1))) 1))} path))
+
+  (array/pop components)
+  (string "/" (string/join components "/")))
 
 (defn labelise
   "Turns tokens into a safe label"
@@ -569,37 +585,37 @@
 (defn apk/ensure
   "Given a a apk name, return a apk ensure struct"
   [name & specs]
-  (collect :ensure :apk (ensure-resource :apk name specs)))
+  (collect :ensure :apk (make-resource :ensure :apk name specs)))
 
 (defn apk/remove
   "Given a apk name, return a apk remove struct"
   [name & specs]
-  (collect :remove :apk (remove-resource :apk name specs)))
+  (collect :remove :apk (make-resource :remove :apk name specs)))
 
 (defn cron/ensure
   "Given a name and specification, return a cron ensure struct"
   [name & specs]
-  (collect :ensure :cron (ensure-resource :cron name specs)))
+  (collect :ensure :cron (make-resource :ensure :cron name specs)))
 
 (defn cron/remove
   "Given a name and specification, return a cron remove struct"
   [name & specs]
-  (collect :remove :cron (remove-resource :cron name specs)))
+  (collect :remove :cron (make-resource :remove :cron name specs)))
 
 (defn directory/ensure
   "Given a directory name and specification, return a directory ensure struct"
   [name & specs]
-  (collect :ensure :directory (ensure-resource :directory name specs)))
+  (collect :ensure :directory (make-resource :ensure :directory name specs)))
 
 (defn directory/remove
   "Given a directory name and specification, return a directory remove struct"
   [name & specs]
-  (collect :remove :directory (remove-resource :directory name specs)))
+  (collect :remove :directory (make-resource :remove :directory name specs)))
 
 (defn file/ensure
   "Given a file name and specification, return a file ensure struct"
   [name & specs]
-  (let [result (ensure-resource :file name specs)
+  (let [result (make-resource :ensure :file name specs)
         resource (struct/to-table (result :file))]
 
     (def final-resource
@@ -614,73 +630,85 @@
 (defn file/remove
   "Given a file name and specification, return a file remove struct"
   [name & specs]
-  (collect :remove :file (remove-resource :file name specs)))
+  (collect :remove :file (make-resource :remove :file name specs)))
 
 (defn file-line/ensure
   "Given a file name and a line pattern, make sure the file contains the line"
   [name & specs]
-  (collect :ensure :file-line (ensure-resource :file-line name specs)))
+  (collect :ensure :file-line (make-resource :ensure :file-line name specs)))
 
 (defn file-line/remove
   "Given a file name and a line pattern, make sure the file does not contain the line"
   [name & specs]
-  (collect :remove :file-line (remove-resource :file-line name specs)))
+  (def match-allowed ["exact" "starts_with" "ends_with" "contains" "matches"])
+  (def apply-to-allowed ["all" "first" "last"])
+    
+  (let [spec-struct (struct ;specs)]
+    (if-let [match-val (spec-struct :match)]
+      (if-not (has-value? match-allowed match-val)
+        (error (string "match must be one of " (string/join match-allowed ", ") " [Got '" match-val "']"))))
+
+    (if-let [type-val (spec-struct :apply-to)]
+      (if-not (has-value? apply-to-allowed type-val)
+        (error (string "type must be one of " (string/join apply-to-allowed ", "))))))
+    
+  (collect :remove :file-line (make-resource :remove :file-line name specs)))
 
 (defn gem/ensure
   "Given a a gem name, return a gem ensure struct"
   [name & specs]
-  (collect :ensure :gem (ensure-resource :gem name specs)))
+  (collect :ensure :gem (make-resource :ensure :gem name specs)))
 
 (defn gem/remove
   "Given a gem name, return a gem remove struct"
   [name & specs]
-  (collect :remove :gem (remove-resource :gem name specs)))
+  (collect :remove :gem (make-resource :remove :gem name specs)))
 
 (defn group/ensure
   "Given a group name and specification, return a group ensure struct"
   [name & specs]
-  (collect :ensure :group (ensure-resource :group name specs)))
+  (collect :ensure :group (make-resource :ensure :group name specs)))
 
 (defn group/remove
   "Given a group name and specification, return a group remove struct"
   [name & specs]
-  (collect :remove :group (remove-resource :group name specs)))
+  (collect :remove :group (make-resource :remove :group name specs)))
 
 (defn misc/ensure
   "Sets miscellaneous system properties"
   [& specs]
-  (collect :ensure :misc (ensure-resource :misc (labelise ;specs) specs)))
+  (collect :ensure :misc (make-resource :ensure :misc (labelise ;specs) specs)))
 
 (defn pkg/ensure
   "Given a a pkg name, return a pkg ensure struct. In OmniOS, the
   pkg version is effectively part of the name, so there are no parameters"
   [name & specs]
-  (collect :ensure :pkg (ensure-resource :pkg name specs)))
+  (collect :ensure :pkg (make-resource :ensure :pkg name specs)))
 
 (defn pkg/remove
   "Given a pkg name, return a pkg remove struct"
   [name & specs]
-  (collect :remove :pkg (remove-resource :pkg name specs)))
+  (collect :remove :pkg (make-resource :remove :pkg name specs)))
 
 (defn pkgin/ensure
   "Given a a pkgin name, return a pkgin ensure struct."
   [name & specs]
-  (collect :ensure :pkgin (ensure-resource :pkgin name specs)))
+  (collect :ensure :pkgin (make-resource :ensure :pkgin name specs)))
 
 (defn pkgin/remove
   "Given a pkgin name, return a pkgin remove struct"
   [name & specs]
-  (collect :remove :pkgin (remove-resource :pkgin name specs)))
+  (collect :remove :pkgin (make-resource :remove :pkgin name specs)))
 
 (defn publisher/ensure
   "Given a a publisher name, return a publisher ensure struct"
   [name & specs]
-  (collect :ensure :publisher (ensure-resource :publisher name specs)))
+  (collect :ensure :publisher (make-resource :ensure :publisher name specs)))
 
 (defn publisher/remove
   "Given a publisher name, return a publisher remove struct"
   [name & specs]
-  (collect :remove :publisher (remove-resource :publisher name specs)))
+  (collect :remove :publisher (make-resource :remove :publisher name specs)))
 
 (defn smf/ensure
   "Given a name and a manifest description, return an smf ensure struct"
@@ -698,7 +726,7 @@
           ;(map expand-svc-property (flat-table (spec-table :properties)))))
       (set (spec-table :properties) expanded-properties))
 
-    (collect :ensure :smf (ensure-resource :smf name (flat-table spec-table)))))
+    (collect :ensure :smf (make-resource :ensure :smf name (flat-table spec-table)))))
 
 (def smf-context-keys [:user :group :privileges :environment])
 
@@ -716,7 +744,7 @@
     (if-not (has-key? spec-table :exec)
       (error "smf-method requires an :exec"))
 
-    (table/setproto spec-table (struct/to-table (proto :smf-method)))
+    (table/setproto spec-table (struct/to-table (proto :ensure :smf-method)))
 
     (each k context-keys
       (set (context k)
@@ -733,12 +761,12 @@
 (defn svc/ensure
   "Given a name and state, return a svc ensure struct"
   [name & specs]
-  (collect :ensure :svc (ensure-resource :svc name specs)))
+  (collect :ensure :svc (make-resource :ensure :svc name specs)))
 
 (defn svcprop/ensure
   "Given a name and state, return a svcprop ensure struct"
   [name & specs]
-  (let [result (ensure-resource :svcprop name specs)]
+  (let [result (make-resource :ensure :svcprop name specs)]
     (var resource (struct/to-table (result :svcprop)))
 
     (var new-properties
@@ -750,37 +778,37 @@
 (defn svcprop/remove
   "Given a name and state, return a svcprop remove struct"
   [name & specs]
-  (collect :remove :svcprop (remove-resource :svcprop name specs)))
+  (collect :remove :svcprop (make-resource :remove :svcprop name specs)))
 
 (defn symlink/ensure
   "Given a symlink name and specification, return a symlink ensure struct"
   [name & specs]
-  (collect :ensure :symlink (ensure-resource :symlink name specs)))
+  (collect :ensure :symlink (make-resource :ensure :symlink name specs)))
 
 (defn symlink/remove
   "Given a symlink name and specification, return a symlink remove struct"
   [name & specs]
-  (collect :remove :symlink (remove-resource :symlink name specs)))
+  (collect :remove :symlink (make-resource :remove :symlink name specs)))
 
 (defn user/ensure
   "Given a user name and specification, return a user ensure struct"
   [name & specs]
-  (collect :ensure :user (ensure-resource :user name specs)))
+  (collect :ensure :user (make-resource :ensure :user name specs)))
 
 (defn user/remove
   "Given a user name and specification, return a user remove struct"
   [name & specs]
-  (collect :remove :user (remove-resource :user name specs)))
+  (collect :remove :user (make-resource :remove :user name specs)))
 
 (defn zfs/ensure
   "Given a zfs dataset name and specification, return a zfs ensure struct"
   [name & specs]
-  (collect :ensure :zfs (ensure-resource :zfs name specs)))
+  (collect :ensure :zfs (make-resource :ensure :zfs name specs)))
 
 (defn zfs/remove
   "Given a zfs dataset name and specification, return a zfs remove struct"
   [name & specs]
-  (collect :remove :zfs (remove-resource :zfs name specs)))
+  (collect :remove :zfs (make-resource :remove :zfs name specs)))
 
 (defn zone/ensure
   "Given a zone name and specification, return a zone ensure struct"
@@ -790,7 +818,7 @@
   (expand-resource :attr)
   (expand-resource :fs)
   (expand-resource :rctl)
-  (let [result (ensure-resource :zone name modified-specs)
+  (let [result (make-resource :ensure :zone name modified-specs)
         resource (struct/to-table (result :zone))]
 
     (if-let [copy-resource (resource :copy-in)]
@@ -807,14 +835,14 @@
 (defn zone/remove
   "Given a zone name and specification, return a zone remove struct"
   [name & specs]
-  (collect :remove :zone (remove-resource :zone name specs)))
+  (collect :remove :zone (make-resource :remove :zone name specs)))
 
 (defn zone-network
   "Given specs, return a zone network struct. This is embedded in a zone/ensure"
   [physical & specs]
   (struct :net
           (struct/proto-flatten
-            (struct/with-proto (proto :zone-network)
+            (struct/with-proto (proto :ensure :zone-network)
                                :physical physical ;specs))))
 
 (defn zone-fs
@@ -822,7 +850,7 @@
   [mountpoint & specs]
   (struct :fs
           (struct/proto-flatten
-            (struct/with-proto (proto :zone-fs)
+            (struct/with-proto (proto :ensure :zone-fs)
                                :dir mountpoint ;specs))))
 
 (defn zone-attr
@@ -848,7 +876,7 @@
 (defn zone-rctl
   "Given specs, return a zone rctl struct. This is embedded in a zone/ensure"
   [name & specs]
-  (let [spec-struct (struct/with-proto (proto :zone-rctl) :name name (splice specs))]
+  (let [spec-struct (struct/with-proto (proto :ensure :zone-rctl) :name name (splice specs))]
 
     (if-not (has-key? spec-struct :limit)
       (error "zone-rctl requires a :limit"))
