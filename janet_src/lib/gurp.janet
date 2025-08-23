@@ -160,7 +160,7 @@
 
    :file-line
    {:mandatory
-    {:line ["The line or pattern which must be removed" :string]}
+    {:pattern ["The line or pattern which must be removed" :string]}
     :optional {:match ["How to match the line: 'exact', 'starts_with', 'ends_with', 'contains', or 'regex'" :string]
                :apply-to ["Which matches to act on: 'first', 'last', 'all'" :string]}}
 
@@ -640,17 +640,17 @@
 (defn file-line/remove
   "Given a file name and a line pattern, make sure the file does not contain the line"
   [name & specs]
-  (def match-allowed ["all" "first" "last"])
-  (def type-allowed ["exact" "starts_with" "ends_with" "contains" "matches"])
+  (def match-allowed ["exact" "starts_with" "ends_with" "contains" "matches"])
+  (def apply-to-allowed ["all" "first" "last"])
     
   (let [spec-struct (struct ;specs)]
     (if-let [match-val (spec-struct :match)]
       (if-not (has-value? match-allowed match-val)
-        (error (string "match must be one of " (string/join match-allowed ", ")))))
+        (error (string "match must be one of " (string/join match-allowed ", ") " [Got '" match-val "']"))))
 
-    (if-let [type-val (spec-struct :type)]
-      (if-not (has-value? type-allowed type-val)
-        (error (string "type must be one of " (string/join match-allowed ", "))))))
+    (if-let [type-val (spec-struct :apply-to)]
+      (if-not (has-value? apply-to-allowed type-val)
+        (error (string "type must be one of " (string/join apply-to-allowed ", "))))))
     
   (collect :remove :file-line (make-resource :remove :file-line name specs)))
 

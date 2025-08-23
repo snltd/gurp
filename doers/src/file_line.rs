@@ -30,7 +30,7 @@ pub struct GurpFileLineEnsure {
 pub struct GurpFileLineRemove {
     #[serde(rename = "_id")]
     pub id: String,
-    pub line: String,
+    pub pattern: String,
     #[serde(rename = "match")]
     pub match_type: String,
     pub apply_to: String,
@@ -61,13 +61,13 @@ impl GurpFileLineEnsure {
 
 impl GurpFileLineRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        if line_exists(&self.path, &self.line)? {
+        if line_exists(&self.path, &self.pattern)? {
             tracing::info!("removing: {}", &self.path);
 
             return_if_noop!(opts);
             let content = fs::read_to_string(&self.path)?;
 
-            let out = remove_lines(&content, &self.match_type, &self.line, &self.apply_to)?;
+            let out = remove_lines(&content, &self.match_type, &self.pattern, &self.apply_to)?;
 
             fs::write(&self.path, out)?;
             Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -240,7 +240,7 @@ mod test {
 
         let json_def = janet2json(&formatdoc! {"
             (file-line/remove \"{}\"
-                :line \"line_2\"
+                :pattern \"line_2\"
                 :match \"exact\"
                 :apply-to \"all\" )
             ", file_to_modify});
@@ -264,7 +264,7 @@ mod test {
 
         let json_def = janet2json(&formatdoc! {"
             (file-line/remove \"{}\"
-                :line \"line_4\"
+                :pattern \"line_4\"
                 :match \"exact\"
                 :apply-to \"all\")
             ", file_to_modify.to_string_lossy()});
