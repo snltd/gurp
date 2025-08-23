@@ -585,12 +585,12 @@
 (defn apk/ensure
   "Given a a apk name, return a apk ensure struct"
   [name & specs]
-  (collect :ensure :apk (ensure-resource :apk name specs)))
+  (collect :ensure :apk (make-resource :ensure :apk name specs)))
 
 (defn apk/remove
   "Given a apk name, return a apk remove struct"
   [name & specs]
-  (collect :remove :apk (remove-resource :apk name specs)))
+  (collect :remove :apk (make-resource :remove :apk name specs)))
 
 (defn cron/ensure
   "Given a name and specification, return a cron ensure struct"
@@ -677,7 +677,7 @@
 (defn misc/ensure
   "Sets miscellaneous system properties"
   [& specs]
-  (collect :ensure :misc (ensure-resource :misc (labelise ;specs) specs)))
+  (collect :ensure :misc (make-resource :ensure :misc (labelise ;specs) specs)))
 
 (defn pkg/ensure
   "Given a a pkg name, return a pkg ensure struct. In OmniOS, the
