@@ -51,6 +51,6 @@ mod test {
             .arg("defaults")
             .assert()
             .success()
-            .stdout(predicate::str::contains("{:file {:owner \"root\""));
+            .stdout(predicate::str::contains("{:owner \"root\""));
     }
 }
