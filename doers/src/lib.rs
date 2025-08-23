@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate macros;
 
+pub mod apk;
 pub mod constants;
 pub mod cron;
 pub mod directory;

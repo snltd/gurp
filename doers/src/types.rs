@@ -1,3 +1,4 @@
+use crate::apk::{GurpApkEnsure, GurpApkRemove};
 use crate::cron::{GurpCronEnsure, GurpCronRemove};
 use crate::directory::{GurpDirectoryEnsure, GurpDirectoryRemove};
 use crate::file::{GurpFileEnsure, GurpFileRemove};
@@ -41,6 +42,8 @@ pub struct HostResources {
 #[serde(rename_all = "kebab-case")]
 pub struct EnsureResources {
     #[serde(default)]
+    pub apk: Vec<GurpApkEnsure>,
+    #[serde(default)]
     pub cron: Vec<GurpCronEnsure>,
     #[serde(default)]
     pub directory: Vec<GurpDirectoryEnsure>,
@@ -79,6 +82,8 @@ pub struct EnsureResources {
 #[derive(Default, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct RemoveResources {
+    #[serde(default)]
+    pub apk: Vec<GurpApkRemove>,
     #[serde(default)]
     pub cron: Vec<GurpCronRemove>,
     #[serde(default)]
