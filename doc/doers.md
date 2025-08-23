@@ -143,27 +143,48 @@ flag. Therefore it can cause a noop run to fail.
 
 This makes sure that the given lines are, or are not, in the given file. If the
 file does not exist, the doer will fail, so you may have to manage the file with
-a `(file)` resource. This seems more efficient than duplicating all the `(file)`
-functionality here. Files are created before lines are managed, so the
+a `(file)` resource. Files are created before lines are managed, so the
 dependency is implicit.
 
-Like all doers, `(file-line)` is very stupid. If the line does not exist it will
-be appended to the file. If it does, it's left where it is. Removing a line will
-add a newline to the end of the file, if there isn't one already, and appended
-lines have a newline forced at the front, in case there wasn't already one at
-the end of the file.
-
-You can only manage one line per resource, because if we do add things like
-`:line-number`, or `:before` or whatever, it'll be a lot more straightforward.
+`(file-line/ensure)` is very basic. If the line does not exist it will be
+appended to the file. If it does, it's left where it is. Appended lines have a
+newline forced at the front, in case there wasn't already one at the end of the
+file.
 
 ```janet
 (file-line/ensure "/path/to/file"
                   :line "this is the line I want")
 ```
 
+You have a little more power when removing a line. You give a `:pattern`, and
+tell Gurp how to match it with the `:match` key, which may have the following
+values.
+
+- `exact`: the full line must be exactly equal to `:pattern`.
+- `starts_with`: the line must begin with `:pattern`. Whitespace is not ignored.
+- `ends_with`: the line must endwith `:pattern`. Whitespace is not ignored.
+- `contains`: the line must contain `:pattern`.
+- `regex`: the line must match `:pattern`, which itself must be a valid Rust
+  regex.
+
+If you do not supply a `:match` type, it defaults to `exact`.
+
+In conjunction with `:match`, the `:apply-to` key tells Gurp which matched lines
+to remove.
+
+- `all` removes all matching
+- `first` removes the first matching line
+- `last` removes the last matching line
+
+If `(file-line/remove)` removes a line, it will always add a newline to the end
+of the file, if there isn't one already.
+
+You can only manage one line per resource, because if we do add things like
+`:line-number`, or `:before` or whatever, it'll be a lot more straightforward.
+
 ```janet
 (file-line/remove "/path/to/file"
-                  :line "this is the first line I do not want")
+                  :pattern "this is the first line I do not want")
 ```
 
 ### Cron

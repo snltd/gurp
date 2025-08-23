@@ -1,5 +1,6 @@
 use camino::Utf8PathBuf;
 use common::prelude::*;
+use regex::Regex;
 use serde::Deserialize;
 use std::fs;
 use std::io::Write;
@@ -30,6 +31,9 @@ pub struct GurpFileLineRemove {
     #[serde(rename = "_id")]
     pub id: String,
     pub line: String,
+    #[serde(rename = "match")]
+    pub match_type: String,
+    pub apply_to: String,
     #[serde(rename = "name")]
     pub path: Utf8PathBuf,
 }
@@ -63,11 +67,7 @@ impl GurpFileLineRemove {
             return_if_noop!(opts);
             let content = fs::read_to_string(&self.path)?;
 
-            let out: String = content
-                .lines()
-                .filter(|l| l != &self.line)
-                .map(|line| format!("{line}\n"))
-                .collect();
+            let out = remove_lines(&content, &self.match_type, &self.line, &self.apply_to)?;
 
             fs::write(&self.path, out)?;
             Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -78,12 +78,98 @@ impl GurpFileLineRemove {
     }
 }
 
+fn remove_lines(
+    orig: &str,
+    match_type: &str,
+    pattern: &str,
+    apply_to: &str,
+) -> anyhow::Result<String> {
+    let rx = if match_type == "regex" {
+        Some(Regex::new(pattern)?)
+    } else {
+        None
+    };
+
+    let mut seen_match = false;
+    let mut lines: Vec<_> = orig.lines().collect();
+
+    if apply_to == "last" {
+        lines.reverse();
+    };
+
+    let mut ret: Vec<_> = lines
+        .iter()
+        .filter(|&line| {
+            if apply_to != "all" && seen_match {
+                true
+            } else {
+                match match_type {
+                    "exact" => {
+                        if line == &pattern {
+                            seen_match = true;
+                            false
+                        } else {
+                            true
+                        }
+                    }
+
+                    "ends_with" => {
+                        if line.ends_with(pattern) {
+                            seen_match = true;
+                            false
+                        } else {
+                            true
+                        }
+                    }
+                    "starts_with" => {
+                        if line.starts_with(pattern) {
+                            seen_match = true;
+                            false
+                        } else {
+                            true
+                        }
+                    }
+                    "contains" => {
+                        if line.contains(pattern) {
+                            seen_match = true;
+                            false
+                        } else {
+                            true
+                        }
+                    }
+                    "regex" => {
+                        if let Some(regex) = &rx {
+                            if regex.is_match(line) {
+                                seen_match = true;
+                                false
+                            } else {
+                                true
+                            }
+                        } else {
+                            unreachable!("regex but no regex")
+                        }
+                    }
+                    other => unreachable!("Impossible match-type: {other}"),
+                }
+            }
+        })
+        .map(|line| format!("{line}\n"))
+        .collect();
+
+    if apply_to == "last" {
+        ret.reverse();
+    }
+
+    Ok(ret.join(""))
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use indoc::{formatdoc, indoc};
+    // use pretty_assertions::assert_eq;
     use tester::{defopts, defopts_noop, janet2json};
 
     #[test]
@@ -153,7 +239,10 @@ mod test {
         let (_t, file_to_modify) = test_file();
 
         let json_def = janet2json(&formatdoc! {"
-            (file-line/remove \"{}\" :line \"line_2\")
+            (file-line/remove \"{}\"
+                :line \"line_2\"
+                :match \"exact\"
+                :apply-to \"all\" )
             ", file_to_modify});
 
         let sut: GurpFileLineRemove = serde_json::from_str(&json_def).unwrap();
@@ -174,7 +263,10 @@ mod test {
         let file_to_modify = temp.join("test-file");
 
         let json_def = janet2json(&formatdoc! {"
-            (file-line/remove \"{}\" :line \"line_4\")
+            (file-line/remove \"{}\"
+                :line \"line_4\"
+                :match \"exact\"
+                :apply-to \"all\")
             ", file_to_modify.to_string_lossy()});
 
         let sut: GurpFileLineRemove = serde_json::from_str(&json_def).unwrap();
@@ -183,6 +275,81 @@ mod test {
         assert_eq!(
             "line_1\nline_2\nline_3".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_remove_all_lines() {
+        let src = "merp\nbyerp\nmerp\ngurp\nmerp\nbyerp\n";
+
+        assert_eq!(
+            "byerp\ngurp\nbyerp\n".to_owned(),
+            remove_lines(src, "exact", "merp", "all").unwrap()
+        );
+
+        assert_eq!(
+            "gurp\n".to_owned(),
+            remove_lines(src, "contains", "er", "all").unwrap()
+        );
+
+        assert_eq!(
+            "merp\nbyerp\nmerp\nmerp\nbyerp\n",
+            remove_lines(src, "starts_with", "g", "all").unwrap()
+        );
+
+        assert_eq!(
+            "merp\nmerp\nmerp\n",
+            remove_lines(src, "regex", "^[a-h].*p$", "all").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_remove_first_lines() {
+        let src = "merp\nbyerp\nmerp\ngurp\nmerp\nbyerp\n";
+
+        assert_eq!(
+            "byerp\nmerp\ngurp\nmerp\nbyerp\n".to_owned(),
+            remove_lines(src, "exact", "merp", "first").unwrap()
+        );
+
+        assert_eq!(
+            "byerp\nmerp\ngurp\nmerp\nbyerp\n".to_owned(),
+            remove_lines(src, "contains", "er", "first").unwrap()
+        );
+
+        assert_eq!(
+            "merp\nbyerp\nmerp\nmerp\nbyerp\n".to_owned(),
+            remove_lines(src, "starts_with", "g", "first").unwrap()
+        );
+
+        assert_eq!(
+            "merp\nmerp\ngurp\nmerp\nbyerp\n".to_owned(),
+            remove_lines(src, "regex", "^[a-h].*p$", "first").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_remove_last_lines() {
+        let src = "merp\nbyerp\nmerp\ngurp\nmerp\nbyerp\n";
+
+        assert_eq!(
+            "merp\nbyerp\nmerp\ngurp\nbyerp\n".to_owned(),
+            remove_lines(src, "exact", "merp", "last").unwrap()
+        );
+
+        assert_eq!(
+            "merp\nbyerp\nmerp\ngurp\nmerp\n".to_owned(),
+            remove_lines(src, "contains", "er", "last").unwrap()
+        );
+
+        assert_eq!(
+            "merp\nbyerp\nmerp\nmerp\nbyerp\n".to_owned(),
+            remove_lines(src, "starts_with", "g", "last").unwrap()
+        );
+
+        assert_eq!(
+            "merp\nbyerp\nmerp\ngurp\nmerp\n".to_owned(),
+            remove_lines(src, "regex", "^[a-h].*p$", "last").unwrap()
         );
     }
 
