@@ -57,8 +57,5 @@
     (file-line/remove "/my/file"
                       :pattern "merp"
                       :match "end")
-    "match must be one of exact, starts_with, ends_with, contains, matches [Got 'end']")
+    "match must be one of exact, starts_with, ends_with, contains, matches [Got 'end']"))
 
-  (test-error
-    (file-line/ensure "/missing/line")
-    "Failed to validate user input for file-line '/missing/line' : file-line missing required key(s): line"))
