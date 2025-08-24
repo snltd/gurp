@@ -97,17 +97,23 @@ pub fn remove_zone(zone: &str) -> anyhow::Result<ApplySummary> {
     Ok(ONE_RESOURCE_ONE_CHANGE)
 }
 
+// I've seen things (bhyve) get stuck here, but I can't reproduce anything right now
+pub fn halt_zone(zone: &str) -> anyhow::Result<()> {
+    tracing::debug!("zone {}: halting", zone);
+    cmd_output!(ZONEADM_BIN, "-z", zone, "halt")?;
+    wait_for_state(zone, ZoneState::Installed)
+}
+
+pub fn reboot_zone(zone: &str) -> anyhow::Result<()> {
+    tracing::debug!("zone {}: rebooting", zone);
+    cmd_output!(ZONEADM_BIN, "-z", zone, "reboot")?;
+    Ok(())
+}
+
 fn unmount_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: halting", zone);
     cmd_output!(ZONEADM_BIN, "-z", zone, "unmount")?;
     wait_for_state(zone, ZoneState::Halted)
-}
-
-// I've seen things (bhyve) get stuck here, but I can't reproduce anything right now
-fn halt_zone(zone: &str) -> anyhow::Result<()> {
-    tracing::debug!("zone {}: halting", zone);
-    cmd_output!(ZONEADM_BIN, "-z", zone, "halt")?;
-    wait_for_state(zone, ZoneState::Installed)
 }
 
 fn uninstall_zone(zone: &str) -> anyhow::Result<()> {

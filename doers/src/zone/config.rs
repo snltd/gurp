@@ -20,6 +20,7 @@ pub struct GurpZoneConfig {
     pub datasets: Option<Vec<String>>,
     pub dns: Option<GurpZoneDns>,
     pub exec_in: Option<Vec<String>>,
+    pub final_state: Option<String>,
     pub fs: Option<GurpZoneFilesystems>,
     #[serde(rename = "lx-image")]
     pub image: Option<String>,

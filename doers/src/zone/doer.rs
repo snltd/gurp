@@ -125,7 +125,20 @@ impl GurpZoneEnsure {
         self.copy_in()?;
         self.bootstrap_zone(opts)?;
         self.exec_in()?;
+        self.set_final_state()?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
+    }
+
+    fn set_final_state(&self) -> anyhow::Result<()> {
+        if let Some(final_state) = &self.config.final_state {
+            match final_state.as_str() {
+                "reboot" => control::reboot_zone(&self.name),
+                "installed" => control::halt_zone(&self.name),
+                _ => bail!("Only supported final states are 'reboot', 'installed'"),
+            }
+        } else {
+            Ok(())
+        }
     }
 
     fn postinstall_zone(&self) -> anyhow::Result<()> {

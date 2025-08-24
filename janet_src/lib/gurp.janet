@@ -127,6 +127,7 @@
      :datasets ["ZFS datasets (as strings) to be delegated to zone" :tuple]
      :dns ["DNS info. :domain is a string; :nameservers a tuple of strings" :struct]
      :exec-in ["Runs the given commands (:string) in the zone after booting" :tuple]
+     :final-state ["Put the zone in the given state. Also accepts 'reboot'" :string]
      :fs ["See 'zone-fs'"]
      :lx-image ["Install zone using this image. See docs for pattern rules" :string]
      :net ["See 'zone-net'"]
@@ -642,7 +643,7 @@
   [name & specs]
   (def match-allowed ["exact" "starts_with" "ends_with" "contains" "matches"])
   (def apply-to-allowed ["all" "first" "last"])
-    
+
   (let [spec-struct (struct ;specs)]
     (if-let [match-val (spec-struct :match)]
       (if-not (has-value? match-allowed match-val)
@@ -651,7 +652,7 @@
     (if-let [type-val (spec-struct :apply-to)]
       (if-not (has-value? apply-to-allowed type-val)
         (error (string "type must be one of " (string/join apply-to-allowed ", "))))))
-    
+
   (collect :remove :file-line (make-resource :remove :file-line name specs)))
 
 (defn gem/ensure
