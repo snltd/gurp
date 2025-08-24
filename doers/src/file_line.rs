@@ -175,12 +175,14 @@ fn write_content(
 
 impl GurpFileLineRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        if line_exists(&self.path, &self.pattern)? {
-            tracing::info!("removing: {}", &self.path);
+        let content = fs::read_to_string(&self.path)?;
 
-            let content = fs::read_to_string(&self.path)?;
-            let new_content =
-                remove_lines(&content, &self.match_type, &self.pattern, &self.apply_to)?;
+        if let Some(new_content) =
+            remove_lines(&content, &self.match_type, &self.pattern, &self.apply_to)?
+        {
+            tracing::info!("removing line(s) from {}", &self.path);
+
+            return_if_noop!(opts);
 
             write_content(&self.path, &new_content, opts)
         } else {
@@ -195,7 +197,7 @@ fn remove_lines(
     match_type: &str,
     pattern: &str,
     apply_to: &str,
-) -> anyhow::Result<String> {
+) -> anyhow::Result<Option<String>> {
     let rx = if match_type == "regex" {
         Some(Regex::new(pattern)?)
     } else {
@@ -268,11 +270,15 @@ fn remove_lines(
         .map(|line| format!("{line}\n"))
         .collect();
 
-    if apply_to == "last" {
-        ret.reverse();
-    }
+    if seen_match {
+        if apply_to == "last" {
+            ret.reverse();
+        }
 
-    Ok(ret.join(""))
+        Ok(Some(ret.join("")))
+    } else {
+        Ok(None)
+    }
 }
 
 #[cfg(test)]
@@ -281,7 +287,6 @@ mod test {
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use indoc::{formatdoc, indoc};
-    // use pretty_assertions::assert_eq;
     use tester::{defopts, defopts_noop, janet2json};
 
     #[test]
@@ -402,21 +407,6 @@ mod test {
                 .unwrap()
                 .unwrap()
         );
-
-        // assert_eq!(
-        //     "byerp\nmerp\ngurp\nmerp\nbyerp\n".to_owned(),
-        //     remove_lines(src, "contains", "er", "first").unwrap()
-        // );
-
-        // assert_eq!(
-        //     "merp\nbyerp\nmerp\nmerp\nbyerp\n".to_owned(),
-        //     remove_lines(src, "starts_with", "g", "first").unwrap()
-        // );
-
-        // assert_eq!(
-        //     "merp\nmerp\ngurp\nmerp\nbyerp\n".to_owned(),
-        //     remove_lines(src, "regex", "^[a-h].*p$", "first").unwrap()
-        // );
     }
 
     #[test]
@@ -469,22 +459,26 @@ mod test {
 
         assert_eq!(
             "byerp\ngurp\nbyerp\n".to_owned(),
-            remove_lines(src, "exact", "merp", "all").unwrap()
+            remove_lines(src, "exact", "merp", "all").unwrap().unwrap()
         );
 
         assert_eq!(
             "gurp\n".to_owned(),
-            remove_lines(src, "contains", "er", "all").unwrap()
+            remove_lines(src, "contains", "er", "all").unwrap().unwrap()
         );
 
         assert_eq!(
             "merp\nbyerp\nmerp\nmerp\nbyerp\n",
-            remove_lines(src, "starts_with", "g", "all").unwrap()
+            remove_lines(src, "starts_with", "g", "all")
+                .unwrap()
+                .unwrap()
         );
 
         assert_eq!(
             "merp\nmerp\nmerp\n",
-            remove_lines(src, "regex", "^[a-h].*p$", "all").unwrap()
+            remove_lines(src, "regex", "^[a-h].*p$", "all")
+                .unwrap()
+                .unwrap()
         );
     }
 
@@ -494,22 +488,30 @@ mod test {
 
         assert_eq!(
             "byerp\nmerp\ngurp\nmerp\nbyerp\n".to_owned(),
-            remove_lines(src, "exact", "merp", "first").unwrap()
+            remove_lines(src, "exact", "merp", "first")
+                .unwrap()
+                .unwrap()
         );
 
         assert_eq!(
             "byerp\nmerp\ngurp\nmerp\nbyerp\n".to_owned(),
-            remove_lines(src, "contains", "er", "first").unwrap()
+            remove_lines(src, "contains", "er", "first")
+                .unwrap()
+                .unwrap()
         );
 
         assert_eq!(
             "merp\nbyerp\nmerp\nmerp\nbyerp\n".to_owned(),
-            remove_lines(src, "starts_with", "g", "first").unwrap()
+            remove_lines(src, "starts_with", "g", "first")
+                .unwrap()
+                .unwrap()
         );
 
         assert_eq!(
             "merp\nmerp\ngurp\nmerp\nbyerp\n".to_owned(),
-            remove_lines(src, "regex", "^[a-h].*p$", "first").unwrap()
+            remove_lines(src, "regex", "^[a-h].*p$", "first")
+                .unwrap()
+                .unwrap()
         );
     }
 
@@ -519,22 +521,28 @@ mod test {
 
         assert_eq!(
             "merp\nbyerp\nmerp\ngurp\nbyerp\n".to_owned(),
-            remove_lines(src, "exact", "merp", "last").unwrap()
+            remove_lines(src, "exact", "merp", "last").unwrap().unwrap()
         );
 
         assert_eq!(
             "merp\nbyerp\nmerp\ngurp\nmerp\n".to_owned(),
-            remove_lines(src, "contains", "er", "last").unwrap()
+            remove_lines(src, "contains", "er", "last")
+                .unwrap()
+                .unwrap()
         );
 
         assert_eq!(
             "merp\nbyerp\nmerp\nmerp\nbyerp\n".to_owned(),
-            remove_lines(src, "starts_with", "g", "last").unwrap()
+            remove_lines(src, "starts_with", "g", "last")
+                .unwrap()
+                .unwrap()
         );
 
         assert_eq!(
             "merp\nbyerp\nmerp\ngurp\nmerp\n".to_owned(),
-            remove_lines(src, "regex", "^[a-h].*p$", "last").unwrap()
+            remove_lines(src, "regex", "^[a-h].*p$", "last")
+                .unwrap()
+                .unwrap()
         );
     }
 
