@@ -35,8 +35,12 @@
      :owner ["The username or UID of the user who owns this directory" :string :number]}}
 
    :file-line
-   {:mandatory
-    {:line ["The line which must exist" :string]}}
+   {:optional
+    {:apply-to ["Which matches to act on when replacing: 'first', 'last', 'all'" :string]
+     :insert-at ["If a new line must be added, it will go at this index" :number]
+     :replace ["Pattern to replace. Rust regex" :string]
+     :with ["Counterpart to :replace" :string]
+     :line ["The line which must exist" :string]}}
 
    :file
    {:optional
