@@ -89,6 +89,7 @@ impl GurpZoneEnsure {
         cmd.arg("-z")
             .arg(&self.name)
             .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
         tracing::debug!(command = helpers::command_to_string(&cmd));
