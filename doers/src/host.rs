@@ -96,17 +96,17 @@ fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<Ap
     apply_resources!(summary_total, changed_ids, &ensure.user, opts);
     apply_resources!(summary_total, changed_ids, &ensure.cron, opts);
     apply_resources!(summary_total, changed_ids, &ensure.directory, opts);
-    apply_resources!(summary_total, changed_ids, &ensure.symlink, opts);
     apply_resources!(summary_total, changed_ids, &ensure.file, opts);
     apply_resources!(summary_total, changed_ids, &ensure.file_line, opts);
+    apply_resources!(summary_total, changed_ids, &ensure.symlink, opts);
     apply_resources!(summary_total, changed_ids, &ensure.svcprop, opts);
     apply_resources!(summary_total, changed_ids, &ensure.smf, opts);
     apply_resources!(summary_total, changed_ids, &ensure.misc, opts);
 
+    apply_resources!(summary_total, changed_ids, &remove.symlink, opts);
     apply_resources!(summary_total, changed_ids, &remove.file_line, opts);
     apply_resources!(summary_total, changed_ids, &remove.file, opts);
     apply_resources!(summary_total, changed_ids, &remove.directory, opts);
-    apply_resources!(summary_total, changed_ids, &remove.symlink, opts);
     apply_resources!(summary_total, changed_ids, &remove.svcprop, opts);
     apply_resources!(summary_total, changed_ids, &remove.smf, opts);
     apply_resources!(summary_total, changed_ids, &remove.cron, opts);
