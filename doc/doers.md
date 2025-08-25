@@ -27,7 +27,7 @@ an issue or a PR.
 Doers are executed in the following order:
 
 ```
-(publisher/ensure)
+[(publisher/ensure)]((publisher/ensure))
 (zfs/ensure)
 (zone/ensure)
 (pkg/ensure)
