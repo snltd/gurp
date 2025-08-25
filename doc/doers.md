@@ -25,7 +25,32 @@ an issue or a PR.
 
 ## The Doers
 
-### Directory
+### apk
+
+#### Ensure
+
+```janet
+(apk/ensure "rust")
+```
+
+The `apk` doer only makes sense in an LX zone. You cannot currently install or
+pin specific versions.
+
+| Key  | Type   | Description  | Default | Mandatory |
+| ---- | ------ | ------------ | ------- | --------- |
+| Name | string | Package name |         | yes       |
+
+#### Remove
+
+```janet
+(apk/remove "go" )
+```
+
+| Key  | Type   | Description  | Default | Mandatory |
+| ---- | ------ | ------------ | ------- | --------- |
+| Name | string | Package name |         | yes       |
+
+### directory
 
 #### Ensure
 
@@ -70,14 +95,15 @@ the directory.
              :content "some content")
 ```
 
-| Key       | Type           | Description                            | Default | Mandatory |
-| --------- | -------------- | -------------------------------------- | ------- | --------- |
-| Name      | string         | fully-qualified path                   |         | yes       |
-| `group`   | string, number | can be a group name or numeric GID     | `root`  |           |
-| `user`    | string, number | can be a username or numeric UID       | `root`  |           |
-| `mode`    | string         | four-character octal string            | `0755`  |           |
-| `content` | string         | Literal file content                   |         | yes [*]   |
-| `from`    | string         | Path to a file which will be copied in |         | yes [*]   |
+| Key               | Type           | Description                                                    | Default | Mandatory |
+| ----------------- | -------------- | -------------------------------------------------------------- | ------- | --------- |
+| Name              | string         | fully-qualified path                                           |         | yes       |
+| `group`           | string, number | can be a group name or numeric GID                             | `root`  |           |
+| `user`            | string, number | can be a username or numeric UID                               | `root`  |           |
+| `mode`            | string         | four-character octal string                                    | `0755`  |           |
+| `content`         | string         | Literal file content                                           |         | yes [*]   |
+| `from`            | string         | Path to a file which will be copied in                         |         | yes [*]   |
+| `ingnore-pattern` | string         | When diffing files, Gurp will ignore lines matching this regex |         |           |
 
 [*] You must supply exactly one of `:content` or `:from`.
 
@@ -97,6 +123,29 @@ holding the file being parsed.
 | Key  | Type   | Description          | Default | Mandatory |
 | ---- | ------ | -------------------- | ------- | --------- |
 | Name | string | fully-qualified path |         | yes       |
+
+### Group
+
+#### Ensure
+
+```janet
+(group/ensure "ai-users")
+```
+
+| Key   | Type   | Description | Default | Mandatory |
+| ----- | ------ | ----------- | ------- | --------- |
+| Name  | string | Group name  |         | yes       |
+| `gid` | number | Group ID    |         | yes       |
+
+#### Remove
+
+```janet
+(group/remove "real-people" )
+```
+
+| Key  | Type   | Description | Default | Mandatory |
+| ---- | ------ | ----------- | ------- | --------- |
+| Name | string | Group name  |         | yes       |
 
 ### User
 
@@ -139,72 +188,138 @@ To unlock an account, use a hash of `NP`.
 | ---- | ------ | ----------- | ------- | --------- |
 | Name | string | Username    |         | yes       |
 
-### Package
+### Pkg
 
-Package support is, for now at least, as basic as it can be. You can make sure a
-package is installed or not installed with one of
+#### Ensure
 
 ```janet
 (pkg/ensure "ooce/developer/rust")
+```
+
+Packages must be specified in the format shown above: it's the format you see if
+you run `pkg list -a`.
+
+You cannot currently install specific versions, and there is no support for
+mediators.
+
+| Key  | Type   | Description  | Default | Mandatory |
+| ---- | ------ | ------------ | ------- | --------- |
+| Name | string | Package name |         | yes       |
+
+#### Remove
+
+```janet
 (pkg/remove "ooce/developer/go-124" )
 ```
 
+| Key  | Type   | Description  | Default | Mandatory |
+| ---- | ------ | ------------ | ------- | --------- |
+| Name | string | Package name |         | yes       |
+
 `gurp` currently only supports ipkg packages, and does not provide for upgrades
-or version pinning. You have to specify the package name as shown above; it's
-the format you see if you run `pkg list -a`.
+or version pinning. You have to specify the package name as shown above;
 
 If you run `gurp` with `--noop`, `pkg(1)` will be executed, but with the `-n`
 flag. Therefore it can cause a noop run to fail.
 
+### Pkgin
+
+Extremely basic support for pkgsrc packages in `pkgsrc` branded zones.
+
+#### Ensure
+
+```janet
+(pkgin/ensure "rust")
+```
+
+You cannot currently install specific versions.
+
+| Key  | Type   | Description  | Default | Mandatory |
+| ---- | ------ | ------------ | ------- | --------- |
+| Name | string | Package name |         | yes       |
+
+#### Remove
+
+```janet
+(pkgin/remove "go" )
+```
+
+| Key  | Type   | Description  | Default | Mandatory |
+| ---- | ------ | ------------ | ------- | --------- |
+| Name | string | Package name |         | yes       |
+
 ### File-line
 
-This makes sure that the given lines are, or are not, in the given file. If the
-file does not exist, the doer will fail, so you may have to manage the file with
-a `(file)` resource. Files are created before lines are managed, so the
-dependency is implicit.
-
-`(file-line/ensure)` is very basic. If the line does not exist it will be
-appended to the file. If it does, it's left where it is. Appended lines have a
-newline forced at the front, in case there wasn't already one at the end of the
-file.
+#### Ensure
 
 ```janet
 (file-line/ensure "/path/to/file"
-                  :line "this is the line I want")
+                  :line "The line I want")
 ```
 
-You have a little more power when removing a line. You give a `:pattern`, and
-tell Gurp how to match it with the `:match` key, which may have the following
-values.
+If `The line I want` is a complete line anywhere in `/path/to/file`, no action
+is taken. If it is not, the line is appended to the end of the file. Modified
+files always have a trailing newline.
 
-- `exact`: the full line must be exactly equal to `:pattern`.
-- `starts_with`: the line must begin with `:pattern`. Whitespace is not ignored.
-- `ends_with`: the line must endwith `:pattern`. Whitespace is not ignored.
-- `contains`: the line must contain `:pattern`.
-- `regex`: the line must match `:pattern`, which itself must be a valid Rust
-  regex.
+```janet
+(file-line/ensure "/path/to/file"
+                  :replace "this" :with "that"
+                  :apply-to "first")
+```
 
-If you do not supply a `:match` type, it defaults to `exact`.
+This will look at each line in turn, and the first time it sees `this` it will
+replace it with `that`. The matching and replacing is done with a Rust regex.
 
-In conjunction with `:match`, the `:apply-to` key tells Gurp which matched lines
-to remove.
+`:apply-to` may be `first`, `last`, or `all`, which is the default.
 
-- `all` removes all matching
-- `first` removes the first matching line
-- `last` removes the last matching line
+| Key         | Type    | Description                                                                | Default | Mandatory |
+| ----------- | ------- | -------------------------------------------------------------------------- | ------- | --------- |
+| Name        | string  | File path                                                                  |         | yes       |
+| `:line`     | string` | Line which must exist                                                      |         | yes [*]   |
+| `:replace`  | string` | Pattern to replace                                                         |         | yes [*]   |
+| `:with`     | string` | String with which to replace                                               |         | yes [*]   |
+| `:apply-to` | string` | When replacing, which matches to replace. Can be `first`, `last`, or `all` | `all`   | yes [*]   |
+
+[*] You must supply exactly one of `:line` or `:replace`. `:replace` must be
+paired with `:with`.
+
+If the file does not exist, the doer will fail, so you may have to manage the
+file with a `(file)` resource. Files are created before lines are managed, so
+the dependency is implicit.
+
+#### Remove
+
+```janet
+(file-line/remove "/path/to/file" :pattern "remove these lines")
+```
+
+```janet
+(file-line/remove "/path/to/file"
+                  :pattern "ip-address="
+                  :match "starts-with"
+                  :apply-to "last")
+```
+
+```janet
+(file-line/remove "/path/to/file"
+                  :pattern "^ip-address=.*\.168\..*/32$"
+                  :match "regex"
+                  :apply-to "all")
+```
+
+| Key         | Type    | Description                                                                                 | Default | Mandatory |
+| ----------- | ------- | ------------------------------------------------------------------------------------------- | ------- | --------- |
+| Name        | string  | File path                                                                                   |         | yes       |
+| `:pattern`  | string` | Pattern used to identify unwanted line                                                      |         | yes [*]   |
+| `:match`    | string` | How to match `:pattern`. Can be `exact`, `starts-with`, `ends-with`, `contains`, or `regex` | `exact` |           |
+| `:apply-to` | string` | When replacing, which matches to replace. Can be `first`, `last`, or `all`                  | `all`   |           |
 
 If `(file-line/remove)` removes a line, it will always add a newline to the end
 of the file, if there isn't one already.
 
-You can only manage one line per resource, because if we do add things like
-`:line-number`, or `:before` or whatever, it'll be a lot more straightforward.
-
-```janet
-(file-line/remove "/path/to/file"
-                  :pattern "this is the first line I do not want")
-```
-
 ### Cron
+
+#### Ensure
 
 Here's a fully explicit definition of a cron job.
 
@@ -213,15 +328,25 @@ Here's a fully explicit definition of a cron job.
              :hour "6,12"
              :minute "4"
              :day-of-month "*"
-             :day-of-week "*"
+             :day-of-week "1-5"
              :month-of-year "*"
-             :user "root"
+             :user "batch"
              :command "/usr/bin/thing >/var/log/file")
 ```
 
-If you omit any of the time fields, they will default to `"*"`. `:user` defaults
-to `root`, and if you omit `:command`, you'll get an error. You can put numbers
-or strings in there.
+| Key             | Type           | Description                                   | Default | Mandatory |
+| --------------- | -------------- | --------------------------------------------- | ------- | --------- |
+| Name            | string         | Some name to identify the job                 |         | yes       |
+| `hour`          | string, number | Hour(s) at which job runs                     | `*`     |           |
+| `minute`        | string, number | Minute(s) at which job runs                   | `*`     |           |
+| `day-of-month`  | string, number | Day(s) of month on which job runs             | `*`     |           |
+| `day-of-week`   | string, number | Day(s) of week on which job runs. 0 is Sunday | `*`     |           |
+| `month-of-year` | string, number | Month(s) of year in which job runs            | `*`     |           |
+| `user`          | string, number | User job runs as                              | `root`  |           |
+| `command`       | string, number | Command to run                                |         | yes       |
+
+`hour`, `minute` etc can take any valid illumos cron value, so thinks like
+`5,10,15` or `*/5` are fine.
 
 Like all other config management tools, `gurp` precedes managed lines in the
 crontab with an identifying string. That string contains the resource ID which,
@@ -236,16 +361,21 @@ The doer doesn't do any kind of user or `cron.allow` management, so you'll have
 to use other methods to make sure your user is allowed to run the job you
 define.
 
-To remove a cron job you already defined:
+#### Remove
 
 ```janet
 (cron/remove "identifying-name")
 ```
 
-There's currently no way to assert that a system-defined job does or does not
-exist.
+| Key  | Type   | Description                   | Default | Mandatory |
+| ---- | ------ | ----------------------------- | ------- | --------- |
+| Name | string | Some name to identify the job |         | yes       |
 
-## Svc
+This doer has no way to assert that a system-defined job does or does not exist.
+
+### Svc
+
+#### Ensure
 
 `Svc` manages the state of SMF services, `Smf` is used to define them.
 
@@ -256,67 +386,107 @@ exist.
              :reloaded-by ["/role/resource-type/name-or-label"])
 ```
 
+| Key            | Type         | Description                                                                      | Default  | Mandatory |
+| -------------- | ------------ | -------------------------------------------------------------------------------- | -------- | --------- |
+| Name           | string       | Any valid FMRI                                                                   |          | yes       |
+| `;state`       | string       | Service state as shown by `svcs`                                                 | `online` |           |
+| `restarted-by` | list<string> | Gurp identifiers of resource which, when changed, will trigger a service restart |          |           |
+| `reloaded-by`  | list<string> | Gurp identifiers of resource which, when changed, will trigger a service reload  |          |           |
+
 Because `gurp` ends up shelling out to `svcs` and `svcadm`, the name can be any
 valid FMRI.
 
-`:state` can only be `online` or `disabled`. If you do not supply a state, it
-defaults to `online`.
+#### Remove
 
-`:restarted-by` and `:reloaded-by` are optional arrays of resource IDs. If
-`gurp` makes a change to any listed resource during its run, it will restart or
-reload the service.
-
-There is no `(svc/disable)`.
+There is no `(svc/remove)`.
 
 ## Misc
 
 There are certain tasks I used to manage with shell-script bodges. The `misc`
-doer is where I turn them into proper, reliable code.
-
-The first thing the `misc` doer does is set the NFS domain. Note that you don't
-give a resource name to this doer: it wouldn't make sense.
+doer is where I turn them into proper, reliable code. They are all what I would
+consider "primitive" operations. That is, they cannot be accomplished through a
+combination of other doers.
 
 ```janet
 (misc/ensure :nfs-domain "lan.id264.net")
 ```
 
-You can also use this doer to enable SMB shares for a user:
-
 ```janet
 (misc/ensure :enable-smb "rob")
 ```
-
-There is no `(misc/remove)`.
-
-The misc doer can also set the scheduler class of a global zone:
 
 ```janet
 (misc/ensure :scheduler "FSS")
 ```
 
+| Key           | Type   | Description                                   | Default | Mandatory |
+| ------------- | ------ | --------------------------------------------- | ------- | --------- |
+| Name          | string | Some name to identify the job                 |         | yes       |
+| `:nfs-domain` | string | NFS domain                                    |         |           |
+| `:enable-smb` | string | Use for whom SMB shares should be enabled     |         |           |
+| `:scheduler`  | string | Scheduler class. Only applies to global zones |         |           |
+
+#### Remove
+
+There is no `(misc/remove)`.
+
 ## SMF
 
-The `Smf` doer (not to be confused with `Svc`) lets you define (limited) SMF
-services as Janet code. It supports just the things I need now.
+The `Smf` doer (not to be confused with `svc`) lets you define SMF services as
+Janet code.
 
 ```janet
 (smf/ensure "telegraf"
-       :description "Run Telegraf agent"
-       :fmri "sysdef/telegraf"
-       :start-method {
-         :exec "/bin/sleep 1200"
-         :timeout 60
-         :context {                                                                               
-           :user "telegraf"
-           :group "daemon"
-           :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"}}
-       :stop-method {
-         :exec ":kill"
-         :timeout 10 }
-       :refresh-method {
-         :exec ":kill -THAW"
-         :timeout 60 })
+            :description "Run Telegraf agent"
+            :fmri "sysdef/telegraf"
+            (exec-method "start"
+                         :exec "/bin/sleep 1200"
+                         :timeout 60
+                         :user "telegraf"
+                         :group "daemon"
+                         :privileges ["basic" "file_dac_search" "sys_admin"
+                                      "proc_owner" "proc_zone"])
+            (exec-method "refresh"
+                         :exec ":kill -THAW"
+                         :timeout 60)
+            :properties {:restarter/contract "fixed"
+                         :restarter/count 10
+                         :restarter/delay 10}
+            :environment {:LC_CTYPE "en_US.UTF-8"})
 ```
+
+```janet
+(smf/ensure startup-svc
+            :fmri "sysdef/application/service-setup"
+            :description "transient service"
+            :duration "transient"
+            (smf-method "start" :exec "some-method-or-other"))
+```
+
+| Key                | Type                    | Description                                        | Default | Mandatory |
+| ------------------ | ----------------------- | -------------------------------------------------- | ------- | --------- |
+| Name               | string                  | The service name                                   |         | yes       |
+| `:description`     | string                  | What the service does                              |         |           |
+| `:duration`        | string                  | Use this to specify `transient` or `wait` services |         |           |
+| `:properties`      | struct<keyword, string> | Create/set properties                              |         |           |
+| `:property-groups` | list<string>            | Create the given property groups                   |         |           |
+| `:exec-method`     | function                | See below                                          |         |           |
+| `:default-enabled` | bool                    | Start the service when the manifest installs       | true    |           |
+| `:single-instance` | bool                    | Whether this is a single-instance service          | true    |           |
+
+The `(exec-method`) function is used to define the methods and contexts which
+start and stop the service. Its spec is a flat structure: Gurp puts things into
+the correct nested structs.
+
+| Key            | Type                    | Description                                                | Default             | Mandatory |
+| -------------- | ----------------------- | ---------------------------------------------------------- | ------------------- | --------- |
+| Name           | string                  | What the method does. `start`, `stop`, `reload`, `refresh` |                     | yes       |
+| `:exec`        | string                  | Method or command to execute                               |                     | yes       |
+| `:timeout`     | number                  | Seconds until method times out                             | 60, but for `stop`, | yes       |
+| `:user`        | string                  | User method runs as                                        |                     |           |
+| `:group`       | string                  | Group method runs as                                       |                     |           |
+| `:privileges`  | list<string>            | Privileges method is invoked with. Use `!` to remove them  |                     |           |
+| `:environment` | struct<keyword, string> | Environment variables set in method context                |                     |           |
 
 If you don't supply a `:stop-method` you'll get a standard `:kill` that times
 out after ten seconds. Start timeouts default to 60 seconds.
@@ -327,150 +497,275 @@ comparing an export with the thing you just imported shows differences. So,
 reimport a manifest if it sees a difference between that and the thing you
 request. This will, of course, clobber any changes you've made.
 
-## Symlink
+#### Remove
 
-This creates and removes symbolic links. Hard links aren't supported. The name
-of the resource is the path of the link, and the only parameter is `:source`,
-which is the think you will link to.
+```janet
+(smf/remove "ex-service")
+```
+
+| Key  | Type   | Description      | Default | Mandatory |
+| ---- | ------ | ---------------- | ------- | --------- |
+| Name | string | The service name |         | yes       |
+
+### Symlink
+
+#### Ensure
 
 ```janet
 (symlink/ensure "/my/link" :source "/my/file")
 (symlink/remove "/my/other/link")
 ```
 
+| Key       | Type   | Description             | Default | Mandatory |
+| --------- | ------ | ----------------------- | ------- | --------- |
+| Name      | string | The link to create      |         | yes       |
+| `:source` | string | What the link points to |         | yes       |
+
 If the `:source` doesn't exist, you get an error. Files are ensured before
 links, so you can make a file and link to it. If the link exists and points to
 the wrong file, it will be removed and re-created, and if it exists but is not a
 link, that's an error.
 
-## Gem
+Hard links are not supported.
 
-`gem` is an embarrassingly underpowered way to install a Ruby gem. It can only
-install from rubygems.org, and you can only specify the gem name. No options.
-Not even the version. Documentation is not installed, and the only `gem` binary
-supported is `/opt/ooce/bin/gem`.
+#### Remove
 
 ```janet
-(gem/ensure "wavefront-cli")
+(symlink/remove "/unwanted/link")
+```
+
+| Key  | Type   | Description        | Default | Mandatory |
+| ---- | ------ | ------------------ | ------- | --------- |
+| Name | string | The link to remove |         | yes       |
+
+### Gem
+
+Manages Ruby gems.
+
+#### Ensure
+
+```janet
+(gem/ensure "webscale")
+```
+
+```janet
+(gem/ensure "wavefront-cli"
+             :source "http://my.gem.repo.com"
+             :gem-path "/opt/local/bin/gem"
+             :version "10.0.1")
+```
+
+| Key         | Type   | Description                    | Default             | Mandatory |
+| ----------- | ------ | ------------------------------ | ------------------- | --------- |
+| Name        | string | The link to remove             |                     | yes       |
+| `:source`   | string | Gem repo to use                | RubyGems            |           |
+| `:version`  | string | Version to install             |                     |           |
+| `:gem-path` | string | Install with this `gem` binary | `/opt/ooce/bin/gem` |           |
+
+#### Remove
+
+```janet
 (gem/remove "nokogiri")
 ```
 
-I took this approach because a) it's all I need, and b) installing gems can be
-an extremely slow process. As it stands it collects together the names of the
-missing gems, and installs them all with a single `gem` invocation.
+| Key         | Type   | Description                   | Default             | Mandatory |
+| ----------- | ------ | ----------------------------- | ------------------- | --------- |
+| Name        | string | The link to remove            |                     | yes       |
+| `:version`  | string | Version to remove             | all installed       |           |
+| `:gem-path` | string | Remove with this `gem` binary | `/opt/ooce/bin/gem` |           |
 
-## ZFS
+### ZFS
 
-This manages ZFS filesystems. Again, it is as simple as it could possibly be.
-The name is the filesystem name, and at the moment you have to group all your
-other parameters in a `:properties` struct. There's no checking those parameters
-are valid, so if you get them wrong the first you'll know about it is when you
-get an error from `zfs(8)`.
-
-It can't create volumes (as in `-V size`), but will soon.
+#### Ensure
 
 ```janet
-(zfs/ensure "tank/my_volume"
-    :properties {
-    :mountpoint "/data/u01"
-    :compression "gzip-9"
-    :setuid "off"})
-
-(zfs/remove "tanks/that_stupid_other_dataset")
+(zfs/ensure "tank/filesystem"
+            :properties {:mountpoint "/data/u01"
+                         :compression "gzip-9"
+                         :setuid "off"})
 ```
-
-## Svcprop
-
-Lets you set or remove SMF properties. It is, of course, super-simple, and can't
-handle anything more involved than a list of values. Like the `zfs` doer, it
-expects properties to be key-values in a `:properties` struct.
 
 ```janet
-(svcprop/ensure "vendor/service"
-  :properties {
-    :group/property/string_value "la-de-da"
-    :group/property/bool_value true
-    :group/property/int_value 123})
+(zfs/ensure "tank/volume"
+            :size "100G")
 ```
 
-`gurp` will infer and add the types. You can also clear properties.
+| Key           | Type                   | Description                      | Default | Mandatory |
+| ------------- | ---------------------- | -------------------------------- | ------- | --------- |
+| Name          | string                 | Dataset to create                |         | yes       |
+| `:properties` | struct<string, string> | Any valid ZFS property and value |         |           |
+| `:size`       | string                 | Create a ZFS volume of this size |         |           |
+
+Gurp does not check parameters are valid, so if you get them wrong the first
+you'll know about it is when you get an error from `zfs(8)`.
+
+Gurp cannot change the size of an extant volume.
+
+#### Remove
 
 ```janet
-(svcprop/ensure "vendor/service"
-                :properties ["group/property" "group/other_property"])
+(zfs/remove "tank/old-dataset")
 ```
 
-## Publisher
+| Key  | Type   | Description       | Default | Mandatory |
+| ---- | ------ | ----------------- | ------- | --------- |
+| Name | string | Dataset to create |         | yes       |
 
-This lets you add or remove a `pkg` publisher. It only does origins, so you
-can't configure mirrors.
+Remove is done with `-R`, so it takes all snapshots with it.
+
+### Svcprop
+
+#### Ensure
+
+```janet
+(svcprop/ensure "my/cool/service:default")
+                :property-groups {:application "application"}
+                :properties {:application/datadir "/data"})
+```
+
+| Key                | Type                    | Description                               | Default | Mandatory |
+| ------------------ | ----------------------- | ----------------------------------------- | ------- | --------- |
+| Name               | string                  | FMRI of service                           |         | yes       |
+| `:property-groups` | struct<keyword, string> | Create property group `key` of type `val` |         |           |
+| `:properties`      | struct<keyword, string> | Create or set these properties            |         | yes       |
+
+`gurp` will infer and add the property types.
+
+#### Remove
+
+```janet
+(svcprop/remove "my/other/service:default")
+                :property-groups {:application "application"}
+                :properties {:application/datadir "/data"})
+```
+
+| Key                | Type         | Description                  | Default | Mandatory |
+| ------------------ | ------------ | ---------------------------- | ------- | --------- |
+| Name               | string       | FMRI of service              |         | yes       |
+| `:property-groups` | list<string> | Remove these property groups |         |           |
+| `:properties`      | list<string> | Remove these properties      |         | yes       |
+
+### Publisher
+
+#### Ensure
 
 ```janet
 (publisher/ensure "sysdef" :uri "http://pkg.lan.id264.net/")
+```
 
+| Key    | Type   | Description      | Default | Mandatory |
+| ------ | ------ | ---------------- | ------- | --------- |
+| Name   | string | Publisher name   |         | yes       |
+| `:uri` | string | URI of publisher |         | yes       |
+
+The `publisher` doer only manages origins. You can't configure mirrors.
+
+#### Remove
+
+```janet
 (publisher/remove "sysdef")
 ```
 
-## Zone
+| Key  | Type   | Description    | Default | Mandatory |
+| ---- | ------ | -------------- | ------- | --------- |
+| Name | string | Publisher name |         | yes       |
 
-This lets you create and remove zones. It can't modify an existing zone.
+### Zone
 
-At the moment you can't set all of the things a zone supports. I'm adding them
-as I need them. I chose to make what I hope is a reasonably sensible DSL rather
-than a simple Janet implementation of `zonecfg` syntax.
+#### Ensure
 
 ```janet
-(zone/ensure "serv-build"
-  :brand "lipkg"
-  :recreate 0
-  :clone-from gold-zone
-  (zone-fs "/home" :special "/export/home")
-  :datasets ["fast/zone/build"]
-  :capped-memory {:physical "500m" :swap "500m"}
-  (zone-network "build_net0"
-    :allowed-address "192.168.1.32/24"
-    :defrouter "192.168.1.1")
-  :dns {:domain local-domain
-       :nameservers ["192.168.1.53" "192.168.1.1"]}
-  :bootstrap-from "/export/gurp/zone-build.janet")
+(zone/ensure "serv-www-proxy"
+             :brand "lipkg"
+             :clone-from gold-zone
+             :capped-memory {:physical "300m" :swap "300m"}
+             (zone-fs "/home" :special "/export/home")
+             (zone-network "wwwpx_net0"
+                           :allowed-address "192.168.1.25/24")
+                           :defrouter "192.168.1.1")
+             :dns {:domain "lan.id264.net"
+                   :nameservers ["192.168.1.1" "192.168.1.53"]}
+             :bootstrap-from (pathcat gurp-dir "zone-www-proxy.janet"))
 ```
 
-You have to specify a `:brand`. At the moment only native brands like `lipkg`
-and `sparse` will work. You can specify `:autoboot` if you wish, but it defaults
-to `true`.
+```janet
+(zone/ensure "serv-grafana"
+             :brand "lx"
+             :lx-image "alpine"
+             :recreate 1
+             :final-state "reboot"
+             (zone-attr "kernel-version" :value "4.4")
+             (zone-network "wwwpx_net0"
+                           :allowed-address "192.168.1.25/24")
+                           :defrouter "192.168.1.1")
+             :dns globals/zone-dns
+             :datasets ["tank/zone/grafana")]
+             :bootstrap-from (pathcat gurp-dir "zone-grafana.janet"))
+```
 
-Note `:recreate`. This must be an integer, and it is the `n:1` odds of a zone
-being destroyed and recreated. So, `0` means "never recreate this zone", and `1`
-means "recreate this zone on every run". `2` You can set the number as high as
-you like, so if you run `gurp` every 15 minutes and want your zone rebuilt from
-scratch about once a week, you'd set it to `672`. If you don't set it, it
-defaults to `0`.
+| Key                   | Type                     | Description                                                                                                                    | Default              | Mandatory |
+| --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | -------------------- | --------- |
+| Name                  | string                   | Zone name                                                                                                                      |                      | yes       |
+| `(zone-attr)`         | function                 | See below                                                                                                                      |                      |           |
+| `:autoboot`           | bool                     | Boot the zone on system boot                                                                                                   | true                 |           |
+| `:boot-after-install` | bool                     | Boot the zone once it is installed                                                                                             | true                 |           |
+| `:bootstrap-from`     | string                   | Copy gurp into the zone, and apply the given file, relative to zone root                                                       |                      |           |
+| `:capped-memory`      | struct<:keyword, string> | Set memory cap. Keys must be `:physical` and `:swap`                                                                           |                      |           |
+| `:clone-from`         | string                   | Instead of installing, clone from the given zone, and be halted                                                                |                      |           |
+| `:copy-in`            | struct<keyword, string>  | Copy files into the zone. Key is source, value is dest, relative to zone root. Unqualified src is assumed to be in `../files/` |                      |           |
+| `:datasets`           | list<string>             | ZFS datasets to be delegated to zone                                                                                           |                      |           |
+| `:dns`                | struct                   | DNS config of the form `:domain "string" :nameservers list<string>"                                                            |                      |           |
+| `:exec-in`            | list<string>             | Runs the given commands in the zone after booting                                                                              |                      |           |
+| `:final-state`        | string                   | Put the zone in the given state. Can be `installed`, `ready` or `reboot`                                                       |                      |           |
+| `(zone-fs)`           | function                 | See below                                                                                                                      |                      |           |
+| `:lx-image`           | string                   | Install an `lx` braned zone with this image                                                                                    |                      |           |
+| `(zone-net`)          | function                 | See below                                                                                                                      |                      |           |
+| `(zone-rctl`)         | function                 | See below                                                                                                                      |                      |           |
+| `:recreate`           | number                   | 1-in-n chance the zone will be destroyed and recreated                                                                         | 0                    |           |
+| `:zonepath`           | string                   | Path to zone root                                                                                                              | `/zones/<zone-name>` |           |
+| `brand`               | string                   | Zone brand. One of `lipkg`, `ipkg`, `sparse`, `lx`                                                                             |                      |           |
 
-`:clone-from` says "clone this zone from the named zone". That zone must be
-halted, and `gurp` won't do that for you. If `:clone-from` is omitted, `gurp`
-will `install` the zone from a `pkg` repository.
+#### (zone-attr)
 
-Some of the properties of a zone are written as standard resource types. I think
-this makes them clearer than cramming everything into a struct.
+| Key      | Type                 | Description       | Default                  | Mandatory |
+| -------- | -------------------- | ----------------- | ------------------------ | --------- |
+| Name     | string               | Attribute name    |                          | yes       |
+| `:type`  | string               | Type of attribute | inferred from Janet type |           |
+| `:value` | string, number, bool | Attribute value   |                          | yes       |
 
-`zone-fs` is like this. Its first argument (name) is the mountpoint in the zone,
-and you must specify `:special`. The type defaults to `lofs`, because I've never
-used anything else.
+#### (zone-fs)
 
-`:datasets` is an optional list of datasets to delegate.
+| Key        | Type   | Description            | Default | Mandatory |
+| ---------- | ------ | ---------------------- | ------- | --------- |
+| Name       | string | Zone mountpoint        |         | yes       |
+| `:special` | string | Global zone mountpoint |         | yes       |
+| `:type`    | string | Type of mount          | `lofs`  |           |
 
-`:capped-memory` is a straight representation of the zone property of the same
-name.
+#### (zone-net)
 
-`zone-network` is another function-like setting. The name is the VNIC name, and
-you can set `:allowed-address`, `:defrouter`, `:mac-address`, and `:physical` if
-you wish. If the last in unset it will default to `auto`.
+| Key                | Type   | Description             | Default | Mandatory |
+| ------------------ | ------ | ----------------------- | ------- | --------- |
+| Name               | string | Global zone VNIC name   |         | yes       |
+| `:defrouter`       | string | IP of default router    |         |           |
+| `:physical`        | string | Underlying physical NIC | `auto`  |           |
+| `:allowed-address` | string | IP of zone              |         | yes       |
+| `:mac-address`     | string | MAC of zone VNIC        | `auto`  |           |
 
-`:dns` lets you define the zone DNS client settings, for those zone brands which
-support it. You can set a string `:domain`, and an array of `:nameservers`.
+#### (zone-rctl)
 
-`:bootstrap-from` will create, install/clone and boot the zone, then copy the
-running `gurp` binary into the zone, and use `zlogin` to execute it against the
-given config file, giving you a fully configured zone. At the moment you'll need
-to use NFS or something to make your config visible in the zone, but I have
-tentative plans to let it use HTTP to get config and files.
+| Key      | Type   | Description    | Default | Mandatory |
+| -------- | ------ | -------------- | ------- | --------- |
+| Name     | string | RCTL name      |         | yes       |
+| `:priv`  | number | RCTL privilege |         | yes       |
+| `:value` | number | RCTL value     |         | yes       |
+
+The doer cannot modify an existing zone.
+
+`kvm`, `bhyve` and `illumos` zones are not currently supported.
+
+**Notes on `:recreate`**. This must be an integer, and it is the `n:1` odds of a
+zone being destroyed and recreated. So, `0` means "never recreate this zone",
+and `1` means "recreate this zone on every run". `2` You can set the number as
+high as you like, so if you run `gurp` every 15 minutes and want your zone
+rebuilt from scratch about once a week, you'd set it to `672`. If you don't set
+it, it defaults to `0`.
