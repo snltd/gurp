@@ -6,7 +6,7 @@ use nix::unistd;
 use std::time::{Duration, Instant};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub fn run(host_config_file: &Utf8PathBuf, metrics_to: Option<&str>, opts: &ApplyOpts) -> ExitCode {
+pub fn run(host_config_file: &Utf8PathBuf, opts: &ApplyOpts) -> ExitCode {
     let start_time = Instant::now();
     let apply_summary = match host::apply(host_config_file, opts) {
         Ok(result) => result,
@@ -17,7 +17,7 @@ pub fn run(host_config_file: &Utf8PathBuf, metrics_to: Option<&str>, opts: &Appl
     };
 
     let elapsed_time = start_time.elapsed();
-    report_results(&apply_summary, elapsed_time, metrics_to)
+    report_results(&apply_summary, elapsed_time, opts.metrics_to.as_deref())
 }
 
 fn send_metrics(

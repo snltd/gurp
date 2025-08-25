@@ -14,6 +14,7 @@ pub struct ApplyOpts {
     pub gurp_lib_path: Option<Utf8PathBuf>,
     pub dump_config: bool,
     pub compile_only: bool,
+    pub metrics_to: Option<String>,
 }
 
 #[derive(Debug, Default, PartialEq, Copy, Clone)]

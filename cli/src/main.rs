@@ -96,8 +96,9 @@ fn main() -> anyhow::Result<()> {
                 line_no,
                 gurp_lib_path,
                 compile_only: false,
+                metrics_to,
             };
-            commands::apply::run(&host_config_file, metrics_to.as_deref(), &opts)
+            commands::apply::run(&host_config_file, &opts)
         }
         Commands::Compile {
             gurp_lib_path,
@@ -113,6 +114,7 @@ fn main() -> anyhow::Result<()> {
                 line_no,
                 gurp_lib_path,
                 compile_only: true,
+                metrics_to: None,
             };
             commands::compile::run(&host_config_file, format.as_deref(), &opts)
         }

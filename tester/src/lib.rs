@@ -1,5 +1,4 @@
 use camino::Utf8PathBuf;
-use common::helpers;
 use common::types::ApplyOpts;
 use janet_int::constants::GURP_LIB;
 use janet_int::helpers as janet_helpers;
@@ -29,6 +28,7 @@ pub fn defopts() -> ApplyOpts {
         line_no: false,
         gurp_lib_path: None,
         compile_only: false,
+        metrics_to: None,
     }
 }
 
@@ -40,6 +40,7 @@ pub fn defopts_noop() -> ApplyOpts {
         line_no: false,
         gurp_lib_path: None,
         compile_only: false,
+        metrics_to: None,
     }
 }
 

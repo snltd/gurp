@@ -254,6 +254,10 @@ impl GurpZoneEnsure {
                 bootstrap_command.push_str("--dump-config ");
             }
 
+            if let Some(metrics_to) = &opts.metrics_to {
+                bootstrap_command.push_str(&format!("--metrics-to={metrics_to} "));
+            }
+
             if opts.colour {
                 bootstrap_command.push_str("--colour ");
             }
