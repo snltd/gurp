@@ -26,44 +26,7 @@ an issue or a PR.
 
 Doers are executed in the following order:
 
-```
-[(publisher/ensure)]((publisher/ensure))
-(zfs/ensure)
-(zone/ensure)
-(pkg/ensure)
-(pkgin/ensure)
-(apk/ensure)
-(gem/ensure)
-(group/ensure)
-(user/ensure)
-(cron/ensure)
-(directory/ensure)
-(file/ensure)
-(file-line/ensure)
-(symlink/ensure)
-(svcprop/ensure)
-(smf/ensure)
-(misc/ensure)
-
-(symlink/remove)
-(file-line/remove)
-(file/remove)
-(directory/remove)
-(svcprop/remove)
-(smf/remove)
-(cron/remove)
-(user/remove)
-(group/remove)
-(publisher/remove)
-(gem/remove)
-(pkg/remove)
-(pkgin/remove)
-(apk/remove)
-(zone/remove)
-(zfs/remove)
-
-(svc/ensure)
-```
+- [`(publisher/ensure)`]((publisher/ensure))
 
 ## `apk`
 
