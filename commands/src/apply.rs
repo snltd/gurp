@@ -42,7 +42,7 @@ fn send_metrics(
     // myMeasurement,tag1=val1,tag2=val2 field1="v1",field2=1i 0000000000000000000
 
     let payload = format!(
-        "gurp.summary,host={},resources={},changes={},errors={},ms_time={} {}",
+        "gurp.summary,host={},resources={},changes={},errors={},ms_time={} {}\n",
         hostname,
         summary.resources,
         summary.changes,
@@ -50,6 +50,8 @@ fn send_metrics(
         elapsed_time.as_millis(),
         ns_timestamp,
     );
+
+    tracing::debug!("metrics payload: {}", payload);
 
     let resp = ureq::post(url).content_type("text/plain").send(payload)?;
 
