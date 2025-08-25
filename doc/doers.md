@@ -24,9 +24,44 @@ an issue or a PR.
 
 ## Ordering
 
-Doers are executed in the following order:
+Doers are executed in the following order. (This also serves as a page index.)
 
 - [`(publisher/ensure)`](#publisherensure)
+- [`(zfs/ensure)`](#zfsensure)
+- [`(zone/ensure)`](#zoneensure)
+- [`(pkg/ensure)`](#pkgensure)
+- [`(pkgin/ensure)`](#pkginensure)
+- [`(apk/ensure)`](#apkensure)
+- [`(gem/ensure)`](#gemensure)
+- [`(group/ensure)`](#groupensure)
+- [`(user/ensure)`](#userensure)
+- [`(cron/ensure)`](#cronensure)
+- [`(directory/ensure)`](#directoryensure)
+- [`(file/ensure)`](#fileensure)
+- [`(file-line/ensure)`](#file-lineensure)
+- [`(symlink/ensure)`](#symlinkensure)
+- [`(svcprop/ensure)`](#svcpropensure)
+- [`(smf/ensure)`](#smfensure)
+- [`(misc/ensure)`](#miscensure)
+
+- [`(symlink/remove)`](#symlinkremove)
+- [`(file-line/remove)`](#file-lineremove)
+- [`(file/remove)`](#fileremove)
+- [`(directory/remove)`](#directoryremove)
+- [`(svcprop/remove)`](#svcpropremove)
+- [`(smf/remove)`](#smfremove)
+- [`(cron/remove)`](#cronremove)
+- [`(user/remove)`](#userremove)
+- [`(group/remove)`](#groupremove)
+- [`(publisher/remove)`](#publisherremove)
+- [`(gem/remove)`](#gemremove)
+- [`(pkg/remove)`](#pkgremove)
+- [`(pkgin/remove)`](#pkginremove)
+- [`(apk/remove)`](#apkremove)
+- [`(zone/remove)`](#zoneremove)
+- [`(zfs/remove)`](#zfsremove)
+
+- [`(svc/ensure)`](#svcensure)
 
 ## `apk`
 
