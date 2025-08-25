@@ -22,6 +22,49 @@ that resource, so for a file it would be the path; for a user, the username.
 All doers do the bare minimum needed to build my systems. If you want more, open
 an issue or a PR.
 
+## Ordering
+
+Doers are executed in the following order:
+
+```
+(publisher/ensure)
+(zfs/ensure)
+(zone/ensure)
+(pkg/ensure)
+(pkgin/ensure)
+(apk/ensure)
+(gem/ensure)
+(group/ensure)
+(user/ensure)
+(cron/ensure)
+(directory/ensure)
+(file/ensure)
+(file-line/ensure)
+(symlink/ensure)
+(svcprop/ensure)
+(smf/ensure)
+(misc/ensure)
+
+(symlink/remove)
+(file-line/remove)
+(file/remove)
+(directory/remove)
+(svcprop/remove)
+(smf/remove)
+(cron/remove)
+(user/remove)
+(group/remove)
+(publisher/remove)
+(gem/remove)
+(pkg/remove)
+(pkgin/remove)
+(apk/remove)
+(zone/remove)
+(zfs/remove)
+
+(svc/ensure)
+```
+
 ## `apk`
 
 ### `(apk/ensure)`
@@ -30,14 +73,15 @@ an issue or a PR.
 (apk/ensure "rust")
 ```
 
-The `apk` doer only makes sense in an LX zone. It only adds and removes
-packages, though it does refresh the package database when adding.
-
-You cannot install or pin specific versions.
+The `apk` doer adds and removes packages in an Alpine LX zone.
 
 | Key  | Type   | Description  | Default | Mandatory |
 | ---- | ------ | ------------ | ------- | --------- |
 | Name | string | Package name |         | yes       |
+
+The package database is refreshed prior to install.
+
+You cannot install or pin specific versions.
 
 ### `(apk/remove)`
 
