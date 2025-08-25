@@ -73,22 +73,23 @@ other Github thing, but mainly this is for thinking out loud.
   that packages don't have _any_ dependencies (other than other packages, and
   `pkg(5)` should work that out for us.) Do services last.
 
-- How do we know whether to restart a service? I think they should have a
+- ~~How do we know whether to restart a service? I think they should have a
   `:restart-if` property, with a list of resource IDs. When `gurp` applies
   resources, it should keep a list of things it has changed, and at the end of
-  the run, if any of the `:restart-if`s are in there, the service is restarted.
+  the run, if any of the `:restart-if`s are in there, the service is
+  restarted.~~
 
-- This is going to run _fast_. I'm still not averse to the CfEngine approach of
-  running multiple times, with each run converging towards required state.
+- ~~This is going to run _fast_. I'm still not averse to the CfEngine approach
+  of running multiple times, with each run converging towards required state.~~
 
 - ~~Packages need to be grouped so we only make a single call to the package
   manager. Adding packages is going to be a huge chunk of the execution time.~~
   Done.
 
-- I've over-thought dependencies to a point where it's stopped me dead. I'm
+- ~~I've over-thought dependencies to a point where it's stopped me dead. I'm
   going to go with a very crude approach and once the thing roughly works
   end-to-end I'll revisit it. I feel like I need to see how it behaves, and what
-  the final data structures end up looking like.
+  the final data structures end up looking like.~~
 
 - ~~Resources should be able to refer to other resources. I'm not sure how far I
   want to go with this. Terraform `data`? Probably not, but you should at least
@@ -96,22 +97,23 @@ other Github thing, but mainly this is for thinking out loud.
   having to use variables.~~ This is implemented. It catches unresolved and
   circular references, and it all happens in the Janet phase.
 
-- Should we lint user input? Check for required fields? Warn on unknown ones?
-  Check for clashing directory/file paths? Clashing resource names?
+- ~~Should we lint user input? Check for required fields? Warn on unknown ones?
+  Check for clashing directory/file paths? Clashing resource names?~~
 
 - As well as `ensure` and `remove`, an `only` or `exactly` command, which
   adds/removes resources of a suitable type until the installed instances match
   the given list.
 
-- Define SMF services in Janet, rather than in XML.
+- ~~Define SMF services in Janet, rather than in XML.~~
 
-- Handle zones, replacing Oozone. Zones defined, naturally, with Janet.
+- ~~Handle zones, replacing Oozone. Zones defined, naturally, with Janet.~~
 
 - A `globals` struct in the Janet, at the same level as `metadata` and
   `resources` that lets the user configure things which will apply to all
   modules. `pkg` opts and stuff.
 
-- A command/option to display hardcoded default values for resource properties.
+- ~~A command/option to display hardcoded default values for resource
+  properties.~~
 
 - ~~The `host` macro should somehow expose the host name, so it can be used in,
   for instance, variable lookups.~~ Done.

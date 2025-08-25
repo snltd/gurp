@@ -1,27 +1,24 @@
-> **This is part documentation, part thinking-out-loud, part
-> README-driven-development. It might all change. Trust nothing.**
-
 ## Doers and Resources
 
 Doers are the things that do the things. Not the best name, but neither are any
 of the ones other people have come up with for similar components.
 
 When a doer does its thing, it makes a resource which aligns with a resource
-definiion.
+definition.
 
 Resource definitions look like Janet function calls. (Because that is what they
 are.) Their format is
 
 ```janet
 (resource-type/action "resource-name"
-  :key-1 "value-1"
-  :key-2 "value-2")
+                      :key-1 "value-1"
+                      :key-2 "value-2")
 ```
 
-The two most common actions are `ensure` and `remove`. The keys are resource-
-and action-specific, and outlined below. The name is generally the same thing
-the OS uses to identify that resource, so for a file it would be the path; for a
-user, the username.
+Currently the only actions are `ensure` and `remove`. The keys are resource- and
+action-specific, and outlined below. The name is generally the same thing the OS
+uses to identify that resource, so for a file it would be the path; for a user,
+the username.
 
 All doers do the bare minimum needed to build my systems. If you want more, open
 an issue or a PR.
@@ -30,7 +27,7 @@ an issue or a PR.
 
 ### Directory
 
-Directories are defined like this.
+#### Ensure
 
 ```janet
 (directory/ensure "/path/to/directory"
@@ -39,27 +36,31 @@ Directories are defined like this.
                   :group "group-name")
 ```
 
-`:owner` and `:group` can be names or numeric IDs, but either way, quote them.
-`mode` is a four-character octal string.
+| Key     | Type           | Description                        | Default | Mandatory |
+| ------- | -------------- | ---------------------------------- | ------- | --------- |
+| Name    | string         | fully-qualified directory path     |         | yes       |
+| `group` | string, number | can be a group name or numeric GID | `root`  |           |
+| `user`  | string, number | can be a username or numeric UID   | `root`  |           |
+| `mode`  | string         | four-character octal string        | `0755`  |           |
 
-If you do not supply an `:owner` or `:group`, they will default to `root`.
-
-Directories are created in a `mkdir -p` stylee, though only the named directory
+Directories are created in a `mkdir -p` style, though only the named directory
 will get the owner, group, and mode you specified. Ancestors will be owned by
 whatever user `gurp` runs as, and created with its `umask`.
 
-To make sure a directory does not exist,
+#### Remove
 
 ```janet
 (directory/remove "/path/to/directory")
 ```
 
+| Key  | Type   | Description                    | Default | Mandatory |
+| ---- | ------ | ------------------------------ | ------- | --------- |
+| Name | string | fully-qualified directory path |         | yes       |
+
 This will not remove any empty ancestors, but **will** remove the contents of
 the directory.
 
 ### File
-
-Files are mostly created like directories:
 
 ```janet
 (file/ensure "/path/to/file"
@@ -69,45 +70,47 @@ Files are mostly created like directories:
              :content "some content")
 ```
 
-The difference is that files need some content. There are two ways to do this.
-First, you can provide the file's contents inline.
+| Key       | Type           | Description                            | Default | Mandatory |
+| --------- | -------------- | -------------------------------------- | ------- | --------- |
+| Name      | string         | fully-qualified path                   |         | yes       |
+| `group`   | string, number | can be a group name or numeric GID     | `root`  |           |
+| `user`    | string, number | can be a username or numeric UID       | `root`  |           |
+| `mode`    | string         | four-character octal string            | `0755`  |           |
+| `content` | string         | Literal file content                   |         | yes [*]   |
+| `from`    | string         | Path to a file which will be copied in |         | yes [*]   |
 
-If you want to keep your file separate, Janet can read a file from local storage
-with `(slurp)`, and you can also embed your content in the role file itself with
-a `(def)` and reference that.
+[*] You must supply exactly one of `:content` or `:from`.
 
-You can template inline files with `(template-out)`. This takes two arguments:
-the first is a template, with variable keys denoted like `{{ this }}`. You also
-have to provide a struct or table mapping those keys to values. For instance:
+The `(template-out)` and `(indoc)` helpers are useful when specifying
+`:content`.
+
+`:from` takes a fully-qualified or relative path. If you use the latter, Gurp
+assumes the file is in a `files/` directory at the same level as the directory
+holding the file being parsed.
+
+#### Remove
 
 ```janet
-(template-out "{{ prog }} is my new favourite {{ os }} tool"
-              { :prog "gurp"
-                :os "illumos" })
+(file/remove "/path/to/directory")
 ```
 
-You can, of course, `(slurp)` the file off disk, and/or programmatically
-generate your values. If your vars don't line up, `gurp` will error and tell you
-why.
-
-The other way to install files, which is meant for binaries for other large
-files, is using `:from` instead of `:content`. `gurp` assumes your files are in
-a `files/` directory which sits at the same level as your initial host config,
-so you only have to supply the file's name.
+| Key  | Type   | Description          | Default | Mandatory |
+| ---- | ------ | -------------------- | ------- | --------- |
+| Name | string | fully-qualified path |         | yes       |
 
 ### User
 
-User resources are mostly managed by shelling out to the `useradd(1m)`,
-`usermod(1m)`, and `userdel(1m)` commands, so it shares their behaviour, and
-might fail if trying to modify certain properties of a logged-in user.
+#### Ensure
 
-Only the essentials are covered. The default shell is `/bin/zsh` and the default
-`primary-group` is `staff`. Everything except `:passwowrd-hash` must be
-specified. To unlock an account, use a hash of `NP`.
+User resources are mostly managed by shelling out to the `useradd(1m)`,
+`usermod(1m)`, and `userdel(1m)` commands, so the doer shares their behaviour,
+and might fail if you try to modiy properties of a logged-in user.
+
+To unlock an account, use a hash of `NP`.
 
 ```janet
 (user/ensure "rdf"
-             :gcos "My Real Name"
+             :gecos "My Real Name"
              :primary-group "sysadmin"
              :home-dir "/export/rob/rdf"
              :other-groups ["wheel"]
@@ -115,12 +118,26 @@ specified. To unlock an account, use a hash of `NP`.
              :shell "/bin/zsh")
 ```
 
-The user is added to `:other-groups` when it is created, but `gurp` currently
-lacks the ability to change that value on subsequent runs. There's an issue, so
-it will get done at some point.
+| Key             | Type                                                                        | Description                                                     | Default | Mandatory |
+| --------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------- | ------- | --------- |
+| Name            | string                                                                      | username                                                        |         | yes       |
+| `primary-group` | string, number                                                              | group name or numeric GID of the group defined in `/etc/passwd` | `root`  | yes       |
+| `uid`           | number                                                                      | UID                                                             |         | yes       |
+| `gecos`         | string                                                                      | User's name                                                     |         | yes       |
+| `home-dir`      | string                                                                      | Fully qualified path to home directory                          |         | yes       |
+| `other-groups`  | string                                                                      | User will be added to these in `/etc/group`                     |         | yes       |
+| `shell`         | string                                                                      | Fully qualified path to user's shell                            |         | yes       |
+| `password-hash` | Will be set as second field in `/etc/shadow`. Use `NP` to unlock an account |                                                                 |         |           |
 
-For `password-hash`, `gurp` has to manually manipulate `/etc/shadow`. There's no
-other way to do it.
+#### Remove
+
+```janet
+(user/remove "username")
+```
+
+| Key  | Type   | Description | Default | Mandatory |
+| ---- | ------ | ----------- | ------- | --------- |
+| Name | string | Username    |         | yes       |
 
 ### Package
 
