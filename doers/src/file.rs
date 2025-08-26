@@ -2,7 +2,6 @@ use crate::constants::PROTECTED_FILES;
 use anyhow::ensure;
 use blake3::Hash;
 use common::prelude::*;
-use nix::unistd::{Gid, Uid};
 use regex::Regex;
 use serde::Deserialize;
 use std::fmt::Debug;
@@ -278,42 +277,7 @@ mod test {
         assert_eq!("stuff", fs::read_to_string(path).unwrap());
     }
 
-    #[test]
-    fn test_file_modify_with_backup() {
-        let temp = TempDir::new().unwrap();
-        temp.child("test-file").write_str("old stuff").unwrap();
-        let file = temp.join("test-file");
-        let backup_file = temp.join("test-file.bk");
-
-        let path = Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap();
-        assert!(path.exists());
-
-        let json_def = janet2json(&formatdoc! {"
-            (file/ensure \"{}\"
-                :content \"new stuff\"
-                :mode \"0640\"
-                :owner \"{}\"
-                :group \"{}\"
-                :backup-suffix \"bk\")
-            ",
-            path,
-            my_user(),
-            my_group(),
-        });
-
-        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
-
-        assert!(path.exists());
-        let metadata = fs::metadata(&path).unwrap();
-        assert_eq!(metadata.permissions().mode() & 0o7777, 0o0640);
-        assert_eq!("new stuff", fs::read_to_string(path).unwrap());
-
-        assert!(backup_file.exists());
-        let metadata = fs::metadata(&backup_file).unwrap();
-        assert_eq!(metadata.permissions().mode() & 0o7777, 0o0640);
-        assert_eq!("old stuff", fs::read_to_string(backup_file).unwrap());
-    }
+    // We can't test backup because it does things a normal user can't
 
     #[test]
     fn test_create_binary_file() {

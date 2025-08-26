@@ -84,12 +84,12 @@ fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<Ap
         summary_total = summary_total + crate::pkgin::collect_and_ensure(&ensure.pkgin, opts)?;
     }
 
-    if !&ensure.gem.is_empty() {
-        summary_total = summary_total + crate::gem::collect_and_ensure(&ensure.gem, opts)?;
-    }
-
     if !&ensure.apk.is_empty() {
         summary_total = summary_total + crate::apk::collect_and_ensure(&ensure.apk, opts)?;
+    }
+
+    if !&ensure.gem.is_empty() {
+        summary_total = summary_total + crate::gem::collect_and_ensure(&ensure.gem, opts)?;
     }
 
     apply_resources!(summary_total, changed_ids, &ensure.group, opts);
@@ -114,16 +114,16 @@ fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<Ap
     apply_resources!(summary_total, changed_ids, &remove.group, opts);
     apply_resources!(summary_total, changed_ids, &remove.publisher, opts);
 
+    if !&remove.gem.is_empty() {
+        summary_total = summary_total + crate::gem::collect_and_remove(&remove.gem, opts)?;
+    }
+
     if !&remove.pkg.is_empty() {
         summary_total = summary_total + crate::pkg::collect_and_remove(&remove.pkg, opts)?;
     }
 
     if !&remove.pkgin.is_empty() {
         summary_total = summary_total + crate::pkgin::collect_and_remove(&remove.pkgin, opts)?;
-    }
-
-    if !&remove.gem.is_empty() {
-        summary_total = summary_total + crate::gem::collect_and_remove(&remove.gem, opts)?;
     }
 
     if !&remove.apk.is_empty() {

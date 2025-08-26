@@ -41,15 +41,28 @@ fn send_metrics(
 
     // myMeasurement,tag1=val1,tag2=val2 field1="v1",field2=1i 0000000000000000000
 
-    let payload = format!(
-        "gurp.summary,host={},resources={},changes={},errors={},ms_time={} {}\n",
-        hostname,
-        summary.resources,
-        summary.changes,
-        summary.errors,
-        elapsed_time.as_millis(),
-        ns_timestamp,
-    );
+    let points = [
+        format!(
+            "gurp,host={} ms_time={} {}",
+            hostname,
+            elapsed_time.as_millis(),
+            ns_timestamp
+        ),
+        format!(
+            "gurp,host={} resources={} {}",
+            hostname, summary.resources, ns_timestamp
+        ),
+        format!(
+            "gurp,host={} changes={} {}",
+            hostname, summary.changes, ns_timestamp
+        ),
+        format!(
+            "gurp,host={} errors={} {}",
+            hostname, summary.errors, ns_timestamp
+        ),
+    ];
+
+    let payload = points.join("\n");
 
     tracing::debug!("metrics payload: {}", payload);
 

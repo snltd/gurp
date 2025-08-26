@@ -9,20 +9,16 @@ pub fn read_and_enrich_host_config(
     format: Option<&str>,
     opts: &ApplyOpts,
 ) -> anyhow::Result<String> {
-    let janet_host_config = std::fs::read_to_string(path)?;
+    let path = path.canonicalize_utf8()?;
+    let janet_host_config = std::fs::read_to_string(&path)?;
     tracing::debug!("reading host config from {}", path);
-    let qualified_path = path.canonicalize_utf8()?;
-
-    let host_config_dir = qualified_path
-        .parent()
-        .context(format!("cannot find parent of {path}"))?;
 
     let gurp_lib = match &opts.gurp_lib_path {
         Some(path) => &load_lib_from_disk(path)?,
         None => crate::constants::GURP_LIB,
     };
 
-    janet_conf(&janet_host_config, host_config_dir, gurp_lib, format, opts)
+    janet_conf(&path, &janet_host_config, gurp_lib, format, opts)
 }
 
 // We can inject our own Janet code into what the user gives us, that way the user doesn't
@@ -36,14 +32,21 @@ pub fn read_and_enrich_host_config(
 // having to supply their path.
 //
 pub fn janet_conf(
+    path: &Utf8Path,
     config: &str,
-    conf_root: &Utf8Path,
     gurp_lib: &str,
     format: Option<&str>,
     opts: &ApplyOpts,
 ) -> anyhow::Result<String> {
-    let mut ret = format!("(setdyn *syspath* \"{conf_root}\")\n\n");
-    ret.push_str(&format!("(setdyn :gurp-config-root \"{conf_root}\")\n\n"));
+    let host_config_dir = path
+        .parent()
+        .context(format!("cannot find parent of {path}"))?;
+
+    let mut ret = format!("(setdyn *syspath* \"{host_config_dir}\")\n");
+    ret.push_str(&format!(
+        "(setdyn :gurp-config-root \"{host_config_dir}\")\n"
+    ));
+    ret.push_str(&format!("(setdyn :config-file \"{path}\")\n\n"));
     ret.push_str(crate::constants::GURP_DEFAULTS);
     ret.push_str(gurp_lib);
     ret.push('\n');

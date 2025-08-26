@@ -54,7 +54,7 @@ pub fn my_group() -> String {
 
 pub fn janet2json(janet_defn: &str) -> String {
     let dir = Utf8PathBuf::from_path_buf(current_dir().unwrap()).unwrap();
-    let full_janet = reader::janet_conf("", &dir, GURP_LIB, None, &defopts()).unwrap();
+    let full_janet = reader::janet_conf(&dir, "", GURP_LIB, None, &defopts()).unwrap();
     let json_wrapped_host_config = format!("{full_janet}\n(encode (first (values {janet_defn})))");
     let mut client = janet_helpers::janet_client();
     client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
