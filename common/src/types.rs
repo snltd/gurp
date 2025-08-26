@@ -109,3 +109,12 @@ pub type PropertyMap = BTreeMap<String, PropertyStruct>;
 pub type PropertyGroupMap = BTreeMap<PropertyGroupName, PropertyGroupType>;
 pub type PropertyGroupList = BTreeSet<PropertyGroupName>;
 pub type SvcProps = BTreeMap<PropertyName, PropertyStruct>;
+
+#[derive(Debug)]
+pub struct FileMetadata<'a> {
+    pub group: &'a str,
+    pub mode: &'a str,
+    pub owner: &'a str,
+    pub path: &'a Utf8PathBuf,
+    pub changes: u32,
+}
