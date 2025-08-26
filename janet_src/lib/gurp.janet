@@ -44,7 +44,8 @@
 
    :file
    {:optional
-    {:group ["The group name or GID of the for this file" :string :number]
+    {:backup-suffix ["Back up the file with this suff. Use 'TIMESTAMP' for an epoch timestamp" :string]
+     :group ["The group name or GID of the for this file" :string :number]
      :mode ["Permissions written as a four-digit octal" :string]
      :owner ["The username or UID of the user who owns this file" :string :number]
      :content ["Literal content of the file. Must have :content xor :from" :string]
