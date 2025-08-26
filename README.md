@@ -1,29 +1,46 @@
 [![Rust Tests](https://github.com/snltd/gurp/actions/workflows/test-rust.yml/badge.svg)](https://github.com/snltd/gurp/actions/workflows/test-rust.yml)
 [![Janet Tests](https://github.com/snltd/gurp/actions/workflows/test-janet.yml/badge.svg)](https://github.com/snltd/gurp/actions/workflows/test-janet.yml)
 
-# gurp
-
-## What?
+# Gurp
 
 Gurp is an illumos configuration management tool.
 
-## Why?
+Hosts are described in a thin [Janet](https://janet-lang.org/) DSL.
 
-I run illumos, and I want config management. Chef is too heavy; Puppet doesn't
-really support illumos any more, even with Oracle's providers; CfEngine is too
-much work; and Ansible is Ansible.
+```janet
+(section "ntp"
+         (pkg/ensure "service/network/ntpsec")
 
-## How?
+         (directory/ensure "/var/lib/ntp"
+                           :owner "root"
+                           :group "daemon")
 
-A user defines machine configurations in a thin [Janet](https://janet-lang.org/)
-DSL. Resources such as Unix users, SMF services, or ZFS datasets are described
-as Janet structs, but can, of course, be wrapped in, or contain, arbitrary code.
-Resources may reference properties of other resources.
+         (file/ensure "/etc/ntp.conf"
+                      :from "ntp.conf"
+                      :label "ntp-conf")
 
-## Who?
+         (svc/ensure "ntp"
+                     :state "online"
+                     :restarted-by [(this :file :ntp-conf)]))
+```
 
-Gurp. Because why not?
+If you want to know more:
 
-## NOTES
+- [A guide to configuring a host with Gurp](doc/defining_config.md).
+- [Documentation for all the "doers"](doc/doers.md) - the things that do the
+  things.
+- [An overview of the built-in Janet helpers](doc/janet_helpers.md) that make
+  life easier.
+- [Examples of real configurations](https://github.com/snltd/merp/tree/main/tests/config/roles)
+  taken from my own systems and used in acceptance tests.
+- [A series of informal blog articles](https://tech.id264.net/tag/Gurp) which
+  talk about the design, development, use, successes, shortcomings, and future
+  of Gurp.
 
-Currently needs `CFLAGS="-D__EXTENSIONS__ -std=c99" cargo build` to compile.
+## Building and Running
+
+Assuming you are on an illumos system with Rust, check out the repo and
+
+```sh
+$ CFLAGS=-std=c99 cargo install --path cli
+```
