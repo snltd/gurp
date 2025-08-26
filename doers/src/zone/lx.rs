@@ -25,8 +25,9 @@ pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &GurpZoneDns) -> anyhow::Res
 
 fn get_image(url: &str, path: &Utf8PathBuf) -> anyhow::Result<()> {
     tracing::info!("downloading {url} -> {path}");
+
     let response = ureq::get(url).call()?;
-    let mut reader = response.into_reader();
+    let mut reader = response.into_body().into_reader();
 
     let mut file = File::create(path)?;
     copy(&mut reader, &mut file)?;
@@ -36,7 +37,8 @@ fn get_image(url: &str, path: &Utf8PathBuf) -> anyhow::Result<()> {
 
 fn fetch_latest_release_images() -> anyhow::Result<Option<Vec<String>>> {
     tracing::debug!("fetching latest release images");
-    let response: Value = ureq::get(RELEASES_URL).call()?.into_json()?;
+
+    let response: Value = ureq::get(RELEASES_URL).call()?.into_body().read_json()?;
 
     Ok(response
         .get(0)

@@ -244,7 +244,10 @@ impl GurpZoneEnsure {
             tracing::info!("BEGIN BOOTSTRAP {} [{}]", self.name, host_config);
             let mut bootstrap_command = String::new();
 
-            if let Some(log_level) = env::var_os("RUST_LOG") {
+            // Passing the env var breaks zlogin on LX zones
+            if let Some(log_level) = env::var_os("RUST_LOG")
+                && self.config.brand != "lx"
+            {
                 bootstrap_command.push_str(&format!("RUST_LOG={} ", log_level.to_string_lossy()));
             }
 
@@ -262,7 +265,15 @@ impl GurpZoneEnsure {
                 bootstrap_command.push_str("--line-no ");
             }
 
-            bootstrap_command.push_str(&format!("apply {host_config}"));
+            bootstrap_command.push_str("apply ");
+
+            if let Some(metrics_host) = &opts.metrics_to {
+                bootstrap_command.push_str("--metrics-to ");
+                bootstrap_command.push_str(metrics_host);
+                bootstrap_command.push(' ');
+            }
+
+            bootstrap_command.push_str(host_config.as_str());
 
             let this_exec =
                 Utf8PathBuf::from_path_buf(env::current_exe()?).expect("can't get my path");

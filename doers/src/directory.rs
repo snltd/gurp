@@ -1,12 +1,10 @@
 use crate::constants::PROTECTED_DIRS;
-use crate::types::Changes;
 use camino::Utf8PathBuf;
 use common::prelude::*;
 use nix::unistd::{Gid, Uid};
 use serde::Deserialize;
 use std::fs;
-use std::os::unix::fs::MetadataExt;
-use util::users_and_groups;
+use util::file;
 
 // THINGS TO KNOW / THINGS TO DO.
 // Creating a directory is `mkdir -p` style.
@@ -46,82 +44,26 @@ pub struct GurpDirectoryRemove {
 
 impl GurpDirectoryEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        let mut changes = 0;
+
         if !self.path.exists() {
             tracing::info!("creating directory: {}", self.path);
             return_if_noop!(opts);
+
+            changes = 1;
             fs::create_dir_all(&self.path)?;
         }
 
-        let current = self.current_state()?;
-        let desired = DirectoryState {
-            uid: users_and_groups::owner_from(&self.desired_state.owner)?,
-            gid: users_and_groups::group_from(&self.desired_state.group)?,
-            mode: self.desired_state.mode.clone(),
-        };
-
-        let changes = self.changes(&current, &desired);
-
-        if changes.is_empty() {
-            tracing::debug!("no change: {}", self.path);
-            return Ok(ONE_RESOURCE_NO_CHANGE);
-        }
-
-        if changes.contains(&"group") || changes.contains(&"owner") {
-            tracing::info!(
-                "change owner:group: {} {}:{} -> {}:{}",
-                self.path,
-                current.uid,
-                current.gid,
-                desired.uid,
-                desired.gid
-            );
-            users_and_groups::set_user(&self.path, desired.uid, desired.gid)?;
-        }
-
-        if changes.contains(&"mode") {
-            tracing::info!(
-                "change mode: {} {} -> {}",
-                self.path,
-                current.mode,
-                desired.mode,
-            );
-            users_and_groups::set_mode(&self.path, &current.mode, &desired.mode)?;
-        }
-
-        Ok(ONE_RESOURCE_ONE_CHANGE)
-    }
-
-    fn changes<'a>(&self, current: &DirectoryState, desired: &DirectoryState) -> Changes<'a> {
-        let mut to_change = Vec::new();
-
-        if current.gid != desired.gid {
-            to_change.push("group");
-        }
-
-        if current.uid != desired.uid {
-            to_change.push("owner");
-        }
-
-        if current.mode != desired.mode {
-            to_change.push("mode");
-        }
-
-        if !to_change.is_empty() {
-            tracing::debug!("to change for {}: {}", self.path, to_change.join(", "));
-        }
-        to_change
-    }
-
-    fn current_state(&self) -> anyhow::Result<DirectoryState> {
-        tracing::debug!("getting state: {}", &self.path);
-        let path = &self.path;
-        let metadata = fs::metadata(path)?;
-
-        Ok(DirectoryState {
-            uid: metadata.uid().into(),
-            gid: metadata.gid().into(),
-            mode: format!("{:04o}", metadata.mode() & 0o777).to_owned(),
-        })
+        file::ensure_metadata(
+            FileMetadata {
+                group: &self.desired_state.group,
+                mode: &self.desired_state.mode,
+                owner: &self.desired_state.owner,
+                path: &self.path,
+                changes,
+            },
+            opts,
+        )
     }
 }
 
@@ -169,7 +111,7 @@ mod test {
         let temp = TempDir::new().unwrap();
         let dir = temp.child("test_directory");
         dir.create_dir_all().unwrap();
-        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o750)).unwrap();
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o0750)).unwrap();
 
         let dir_path = Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap();
         assert!(dir_path.exists());
@@ -194,7 +136,7 @@ mod test {
         let temp = TempDir::new().unwrap();
         let dir = temp.child("test_directory");
         dir.create_dir_all().unwrap();
-        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o750)).unwrap();
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o0750)).unwrap();
 
         let dir_path = Utf8PathBuf::from_path_buf(dir.to_path_buf()).unwrap();
         assert!(dir_path.exists());
@@ -211,10 +153,10 @@ mod test {
         });
 
         let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
         assert!(dir_path.exists());
         let metadata = fs::metadata(dir_path).unwrap();
-        assert_eq!(metadata.permissions().mode() & 0o777, 0o775);
+        assert_eq!(metadata.permissions().mode() & 0o7777, 0o0775);
     }
 
     #[test]

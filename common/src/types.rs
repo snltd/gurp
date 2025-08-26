@@ -14,6 +14,7 @@ pub struct ApplyOpts {
     pub gurp_lib_path: Option<Utf8PathBuf>,
     pub dump_config: bool,
     pub compile_only: bool,
+    pub metrics_to: Option<String>,
 }
 
 #[derive(Debug, Default, PartialEq, Copy, Clone)]
@@ -108,3 +109,12 @@ pub type PropertyMap = BTreeMap<String, PropertyStruct>;
 pub type PropertyGroupMap = BTreeMap<PropertyGroupName, PropertyGroupType>;
 pub type PropertyGroupList = BTreeSet<PropertyGroupName>;
 pub type SvcProps = BTreeMap<PropertyName, PropertyStruct>;
+
+#[derive(Debug)]
+pub struct FileMetadata<'a> {
+    pub group: &'a str,
+    pub mode: &'a str,
+    pub owner: &'a str,
+    pub path: &'a Utf8PathBuf,
+    pub changes: u32,
+}

@@ -29,6 +29,9 @@ enum Commands {
         /// When dumping configs, number lines
         #[arg(short = 'N', long)]
         line_no: bool,
+        /// HTTP POST InfluxDB metrics to this host
+        #[arg(short = 'M', long)]
+        metrics_to: Option<String>,
 
         /// Host configuration file
         #[arg(required = true)]
@@ -84,6 +87,7 @@ fn main() -> anyhow::Result<()> {
             colour,
             line_no,
             gurp_lib_path,
+            metrics_to,
         } => {
             let opts = ApplyOpts {
                 noop,
@@ -92,6 +96,7 @@ fn main() -> anyhow::Result<()> {
                 line_no,
                 gurp_lib_path,
                 compile_only: false,
+                metrics_to,
             };
             commands::apply::run(&host_config_file, &opts)
         }
@@ -109,6 +114,7 @@ fn main() -> anyhow::Result<()> {
                 line_no,
                 gurp_lib_path,
                 compile_only: true,
+                metrics_to: None,
             };
             commands::compile::run(&host_config_file, format.as_deref(), &opts)
         }

@@ -1,6 +1,7 @@
 use crate::types::ApplyOpts;
 use serde_json::Value;
 use std::process::Command;
+use std::time::{SystemTime, UNIX_EPOCH};
 use xml::reader::{EventReader, XmlEvent};
 
 const TW: usize = 80;
@@ -45,4 +46,12 @@ pub fn dump_config(code: &str, description: &str, opts: &ApplyOpts) -> String {
     ret.push_str(&banner_end);
     ret.push('\n');
     ret
+}
+
+pub fn epoch_time_as_string() -> String {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        .to_string()
 }

@@ -1,19 +1,13 @@
 use crate::constants::PROTECTED_FILES;
-use crate::types::Changes;
-use anyhow::Context;
+use anyhow::ensure;
 use blake3::Hash;
 use common::prelude::*;
-use nix::unistd::{Gid, Uid};
 use regex::Regex;
 use serde::Deserialize;
-use std::borrow::Cow;
 use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
-use util::users_and_groups;
-
-// THINGS TO KNOW / THINGS TO DO.
-// Files are not backed up
+use util::file;
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct GurpFileEnsure {
@@ -34,18 +28,7 @@ pub struct DesiredFileState {
     pub content: Option<String>,
     pub ignore_pattern: Option<String>,
     pub from: Option<Utf8PathBuf>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct FileState<'a> {
-    pub gid: Gid,
-    pub mode: String,
-    pub uid: Uid,
-    pub raw_content: Option<&'a str>,
-    pub filtered_content: Option<String>,
-    pub ignore_pattern: Option<String>,
-    pub hash: Option<Hash>,
-    pub from: Option<Utf8PathBuf>,
+    pub backup_suffix: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -57,217 +40,154 @@ pub struct GurpFileRemove {
 }
 
 impl GurpFileEnsure {
-    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        if (self.desired_state.content.is_none() && self.desired_state.from.is_none())
-            || (self.desired_state.content.is_some() && self.desired_state.from.is_some())
-        {
-            bail!(
-                "file '{}' must have exactly one of :content or :from",
-                &self.path
-            );
-        }
-
-        if let Some(source_file) = &self.desired_state.from
-            && !source_file.exists()
-        {
-            tracing::error!("source file {} not found", source_file);
-            bail!("Fatal error in file doer");
-        }
-
-        let raw_content = if let Some(content_str) = &self.desired_state.content {
-            Some(Cow::Borrowed(content_str))
-        } else if self.desired_state.ignore_pattern.is_some() {
-            let from_path = self
-                .desired_state
-                .from
-                .as_ref()
-                .context("no from or content")?;
-            Some(Cow::Owned(fs::read_to_string(from_path)?))
-        } else {
-            None
-        };
-
-        let filtered_content = if let Some(raw) = &raw_content
-            && let Some(filter) = &self.desired_state.ignore_pattern
-        {
-            Some(self.filter_content(raw, filter)?)
-        } else {
-            None
-        };
-
-        let hash = if let Some(fc) = &filtered_content {
-            Some(self.content_hash(fc))
-        } else if let Some(raw) = &raw_content {
-            Some(self.content_hash(raw))
-        } else if let Some(from_path) = &self.desired_state.from {
-            Some(self.file_hash(from_path)?)
-        } else {
-            None
-        };
-
-        let raw_content_ref: Option<&str> = raw_content.as_deref().map(|x| x.as_str());
-
-        let desired = FileState {
-            raw_content: raw_content_ref,
-            filtered_content,
-            uid: users_and_groups::owner_from(&self.desired_state.owner)?,
-            gid: users_and_groups::group_from(&self.desired_state.group)?,
-            ignore_pattern: self.desired_state.ignore_pattern.clone(),
-            mode: self.desired_state.mode.clone(),
-            hash,
-            from: self.desired_state.from.clone(),
-        };
-
-        let mut need_to_read_hash = true;
-        let mut file_was_created = false;
-
-        if !self.path.exists() {
-            tracing::info!("creating: {}", self.path);
-            return_if_noop!(opts);
-
-            self.write_content_to_file(&desired)?;
-            file_was_created = true;
-            need_to_read_hash = false;
-        }
-
-        let current = self.current_state(need_to_read_hash)?;
-        let changes = self.changes(&current, &desired)?;
-
-        if changes.is_empty() {
-            if file_was_created {
-                return Ok(ONE_RESOURCE_ONE_CHANGE);
-            } else {
-                tracing::debug!("no change: {}", self.path);
-                return Ok(ONE_RESOURCE_NO_CHANGE);
-            }
-        }
-
-        tracing::info!("{} change: {}", self.path, changes.join(", "));
-        return_if_noop!(opts);
-
-        if changes.contains(&"content") {
-            tracing::info!("change content: {}", self.path);
-            self.write_content_to_file(&desired)?;
-        }
-
-        if changes.contains(&"group") || changes.contains(&"owner") {
-            tracing::info!(
-                "change owner:group : {} {}:{} -> {}:{}",
-                self.path,
-                current.uid,
-                current.gid,
-                desired.uid,
-                desired.gid
-            );
-            users_and_groups::set_user(&self.path, desired.uid, desired.gid)?;
-        }
-
-        if changes.contains(&"mode") {
-            tracing::info!(
-                "change mode: {} {} -> {}",
-                self.path,
-                current.mode,
-                desired.mode,
-            );
-            users_and_groups::set_mode(&self.path, &current.mode, &desired.mode)?;
-        }
-
-        Ok(ONE_RESOURCE_ONE_CHANGE)
+    fn content_xor_file(&self) -> bool {
+        (self.desired_state.content.is_some() && self.desired_state.from.is_none())
+            || (self.desired_state.content.is_none() && self.desired_state.from.is_some())
     }
 
-    fn changes<'a>(&self, current: &FileState, desired: &FileState) -> anyhow::Result<Changes<'a>> {
-        let mut to_change = Vec::new();
-
-        if let Some(current_hash) = current.hash {
-            // File existed before this run. Are its contents correct? We already have its hash,
-            // and if the user gave us a filter, that hash is of the filtered file.
-            //
-            if let Some(desired_hash) = desired.hash
-                && desired_hash != current_hash
-            {
-                to_change.push("content");
-                to_change.push("owner");
-                to_change.push("mode");
+    fn source_exists_if_needed(&self) -> bool {
+        match &self.desired_state.from {
+            Some(file) => {
+                if file.exists() {
+                    true
+                } else {
+                    tracing::error!("source file {} not found", file);
+                    false
+                }
             }
-        } // else the file has just been created and we know its contents are correct
 
-        if current.gid != desired.gid {
-            to_change.push("group");
+            None => true,
+        }
+    }
+
+    fn file_has_changed(&self) -> anyhow::Result<bool> {
+        let (desired_hash, current_hash) = if let Some(pattern) = &self.desired_state.ignore_pattern
+        {
+            (
+                if let Some(from_file) = &self.desired_state.from {
+                    self.hash_of_filtered_file(from_file, pattern)?
+                } else if let Some(content) = &self.desired_state.content {
+                    self.hash_of(&self.filter(content, pattern)?)
+                } else {
+                    bail!("No :content or :from")
+                },
+                self.hash_of_filtered_file(&self.path, pattern)?,
+            )
+        } else {
+            (
+                if let Some(from_file) = &self.desired_state.from {
+                    self.hash_of_file(from_file)?
+                } else if let Some(content) = &self.desired_state.content {
+                    self.hash_of(content)
+                } else {
+                    bail!("No :content or :from");
+                },
+                self.hash_of_file(&self.path)?,
+            )
+        };
+
+        Ok(desired_hash != current_hash)
+    }
+
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        ensure!(
+            self.content_xor_file(),
+            "file '{}' must have exactly one of :content or :from",
+            &self.path
+        );
+
+        ensure!(self.source_exists_if_needed(), "Missing source file");
+
+        let mut changes = 0;
+
+        if self.path.exists() {
+            if self.file_has_changed()? {
+                if !opts.noop {
+                    self.write_file(opts)?;
+                }
+                changes = 1;
+            } else {
+                tracing::debug!("file content is correct");
+            }
+        } else {
+            return_if_noop!(opts);
+
+            changes = 1;
+            self.write_file(opts)?;
         }
 
-        if current.uid != desired.uid {
-            to_change.push("owner");
-        }
+        file::ensure_metadata(
+            FileMetadata {
+                group: &self.desired_state.group,
+                mode: &self.desired_state.mode,
+                owner: &self.desired_state.owner,
+                path: &self.path,
+                changes,
+            },
+            opts,
+        )
+    }
 
-        if current.mode != desired.mode {
-            to_change.push("mode");
-        }
+    fn hash_of(&self, content: &str) -> Hash {
+        blake3::hash(content.as_bytes())
+    }
 
-        Ok(to_change)
+    fn hash_of_file(&self, path: &Utf8PathBuf) -> anyhow::Result<Hash> {
+        let raw = fs::read_to_string(path)?;
+        Ok(self.hash_of(&raw))
     }
 
     fn hash_of_filtered_file(&self, path: &Utf8PathBuf, pattern: &str) -> anyhow::Result<Hash> {
         let raw = fs::read_to_string(path)?;
-        let filtered = self.filter_content(&raw, pattern)?;
-        Ok(self.content_hash(&filtered))
+        let filtered = self.filter(&raw, pattern)?;
+        Ok(self.hash_of(&filtered))
     }
 
-    fn filter_content(&self, content: &str, filter: &str) -> anyhow::Result<String> {
+    fn filter(&self, content: &str, filter: &str) -> anyhow::Result<String> {
         tracing::debug!("filtering content on '{}'", filter);
         let rx = Regex::new(filter)?;
         let filtered_lines: Vec<_> = content.lines().filter(|l| !rx.is_match(l)).collect();
         Ok(filtered_lines.join("\n"))
     }
 
-    fn current_state(&self, need_to_read_hash: bool) -> anyhow::Result<FileState<'_>> {
-        tracing::debug!("getting state: {}", &self.path);
-        let path = &self.path.as_path();
-        let metadata = nix::sys::stat::stat(path.as_std_path())?;
-
-        let mode = format!("{:04o}", metadata.st_mode & 0o777);
-        let uid = metadata.st_uid.into();
-        let gid = metadata.st_gid.into();
-
-        let hash = if need_to_read_hash {
-            if let Some(pattern) = &self.desired_state.ignore_pattern {
-                Some(self.hash_of_filtered_file(&self.path, pattern)?)
-            } else {
-                Some(self.file_hash(&self.path)?)
-            }
-        } else {
-            None
-        };
-
-        Ok(FileState {
-            gid,
-            ignore_pattern: None,
-            uid,
-            raw_content: None,
-            filtered_content: None,
-            mode: mode.to_owned(),
-            from: None,
-            hash,
-        })
-    }
-
-    fn content_hash(&self, content: &str) -> Hash {
-        blake3::hash(content.as_bytes())
-    }
-
-    fn file_hash(&self, path: &Utf8PathBuf) -> anyhow::Result<Hash> {
-        let mut hasher = blake3::Hasher::new();
-        let mut fh = fs::File::open(path)?;
-        std::io::copy(&mut fh, &mut hasher)?;
-        Ok(hasher.finalize())
-    }
-
-    fn write_content_to_file(&self, desired_state: &FileState) -> anyhow::Result<()> {
-        if let Some(content) = &desired_state.raw_content {
-            let mut fh = fs::File::create(&self.path)?;
-            Ok(fh.write_all(content.as_bytes())?)
-        } else if let Some(from) = &self.desired_state.from {
+    fn write_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
+        if let Some(from) = &self.desired_state.from {
             tracing::debug!("copying {} -> {}", from, self.path);
             fs::copy(from, &self.path)?;
+            Ok(())
+        } else if let Some(content) = &self.desired_state.content {
+            if let Some(suffix) = &self.desired_state.backup_suffix {
+                let suffix = if suffix == "TIMESTAMP" {
+                    helpers::epoch_time_as_string()
+                } else {
+                    suffix.to_owned()
+                };
+
+                let backup_target = &self.path.with_extension(suffix);
+                tracing::debug!("Backing up to {}", backup_target);
+
+                if !opts.noop {
+                    fs::rename(&self.path, backup_target)?;
+                    file::ensure_metadata(
+                        FileMetadata {
+                            group: "root",
+                            owner: "root",
+                            mode: "0o0400",
+                            path: backup_target,
+                            changes: 1,
+                        },
+                        opts,
+                    )?;
+                }
+            }
+
+            tracing::debug!("Writing content to {}", self.path);
+
+            if !opts.noop {
+                let mut fh = fs::File::create(&self.path)?;
+                fh.write_all(content.as_bytes())?;
+            }
+
             Ok(())
         } else {
             bail!("can write neither :from nor :content");
@@ -284,6 +204,7 @@ impl GurpFileRemove {
             }
 
             tracing::info!("removing: {}", self.path);
+
             return_if_noop!(opts);
 
             fs::remove_file(&self.path)?;
@@ -352,9 +273,11 @@ mod test {
         assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
         assert!(path.exists());
         let metadata = fs::metadata(&path).unwrap();
-        assert_eq!(metadata.permissions().mode() & 0o777, 0o640);
+        assert_eq!(metadata.permissions().mode() & 0o7777, 0o640);
         assert_eq!("stuff", fs::read_to_string(path).unwrap());
     }
+
+    // We can't test backup because it does things a normal user can't
 
     #[test]
     fn test_create_binary_file() {
@@ -373,6 +296,7 @@ mod test {
                 content: None,
                 ignore_pattern: None,
                 from: Some(fixture("file/binary-file")),
+                backup_suffix: None,
             },
         };
 
@@ -397,6 +321,7 @@ mod test {
                 content: None,
                 ignore_pattern: None,
                 from: Some(fixture("file/binary-file")),
+                backup_suffix: None,
             },
         };
 
@@ -431,7 +356,7 @@ mod test {
         assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
         assert!(path.exists());
         let metadata = fs::metadata(&path).unwrap();
-        assert_eq!(metadata.permissions().mode() & 0o777, 0o600);
+        assert_eq!(metadata.permissions().mode() & 0o7777, 0o600);
         assert_eq!("gurp is running a test", fs::read_to_string(path).unwrap());
     }
 
@@ -442,7 +367,7 @@ mod test {
         let file = temp.join("test-file");
 
         let path = Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap();
-        fs::set_permissions(&path, fs::Permissions::from_mode(0o750)).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o0750)).unwrap();
         assert!(path.exists());
 
         let json_def = janet2json(&formatdoc! {"
@@ -458,7 +383,7 @@ mod test {
         });
 
         let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts()).unwrap());
         assert!(path.exists());
     }
 
@@ -496,7 +421,7 @@ mod test {
         );
 
         let metadata = fs::metadata(&path).unwrap();
-        assert_eq!(metadata.permissions().mode() & 0o777, 0o400);
+        assert_eq!(metadata.permissions().mode() & 0o7777, 0o0400);
     }
 
     #[test]
@@ -535,7 +460,7 @@ mod test {
         );
 
         let metadata = fs::metadata(&path).unwrap();
-        assert_eq!(metadata.permissions().mode() & 0o777, 0o444);
+        assert_eq!(metadata.permissions().mode() & 0o7777, 0o444);
     }
 
     #[test]
