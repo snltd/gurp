@@ -56,8 +56,8 @@ you'll need to `(use)` them.
 
 ```janet
 (role "my-role"
-      (pkg/ensure "/ooce/developer/rust")
-      (pkg/remove "/ooce/developer/go")
+      (pkg/ensure "ooce/developer/rust")
+      (pkg/remove "ooce/developer/go")
       (file/ensure "/etc/application/config.txt"
                    :label "app-config"
                    :owner "root"
@@ -143,17 +143,15 @@ Now, lexical scoping with a Janet `let`.
 
 ```janet
 (let [log_dir "/var/log"]
-  (add (directory/ensure log_dir :mode "0775" :group "loggers")
-       (cron/ensure "log-rotate"
-                    :minute 0
-                    :hour 0
-                    :command (argcat "/bin/log-rotator" log_dir))))
-```
+  (directory/ensure log_dir
+                    :mode "0775"
+                    :group "loggers")
 
-Notice the `(add)`! Things like `(let)` and `(loop)` always return `nil`, and
-`gurp` relies on the return values of the `ensure` and `remove` functions. If
-you wrap resources in an `(add)` their return values will escape their container
-and you'll get them in your config.
+  (cron/ensure "log-rotate"
+               :minute 0
+               :hour 0
+               :command (argcat "/bin/log-rotator" log_dir)))
+```
 
 "Variables" don't have to be static variables. They can be helper functions, or
 the result of some action bound in a `(def)`. You could even stick a `(macro)`

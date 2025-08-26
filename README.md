@@ -20,12 +20,6 @@ DSL. Resources such as Unix users, SMF services, or ZFS datasets are described
 as Janet structs, but can, of course, be wrapped in, or contain, arbitrary code.
 Resources may reference properties of other resources.
 
-## When?
-
-Maybe sometime, maybe not. It's very much an experimental side-project. It's
-getting somewhere close to working now though. See issues for things not yet
-covered.
-
 ## Who?
 
 Gurp. Because why not?
