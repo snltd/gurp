@@ -102,12 +102,13 @@ impl GurpFileEnsure {
 
         if self.path.exists() {
             if self.file_has_changed()? {
+                tracing::info!("updating {}", self.path);
                 if !opts.noop {
                     self.write_file(opts)?;
                 }
                 changes = 1;
             } else {
-                tracing::debug!("file content is correct");
+                tracing::debug!("{} content is correct", self.path);
             }
         } else {
             return_if_noop!(opts);
@@ -133,8 +134,10 @@ impl GurpFileEnsure {
     }
 
     fn hash_of_file(&self, path: &Utf8PathBuf) -> anyhow::Result<Hash> {
-        let raw = fs::read_to_string(path)?;
-        Ok(self.hash_of(&raw))
+        let mut hasher = blake3::Hasher::new();
+        let mut fh = fs::File::open(path)?;
+        std::io::copy(&mut fh, &mut hasher)?;
+        Ok(hasher.finalize())
     }
 
     fn hash_of_filtered_file(&self, path: &Utf8PathBuf, pattern: &str) -> anyhow::Result<Hash> {
@@ -151,36 +154,13 @@ impl GurpFileEnsure {
     }
 
     fn write_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
+        self.back_up_file(opts)?;
+
         if let Some(from) = &self.desired_state.from {
             tracing::debug!("copying {} -> {}", from, self.path);
             fs::copy(from, &self.path)?;
             Ok(())
         } else if let Some(content) = &self.desired_state.content {
-            if let Some(suffix) = &self.desired_state.backup_suffix {
-                let suffix = if suffix == "TIMESTAMP" {
-                    helpers::epoch_time_as_string()
-                } else {
-                    suffix.to_owned()
-                };
-
-                let backup_target = &self.path.with_extension(suffix);
-                tracing::debug!("Backing up to {}", backup_target);
-
-                if !opts.noop {
-                    fs::rename(&self.path, backup_target)?;
-                    file::ensure_metadata(
-                        FileMetadata {
-                            group: "root",
-                            owner: "root",
-                            mode: "0o0400",
-                            path: backup_target,
-                            changes: 1,
-                        },
-                        opts,
-                    )?;
-                }
-            }
-
             tracing::debug!("Writing content to {}", self.path);
 
             if !opts.noop {
@@ -193,6 +173,37 @@ impl GurpFileEnsure {
             bail!("can write neither :from nor :content");
         }
     }
+
+    fn back_up_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
+        if let Some(suffix) = &self.desired_state.backup_suffix {
+            let suffix = if suffix == "TIMESTAMP" {
+                helpers::epoch_time_as_string()
+            } else {
+                suffix.to_owned()
+            };
+
+            let backup_target = &self.path.with_extension(suffix);
+            tracing::debug!("Backing up to {}", backup_target);
+
+            if !opts.noop {
+                fs::rename(&self.path, backup_target)?;
+                file::ensure_metadata(
+                    FileMetadata {
+                        group: "root",
+                        owner: "root",
+                        mode: "0o0400",
+                        path: backup_target,
+                        changes: 1,
+                    },
+                    opts,
+                )?;
+            }
+        } else {
+            tracing::debug!("No backup of {} requested", &self.path);
+        }
+
+        Ok(())
+    }
 }
 
 impl GurpFileRemove {
@@ -204,7 +215,6 @@ impl GurpFileRemove {
             }
 
             tracing::info!("removing: {}", self.path);
-
             return_if_noop!(opts);
 
             fs::remove_file(&self.path)?;
