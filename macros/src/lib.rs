@@ -4,7 +4,18 @@ macro_rules! apply_resources {
     ($summary_total:ident, $changed_ids:ident, $resources:expr, $opts:expr) => {
         let total_count = $resources.len();
         for (i, resource) in $resources.iter().enumerate() {
-            tracing::debug!("applying [{}/{}]: {}", i, total_count, resource.id);
+            let chunks: Vec<_> = resource.id.split("/").collect();
+            if chunks.len() >= 3 {
+                tracing::debug!(
+                    "applying {} {}/{}: {}",
+                    chunks[1],
+                    i + 1,
+                    total_count,
+                    resource.id
+                );
+            } else {
+                tracing::debug!("applying [{}/{}]: {}", i + 1, total_count, resource.id);
+            }
             let summary = resource.apply($opts)?;
             $summary_total = $summary_total + summary;
             if summary.changes > 0 {
@@ -107,7 +118,7 @@ macro_rules! cmd_output {
 #[cfg(test)]
 mod test {
     use common::constants::{ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE};
-    use common::types::{ApplySummary, ApplyOpts};
+    use common::types::{ApplyOpts, ApplySummary};
     use predicates::prelude::*;
     use tester::{defopts, defopts_noop};
 
