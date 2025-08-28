@@ -745,6 +745,8 @@
   [name & specs]
   (collect :remove :publisher (make-resource :remove :publisher name specs)))
 
+(def smf-context-keys [:user :group :privileges :environment])
+
 (defn smf/ensure
   "Given a name and a manifest description, return an smf ensure struct"
   [name & specs]
@@ -763,7 +765,10 @@
 
     (collect :ensure :smf (make-resource :ensure :smf name (flat-table spec-table)))))
 
-(def smf-context-keys [:user :group :privileges :environment])
+(defn smf/remove
+  "Given a service name, return an smv service remove struct"
+  [name & specs]
+  (collect :remove :smf (make-resource :remove :smf name specs)))
 
 (defn smf-method
   "A convenience function to help produce an SMF exec_method, with a context"
