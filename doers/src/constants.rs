@@ -4,6 +4,8 @@ use std::sync::LazyLock;
 pub const MANIFEST_DIR: &str = "/opt/site/lib/smf/manifest";
 pub const GEM_BIN_DIR: &str = "/opt/ooce/bin";
 
+// Anything PROTECTED cannot be removed. But it can be changed.
+//
 pub static PROTECTED_DIRS: LazyLock<Vec<Utf8PathBuf>> = LazyLock::new(|| {
     vec![
         Utf8PathBuf::from("/"),
@@ -16,8 +18,14 @@ pub static PROTECTED_DIRS: LazyLock<Vec<Utf8PathBuf>> = LazyLock::new(|| {
     ]
 });
 
-pub static PROTECTED_FILES: LazyLock<Vec<Utf8PathBuf>> =
-    LazyLock::new(|| vec![Utf8PathBuf::from("/bin/ps")]);
+pub static PROTECTED_FILES: LazyLock<Vec<Utf8PathBuf>> = LazyLock::new(|| {
+    vec![
+        Utf8PathBuf::from("/bin/ps"),
+        Utf8PathBuf::from("/etc/shadow"),
+        Utf8PathBuf::from("/etc/passwd"),
+        Utf8PathBuf::from("/etc/group"),
+    ]
+});
 
 pub static PROTECTED_USERS: LazyLock<Vec<&str>> = LazyLock::new(|| {
     vec![
