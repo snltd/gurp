@@ -56,10 +56,6 @@ fn send_metrics(
             "gurp,host={} changes={} {}",
             hostname, summary.changes, ns_timestamp
         ),
-        format!(
-            "gurp,host={} errors={} {}",
-            hostname, summary.errors, ns_timestamp
-        ),
     ];
 
     let payload = points.join("\n");
@@ -84,10 +80,9 @@ fn report_results(
 ) -> ExitCode {
     tracing::info!("Run time: {:.3?}", elapsed_time);
     tracing::info!(
-        "resources: {}  changes: {}  errors: {}",
+        "resources: {}  changes: {}",
         summary_total.resources,
         summary_total.changes,
-        summary_total.errors
     );
 
     if let Some(metrics_host) = metrics_to {
@@ -97,5 +92,5 @@ fn report_results(
         }
     }
 
-    if summary_total.errors > 0 { 1 } else { 0 }
+    0
 }

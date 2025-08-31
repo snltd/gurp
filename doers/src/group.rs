@@ -1,4 +1,5 @@
 use crate::constants::PROTECTED_GROUPS;
+use anyhow::ensure;
 use common::prelude::*;
 use nix::unistd::Group;
 use serde::Deserialize;
@@ -46,10 +47,10 @@ impl GurpGroupEnsure {
 impl GurpGroupRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if Group::from_name(&self.name)?.is_some() {
-            if PROTECTED_GROUPS.contains(&self.name.as_str()) {
-                tracing::warn!("protected resource: {}", self.name);
-                return Ok(ONE_RESOURCE_ONE_ERROR);
-            }
+            ensure!(
+                !PROTECTED_GROUPS.contains(&self.name.as_str()),
+                format!("protected resource: {}", self.name)
+            );
 
             tracing::info!("removing group: {}", self.name);
 

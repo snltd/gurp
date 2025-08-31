@@ -65,7 +65,6 @@ pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
         tracing::debug!("no packages to install");
         Ok(ApplySummary {
             resources,
-            errors: 0,
             changes: 0,
         })
     } else {
@@ -85,7 +84,6 @@ pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
         if output.status.success() {
             Ok(ApplySummary {
                 resources,
-                errors: 0,
                 changes: install_list.len() as u32,
             })
         } else {
@@ -146,7 +144,6 @@ pub fn collect_and_remove(pkg_list: &RemoveList, opts: &ApplyOpts) -> anyhow::Re
         if output.status.success() {
             Ok(ApplySummary {
                 resources,
-                errors: 0,
                 changes: remove_list.len() as u32,
             })
         } else {

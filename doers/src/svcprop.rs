@@ -224,7 +224,6 @@ impl GurpSvcpropEnsure {
                 return Ok(ApplySummary {
                     resources,
                     changes: 0,
-                    errors: 0,
                 });
             }
 
@@ -247,11 +246,7 @@ impl GurpSvcpropEnsure {
             cmd_output!(SVCADM_BIN, "refresh", &self.service)?;
         }
 
-        Ok(ApplySummary {
-            resources,
-            changes,
-            errors: 0,
-        })
+        Ok(ApplySummary { resources, changes })
     }
 }
 
@@ -260,7 +255,6 @@ impl GurpSvcpropRemove {
         let all_values = current_svc_props(&self.service)?;
         let resources = self.properties.len() as u32;
         let mut changes = 0;
-        let mut errors = 0;
         let mut to_remove = Vec::new();
 
         for property in &self.properties {
@@ -280,7 +274,6 @@ impl GurpSvcpropRemove {
                 return Ok(ApplySummary {
                     resources,
                     changes: 0,
-                    errors: 0,
                 });
             }
 
@@ -297,20 +290,15 @@ impl GurpSvcpropRemove {
                     tracing::debug!("{} svcprop: removed '{}'", self.service, property);
                     changes += 1;
                 } else {
-                    tracing::error!(
+                    bail!(
                         "error from svccfg: {}",
                         String::from_utf8_lossy(&output.stderr).into_owned()
                     );
-                    errors += 1;
                 }
             }
         }
 
-        Ok(ApplySummary {
-            resources,
-            changes,
-            errors,
-        })
+        Ok(ApplySummary { resources, changes })
     }
 }
 

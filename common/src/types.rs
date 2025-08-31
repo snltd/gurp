@@ -21,7 +21,6 @@ pub struct ApplyOpts {
 pub struct ApplySummary {
     pub resources: u32,
     pub changes: u32,
-    pub errors: u32,
 }
 
 impl Add for ApplySummary {
@@ -31,7 +30,6 @@ impl Add for ApplySummary {
         ApplySummary {
             resources: self.resources + other.resources,
             changes: self.changes + other.changes,
-            errors: self.errors + other.errors,
         }
     }
 }

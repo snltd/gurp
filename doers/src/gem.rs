@@ -235,11 +235,7 @@ pub fn collect_and_remove(gem_list: &RemoveList, opts: &ApplyOpts) -> anyhow::Re
         }
     }
 
-    let ret = ApplySummary {
-        resources,
-        errors: 0,
-        changes,
-    };
+    let ret = ApplySummary { resources, changes };
 
     if opts.noop {
         return Ok(ret);
