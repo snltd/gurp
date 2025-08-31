@@ -17,7 +17,9 @@
   types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
   to display help"
 
-  {:cron
+  {:apk {:optional {} :mandatory {}}
+
+   :cron
    {:optional
     {:day-of-month ["Day(s) of month on which job runs" :string :number]
      :day-of-week ["Numeric day(s) on  which job runs. 0=Sunday" :string :number]
@@ -67,6 +69,9 @@
     {:enable-smb ["Enable SMB sharing for this username" :string]
      :nfs-domain ["NFS domain name" :string]
      :scheduler ["The scheduler class to set via dispamdin" :string]}}
+
+   :pkg {:optional {} :mandatory {}}
+   :pkgin {:optional {} :mandatory {}}
 
    :publisher
    {:mandatory
@@ -159,10 +164,9 @@
 
 (def resource-remove-keys
   "Like resource-ensure-keys but for removing resources"
-  {:gem
-   {:optional
-    {:gem-path ["Path to gem executable other than /opt/ooce/bin/gem" :string]
-     :version ["Gem version" :string]}}
+  {:apk {:optional {} :mandatory {}}
+   :cron {:optional {} :mandatory {}}
+   :file {:optional {} :mandatory {}}
 
    :file-line
    {:mandatory
@@ -170,11 +174,27 @@
     :optional {:match ["How to match the line: 'exact', 'starts_with', 'ends_with', 'contains', or 'regex'" :string]
                :apply-to ["Which matches to act on: 'first', 'last', 'all'" :string]}}
 
+   :gem
+   {:optional
+    {:gem-path ["Path to gem executable other than /opt/ooce/bin/gem" :string]
+     :version ["Gem version" :string]}}
+
+   :group {:optional {} :mandatory {}}
+   :pkg {:optional {} :mandatory {}}
+   :pkgin {:optional {} :mandatory {}}
+   :publisher {:optional {} :mandatory {}}
+   :smf {:optional {} :mandatory {}}
+
    :svcprop
    {:optional
     {:property-groups ["Property groups (:string) to create" :tuple]}
     :mandatory
-    {:properties ["Properties to create. (:keyword :string|:boolean|:number)" :struct]}}})
+    {:properties ["Properties to create. (:keyword :string|:boolean|:number)" :struct]}}
+
+   :smlink {:optional {} :mandatory {}}
+   :user {:optional {} :mandatory {}}
+   :zfs {:optional {} :mandatory {}}
+   :zone {:optional {} :mandatory {}}})
 
 # For now this is a shim around the hardcoded fallbacks. In the future we'll
 # let the user supply their own. Not sure how, yet.
@@ -371,10 +391,17 @@
   "Returns a multiline string showing keys supported by the given resource"
   [resource]
 
+  (defn- bold
+    "Bold the given string"
+    [text]
+    (string "\x1b[1m" text "\x1b[0m"))
+
   (defn- field-width
     "Returns the width of a field wide enough to accomodate the longest keys"
     [keys]
-    (+ 2 (max (splice (map length keys)))))
+    (if (empty? keys)
+      0
+      (+ 2 (max (splice (map length keys))))))
 
   (defn- format-string
     "Returns a format string used to lay out resource key information"
@@ -384,7 +411,7 @@
   (defn- default-suffix
     "Returns a string snippet displaying a key's default value, if it has one"
     [default-value]
-    (if default-value
+    (if (and default-value (not (struct? default-value )))
       (string/format ". Default '%s'" (string default-value))
       ""))
 
@@ -396,8 +423,10 @@
     "Returns an array of lines describing either mandatory or optional keys for
     the given 'info' object taken from the resource-ensure-keys struct"
     [action info key-type key-field-width]
-    (if-let [key-info (info key-type)]
-      (let [ret (array (string key-type " keys"))]
+    (def key-info (get info key-type {}))
+
+    (if-not (empty? key-info)
+      (let [ret @[(bold (string key-type " keys"))]]
         (loop [[key desc] :pairs key-info]
           (let [default-val (get-in default-protos [action (keyword resource) key])]
             (array/push ret
@@ -415,13 +444,13 @@
       (def remove-info (resource-remove-keys (keyword resource)))
       (string/join
         (array/concat
-          @[(string "(" resource "/ensure)")]
+          @[(bold (string "(" resource "/ensure)"))]
           (keys-of-type :ensure ensure-info :mandatory key-field-width)
           (keys-of-type :ensure ensure-info :optional key-field-width)
           (if (nil? remove-info)
             []
             (array/concat
-              @["" (string "(" resource "/remove)")]
+              @["" (bold (string "(" resource "/remove)"))]
               (keys-of-type :remove remove-info :mandatory key-field-width)
               (keys-of-type :remove remove-info :optional key-field-width))))
         "\n"))
@@ -716,6 +745,8 @@
   [name & specs]
   (collect :remove :publisher (make-resource :remove :publisher name specs)))
 
+(def smf-context-keys [:user :group :privileges :environment])
+
 (defn smf/ensure
   "Given a name and a manifest description, return an smf ensure struct"
   [name & specs]
@@ -734,7 +765,10 @@
 
     (collect :ensure :smf (make-resource :ensure :smf name (flat-table spec-table)))))
 
-(def smf-context-keys [:user :group :privileges :environment])
+(defn smf/remove
+  "Given a service name, return an smv service remove struct"
+  [name & specs]
+  (collect :remove :smf (make-resource :remove :smf name specs)))
 
 (defn smf-method
   "A convenience function to help produce an SMF exec_method, with a context"

@@ -6,30 +6,11 @@ use std::process::{Command, Stdio};
 use std::sync::LazyLock;
 
 // THINGS TO KNOW / THINGS TO DO.
-// Very limited in what it can do. Create, destroy, align get/set properties. Can't do fixed
-// sizes.
-
-static CURRENT_ZFS_OUTPUT: LazyLock<Vec<String>> =
-    LazyLock::new(|| zfs_output().expect("Could not run ZFS"));
+// Destroy is recursive!
 
 static ZFS_BIN_PATH: LazyLock<&'static str> = LazyLock::new(zfs_bin);
 
-fn zfs_bin() -> &'static str {
-    if Utf8PathBuf::from(ZFS_BIN).exists() {
-        ZFS_BIN
-    } else if Utf8PathBuf::from(ZFS_LX_BIN).exists() {
-        ZFS_LX_BIN
-    } else {
-        panic!("No ZFS binary");
-    }
-}
-
-fn zfs_output() -> anyhow::Result<Vec<String>> {
-    Ok(cmd_output!(*ZFS_BIN_PATH, "list", "-H", "-o", "name")?
-        .lines()
-        .map(|s| s.to_owned())
-        .collect())
-}
+// We used to cache the ZFS output. Don't do that!
 
 #[derive(Debug, Deserialize)]
 pub struct GurpZfsEnsure {
@@ -49,6 +30,23 @@ pub struct GurpZfsRemove {
     pub name: String,
 }
 
+fn zfs_bin() -> &'static str {
+    if Utf8PathBuf::from(ZFS_BIN).exists() {
+        ZFS_BIN
+    } else if Utf8PathBuf::from(ZFS_LX_BIN).exists() {
+        ZFS_LX_BIN
+    } else {
+        panic!("No ZFS binary");
+    }
+}
+
+fn zfs_output() -> anyhow::Result<Vec<String>> {
+    Ok(cmd_output!(*ZFS_BIN_PATH, "list", "-H", "-o", "name")?
+        .lines()
+        .map(|s| s.to_owned())
+        .collect())
+}
+
 fn zfs_state(name: &str) -> anyhow::Result<ZfsProperties> {
     let mut ret = HashMap::new();
     let prop_vals = cmd_output!(*ZFS_BIN_PATH, "get", "-pHo", "property,value", "all", name)?;
@@ -66,13 +64,13 @@ fn zfs_state(name: &str) -> anyhow::Result<ZfsProperties> {
     Ok(ret)
 }
 
-fn zfs_exists(name: &str) -> bool {
-    CURRENT_ZFS_OUTPUT.contains(&name.to_owned())
+fn zfs_exists(name: &str) -> anyhow::Result<bool> {
+    Ok(zfs_output()?.contains(&name.to_owned()))
 }
 
 impl GurpZfsEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        if zfs_exists(&self.name) {
+        if zfs_exists(&self.name)? {
             tracing::debug!("zfs: {} exists", &self.name);
             if let Some(state) = self.properties.as_ref() {
                 let current_state = zfs_state(&self.name)?;
@@ -164,7 +162,7 @@ impl GurpZfsEnsure {
 impl GurpZfsRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         tracing::debug!("zfs: looking for {}", self.name);
-        if zfs_exists(&self.name) {
+        if zfs_exists(&self.name)? {
             tracing::info!("removing filesystem: {}", self.name);
             return_if_noop!(opts);
             self.remove_filesystem(opts)

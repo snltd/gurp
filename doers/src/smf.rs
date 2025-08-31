@@ -3,12 +3,16 @@ use common::prelude::*;
 use common::types::SmfDefinition;
 use serde::Deserialize;
 use std::fs;
-use util::smf_builder;
-use util::svcs;
+use std::thread::sleep;
+use std::time::Duration;
+use util::{smf_builder, svcs};
 
 // THINGS TO KNOW / THINGS TO DO.
 // This writes SMF manifest files to disk, and imports them as needed. As of now, the directory
 // is hardcoded.
+
+const STATE_TRANSITION_INTERVAL: Duration = Duration::from_secs(1);
+const STATE_TRANSITION_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Deserialize, Debug)]
 pub struct GurpSmfEnsure {
@@ -98,6 +102,7 @@ impl GurpSmfRemove {
                 tracing::info!("svc: {} stopping service", &self.name);
                 if !opts.noop {
                     svcs::set_state(&self.name, &current_state, "disabled")?;
+                    self.wait_for_disabled_state()?;
                 }
             }
 
@@ -123,6 +128,22 @@ impl GurpSmfRemove {
         } else {
             tracing::debug!("svc: {} not present", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
+        }
+    }
+
+    fn wait_for_disabled_state(&self) -> anyhow::Result<()> {
+        let elapsed = Duration::from_secs(0);
+        loop {
+            if svcs::current_state(&self.name)?.as_str() == "disabled" {
+                return Ok(());
+            }
+
+            sleep(STATE_TRANSITION_INTERVAL);
+            let elapsed = elapsed + STATE_TRANSITION_INTERVAL;
+
+            if elapsed >= STATE_TRANSITION_TIMEOUT {
+                bail!("Timed out waiting for {} be disabled", self.name)
+            }
         }
     }
 }

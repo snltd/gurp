@@ -8,7 +8,6 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::io::Write;
 use std::process::{Command, Stdio};
-use std::sync::LazyLock;
 use std::{env, fs};
 
 // THINGS TO KNOW / THINGS TO DO.
@@ -16,10 +15,9 @@ use std::{env, fs};
 
 const ZONEADM_FIELDS: usize = 8;
 
-static CURRENT_ZONE_LIST: LazyLock<ZoneadmZones> = LazyLock::new(|| {
-    parse_zone_list(&zone_list().expect("Could not get zone list"))
-        .expect("Could not parse zone list")
-});
+fn current_zone_list() -> anyhow::Result<ZoneadmZones> {
+    parse_zone_list(&zone_list()?)
+}
 
 type ZoneName = String;
 type ZoneadmZones = HashMap<ZoneName, ZoneadmState>;
@@ -54,7 +52,7 @@ impl GurpZoneEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let config_input = self.config.to_zonecfg();
 
-        if CURRENT_ZONE_LIST.contains_key(&self.name) {
+        if current_zone_list()?.contains_key(&self.name) {
             tracing::debug!("zone {}: already exists", self.name);
 
             if self.recreate() {
@@ -253,6 +251,8 @@ impl GurpZoneEnsure {
 
             bootstrap_command.push_str("/var/tmp/gurp ");
 
+            bootstrap_command.push_str("apply ");
+
             if opts.dump_config {
                 bootstrap_command.push_str("--dump-config ");
             }
@@ -264,8 +264,6 @@ impl GurpZoneEnsure {
             if opts.line_no {
                 bootstrap_command.push_str("--line-no ");
             }
-
-            bootstrap_command.push_str("apply ");
 
             if let Some(metrics_host) = &opts.metrics_to {
                 bootstrap_command.push_str("--metrics-to ");
@@ -289,7 +287,7 @@ impl GurpZoneEnsure {
 
 impl GurpZoneRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        if CURRENT_ZONE_LIST.contains_key(&self.name) {
+        if current_zone_list()?.contains_key(&self.name) {
             tracing::info!("zone {}: remove", self.name);
             if opts.noop {
                 Ok(ONE_RESOURCE_NOOP)
