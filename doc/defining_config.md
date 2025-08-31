@@ -11,8 +11,8 @@ definition functions. A couple of things to bear in mind.
 - Janet does not hoist functions. You can't refer to something until you've
   defined it.
 - The Janet is compiled into a definition, which is then used to assert state.
-  That means you could check some condition which is true when `gurp` compiles
-  your Janet, but not true when `gurp` tries to assert state. For instance, your
+  That means you could check some condition which is true when Gurp compiles
+  your Janet, but not true when Gurp tries to assert state. For instance, your
   code could check for the presence of something it creates itself.
 - Yes, parentheses. Deal with it.
 
@@ -22,19 +22,23 @@ A host definition starts with a `host` definition. Obviously, I suppose. This
 definition references three modules.
 
 ```janet
+(use basenode)
+(use user-tools)
+(use security)
+
 (host "example-host"
-  (basenode)
-  (user-tools)
-  (security))
+      (basenode)
+      (user-tools)
+      (security))
 ```
 
 The host name isn't used for anything other than logging. It won't change the
 actual hostname.
 
-Note that we didn't need to `include` or `use` any library file to get access to
-`host`. Gurp has a hardcoded library file which is automatically injects at the
-top of your code, and it contains the `host` macro. If you run `gurp` with
-`--debug` you will see the full augmented file.
+Note that we didn't need to `(include)` or `(use)` any library file to get
+access to `(host)`. Gurp has a hardcoded library file which is automatically
+injects at the top of your code, and it contains the `(host)` macro. If you run
+Gurp with `--dump-config` you will see the full augmented file.
 
 ## Roles
 
@@ -73,31 +77,31 @@ you'll need to `(use)` them.
 Resources are all defined in the same way. `(resource-type/ensure)` or
 `(resource-type/remove)`, a string name, and pairs of symbol keys and string
 values. The `:keyword "string"` format is the way we idiomatically define
-key-value pairs in Janet. You can't use commas.
+key-value pairs in Janet. You can't use commas: they mean something.
 
 Note that the `:owner` of the directory is a Janet keyword. This is a reference
 which will be followed, and make the owner of the directory the same as that of
-the file. References can refer to other references, and `gurp` is able to detect
+the file. References can refer to other references, and Gurp is able to detect
 unresolvable loops and dangling references.
 
 Typically a reference takes the form
 `/role-name/resource-type/resource-name/resource-property`. Internally every
 resource gets an ID constructed in that way, and you will see them in execution
 output. But, the slash-separation could be confusing when referring to file
-paths, so `gurp` converts slashes to underscores in the id resource property
-name. You can use that pattern in your references, but it's usually clearer to
-follow the above example and add a `:label`, then refer to that.
+paths, so Gurp converts slashes to underscores in the id resource property name.
+You can use that pattern in your references, but it's usually clearer to follow
+the above example and add a `:label`, then refer to that.
 
 There's even a convenience function `(this)`, which lets you refer to a resource
-in the same role by writing `(this "file" "app-config" "owner")`.
+in the same role by writing `(this :file :app-config :owner)`.
 
 We have dynamically constructed a value for the content of the file. `(string)`
-concatenates its arguments, and `(this-host)` is a `gurp` builtin which expands
-to the name you set in your `(host)` definition.
+concatenates its arguments, and `(this-host)` is a Gurp builtin which expands to
+the name you set in your `(host)` definition.
 
 ## Variables
 
-Because it aims to be as stupid and unsophisticated as possible, `gurp` does not
+Because it aims to be as stupid and unsophisticated as possible, Gurp does not
 have attribute hierarchies or any kind of inbuilt variable management. It's up
 to you to use Janet. Use `(let)`, use `(def)`, use `(var)`, use prototyped
 tables, structs, arrays, tuples, whatever works for you.
@@ -126,8 +130,8 @@ value. If you prefer, you can make the keys strings and use `(this-host)`.
 ```janet
 # vars.janet
 (def packages
-  { :host-a ["vim" "ruby"]
-    :host-b ["helix" "rust"]})
+  {:host-a ["vim" "ruby"]
+   :host-b ["helix" "rust"]})
 ```
 
 ```janet
@@ -135,7 +139,7 @@ value. If you prefer, you can make the keys strings and use `(this-host)`.
 (import "./vars")
 
 (role "my-role"
-  (each pkg (get vars/packages (this-host))
+  (loop [pkg :in (get vars/packages (this-host))]
     (pkg/ensure (string "/ooce/editor/" pkg))))
 ```
 
@@ -164,19 +168,19 @@ indents?
 
 Some resources have default values. We do this by means of
 [Janet table prototypes](https://janet-lang.org/docs/prototypes.html). At the
-moment, these are hardcoded into `gurp`, but by the time we're finished you will
+moment, these are hardcoded into Gurp, but by the time we're finished you will
 also be able to supply your own.
 
 You can see the default values by running `gurp show defaults`.
 
 ## Comments
 
-`gurp` doesn't provide any way to comment things, but you can of course use
-Janet comments, which are prefixed with a `#`, or enclosed in a `(comment)`.
+Gurp doesn't provide any way to comment things, but you can of course use Janet
+comments, which are prefixed with a `#`, or enclosed in a `(comment)`.
 
 ## Sections
 
-The `gurp` library includes a `(section)` macro. It does nothing, but allows you
+The Gurp library includes a `(section)` macro. It does nothing, but allows you
 to visually associate related resources.
 
 ```janet
@@ -193,7 +197,7 @@ to visually associate related resources.
 (directory/ensure "/some/dir/also-not-to-do-with-logging")
 ```
 
-I should have mentioned `(argcat)` earlier. It's another `gurp` macro which
-joins its arguments with spaces. It's nicer than using `(string)` and having to
+I should have mentioned `(argcat)` earlier. It's another Gurp macro which joins
+its arguments with spaces. It's nicer than using `(string)` and having to
 remember to add leading and trailing spaces, and less typing than
 `(string/format)`. There's also `(pathcat)`, which joins with slashes.
