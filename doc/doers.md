@@ -106,28 +106,28 @@ You cannot install or pin specific versions.
              :command "/usr/bin/thing >/var/log/file")
 ```
 
-| Key             | Type           | Description                                   | Default | Mandatory |
-| --------------- | -------------- | --------------------------------------------- | ------- | --------- |
-| Name            | string         | Some name to identify the job                 |         | yes       |
-| `command`       | string, number | Command to run                                |         | yes       |
-| `day-of-month`  | string, number | Day(s) of month on which job runs             | `*`     |           |
-| `day-of-week`   | string, number | Day(s) of week on which job runs. 0 is Sunday | `*`     |           |
-| `hour`          | string, number | Hour(s) at which job runs                     | `*`     |           |
-| `minute`        | string, number | Minute(s) at which job runs                   | `*`     |           |
-| `month-of-year` | string, number | Month(s) of year in which job runs            | `*`     |           |
-| `user`          | string, number | User job runs as                              | `root`  |           |
+| Key              | Type           | Description                                   | Default | Mandatory |
+| ---------------- | -------------- | --------------------------------------------- | ------- | --------- |
+| Name             | string         | Some name to identify the job                 |         | yes       |
+| `:command`       | string, number | Command to run                                |         | yes       |
+| `:day-of-month`  | string, number | Day(s) of month on which job runs             | `*`     |           |
+| `:day-of-week`   | string, number | Day(s) of week on which job runs. 0 is Sunday | `*`     |           |
+| `:hour`          | string, number | Hour(s) at which job runs                     | `*`     |           |
+| `:minute`        | string, number | Minute(s) at which job runs                   | `*`     |           |
+| `:month-of-year` | string, number | Month(s) of year in which job runs            | `*`     |           |
+| `:user`          | string, number | User job runs as                              | `root`  |           |
 
-`hour`, `minute` etc can take any valid illumos cron value, so `5,10,15` or
+`:hour`, `:minute` etc can take any valid illumos cron value, so `5,10,15` or
 `*/5` are fine.
 
-Like all other config management tools, `gurp` precedes managed lines in the
+Like all other config management tools, Gurp precedes managed lines in the
 crontab with an identifying string. That string contains the resource ID which,
 includes the role, resource-type and identifying-name.
 
 As illumos doesn't have the kind of `cron.d` support that some other OSes have,
-`gurp` has to use the user's proper crontab, which it does by shelling out to
-`/bin/crontab`. This gives you `crontab`'s standard value checking: `gurp`
-doesn't check any values itself.
+Gurp has to use the user's proper crontab, which it does by shelling out to
+`/bin/crontab`. This gives you `crontab`'s standard value checking: Gurp doesn't
+check any values itself.
 
 The doer doesn't do any kind of user or `cron.allow` management, so you'll have
 to use other methods to make sure your user is allowed to run the job you
@@ -156,16 +156,16 @@ This doer has no way to assert that a system-defined job does or does not exist.
                   :group "group-name")
 ```
 
-| Key     | Type           | Description                        | Default | Mandatory |
-| ------- | -------------- | ---------------------------------- | ------- | --------- |
-| Name    | string         | Fully-qualified path               |         | yes       |
-| `group` | string, number | Can be a group name or numeric GID | `root`  |           |
-| `mode`  | string         | Four-character octal string        | `0755`  |           |
-| `user`  | string, number | Can be a username or numeric UID   | `root`  |           |
+| Key      | Type           | Description                        | Default | Mandatory |
+| -------- | -------------- | ---------------------------------- | ------- | --------- |
+| Name     | string         | Fully-qualified path               |         | yes       |
+| `:group` | string, number | Can be a group name or numeric GID | `root`  |           |
+| `:mode`  | string         | Four-character octal string        | `0755`  |           |
+| `:user`  | string, number | Can be a username or numeric UID   | `root`  |           |
 
 Directories are created in a `mkdir -p` style, though only the named directory
 will get the owner, group, and mode you specified. Ancestors will be owned by
-whatever user `gurp` runs as, and created with its `umask`.
+whatever user Gurp runs as, and created with its `umask`.
 
 ### (directory/remove)
 
@@ -192,15 +192,15 @@ the directory.
              :content "some content")
 ```
 
-| Key              | Type           | Description                                                    | Default | Mandatory |
-| ---------------- | -------------- | -------------------------------------------------------------- | ------- | --------- |
-| Name             | string         | Fully-qualified path                                           |         | yes       |
-| `content`        | string         | Literal file content                                           |         | yes [*]   |
-| `from`           | string         | Path to a file which will be copied in                         |         | yes [*]   |
-| `group`          | string, number | Can be a group name or numeric GID                             | `root`  |           |
-| `ignore-pattern` | string         | When diffing files, Gurp will ignore lines matching this regex |         |           |
-| `mode`           | string         | Four-character octal string                                    | `0755`  |           |
-| `user`           | string, number | Can be a username or numeric UID                               | `root`  |           |
+| Key               | Type           | Description                                                    | Default | Mandatory |
+| ----------------- | -------------- | -------------------------------------------------------------- | ------- | --------- |
+| Name              | string         | Fully-qualified path                                           |         | yes       |
+| `:content`        | string         | Literal file content                                           |         | yes [*]   |
+| `:from`           | string         | Path to a file which will be copied in                         |         | yes [*]   |
+| `:group`          | string, number | Can be a group name or numeric GID                             | `root`  |           |
+| `:ignore-pattern` | string         | When diffing files, Gurp will ignore lines matching this regex |         |           |
+| `:mode`           | string         | Four-character octal string                                    | `0755`  |           |
+| `:user`           | string, number | Can be a username or numeric UID                               | `root`  |           |
 
 [*] You must supply exactly one of `:content` or `:from`.
 
@@ -331,10 +331,10 @@ Manages Ruby gems.
 (group/ensure "ai-users")
 ```
 
-| Key   | Type   | Description | Default | Mandatory |
-| ----- | ------ | ----------- | ------- | --------- |
-| Name  | string | Group name  |         | yes       |
-| `gid` | number | Group ID    |         | yes       |
+| Key    | Type   | Description | Default | Mandatory |
+| ------ | ------ | ----------- | ------- | --------- |
+| Name   | string | Group name  |         | yes       |
+| `:gid` | number | Group ID    |         | yes       |
 
 ### `(group/remove)`
 
@@ -396,7 +396,7 @@ you run `pkg list -a`.
 You cannot currently install specific versions, and there is no support for
 mediators.
 
-If you run `gurp` with `--noop`, `pkg(1)` will be executed, but with the `-n`
+If you run Gurp with `--noop`, `pkg(1)` will be executed, but with the `-n`
 flag. Therefore it can cause a noop run to fail.
 
 ### `(pkg/remove)`
@@ -526,10 +526,10 @@ If you don't supply a `:stop-method` youget a standard `:kill` that times out
 after ten seconds. Start timeouts default to 60 seconds.
 
 It isn't possible to have SMF tell you what manifest was imported, and even
-comparing an export with the thing you just imported shows differences. So,
-`gurp` generates an SMF manifest, writes it to disk, and will delete and
-reimport a manifest if it sees a difference between that and the thing you
-request. This will, of course, clobber any changes you've made.
+comparing an export with the thing you just imported shows differences. So, Gurp
+generates an SMF manifest, writes it to disk, and will delete and reimport a
+manifest if it sees a difference between that and the thing you request. This
+will, of course, clobber any changes you've made.
 
 ### `(smf/remove)`
 
@@ -556,14 +556,14 @@ This stops the service and deletes it from the SMF registry.
              :reloaded-by ["/role/resource-type/name-or-label"])
 ```
 
-| Key            | Type         | Description                                                                      | Default  | Mandatory |
-| -------------- | ------------ | -------------------------------------------------------------------------------- | -------- | --------- |
-| Name           | string       | Any valid FMRI                                                                   |          | yes       |
-| `reloaded-by`  | list<string> | Gurp identifiers of resource which, when changed, will trigger a service reload  |          |           |
-| `restarted-by` | list<string> | Gurp identifiers of resource which, when changed, will trigger a service restart |          |           |
-| `;state`       | string       | Service state as shown by `svcs`                                                 | `online` |           |
+| Key             | Type         | Description                                                                      | Default  | Mandatory |
+| --------------- | ------------ | -------------------------------------------------------------------------------- | -------- | --------- |
+| Name            | string       | Any valid FMRI                                                                   |          | yes       |
+| `:reloaded-by`  | list<string> | Gurp identifiers of resource which, when changed, will trigger a service reload  |          |           |
+| `:restarted-by` | list<string> | Gurp identifiers of resource which, when changed, will trigger a service restart |          |           |
+| `;state`        | string       | Service state as shown by `svcs`                                                 | `online` |           |
 
-Because `gurp` ends up shelling out to `svcs` and `svcadm`, the name can be any
+Because Gurp ends up shelling out to `svcs` and `svcadm`, the name can be any
 valid FMRI.
 
 ### `(svc/remove)`
@@ -615,16 +615,16 @@ Hard links are not supported.
              :shell "/bin/zsh")
 ```
 
-| Key             | Type           | Description                                                     | Default | Mandatory |
-| --------------- | -------------- | --------------------------------------------------------------- | ------- | --------- |
-| Name            | string         | Username                                                        |         | yes       |
-| `gecos`         | string         | User's name                                                     |         | yes       |
-| `home-dir`      | string         | Fully qualified path to home directory                          |         | yes       |
-| `other-groups`  | string         | User will be added to these in `/etc/group`                     |         | yes       |
-| `password-hash` | string         | Will be set as second field in `/etc/shadow`                    |         |           |
-| `primary-group` | string, number | Group name or numeric GID of the group defined in `/etc/passwd` | `root`  | yes       |
-| `shell`         | string         | Fully qualified path to user's shell                            |         | yes       |
-| `uid`           | number         | UID                                                             |         | yes       |
+| Key              | Type           | Description                                                     | Default | Mandatory |
+| ---------------- | -------------- | --------------------------------------------------------------- | ------- | --------- |
+| Name             | string         | Username                                                        |         | yes       |
+| `:gecos`         | string         | User's name                                                     |         | yes       |
+| `:home-dir`      | string         | Fully qualified path to home directory                          |         | yes       |
+| `:other-groups`  | string         | User will be added to these in `/etc/group`                     |         | yes       |
+| `:password-hash` | string         | Will be set as second field in `/etc/shadow`                    |         |           |
+| `:primary-group` | string, number | Group name or numeric GID of the group defined in `/etc/passwd` | `root`  | yes       |
+| `:shell`         | string         | Fully qualified path to user's shell                            |         | yes       |
+| `:uid`           | number         | UID                                                             |         | yes       |
 
 User resources are mostly managed by shelling out to the `useradd(1m)`,
 `usermod(1m)`, and `userdel(1m)` commands, so the doer shares their behaviour,
@@ -697,7 +697,7 @@ Remove is done with `-R`, so it takes all snapshots with it.
 | `:properties`      | struct<keyword, string> | Create or set these properties            |         | yes       |
 | `:property-groups` | struct<keyword, string> | Create property group `key` of type `val` |         |           |
 
-`gurp` will infer and add the property types.
+Gurp will infer and add the property types.
 
 ### `(svcprop/remove)`
 
@@ -809,6 +809,6 @@ The doer cannot modify an existing zone.
 **Notes on `:recreate`**. This must be an integer, and it is the `n:1` odds of a
 zone being destroyed and recreated. So, `0` means "never recreate this zone",
 and `1` means "recreate this zone on every run". `2` You can set the number as
-high as you like, so if you run `gurp` every 15 minutes and want your zone
-rebuilt from scratch about once a week, you'd set it to `672`. If you don't set
-it, it defaults to `0`.
+high as you like, so if you run Gurp every 15 minutes and want your zone rebuilt
+from scratch about once a week, you'd set it to `672`. If you don't set it, it
+defaults to `0`.
