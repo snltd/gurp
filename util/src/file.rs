@@ -28,7 +28,6 @@ pub fn ensure_metadata(spec: FileMetadata, opts: &ApplyOpts) -> anyhow::Result<A
     Ok(ApplySummary {
         resources: 1,
         changes,
-        errors: 0,
     })
 }
 

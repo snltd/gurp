@@ -1,4 +1,5 @@
 use crate::constants::PROTECTED_DIRS;
+use anyhow::ensure;
 use camino::Utf8PathBuf;
 use common::prelude::*;
 use nix::unistd::{Gid, Uid};
@@ -70,10 +71,10 @@ impl GurpDirectoryEnsure {
 impl GurpDirectoryRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if self.path.exists() {
-            if PROTECTED_DIRS.contains(&self.path) {
-                tracing::warn!("protected resource: {}", self.path);
-                return Ok(ONE_RESOURCE_ONE_ERROR);
-            }
+            ensure!(
+                !PROTECTED_DIRS.contains(&self.path),
+                format!("protected resource: {}", self.path)
+            );
 
             tracing::info!("removing directory: {}", self.path);
             return_if_noop!(opts);
@@ -170,7 +171,7 @@ mod test {
     fn test_directory_remove_apply_not_allowed() {
         let json_def = janet2json(r#"(directory/remove "/usr")"#);
         let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_ERROR, sut.apply(&defopts()).unwrap());
+        assert!(sut.apply(&defopts()).is_err());
     }
 
     #[test]

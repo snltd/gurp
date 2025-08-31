@@ -1,6 +1,6 @@
 use crate::constants::PROTECTED_USERS;
 use crate::types::Changes;
-use anyhow::Context;
+use anyhow::{Context, ensure};
 use common::prelude::*;
 use nix::unistd::{Group, User};
 use serde::Deserialize;
@@ -349,10 +349,10 @@ impl GurpUserEnsure {
 impl GurpUserRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if user_exists(&self.name)? {
-            if PROTECTED_USERS.contains(&self.name.as_str()) {
-                tracing::warn!("protected resource: {}", self.name);
-                return Ok(ONE_RESOURCE_ONE_ERROR);
-            }
+            ensure!(
+                !PROTECTED_USERS.contains(&self.name.as_str()),
+                format!("protected resource: {}", self.name)
+            );
 
             tracing::info!("removing user: {}", self.name);
 

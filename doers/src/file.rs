@@ -198,10 +198,10 @@ impl GurpFileEnsure {
 impl GurpFileRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if self.path.exists() {
-            if PROTECTED_FILES.contains(&self.path) {
-                tracing::warn!("protected resource: {}", self.path);
-                return Ok(ONE_RESOURCE_ONE_ERROR);
-            }
+            ensure!(
+                !PROTECTED_FILES.contains(&self.path),
+                format!("protected resource: {}", self.path)
+            );
 
             tracing::info!("removing: {}", self.path);
 
@@ -537,7 +537,7 @@ mod test {
     fn test_file_remove_forbidden() {
         let json_def = janet2json(r#"(file/remove "/bin/ps")"#);
         let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_ERROR, sut.apply(&defopts()).unwrap());
+        assert!(sut.apply(&defopts()).is_err());
     }
 
     #[test]

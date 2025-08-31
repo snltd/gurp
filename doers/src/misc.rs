@@ -40,8 +40,7 @@ impl GurpMiscEnsure {
                 + match self.enable_smb_share(user, opts) {
                     Ok(summary) => summary,
                     Err(e) => {
-                        tracing::error!("smbadm check: {}", e);
-                        ONE_RESOURCE_ONE_ERROR
+                        bail!("smbadm check: {}", e);
                     }
                 };
         }
@@ -51,8 +50,7 @@ impl GurpMiscEnsure {
                 + match self.set_scheduler_class(class, opts) {
                     Ok(summary) => summary,
                     Err(e) => {
-                        tracing::error!("dispadmin error: {}", e);
-                        ONE_RESOURCE_ONE_ERROR
+                        bail!("dispadmin error: {}", e);
                     }
                 };
         }
@@ -85,7 +83,11 @@ impl GurpMiscEnsure {
         one_change_or_stderr!(cmd, "error enabling SMB share")
     }
 
-    fn ensure_nfs_domain(&self, desired_domain: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    fn ensure_nfs_domain(
+        &self,
+        desired_domain: &str,
+        opts: &ApplyOpts,
+    ) -> anyhow::Result<ApplySummary> {
         tracing::debug!("calling misc/ensure_nfs_domain");
 
         let status = cmd_output!(SHARECTL_BIN, "get", "-p", "nfsmapid_domain", "nfs")?;
