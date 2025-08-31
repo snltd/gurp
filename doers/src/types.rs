@@ -116,5 +116,4 @@ pub struct RemoveResources {
     pub zone: Vec<GurpZoneRemove>,
 }
 
-pub type Changes<'a> = Vec<&'a str>;
 pub type ChangedIds = BTreeSet<String>;

@@ -1,5 +1,4 @@
 use crate::constants::PROTECTED_USERS;
-use crate::types::Changes;
 use anyhow::{Context, ensure};
 use common::prelude::*;
 use nix::unistd::{Group, User};
@@ -55,19 +54,14 @@ impl GurpUserEnsure {
             return self.create(opts);
         }
 
-        let mut run_cmd = false;
         let current = self.current_state()?;
         let desired = &self.desired_state;
-        let changes = self.changes(&current, desired);
-
-        if changes.is_empty() {
-            tracing::debug!("no change: {}", self.name);
-            return Ok(ONE_RESOURCE_NO_CHANGE);
-        }
+        let mut changes = 0;
 
         let mut cmd = Command::new(USERMOD_BIN);
 
-        if changes.contains(&"gecos") {
+        if current.gecos != desired.gecos {
+            changes += 1;
             tracing::info!(
                 "change user gecos: [{}] {} -> {}",
                 self.name,
@@ -75,10 +69,10 @@ impl GurpUserEnsure {
                 desired.gecos
             );
             cmd.arg("-c").arg(&desired.gecos);
-            run_cmd = true;
         }
 
-        if changes.contains(&"home-dir") {
+        if current.home_dir != desired.home_dir {
+            changes += 1;
             tracing::info!(
                 "change user home-dir: [{}] {} -> {}",
                 self.name,
@@ -86,10 +80,10 @@ impl GurpUserEnsure {
                 desired.home_dir
             );
             cmd.arg("-d").arg(&desired.home_dir);
-            run_cmd = true;
         }
 
-        if changes.contains(&"primary-group") {
+        if current.primary_group != desired.primary_group {
+            changes += 1;
             tracing::info!(
                 "change user primary-group: [{}] {} -> {}",
                 self.name,
@@ -97,10 +91,10 @@ impl GurpUserEnsure {
                 desired.primary_group
             );
             cmd.arg("-g").arg(&desired.primary_group);
-            run_cmd = true;
         }
 
-        if changes.contains(&"other-groups") {
+        if current.other_groups != desired.other_groups {
+            changes += 1;
             if let Some(groups) = desired.other_groups.as_ref() {
                 tracing::info!(
                     "change other-groups: [{}] -> {}",
@@ -114,10 +108,10 @@ impl GurpUserEnsure {
                 cmd.arg("-G");
                 cmd.arg("");
             }
-            run_cmd = true;
         }
 
-        if changes.contains(&"profiles") {
+        if current.profiles != desired.profiles {
+            changes += 1;
             if let Some(profiles) = desired.profiles.as_ref() {
                 tracing::info!("change profiles: [{}] -> {}", self.name, profiles.join(","));
                 cmd.arg("-P");
@@ -127,10 +121,10 @@ impl GurpUserEnsure {
                 cmd.arg("-P");
                 cmd.arg("");
             }
-            run_cmd = true;
         }
 
-        if changes.contains(&"shell") {
+        if current.shell != desired.shell {
+            changes += 1;
             tracing::info!(
                 "change user shell: [{}] {} -> {}",
                 self.name,
@@ -138,10 +132,10 @@ impl GurpUserEnsure {
                 desired.shell
             );
             cmd.arg("-s").arg(&desired.shell);
-            run_cmd = true;
         }
 
-        if changes.contains(&"uid") {
+        if current.uid != desired.uid {
+            changes += 1;
             tracing::info!(
                 "change user uid: [{}] {} -> {}",
                 self.name,
@@ -149,16 +143,13 @@ impl GurpUserEnsure {
                 desired.uid
             );
             cmd.arg("-u").arg(desired.uid.to_string());
-            run_cmd = true;
         }
 
-        if opts.noop {
-            return Ok(ONE_RESOURCE_NOOP);
-        }
+        return_if_noop!(opts);
 
         cmd.arg(&self.name);
 
-        if run_cmd {
+        if changes > 0 {
             tracing::debug!(command = helpers::command_to_string(&cmd));
 
             let result = cmd.output()?;
@@ -168,12 +159,16 @@ impl GurpUserEnsure {
             }
         }
 
-        if changes.contains(&"password-hash") {
+        if current.password_hash.is_some() && current.password_hash != desired.password_hash {
+            changes += 1;
             let desired_hash = desired.password_hash.as_ref().unwrap();
             self.update_shadow(&Utf8PathBuf::from(SHADOW_PATH), &self.name, desired_hash)?;
         }
 
-        Ok(ONE_RESOURCE_ONE_CHANGE)
+        Ok(ApplySummary {
+            resources: 1,
+            changes,
+        })
     }
 
     fn create(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
@@ -215,48 +210,6 @@ impl GurpUserEnsure {
         } else {
             bail!(String::from_utf8_lossy(&result.stderr).into_owned())
         }
-    }
-
-    fn changes<'a>(&self, current: &UserState, desired: &UserState) -> Changes<'a> {
-        let mut to_change = Vec::new();
-
-        if current.uid != desired.uid {
-            to_change.push("uid");
-        }
-
-        if current.home_dir != desired.home_dir {
-            to_change.push("home-dir");
-        }
-
-        if current.shell != desired.shell {
-            to_change.push("shell");
-        }
-
-        if current.gecos != desired.gecos {
-            to_change.push("gecos");
-        }
-
-        if current.primary_group != desired.primary_group {
-            to_change.push("primary-group");
-        }
-
-        if current.password_hash.is_some() && current.password_hash != desired.password_hash {
-            to_change.push("password-hash");
-        }
-
-        if current.other_groups != desired.other_groups {
-            to_change.push("other-groups");
-        }
-
-        if current.profiles != desired.profiles {
-            to_change.push("profiles");
-        }
-
-        if !to_change.is_empty() {
-            tracing::debug!("to change for {}: {}", self.name, to_change.join(", "));
-        }
-
-        to_change
     }
 
     fn current_state(&self) -> anyhow::Result<UserState> {
@@ -431,54 +384,6 @@ mod tests {
             other_groups: None,
             profiles: None,
         }
-    }
-
-    fn modified_state() -> UserState {
-        UserState {
-            uid: 1001,
-            home_dir: Utf8PathBuf::from("/home/tester"),
-            shell: Utf8PathBuf::from("/bin/zsh"),
-            gecos: "Tester User".into(),
-            primary_group: "staff".into(),
-            password_hash: Some("hash2".into()),
-            other_groups: None,
-            profiles: None,
-        }
-    }
-
-    #[test]
-    fn test_changes_detects_differences() {
-        let g = GurpUserEnsure {
-            id: "1".into(),
-            name: "testuser".into(),
-            desired_state: modified_state(),
-        };
-
-        let changes = g.changes(&dummy_state(), &g.desired_state);
-        assert_eq!(
-            changes,
-            vec![
-                "uid",
-                "home-dir",
-                "shell",
-                "gecos",
-                "primary-group",
-                "password-hash"
-            ]
-        );
-    }
-
-    #[test]
-    fn test_changes_detects_no_difference() {
-        let state = dummy_state();
-        let g = GurpUserEnsure {
-            id: "1".into(),
-            name: "testuser".into(),
-            desired_state: state.clone(),
-        };
-
-        let changes = g.changes(&state, &g.desired_state);
-        assert!(changes.is_empty());
     }
 
     #[test]
