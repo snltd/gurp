@@ -49,7 +49,7 @@
 (deftest "cron-error"
   (test-error
     (cron/ensure "missing-data" :hour 6)
-    "Failed to validate user input for cron 'missing-data' : cron missing required key(s): command")
+    "Failed to validate user input for cron 'missing-data': cron missing required key(s): command")
 
   (test-error
     (cron/ensure "junk-keys"
@@ -58,4 +58,4 @@
                  :day "monday"
                  :colour "blue"
                  :hour 6)
-    "Failed to validate user input for cron 'junk-keys' : cron 'junk-keys' has unrecognised key(s): day, colour"))
+    "Failed to validate user input for cron 'junk-keys': cron 'junk-keys' has unrecognised key(s): day, colour"))

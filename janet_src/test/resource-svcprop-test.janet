@@ -36,6 +36,6 @@
 (deftest "svcprop-error"
   (test-error
     (svcprop/ensure "mariadb" :wat true)
-    "Failed to validate user input for svcprop 'mariadb' : svcprop missing required key(s): properties"))
+    "Failed to validate user input for svcprop 'mariadb': svcprop missing required key(s): properties"))
 
 

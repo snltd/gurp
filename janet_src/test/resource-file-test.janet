@@ -43,5 +43,5 @@
                  :owner "merp"
                  :group "byerp"
                  :permissions "rwxr-xr-x")
-    "Failed to validate user input for file '/octals/only' : file '/octals/only' has unrecognised key(s): permissions"))
+    "Failed to validate user input for file '/octals/only': file '/octals/only' has unrecognised key(s): permissions"))
 

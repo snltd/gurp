@@ -49,7 +49,7 @@
                             :exec "/opt/site/lib/smf/method/telegraf.sh"
                             :user "telegraf"
                             :group "daemon"))
-    "Failed to validate user input for smf 'telegraf' : smf missing required key(s): fmri"))
+    "Failed to validate user input for smf 'telegraf': smf missing required key(s): fmri"))
 
 (deftest smf-method
   (test

@@ -18,7 +18,7 @@
     (template-out
       "I {{ sentiment }} {{ language }} though"
       {:sentiment "don't much care for" :oops "things like" :language "YAML"})
-    "unused vars: expected sentiment, language : got sentiment, language, oops")
+    "unused vars: expected sentiment, language: got sentiment, language, oops")
 
   (test-error
     (template-out

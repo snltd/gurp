@@ -21,4 +21,4 @@
       (role-b))
 
 (deftest "missing-reference-should-error"
-  (test-error (machine-config) "Referenced resource '/role-a/file/a2' not found"))
+  (test-error (machine-config) "Failed to resolve reference '/role-a/file/a2/owner'"))

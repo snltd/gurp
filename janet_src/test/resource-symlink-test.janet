@@ -25,10 +25,10 @@
 (deftest "symlink-resources"
   (test-error
     (symlink/ensure "/where/does/this/point")
-    "Failed to validate user input for symlink '/where/does/this/point' : symlink missing required key(s): source")
+    "Failed to validate user input for symlink '/where/does/this/point': symlink missing required key(s): source")
 
   (test-error
     (symlink/ensure "/symlinks/dont/work/like/that"
                     :source "/some/file"
                     :owner "me")
-    "Failed to validate user input for symlink '/symlinks/dont/work/like/that' : symlink '/symlinks/dont/work/like/that' has unrecognised key(s): owner"))
+    "Failed to validate user input for symlink '/symlinks/dont/work/like/that': symlink '/symlinks/dont/work/like/that' has unrecognised key(s): owner"))

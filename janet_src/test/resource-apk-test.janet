@@ -24,5 +24,5 @@
   (test-error
     (apk/ensure "gurp"
                 :version "1.1.1")
-    "Failed to validate user input for apk 'gurp' : apk 'gurp' has unrecognised key(s): version"))
+    "Failed to validate user input for apk 'gurp': apk 'gurp' has unrecognised key(s): version"))
 

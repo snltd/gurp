@@ -43,4 +43,4 @@
     (misc/ensure
       :scheduler-class "FSS"
       :enable-smb "rob")
-    "Failed to validate user input for misc 'scheduler-class-FSS-enable-smb-rob' : misc 'scheduler-class-FSS-enable-smb-rob' has unrecognised key(s): scheduler-class"))
+    "Failed to validate user input for misc 'scheduler-class-FSS-enable-smb-rob': misc 'scheduler-class-FSS-enable-smb-rob' has unrecognised key(s): scheduler-class"))
