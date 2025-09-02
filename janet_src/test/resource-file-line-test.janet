@@ -51,7 +51,7 @@
                       :line "and"
                       :after "gibbus"
                       :before "chubb")
-    "Failed to validate user input for file-line '/missing/line' : file-line '/missing/line' has unrecognised key(s): before, after")
+    "Failed to validate user input for file-line '/missing/line': file-line '/missing/line' has unrecognised key(s): before, after")
 
   (test-error
     (file-line/remove "/my/file"

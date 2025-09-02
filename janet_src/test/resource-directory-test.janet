@@ -50,5 +50,5 @@
                       :owner "me"
                       :gid 234
                       :recursive true)
-    "Failed to validate user input for directory '/extra/keys' : directory '/extra/keys' has unrecognised key(s): recursive, gid"))
+    "Failed to validate user input for directory '/extra/keys': directory '/extra/keys' has unrecognised key(s): recursive, gid"))
 

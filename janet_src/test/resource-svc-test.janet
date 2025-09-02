@@ -23,8 +23,8 @@
                 :state "enabled"
                 :volume 11
                 :strings: 12)
-    "Failed to validate user input for svc 'too/many/keys' : svc 'too/many/keys' has unrecognised key(s): strings:, volume")
+    "Failed to validate user input for svc 'too/many/keys': svc 'too/many/keys' has unrecognised key(s): strings:, volume")
 
   (test-error
     (svc/ensure "what/should/i/do")
-    "Failed to validate user input for svc 'what/should/i/do' : svc missing required key(s): state"))
+    "Failed to validate user input for svc 'what/should/i/do': svc missing required key(s): state"))

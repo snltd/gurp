@@ -21,10 +21,10 @@
 (deftest "group-errors"
   (test-error
     (group/ensure "wat")
-    "Failed to validate user input for group 'wat' : group missing required key(s): gid")
+    "Failed to validate user input for group 'wat': group missing required key(s): gid")
 
   (test-error
     (group/ensure "group"
                  :gid 264
                  :gecos "Test User")
-    "Failed to validate user input for group 'group' : group 'group' has unrecognised key(s): gecos"))
+    "Failed to validate user input for group 'group': group 'group' has unrecognised key(s): gecos"))

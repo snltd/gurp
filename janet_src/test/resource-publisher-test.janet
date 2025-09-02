@@ -22,4 +22,4 @@
 (deftest "publisher-error"
   (test-error
     (publisher/ensure "sysdef")
-    "Failed to validate user input for publisher 'sysdef' : publisher missing required key(s): uri"))
+    "Failed to validate user input for publisher 'sysdef': publisher missing required key(s): uri"))

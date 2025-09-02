@@ -26,4 +26,4 @@
   (test-error
     (gem/ensure "wavefront-sdk"
                 :merp 11)
-    "Failed to validate user input for gem 'wavefront-sdk' : gem 'wavefront-sdk' has unrecognised key(s): merp"))
+    "Failed to validate user input for gem 'wavefront-sdk': gem 'wavefront-sdk' has unrecognised key(s): merp"))

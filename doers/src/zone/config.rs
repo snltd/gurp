@@ -90,6 +90,7 @@ pub struct GurpZoneFilesystem {
     pub special: Utf8PathBuf,
     #[serde(rename = "type")]
     pub fs_type: String,
+    pub options: Option<Vec<String>>,
 }
 
 type GurpZoneNetworks = Vec<GurpZoneNetwork>;
@@ -156,11 +157,17 @@ impl GurpZoneConfig {
     }
 
     fn zone_fs(&self, conf: &GurpZoneFilesystem) -> String {
-        formatdoc! { "add fs
+        let mut ret = formatdoc! { "add fs
         \tset dir={}
         \tset special={}
-        \tset type={}
-        end\n", conf.dir, conf.special, conf.fs_type }
+        \tset type={}\n" , conf.dir, conf.special, conf.fs_type };
+
+        if let Some(options) = &conf.options {
+            ret.push_str(&format!("\tset options={}\n", options.join(",")));
+        }
+
+        ret.push_str("end\n");
+        ret
     }
 
     fn zone_capped_memory(&self, conf: &GurpZoneCappedMemory) -> String {
