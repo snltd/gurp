@@ -111,6 +111,7 @@ impl GurpFileEnsure {
                 tracing::debug!("{} content is correct", self.path);
             }
         } else {
+            tracing::info!("Creating {}", self.path);
             return_if_noop!(opts);
 
             changes = 1;
@@ -229,8 +230,8 @@ impl GurpFileRemove {
 #[cfg(test)]
 mod test {
     use super::*;
-    use assert_fs::TempDir;
     use assert_fs::prelude::*;
+    use assert_fs::TempDir;
     use camino::Utf8PathBuf;
     use indoc::formatdoc;
     use std::fs;

@@ -140,12 +140,12 @@
      :final-state ["Put the zone in the given state. Also accepts 'reboot'" :string]
      :fs ["See 'zone-fs'"]
      :lx-image ["Install zone using this image. See docs for pattern rules" :string]
-     :net ["See 'zone-net'"]
+     :net ["See 'zone-network'"]
      :rctl ["See 'zone-rctl'"]
      :recreate ["1-in-n chance the zone will be destroyed and recreated" :number]
      :zonepath ["Path to zone root" :string]}
     :mandatory
-    {:brand ["Zone brand. byhve and illumos are not " :string]}}
+    {:brand ["Zone brand. byhve and illumos are not supported" :string]}}
 
    :zone-attr
    {:optional
@@ -153,13 +153,20 @@
     :mandatory
     {:value ["Attribute value" :string :boolean :number]}}
 
+   :zone-network
+   {:optional
+    {:global-nic ["Physical NIC on which to create zone VNIC" :string]
+     :defrouter ["IP address of default router" :string]}
+    :mandatory
+    {:allowed-address ["IP address, with /netmask" :string]}}
    :zone-rctl
    {:mandatory
     {:value ["rctl value" :string :number]}}
 
    :zone-fs
    {:optional
-    {:type ["The type of fs mount" :string]}
+    {:type ["The type of fs mount" :string]
+     :options ["Options with which to mount fs inside zone" :tuple]}
     :mandatory {:special ["The directory in the global zone" :string]}}})
 
 (def resource-remove-keys
@@ -272,6 +279,7 @@
 (defn- resolve-reference
   "Recursively chase down references. Catches circular and dangling"
   [target flat-resources seen]
+  (try 
   (let [last-sep (last (string/find-all "/" target))
         chunks (string/split "/" target last-sep)
         id (first chunks)
@@ -289,7 +297,10 @@
 
     (if (keyword? referenced-val)
       (resolve-reference referenced-val flat-resources seen)
-      referenced-val)))
+      referenced-val))
+      ([e]
+        (error
+          (string "Failed to resolve reference '" target "'")))))
 
 (defn- resolve-resource-references
   "Update any references in a resource with their final targets"
@@ -374,7 +385,7 @@
       (validate-spec action resource-type resource-name resource-spec)
       ([e]
         (error
-          (string "Failed to validate user input for " resource-type " '" resource-name "' : " e)))))
+          (string "Failed to validate user input for " resource-type " '" resource-name "': " e)))))
   (->>
     (struct/with-proto
       (proto action resource-type)
@@ -411,7 +422,7 @@
   (defn- default-suffix
     "Returns a string snippet displaying a key's default value, if it has one"
     [default-value]
-    (if (and default-value (not (struct? default-value )))
+    (if (and default-value (not (struct? default-value)))
       (string/format ". Default '%s'" (string default-value))
       ""))
 
@@ -426,9 +437,11 @@
     (def key-info (get info key-type {}))
 
     (if-not (empty? key-info)
-      (let [ret @[(bold (string key-type " keys"))]]
-        (loop [[key desc] :pairs key-info]
-          (let [default-val (get-in default-protos [action (keyword resource) key])]
+      (let [ret @[(bold (string key-type " keys"))]
+            keys (keys key-info)]
+        (loop [key :in (sort keys)]
+          (let [desc (key-info key)
+                default-val (get-in default-protos [action (keyword resource) key])]
             (array/push ret
                         (string/format (format-string key-field-width)
                                        key
@@ -568,7 +581,7 @@
     (filter |(not (has-value? patterns $)) (keys vars)))
 
   (if-not (empty? unused-vars)
-    (error (string/format "unused vars: expected %s : got %s"
+    (error (string/format "unused vars: expected %s: got %s"
                           (string/join
                             (map |(peg/replace-all '(set "{} \t\r\n\0\f\v") "" $)
                                  (keys find->replace)) ", ")
