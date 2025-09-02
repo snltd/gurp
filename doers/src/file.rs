@@ -320,8 +320,8 @@ impl GurpFileRemove {
 #[cfg(test)]
 mod test {
     use super::*;
-    use assert_fs::TempDir;
     use assert_fs::prelude::*;
+    use assert_fs::TempDir;
     use camino::Utf8PathBuf;
     use indoc::{formatdoc, indoc};
     use pretty_assertions::assert_eq;
