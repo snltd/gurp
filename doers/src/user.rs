@@ -145,7 +145,7 @@ impl GurpUserEnsure {
             cmd.arg("-u").arg(desired.uid.to_string());
         }
 
-        return_if_noop!(opts);
+        return_if_noop!(opts, 1, changes);
 
         cmd.arg(&self.name);
 
