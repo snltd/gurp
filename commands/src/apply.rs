@@ -1,79 +1,25 @@
-use anyhow::Context;
 use camino::Utf8PathBuf;
 use common::types::{ApplyOpts, ApplySummary, ExitCode};
 use doers::host;
-use nix::unistd;
 use std::time::{Duration, Instant};
-use std::time::{SystemTime, UNIX_EPOCH};
+use util::metrics;
 
 pub fn run(host_config_file: &Utf8PathBuf, opts: &ApplyOpts) -> ExitCode {
     let start_time = Instant::now();
-    let apply_summary = match host::apply(host_config_file, opts) {
-        Ok(result) => result,
+    match host::apply(host_config_file, opts) {
+        Ok(apply_summary) => {
+            let elapsed_time = start_time.elapsed();
+            report_success(&apply_summary, elapsed_time, opts.metrics_to.as_deref())
+        }
         Err(e) => {
             tracing::error!("apply error on {}: {}", host_config_file, e);
-            return 1;
+            let elapsed_time = start_time.elapsed();
+            report_failure(elapsed_time, opts.metrics_to.as_deref())
         }
-    };
-
-    let elapsed_time = start_time.elapsed();
-    report_results(&apply_summary, elapsed_time, opts.metrics_to.as_deref())
-}
-
-fn send_metrics(
-    summary: &ApplySummary,
-    elapsed_time: Duration,
-    metrics_host: &str,
-) -> anyhow::Result<()> {
-    let url = format!("http://{metrics_host}:8428/write");
-
-    tracing::debug!("Sending metrics to {}", url);
-
-    let ns_timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-
-    let hostname = unistd::gethostname()
-        .context("Failed getting hostname")?
-        .to_string_lossy()
-        .into_owned();
-
-    // myMeasurement,tag1=val1,tag2=val2 field1="v1",field2=1i 0000000000000000000
-
-    let points = [
-        format!(
-            "gurp,host={} ms_time={} {}",
-            hostname,
-            elapsed_time.as_millis(),
-            ns_timestamp
-        ),
-        format!(
-            "gurp,host={} resources={} {}",
-            hostname, summary.resources, ns_timestamp
-        ),
-        format!(
-            "gurp,host={} changes={} {}",
-            hostname, summary.changes, ns_timestamp
-        ),
-    ];
-
-    let payload = points.join("\n");
-
-    tracing::debug!("metrics payload: {}", payload);
-
-    let resp = ureq::post(url).content_type("text/plain").send(payload)?;
-
-    if resp.status().is_success() {
-        tracing::debug!("Metrics pushed successfully");
-    } else {
-        tracing::warn!("Failed to push metrics: {}", resp.status());
     }
-
-    Ok(())
 }
 
-fn report_results(
+fn report_success(
     summary_total: &ApplySummary,
     elapsed_time: Duration,
     metrics_to: Option<&str>,
@@ -86,11 +32,22 @@ fn report_results(
     );
 
     if let Some(metrics_host) = metrics_to {
-        match send_metrics(summary_total, elapsed_time, metrics_host) {
+        match metrics::send_as_influx(Some(summary_total), elapsed_time, metrics_host) {
             Ok(_) => (),
             Err(e) => tracing::error!("error sending metrics: {}", e),
         }
     }
 
     0
+}
+
+fn report_failure(elapsed_time: Duration, metrics_to: Option<&str>) -> ExitCode {
+    if let Some(metrics_host) = metrics_to {
+        match metrics::send_as_influx(None, elapsed_time, metrics_host) {
+            Ok(_) => (),
+            Err(e) => tracing::error!("error sending metrics: {}", e),
+        }
+    }
+
+    1
 }
