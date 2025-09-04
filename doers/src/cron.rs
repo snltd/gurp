@@ -62,8 +62,14 @@ impl GurpCronEnsure {
         match self.ensured_crontab(&content)? {
             Some(new_crontab) => {
                 tracing::info!("changing: {}", self.name);
-                tracing::debug!("new crontab follows\n{}", new_crontab);
+                if opts.dump_config {
+                    println!(
+                        "{}",
+                        helpers::dump_config(&new_crontab, &format!("{} crontab", self.user), opts)
+                    );
+                }
                 return_if_noop!(opts);
+
                 write_crontab(&self.user, &new_crontab)
             }
             None => {
@@ -125,11 +131,22 @@ impl GurpCronRemove {
                 if new_crontab.is_empty() {
                     tracing::debug!("new {} crontab is empty", self.user);
                     return_if_noop!(opts);
+
                     tracing::debug!("removing crontab: {}", self.user);
                     self.empty_crontab()
                 } else {
-                    tracing::debug!("new {} crontab follows\n{}", self.user, new_crontab);
+                    if opts.dump_config {
+                        println!(
+                            "{}",
+                            helpers::dump_config(
+                                &new_crontab,
+                                &format!("{} crontab", self.user),
+                                opts
+                            )
+                        );
+                    }
                     return_if_noop!(opts);
+
                     write_crontab(&self.user, &new_crontab)
                 }
             }

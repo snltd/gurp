@@ -2,6 +2,12 @@
 resolver = "3"
 
 members = [
-  "cli", "commands",
-  "common", "doers", "janet_int", "macros", "tester", "util",
+  "cli",
+  "commands",
+  "common",
+  "doers",
+  "janet_int",
+  "macros",
+  "tester",
+  "util",
 ]
