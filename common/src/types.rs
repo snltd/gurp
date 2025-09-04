@@ -6,7 +6,7 @@ use std::ops::Add;
 
 pub type ExitCode = u8;
 
-#[derive(Clone)]
+#[derive(Debug)]
 pub struct ApplyOpts {
     pub noop: bool,
     pub colour: bool,
