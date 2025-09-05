@@ -13,6 +13,7 @@ pub struct ApplyOpts {
     pub line_no: bool,
     pub gurp_lib_path: Option<Utf8PathBuf>,
     pub dump_config: bool,
+    pub dump_diffs: bool,
     pub compile_only: bool,
     pub metrics_to: Option<String>,
 }

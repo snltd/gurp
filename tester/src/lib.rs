@@ -27,6 +27,7 @@ pub fn defopts() -> ApplyOpts {
         colour: false,
         line_no: false,
         gurp_lib_path: None,
+        dump_diffs: false,
         compile_only: false,
         metrics_to: None,
     }
@@ -38,6 +39,7 @@ pub fn defopts_noop() -> ApplyOpts {
         noop: true,
         colour: true,
         line_no: false,
+        dump_diffs: false,
         gurp_lib_path: None,
         compile_only: false,
         metrics_to: None,

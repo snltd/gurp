@@ -21,9 +21,12 @@ enum Commands {
         #[arg(short, long)]
         noop: bool,
         /// Dump intermediate config files to stdout
-        #[arg(short, long)]
+        #[arg(short = 'd', long)]
         dump_config: bool,
-        /// When dumping configs, use syntax colouring where possible
+        /// When files change, dump diffs to stdout
+        #[arg(short = 'D', long)]
+        dump_diffs: bool,
+        /// When dumping configs or diffs, use syntax colouring where supported
         #[arg(short = 'C', long)]
         colour: bool,
         /// When dumping configs, number lines
@@ -84,6 +87,7 @@ fn main() -> anyhow::Result<()> {
             host_config_file,
             noop,
             dump_config,
+            dump_diffs,
             colour,
             line_no,
             gurp_lib_path,
@@ -92,6 +96,7 @@ fn main() -> anyhow::Result<()> {
             let opts = ApplyOpts {
                 noop,
                 dump_config,
+                dump_diffs,
                 colour,
                 line_no,
                 gurp_lib_path,
@@ -110,6 +115,7 @@ fn main() -> anyhow::Result<()> {
             let opts = ApplyOpts {
                 noop: false,
                 dump_config: false,
+                dump_diffs: false,
                 colour: false,
                 line_no,
                 gurp_lib_path,

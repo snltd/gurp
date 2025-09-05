@@ -179,13 +179,18 @@ impl GurpFileEnsure {
             if self.file_has_changed()? {
                 tracing::info!("updating {}", self.path);
 
-                if opts.dump_config
+                if opts.dump_diffs
                     && let Some(string_contents) = fs::read_to_string(&self.path).ok()
                     && let Some(desired_content) = &self.desired_state.content
                 {
                     println!(
                         "{}",
-                        &helpers::dump_diff(&string_contents, desired_content, opts.colour)
+                        &helpers::dump_diff(
+                            &string_contents,
+                            desired_content,
+                            self.path.as_str(),
+                            opts.colour
+                        )
                     );
                 }
 
@@ -199,7 +204,7 @@ impl GurpFileEnsure {
         } else {
             tracing::info!("Creating {}", self.path);
 
-            if opts.dump_config
+            if opts.dump_diffs
                 && let Some(desired_content) = &self.desired_state.content
             {
                 println!("{}", desired_content);
