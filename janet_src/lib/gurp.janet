@@ -630,6 +630,11 @@
   []
   (run-cmd "/bin/uname -n"))
 
+(defn config-file
+  "Returns the actual path of a file in ../files"
+  [path]
+        (qualify-from-path path))
+
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
 
 (defn apk/ensure

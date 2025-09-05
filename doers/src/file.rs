@@ -1,6 +1,7 @@
 use crate::constants::PROTECTED_FILES;
 use anyhow::ensure;
 use blake3::Hash;
+use common::helpers;
 use common::prelude::*;
 use regex::Regex;
 use serde::Deserialize;
@@ -177,6 +178,17 @@ impl GurpFileEnsure {
         if self.path.exists() {
             if self.file_has_changed()? {
                 tracing::info!("updating {}", self.path);
+
+                if opts.dump_config
+                    && let Some(string_contents) = fs::read_to_string(&self.path).ok()
+                    && let Some(desired_content) = &self.desired_state.content
+                {
+                    println!(
+                        "{}",
+                        &helpers::dump_diff(&string_contents, desired_content, opts.colour)
+                    );
+                }
+
                 if !opts.noop {
                     self.write_file(opts)?;
                 }
@@ -186,6 +198,13 @@ impl GurpFileEnsure {
             }
         } else {
             tracing::info!("Creating {}", self.path);
+
+            if opts.dump_config
+                && let Some(desired_content) = &self.desired_state.content
+            {
+                println!("{}", desired_content);
+            }
+
             return_if_noop!(opts);
 
             changes = 1;
@@ -320,8 +339,8 @@ impl GurpFileRemove {
 #[cfg(test)]
 mod test {
     use super::*;
-    use assert_fs::prelude::*;
     use assert_fs::TempDir;
+    use assert_fs::prelude::*;
     use camino::Utf8PathBuf;
     use indoc::{formatdoc, indoc};
     use pretty_assertions::assert_eq;

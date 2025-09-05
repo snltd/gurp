@@ -1,4 +1,5 @@
 use crate::types::ApplyOpts;
+use colored::Colorize;
 use serde_json::Value;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -45,6 +46,22 @@ pub fn dump_config(code: &str, description: &str, opts: &ApplyOpts) -> String {
 
     ret.push_str(&banner_end);
     ret.push('\n');
+    ret
+}
+
+pub fn dump_diff(existing: &str, desired: &str, colour: bool) -> String {
+    let mut ret = String::new();
+
+    for diff in diff::lines(existing, desired) {
+        match diff {
+            diff::Result::Left(l) if colour => ret.push_str(&format!("-{}\n", l.red())),
+            diff::Result::Left(l) => ret.push_str(&format!("-{l}\n")),
+            diff::Result::Both(l, _) => ret.push_str(&format!(" {l}\n")),
+            diff::Result::Right(r) if colour => ret.push_str(&format!("+{}\n", r.green())),
+            diff::Result::Right(r) => ret.push_str(&format!("+{r}\n")),
+        }
+    }
+
     ret
 }
 
