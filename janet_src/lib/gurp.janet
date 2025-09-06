@@ -52,6 +52,8 @@
      :owner ["The username or UID of the user who owns this file" :string :number]
      :content ["Literal content of the file. Must have :content xor :from" :string]
      :from ["Copy content from this file. If relative, looks in ../files" :string]
+     :from-struct ["Generate a config file from the given struct. Requires :to-format" :struct]
+     :to-format ["Used with :from-struct to try to turn the struct into this format" : string]
      :ignore-pattern ["When comparing, ignore lines matching this Rust regex" :string]}}
 
    :gem
@@ -279,28 +281,28 @@
 (defn- resolve-reference
   "Recursively chase down references. Catches circular and dangling"
   [target flat-resources seen]
-  (try 
-  (let [last-sep (last (string/find-all "/" target))
-        chunks (string/split "/" target last-sep)
-        id (first chunks)
-        field (keyword (last chunks))
-        referenced-struct (find |(= id (get $ :_id)) flat-resources)]
+  (try
+    (let [last-sep (last (string/find-all "/" target))
+          chunks (string/split "/" target last-sep)
+          id (first chunks)
+          field (keyword (last chunks))
+          referenced-struct (find |(= id (get $ :_id)) flat-resources)]
 
-    (if (nil? referenced-struct)
-      (error (string/format "Referenced resource '%s' not found" id)))
+      (if (nil? referenced-struct)
+        (error (string/format "Referenced resource '%s' not found" id)))
 
-    (if (has-value? seen id)
-      (error (string/format "Detected circular reference [%q]" seen)))
+      (if (has-value? seen id)
+        (error (string/format "Detected circular reference [%q]" seen)))
 
-    (set (seen id) true)
-    (def referenced-val (referenced-struct field))
+      (set (seen id) true)
+      (def referenced-val (referenced-struct field))
 
-    (if (keyword? referenced-val)
-      (resolve-reference referenced-val flat-resources seen)
-      referenced-val))
-      ([e]
-        (error
-          (string "Failed to resolve reference '" target "'")))))
+      (if (keyword? referenced-val)
+        (resolve-reference referenced-val flat-resources seen)
+        referenced-val))
+    ([e]
+      (error
+        (string "Failed to resolve reference '" target "'")))))
 
 (defn- resolve-resource-references
   "Update any references in a resource with their final targets"
