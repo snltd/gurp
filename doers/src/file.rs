@@ -228,6 +228,13 @@ impl GurpFileEnsure {
             self.write_file(opts)?;
         }
 
+        if opts.noop {
+            return Ok(ApplySummary {
+                resources: 1,
+                changes,
+            });
+        }
+
         file::ensure_metadata(
             FileMetadata {
                 group: &self.desired_state.group,
