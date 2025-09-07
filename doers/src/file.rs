@@ -179,38 +179,13 @@ impl GurpFileEnsure {
             if self.file_has_changed()? {
                 tracing::info!("updating {}", self.path);
 
-                if opts.dump_diffs
-                    && let Some(string_contents) = fs::read_to_string(&self.path).ok()
-                    && let Some(desired_content) = &self.desired_state.content
-                {
-                    println!(
-                        "{}",
-                        &helpers::dump_diff(
-                            &string_contents,
-                            desired_content,
-                            self.path.as_str(),
-                            opts.colour
-                        )
-                    );
-                }
-
-                if !opts.noop {
-                    self.write_file(opts)?;
-                }
                 changes = 1;
+                self.write_file(opts)?;
             } else {
                 tracing::debug!("{} content is correct", self.path);
             }
         } else {
             tracing::info!("Creating {}", self.path);
-
-            if opts.dump_diffs
-                && let Some(desired_content) = &self.desired_state.content
-            {
-                println!("{}", desired_content);
-            }
-
-            return_if_noop!(opts);
 
             changes = 1;
             self.write_file(opts)?;
@@ -255,6 +230,29 @@ impl GurpFileEnsure {
     fn write_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
         self.back_up_file(opts)?;
 
+        let new_content = if let Some(content) = &self.desired_state.content {
+            Some(content)
+        } else if let Some(from_struct) = &self.desired_state.from_struct {
+            Some(&self.struct_to_file(from_struct, self.desired_state.to_format.as_deref())?)
+        } else {
+            None
+        };
+
+        if opts.dump_diffs
+            && let Some(new_content) = new_content
+            && let Some(existing_content) = fs::read_to_string(&self.path).ok()
+        {
+            println!(
+                "{}",
+                &helpers::dump_diff(
+                    &existing_content,
+                    new_content,
+                    self.path.as_str(),
+                    opts.colour
+                )
+            );
+        }
+
         if let Some(from) = &self.desired_state.from {
             tracing::debug!("copying {} -> {}", from, self.path);
 
@@ -263,20 +261,8 @@ impl GurpFileEnsure {
             }
 
             Ok(())
-        } else if let Some(content) = &self.desired_state.content {
+        } else if let Some(content) = new_content {
             tracing::debug!("Writing content to {}", self.path);
-
-            if !opts.noop {
-                let mut fh = fs::File::create(&self.path)?;
-                fh.write_all(content.as_bytes())?;
-            }
-
-            Ok(())
-        } else if let Some(from_struct) = &self.desired_state.from_struct {
-            tracing::debug!("Writing file from struct to {}", self.path);
-
-            let content =
-                self.struct_to_file(from_struct, self.desired_state.to_format.as_deref())?;
 
             if !opts.noop {
                 let mut fh = fs::File::create(&self.path)?;
