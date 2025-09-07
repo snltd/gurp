@@ -108,6 +108,7 @@ impl GurpZfsEnsure {
                 if run_cmd {
                     cmd.arg(&self.name);
                     tracing::debug!(command = helpers::command_to_string(&cmd));
+                    return_if_noop!(opts);
 
                     let output = cmd.output()?;
 

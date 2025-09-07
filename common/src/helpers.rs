@@ -1,4 +1,5 @@
 use crate::types::ApplyOpts;
+use colored::Colorize;
 use serde_json::Value;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -26,14 +27,15 @@ pub fn pretty_json(json_str: &str) -> anyhow::Result<String> {
     Ok(serde_json::to_string_pretty(&value)?)
 }
 
-pub fn dump_config(code: &str, description: &str, opts: &ApplyOpts) -> String {
-    let mut banner_begin = format!("--- BEGIN {description} ");
-    let mut banner_end = format!("--- END {description} ");
-    banner_begin.push_str("-".repeat(TW - banner_begin.len()).as_str());
-    banner_end.push_str("-".repeat(TW - banner_end.len()).as_str());
-
-    let mut ret = banner_begin;
+fn banner(marker: &str, description: &str) -> String {
+    let mut ret = format!("--- {marker} {description} ");
+    ret.push_str("-".repeat(TW - ret.len()).as_str());
     ret.push('\n');
+    ret
+}
+
+pub fn dump_config(code: &str, description: &str, opts: &ApplyOpts) -> String {
+    let mut ret = banner("BEGIN", description);
 
     if opts.line_no {
         code.lines()
@@ -43,8 +45,24 @@ pub fn dump_config(code: &str, description: &str, opts: &ApplyOpts) -> String {
         code.lines().for_each(|l| ret.push_str(&format!("{l}\n")));
     }
 
-    ret.push_str(&banner_end);
-    ret.push('\n');
+    ret.push_str(&banner("END", description));
+    ret
+}
+
+pub fn dump_diff(existing: &str, desired: &str, description: &str, colour: bool) -> String {
+    let mut ret = banner("END", &format!("{description} diff"));
+
+    for diff in diff::lines(existing, desired) {
+        match diff {
+            diff::Result::Left(l) if colour => ret.push_str(&format!("-{}\n", l.red())),
+            diff::Result::Left(l) => ret.push_str(&format!("-{l}\n")),
+            diff::Result::Both(_, _) => (),
+            diff::Result::Right(r) if colour => ret.push_str(&format!("+{}\n", r.green())),
+            diff::Result::Right(r) => ret.push_str(&format!("+{r}\n")),
+        }
+    }
+
+    ret.push_str(&banner("END", &format!("{description} diff")));
     ret
 }
 

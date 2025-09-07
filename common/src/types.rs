@@ -6,13 +6,14 @@ use std::ops::Add;
 
 pub type ExitCode = u8;
 
-#[derive(Clone)]
+#[derive(Debug)]
 pub struct ApplyOpts {
     pub noop: bool,
     pub colour: bool,
     pub line_no: bool,
     pub gurp_lib_path: Option<Utf8PathBuf>,
     pub dump_config: bool,
+    pub dump_diffs: bool,
     pub compile_only: bool,
     pub metrics_to: Option<String>,
 }

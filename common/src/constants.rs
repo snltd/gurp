@@ -1,5 +1,7 @@
 use crate::types::ApplySummary;
 
+pub const GURP_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 // Binaries gurp is allowed to run
 pub const APK_BIN: &str = "/sbin/apk";
 pub const CRONTAB_BIN: &str = "/bin/crontab";

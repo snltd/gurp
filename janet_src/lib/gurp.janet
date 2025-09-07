@@ -630,6 +630,11 @@
   []
   (run-cmd "/bin/uname -n"))
 
+(defn config-file
+  "Returns the actual path of a file in ../files"
+  [path]
+        (qualify-from-path path))
+
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
 
 (defn apk/ensure
@@ -816,7 +821,16 @@
 (defn svc/ensure
   "Given a name and state, return a svc ensure struct"
   [name & specs]
-  (collect :ensure :svc (make-resource :ensure :svc name specs)))
+  (let [result (make-resource :ensure :svc name specs)]
+    (var resource (struct/to-table (result :svc)))
+
+    (if-let [restarters (resource :restarted-by)]
+      (set (resource :restarted-by) (map string restarters)))
+
+    (if-let [reloaders (resource :reloaded-by)]
+      (set (resource :reloaded-by) (map string reloaders)))
+
+    (collect :ensure :svc (struct :svc (table/to-struct resource)))))
 
 (defn svcprop/ensure
   "Given a name and state, return a svcprop ensure struct"

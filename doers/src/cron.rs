@@ -1,3 +1,4 @@
+use common::helpers;
 use common::prelude::*;
 use serde::Deserialize;
 use std::fmt;
@@ -59,11 +60,24 @@ pub struct GurpCronRemove {
 impl GurpCronEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let content = current_crontab(&self.user)?;
+        let description = format!("{} crontab", self.user);
+
         match self.ensured_crontab(&content)? {
             Some(new_crontab) => {
                 tracing::info!("changing: {}", self.name);
-                tracing::debug!("new crontab follows\n{}", new_crontab);
+                if opts.dump_config {
+                    println!("{}", helpers::dump_config(&new_crontab, &description, opts));
+                }
+
+                if opts.dump_diffs {
+                    println!(
+                        "{}",
+                        &helpers::dump_diff(&content, &new_crontab, &description, opts.colour)
+                    );
+                }
+
                 return_if_noop!(opts);
+
                 write_crontab(&self.user, &new_crontab)
             }
             None => {
@@ -125,11 +139,22 @@ impl GurpCronRemove {
                 if new_crontab.is_empty() {
                     tracing::debug!("new {} crontab is empty", self.user);
                     return_if_noop!(opts);
+
                     tracing::debug!("removing crontab: {}", self.user);
                     self.empty_crontab()
                 } else {
-                    tracing::debug!("new {} crontab follows\n{}", self.user, new_crontab);
+                    if opts.dump_config {
+                        println!(
+                            "{}",
+                            helpers::dump_config(
+                                &new_crontab,
+                                &format!("{} crontab", self.user),
+                                opts
+                            )
+                        );
+                    }
                     return_if_noop!(opts);
+
                     write_crontab(&self.user, &new_crontab)
                 }
             }

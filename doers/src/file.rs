@@ -1,6 +1,7 @@
 use crate::constants::PROTECTED_FILES;
 use anyhow::ensure;
 use blake3::Hash;
+use common::helpers;
 use common::prelude::*;
 use regex::Regex;
 use serde::Deserialize;
@@ -91,15 +92,51 @@ impl GurpFileEnsure {
             ret.push_str(&format!("[{section_name}]\n"));
 
             for (k, v) in section_map {
-                let string_val = v.to_string().trim_matches('"').to_owned();
-                let value = if string_val.chars().all(|c| c.is_alphanumeric()) {
-                    string_val
+                let string_k = self.prepped_kvp(k);
+                let string_v = self.prepped_kvp(&v.to_string());
+
+                let value = if string_v.chars().all(|c| c.is_alphanumeric()) {
+                    string_v
                 } else {
-                    format!("\"{string_val}\"")
+                    format!("\"{string_v}\"")
                 };
 
-                ret.push_str(&format!("{k} = {value}\n"));
+                ret.push_str(&format!("{string_k} = {value}\n"));
             }
+        }
+
+        Ok(ret)
+    }
+
+    fn prepped_kvp(&self, raw: &str) -> String {
+        raw.to_string().trim_matches(['"', ':']).to_owned()
+    }
+
+    // Very crude key-value pair. Accepts a map, or an array where alternate entries are key then
+    // value. The latter lets you have duplicate keys, which I need.
+    fn struct_to_k_equals_v(&self, value: &Value) -> anyhow::Result<String> {
+        let mut ret = String::new();
+
+        if let Some(map) = value.as_object() {
+            for (k, v) in map {
+                let clean_val = v.to_string().trim_matches('"').to_owned();
+                ret.push_str(&format!("{k}={clean_val}\n"));
+            }
+        } else if let Some(map) = value.as_array() {
+            if map.len() % 2 != 0 {
+                bail!(
+                    "KVP array must have an even number of elements. (Got {})",
+                    map.len()
+                );
+            }
+
+            for chunk in map.chunks(2) {
+                let string_k = self.prepped_kvp(&chunk[0].to_string());
+                let string_v = self.prepped_kvp(&chunk[1].to_string());
+                ret.push_str(&format!("{string_k}={string_v}\n"));
+            }
+        } else {
+            bail!("Requested k=v, but data is not a struct or array")
         }
 
         Ok(ret)
@@ -112,6 +149,7 @@ impl GurpFileEnsure {
                 "toml" => Ok(toml::to_string(&value)?),
                 "json" => Ok(serde_json::to_string_pretty(&value)?),
                 "ini" => Ok(self.struct_to_ini(value)?),
+                "k=v" => Ok(self.struct_to_k_equals_v(value)?),
                 other => bail!("Unknown format: {}", other),
             }
         } else {
@@ -177,19 +215,24 @@ impl GurpFileEnsure {
         if self.path.exists() {
             if self.file_has_changed()? {
                 tracing::info!("updating {}", self.path);
-                if !opts.noop {
-                    self.write_file(opts)?;
-                }
+
                 changes = 1;
+                self.write_file(opts)?;
             } else {
                 tracing::debug!("{} content is correct", self.path);
             }
         } else {
             tracing::info!("Creating {}", self.path);
-            return_if_noop!(opts);
 
             changes = 1;
             self.write_file(opts)?;
+        }
+
+        if opts.noop {
+            return Ok(ApplySummary {
+                resources: 1,
+                changes,
+            });
         }
 
         file::ensure_metadata(
@@ -231,6 +274,29 @@ impl GurpFileEnsure {
     fn write_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
         self.back_up_file(opts)?;
 
+        let new_content = if let Some(content) = &self.desired_state.content {
+            Some(content)
+        } else if let Some(from_struct) = &self.desired_state.from_struct {
+            Some(&self.struct_to_file(from_struct, self.desired_state.to_format.as_deref())?)
+        } else {
+            None
+        };
+
+        if opts.dump_diffs
+            && let Some(new_content) = new_content
+            && let Some(existing_content) = fs::read_to_string(&self.path).ok()
+        {
+            println!(
+                "{}",
+                &helpers::dump_diff(
+                    &existing_content,
+                    new_content,
+                    self.path.as_str(),
+                    opts.colour
+                )
+            );
+        }
+
         if let Some(from) = &self.desired_state.from {
             tracing::debug!("copying {} -> {}", from, self.path);
 
@@ -239,20 +305,8 @@ impl GurpFileEnsure {
             }
 
             Ok(())
-        } else if let Some(content) = &self.desired_state.content {
+        } else if let Some(content) = new_content {
             tracing::debug!("Writing content to {}", self.path);
-
-            if !opts.noop {
-                let mut fh = fs::File::create(&self.path)?;
-                fh.write_all(content.as_bytes())?;
-            }
-
-            Ok(())
-        } else if let Some(from_struct) = &self.desired_state.from_struct {
-            tracing::debug!("Writing file from struct to {}", self.path);
-
-            let content =
-                self.struct_to_file(from_struct, self.desired_state.to_format.as_deref())?;
 
             if !opts.noop {
                 let mut fh = fs::File::create(&self.path)?;

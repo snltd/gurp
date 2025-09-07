@@ -58,6 +58,15 @@ macro_rules! return_if_noop {
             return Ok(common::constants::ONE_RESOURCE_NOOP);
         }
     };
+
+    ($opts:expr, $resources:expr, $changes:expr) => {
+        if $opts.noop {
+            return Ok(common::types::ApplySummary {
+                resources: $resources,
+                changes: $changes,
+            });
+        }
+    };
 }
 
 #[macro_export]
