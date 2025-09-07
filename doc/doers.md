@@ -192,17 +192,20 @@ the directory.
              :content "some content")
 ```
 
-| Key               | Type           | Description                                                    | Default | Mandatory |
-| ----------------- | -------------- | -------------------------------------------------------------- | ------- | --------- |
-| Name              | string         | Fully-qualified path                                           |         | yes       |
-| `:content`        | string         | Literal file content                                           |         | yes [*]   |
-| `:from`           | string         | Path to a file which will be copied in                         |         | yes [*]   |
-| `:group`          | string, number | Can be a group name or numeric GID                             | `root`  |           |
-| `:ignore-pattern` | string         | When diffing files, Gurp will ignore lines matching this regex |         |           |
-| `:mode`           | string         | Four-character octal string                                    | `0755`  |           |
-| `:user`           | string, number | Can be a username or numeric UID                               | `root`  |           |
+| Key               | Type           | Description                                                                                                           | Default | Mandatory |
+| ----------------- | -------------- | --------------------------------------------------------------------------------------------------------------------- | ------- | --------- |
+| Name              | string         | Fully-qualified path                                                                                                  |         | yes       |
+| `:content`        | string         | Literal file content                                                                                                  |         | yes [*]   |
+| `:from`           | string         | Path to a file which will be copied in                                                                                |         | yes [*]   |
+| `:from-struct`    | struct, array  | A struct which Gurp will attempt to turn into a config file                                                           |         | yes [*]   |
+| `:group`          | string, number | Can be a group name or numeric GID                                                                                    | `root`  |           |
+| `:ignore-pattern` | string         | When diffing files, Gurp will ignore lines matching this regex                                                        |         |           |
+| `:mode`           | string         | Four-character octal string                                                                                           | `0755`  |           |
+| `:to-format`      | string         | The format of config file you wish to produce from your `:from-struct`. Can be `json`, `toml`, `yaml`, `ini` or `kvp` |         |           |
+| `:user`           | string, number | Can be a username or numeric UID                                                                                      | `root`  |           |
 
-[*] You must supply exactly one of `:content` or `:from`.
+[*] You must supply exactly one of `:content`, `:from`, or `:from-struct`. If
+you use `:from-struct` you must also supply `:to-format`.
 
 The `(template-out)` and `(indoc)` helpers are useful when specifying
 `:content`.
@@ -210,6 +213,19 @@ The `(template-out)` and `(indoc)` helpers are useful when specifying
 `:from` takes a fully-qualified or relative path. If you use the latter, Gurp
 assumes the file is in a `files/` directory at the same level as the directory
 holding the file being parsed.
+
+`:from-struct` and `:to-format` let you turn Janet values into a config file.
+Fully supported file formats are `json`, `toml`, and `yaml`: these formats can
+represent any valid struct.
+
+You can create INI files (`:to-format "ini"`), but the limits of that format
+mean your struct must be a struct of structs, each representing a section. An
+invalid struct will cause an error.
+
+Gurp can also create key-value pairs (`:to-format "kvp"`). It can do this from a
+single-level struct, or from an array. In the latter case, entries are
+alternately keys and values. Using an array lets you create files with duplicate
+keys.
 
 ### `(file/remove)`
 
