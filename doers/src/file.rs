@@ -92,15 +92,51 @@ impl GurpFileEnsure {
             ret.push_str(&format!("[{section_name}]\n"));
 
             for (k, v) in section_map {
-                let string_val = v.to_string().trim_matches('"').to_owned();
-                let value = if string_val.chars().all(|c| c.is_alphanumeric()) {
-                    string_val
+                let string_k = self.prepped_kvp(k);
+                let string_v = self.prepped_kvp(&v.to_string());
+
+                let value = if string_v.chars().all(|c| c.is_alphanumeric()) {
+                    string_v
                 } else {
-                    format!("\"{string_val}\"")
+                    format!("\"{string_v}\"")
                 };
 
-                ret.push_str(&format!("{k} = {value}\n"));
+                ret.push_str(&format!("{string_k} = {value}\n"));
             }
+        }
+
+        Ok(ret)
+    }
+
+    fn prepped_kvp(&self, raw: &str) -> String {
+        raw.to_string().trim_matches(['"', ':']).to_owned()
+    }
+
+    // Very crude key-value pair. Accepts a map, or an array where alternate entries are key then
+    // value. The latter lets you have duplicate keys, which I need.
+    fn struct_to_k_equals_v(&self, value: &Value) -> anyhow::Result<String> {
+        let mut ret = String::new();
+
+        if let Some(map) = value.as_object() {
+            for (k, v) in map {
+                let clean_val = v.to_string().trim_matches('"').to_owned();
+                ret.push_str(&format!("{k}={clean_val}\n"));
+            }
+        } else if let Some(map) = value.as_array() {
+            if map.len() % 2 != 0 {
+                bail!(
+                    "KVP array must have an even number of elements. (Got {})",
+                    map.len()
+                );
+            }
+
+            for chunk in map.chunks(2) {
+                let string_k = self.prepped_kvp(&chunk[0].to_string());
+                let string_v = self.prepped_kvp(&chunk[1].to_string());
+                ret.push_str(&format!("{string_k}={string_v}\n"));
+            }
+        } else {
+            bail!("Requested k=v, but data is not a struct or array")
         }
 
         Ok(ret)
@@ -113,6 +149,7 @@ impl GurpFileEnsure {
                 "toml" => Ok(toml::to_string(&value)?),
                 "json" => Ok(serde_json::to_string_pretty(&value)?),
                 "ini" => Ok(self.struct_to_ini(value)?),
+                "k=v" => Ok(self.struct_to_k_equals_v(value)?),
                 other => bail!("Unknown format: {}", other),
             }
         } else {
