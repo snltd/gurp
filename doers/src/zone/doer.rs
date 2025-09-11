@@ -63,6 +63,8 @@ impl GurpZoneEnsure {
             }
         }
 
+        tracing::info!("Must create zone {}", self.name);
+
         if opts.dump_config {
             println!(
                 "{}",
