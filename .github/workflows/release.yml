@@ -1,0 +1,27 @@
+name: Release illumos Binary
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Add illumos target
+        run: rustup target add x86_64-unknown-illumos
+
+      - name: Build for illumos
+        run: cargo build --release --target x86_64-unknown-illumos
+
+      - name: Upload binary to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/x86_64-unknown-illumos/release/gurp
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
