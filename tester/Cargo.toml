@@ -1,14 +1,11 @@
 [package]
 name = "tester"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 
 [dependencies]
 camino = { version = "1.1.9", features = ["serde1"] }
-nix = { version = "0.30.1", features = ["user"] }
 common = { path = "../common" }
 janet_int = {path = "../janet_int" }
 janetrs = "0.8.0"
-
-[dev-dependencies]
-janetrs = "0.8.0"
+nix = { version = "0.30.1", features = ["user"] }
