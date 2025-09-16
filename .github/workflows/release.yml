@@ -1,0 +1,51 @@
+name: illumos
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    name: Build and Release for OmniOS
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build in OmniOS VM
+      id: test
+      uses: vmactions/omnios-vm@v1
+      with:
+        usesh: true
+        prepare: |
+          pkg install developer/gcc14
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        run: |
+          . ${HOME}/.cargo/env 
+          cd $GITHUB_WORKSPACE
+          cargo test
+          cargo build --release
+          cp target/release/gurp .
+          strip gurp
+          cargo clean
+
+    - name: Package Binary
+      run: |
+        mkdir -p release
+        BINARY_NAME=gurp
+        VERSION=${GITHUB_REF_NAME}
+        TAR_NAME=${BINARY_NAME}-${VERSION}-omnios.tar.gz
+        tar czf release/$TAR_NAME $BINARY_NAME
+        echo "PACKAGE_PATH=release/$TAR_NAME" >>$GITHUB_ENV
+
+    - name: Create GitHub Release and upload asset
+      run: |
+        gh release create "${GITHUB_REF_NAME}" "${PACKAGE_PATH}" \
+          --title "Release ${GITHUB_REF_NAME}" \
+          --notes "Automated release for OmniOS"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PACKAGE_PATH: ${{ env.PACKAGE_PATH }}
