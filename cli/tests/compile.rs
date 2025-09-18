@@ -2,11 +2,14 @@
 mod test {
     use assert_cmd::Command;
     use predicates::prelude::*;
-    use tester::{fixture, load_fixture};
+    use tester::{cwd, fixture, load_fixture};
 
     #[test]
     #[ignore]
     fn test_compile_to_json() {
+        let canonical_test_dir = "/home/rob/work/gurp/cli";
+        let test_dir = cwd().to_string();
+
         for host in [
             "backup",
             "dev-server",
@@ -18,7 +21,8 @@ mod test {
             "remover",
             "serv-zones",
         ] {
-            let expected_json = load_fixture(&format!("compile/outputs/{host}.json"));
+            let canonical_json = load_fixture(&format!("compile/outputs/{host}.json"));
+            let expected_json = canonical_json.replace(canonical_test_dir, &test_dir);
 
             Command::cargo_bin("gurp")
                 .unwrap()
