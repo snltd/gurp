@@ -710,6 +710,8 @@ dependencies = [
  "commands",
  "common",
  "predicates",
+ "pretty_assertions",
+ "tester",
  "tracing",
  "tracing-subscriber",
 ]

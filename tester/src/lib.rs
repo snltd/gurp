@@ -17,7 +17,8 @@ pub fn fixture(file: &str) -> Utf8PathBuf {
 }
 
 pub fn load_fixture(file: &str) -> String {
-    fs::read_to_string(fixture(file)).unwrap_or_else(|_| panic!("Did not find {file}"))
+    let fixture = fixture(file);
+    fs::read_to_string(&fixture).unwrap_or_else(|_| panic!("Did not find {fixture}"))
 }
 
 pub fn defopts() -> ApplyOpts {
