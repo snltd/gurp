@@ -47,15 +47,6 @@
                            :state "online"
                            :restarted-by [(this "file" "crondef")]))
 
-      (section gurp-yo-self
-               (let [salt (% (apply + (seq [c :in (hostname)] c)) 15)
-                     minutes (map |(string (+ salt $)) (tuple 0 15 30 45))
-                     my-config (string/replace "/export" "" (dyn :config-file))]
-
-                 (cron/ensure "run gurp"
-                              :minute (string/join minutes ",")
-                              :command (helpers/site-cron "gurp" "apply" "--metrics-to=metrics" my-config))))
-
       (section good-sense
                (file-line/ensure "/etc/profile"
                                  :label "profile-set-vi"
