@@ -8,12 +8,12 @@ use nix::unistd::{Group, User, getgid, getuid};
 use std::env::current_dir;
 use std::fs;
 
+pub fn cwd() -> Utf8PathBuf {
+    Utf8PathBuf::from_path_buf(current_dir().unwrap()).unwrap()
+}
+
 pub fn fixture(file: &str) -> Utf8PathBuf {
-    Utf8PathBuf::from_path_buf(current_dir().unwrap())
-        .unwrap()
-        .join("tests")
-        .join("resources")
-        .join(file)
+    cwd().join("tests").join("resources").join(file)
 }
 
 pub fn load_fixture(file: &str) -> String {

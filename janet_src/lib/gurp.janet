@@ -628,7 +628,7 @@
 (defn hostname
   "Returns the name of the current host"
   []
-  (run-cmd "/bin/uname -n"))
+  (run-cmd "uname -n"))
 
 (defn config-file
   "Returns the actual path of a file in ../files"
