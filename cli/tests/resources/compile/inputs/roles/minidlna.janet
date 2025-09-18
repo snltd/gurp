@@ -7,7 +7,6 @@
       (def minidlna-conf
         [:media_dir "A,/storage/flac"
          :media_dir "A,/storage/mp3"
-         :friendly_name (hostname)
          :album_art_names "front.jpg"
          :album_art_names "front.png"
          :inotify "yes"
