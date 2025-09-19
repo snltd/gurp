@@ -38,23 +38,25 @@
 
    :file-line
    {:optional
-    {:apply-to ["Which matches to act on when replacing: 'first', 'last', 'all'" :string]
-     :insert-at ["If a new line must be added, it will go at this index" :number]
+    {:insert-at ["If a new line must be added, it will go at this index" :number]
+     :line ["The line which must exist" :string]
      :replace ["Pattern to replace. Rust regex" :string]
      :with ["Counterpart to :replace" :string]
-     :line ["The line which must exist" :string]}}
+     :apply-to ["Which matches to act on when replacing: 'first', 'last', 'all'" :string]}}
 
    :file
    {:optional
     {:backup-suffix ["Back up the file with this suff. Use 'TIMESTAMP' for an epoch timestamp" :string]
-     :group ["The group name or GID of the for this file" :string :number]
-     :mode ["Permissions written as a four-digit octal" :string]
-     :owner ["The username or UID of the user who owns this file" :string :number]
-     :content ["Literal content of the file. Must have :content xor :from" :string]
      :from ["Copy content from this file. If relative, looks in ../files" :string]
      :from-struct ["Generate a config file from the given struct. Requires :to-format" :struct]
+     :from-uri ["Fetch file from the given URI" :string]
+     :group ["The group name or GID of the for this file" :string :number]
+     :ignore-pattern ["When comparing, ignore lines matching this Rust regex" :string]
+     :mode ["Permissions written as a four-digit octal" :string]
+     :owner ["The username or UID of the user who owns this file" :string :number]
      :to-format ["Used with :from-struct to try to turn the struct into this format" : string]
-     :ignore-pattern ["When comparing, ignore lines matching this Rust regex" :string]}}
+     :with-checksum ["Blake3 checksum used to validate files fetched by :from-uri" :string]
+     :content ["Literal content of the file. Must have :content xor :from" :string]}}
 
    :gem
    {:optional
@@ -633,7 +635,7 @@
 (defn config-file
   "Returns the actual path of a file in ../files"
   [path]
-        (qualify-from-path path))
+  (qualify-from-path path))
 
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
 
@@ -676,8 +678,11 @@
     (def final-resource
       (if-let [from-path (resource :from)]
         (do
-          (set (resource :from) (qualify-from-path from-path))
-          {:file (table/to-struct resource)})
+          (let [uri-or-qualified-path (if (string/find "://" from-path)
+                                        from-path
+                                        (qualify-from-path from-path))]
+            (set (resource :from) uri-or-qualified-path)
+            {:file (table/to-struct resource)}))
         result))
 
     (collect :ensure :file final-resource)))
