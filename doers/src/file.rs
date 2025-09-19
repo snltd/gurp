@@ -6,10 +6,15 @@ use common::prelude::*;
 use regex::Regex;
 use serde::Deserialize;
 use serde_json::Value;
+use std::cell::RefCell;
 use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
 use util::file;
+
+// THINGS TO KNOW
+//
+// remote file hashes are SHA256, even though we use Blake3 internally.
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct GurpFileEnsure {
@@ -24,15 +29,18 @@ pub struct GurpFileEnsure {
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct DesiredFileState {
+    pub backup_suffix: Option<String>,
+    pub content: Option<String>,
+    pub from_struct: Option<Value>,
+    pub from_uri: Option<String>,
+    pub from: Option<Utf8PathBuf>,
     pub group: String,
+    pub ignore_pattern: Option<String>,
     pub mode: String,
     pub owner: String,
-    pub content: Option<String>,
-    pub ignore_pattern: Option<String>,
-    pub from: Option<Utf8PathBuf>,
-    pub from_struct: Option<Value>,
     pub to_format: Option<String>,
-    pub backup_suffix: Option<String>,
+    pub with_checksum: Option<String>,
+    pub remote_content: RefCell<Option<Vec<u8>>>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -44,16 +52,89 @@ pub struct GurpFileRemove {
 }
 
 impl GurpFileEnsure {
+    fn remote_content(&self, url: &str) -> anyhow::Result<()> {
+        // As usual, complete MVP.
+        // I don't think I want to cache anything between Gurp runs, so I don't have anywhere to
+        // store ETags or whatever. (And I can't be sure the thing serving will serve them.)
+        // Therefore, we're going to have to pull the file every time. Read it into memory and pop
+        // it in the RefCell.
+        let content = ureq::get(url).call()?.body_mut().read_to_vec()?;
+
+        if let Some(checksum) = self.desired_state.with_checksum.as_ref() {
+            let remote_checksum = sha256::digest(&content);
+
+            ensure!(
+                checksum == &remote_checksum,
+                "Remote file has incorrect checksum"
+            );
+        }
+
+        *self.desired_state.remote_content.borrow_mut() = Some(content);
+
+        Ok(())
+    }
+
+    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        ensure!(
+            self.content_xor_file_xor_content_struct(),
+            "file '{}' must have exactly one of :content, :from, :frum-uri, or :from-struct",
+            &self.path
+        );
+
+        ensure!(self.source_exists_if_needed(), "Missing source file");
+
+        if let Some(remote_uri) = &self.desired_state.from_uri {
+            self.remote_content(remote_uri)?;
+        }
+
+        let mut changes = 0;
+
+        if self.path.exists() {
+            if self.file_has_changed()? {
+                tracing::info!("updating {}", self.path);
+
+                changes = 1;
+                self.write_file(opts)?;
+            } else {
+                tracing::debug!("{} content is correct", self.path);
+            }
+        } else {
+            tracing::info!("Creating {}", self.path);
+
+            changes = 1;
+            self.write_file(opts)?;
+        }
+
+        if opts.noop {
+            return Ok(ApplySummary {
+                resources: 1,
+                changes,
+            });
+        }
+
+        file::ensure_metadata(
+            FileMetadata {
+                group: &self.desired_state.group,
+                mode: &self.desired_state.mode,
+                owner: &self.desired_state.owner,
+                path: &self.path,
+                changes,
+            },
+            opts,
+        )
+    }
+
     fn content_xor_file_xor_content_struct(&self) -> bool {
-        (self.desired_state.content.is_some()
-            && self.desired_state.from.is_none()
-            && self.desired_state.from_struct.is_none())
-            || (self.desired_state.content.is_none()
-                && self.desired_state.from.is_some()
-                && self.desired_state.from_struct.is_none())
-            || (self.desired_state.content.is_none()
-                && self.desired_state.from.is_none()
-                && self.desired_state.from_struct.is_some())
+        [
+            self.desired_state.content.as_ref().map(|_| ()),
+            self.desired_state.from_uri.as_ref().map(|_| ()),
+            self.desired_state.from.as_ref().map(|_| ()),
+            self.desired_state.from_struct.as_ref().map(|_| ()),
+        ]
+        .iter()
+        .filter(|v| v.is_some())
+        .count()
+            == 1
     }
 
     fn source_exists_if_needed(&self) -> bool {
@@ -69,6 +150,168 @@ impl GurpFileEnsure {
 
             None => true,
         }
+    }
+
+    fn file_has_changed(&self) -> anyhow::Result<bool> {
+        let (desired_hash, current_hash) = if let Some(pattern) = &self.desired_state.ignore_pattern
+        {
+            (
+                if let Some(from_file) = &self.desired_state.from {
+                    self.hash_of_filtered_file(from_file, pattern)?
+                } else if let Some(content) = &self.desired_state.content {
+                    self.hash_of(&self.filter(content, pattern)?)
+                } else if let Some(remote_content) =
+                    self.desired_state.remote_content.borrow().as_ref()
+                {
+                    self.hash_of_bytes(remote_content.as_slice())
+                } else if let Some(from_struct) = &self.desired_state.from_struct {
+                    self.hash_of(
+                        &self.filter(
+                            &self.struct_to_file(
+                                from_struct,
+                                self.desired_state.to_format.as_deref(),
+                            )?,
+                            pattern,
+                        )?,
+                    )
+                } else {
+                    bail!("No :content or :from")
+                },
+                self.hash_of_filtered_file(&self.path, pattern)?,
+            )
+        } else {
+            (
+                if let Some(from_file) = &self.desired_state.from {
+                    self.hash_of_file(from_file)?
+                } else if let Some(content) = &self.desired_state.content {
+                    self.hash_of(content)
+                } else if let Some(from_struct) = &self.desired_state.from_struct {
+                    self.hash_of(
+                        &self
+                            .struct_to_file(from_struct, self.desired_state.to_format.as_deref())?,
+                    )
+                } else {
+                    bail!("No :content or :from");
+                },
+                self.hash_of_file(&self.path)?,
+            )
+        };
+
+        Ok(desired_hash != current_hash)
+    }
+
+    fn hash_of_bytes(&self, content: &[u8]) -> Hash {
+        blake3::hash(content)
+    }
+
+    fn hash_of(&self, content: &str) -> Hash {
+        self.hash_of_bytes(content.as_bytes())
+    }
+
+    fn hash_of_file(&self, path: &Utf8PathBuf) -> anyhow::Result<Hash> {
+        let mut hasher = blake3::Hasher::new();
+        let mut fh = fs::File::open(path)?;
+        std::io::copy(&mut fh, &mut hasher)?;
+        Ok(hasher.finalize())
+    }
+
+    fn hash_of_filtered_file(&self, path: &Utf8PathBuf, pattern: &str) -> anyhow::Result<Hash> {
+        let raw = fs::read_to_string(path)?;
+        let filtered = self.filter(&raw, pattern)?;
+        Ok(self.hash_of(&filtered))
+    }
+
+    fn filter(&self, content: &str, filter: &str) -> anyhow::Result<String> {
+        tracing::debug!("filtering content on '{}'", filter);
+        let rx = Regex::new(filter)?;
+        let filtered_lines: Vec<_> = content.lines().filter(|l| !rx.is_match(l)).collect();
+        Ok(filtered_lines.join("\n"))
+    }
+
+    fn write_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
+        self.back_up_file(opts)?;
+
+        let new_content = if let Some(content) = &self.desired_state.content {
+            Some(content)
+        } else if let Some(from_struct) = &self.desired_state.from_struct {
+            Some(&self.struct_to_file(from_struct, self.desired_state.to_format.as_deref())?)
+        } else {
+            None
+        };
+
+        if opts.dump_diffs
+            && let Some(new_content) = new_content
+            && let Some(existing_content) = fs::read_to_string(&self.path).ok()
+        {
+            println!(
+                "{}",
+                &helpers::dump_diff(
+                    &existing_content,
+                    new_content,
+                    self.path.as_str(),
+                    opts.colour
+                )
+            );
+        }
+
+        if let Some(from) = &self.desired_state.from {
+            tracing::debug!("copying {} -> {}", from, self.path);
+
+            if !opts.noop {
+                fs::copy(from, &self.path)?;
+            }
+
+            Ok(())
+        } else if let Some(content) = new_content {
+            tracing::debug!("Writing content to {}", self.path);
+
+            if !opts.noop {
+                let mut fh = fs::File::create(&self.path)?;
+                fh.write_all(content.as_bytes())?;
+            }
+
+            Ok(())
+        } else if let Some(content) = &self.desired_state.remote_content.borrow().as_ref() {
+            if !opts.noop {
+                let mut fh = fs::File::create(&self.path)?;
+                fh.write_all(content)?;
+            }
+
+            Ok(())
+        } else {
+            bail!("nothing to write. Require :from, :content, :from-uri, or :from-struct");
+        }
+    }
+
+    fn back_up_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
+        if let Some(suffix) = &self.desired_state.backup_suffix {
+            let suffix = if suffix == "TIMESTAMP" {
+                helpers::epoch_time_as_string()
+            } else {
+                suffix.to_owned()
+            };
+
+            let backup_target = &self.path.with_extension(suffix);
+            tracing::debug!("Backing up to {}", backup_target);
+
+            if !opts.noop {
+                fs::rename(&self.path, backup_target)?;
+                file::ensure_metadata(
+                    FileMetadata {
+                        group: "root",
+                        owner: "root",
+                        mode: "0o0400",
+                        path: backup_target,
+                        changes: 1,
+                    },
+                    opts,
+                )?;
+            }
+        } else {
+            tracing::debug!("No backup of {} requested", &self.path);
+        }
+
+        Ok(())
     }
 
     // Ini files can't nest structs. If we get anything we don't expect, error. This is very basic.
@@ -156,199 +399,6 @@ impl GurpFileEnsure {
             bail!("from_struct requires to_format")
         }
     }
-
-    fn file_has_changed(&self) -> anyhow::Result<bool> {
-        let (desired_hash, current_hash) = if let Some(pattern) = &self.desired_state.ignore_pattern
-        {
-            (
-                if let Some(from_file) = &self.desired_state.from {
-                    self.hash_of_filtered_file(from_file, pattern)?
-                } else if let Some(content) = &self.desired_state.content {
-                    self.hash_of(&self.filter(content, pattern)?)
-                } else if let Some(from_struct) = &self.desired_state.from_struct {
-                    self.hash_of(
-                        &self.filter(
-                            &self.struct_to_file(
-                                from_struct,
-                                self.desired_state.to_format.as_deref(),
-                            )?,
-                            pattern,
-                        )?,
-                    )
-                } else {
-                    bail!("No :content or :from")
-                },
-                self.hash_of_filtered_file(&self.path, pattern)?,
-            )
-        } else {
-            (
-                if let Some(from_file) = &self.desired_state.from {
-                    self.hash_of_file(from_file)?
-                } else if let Some(content) = &self.desired_state.content {
-                    self.hash_of(content)
-                } else if let Some(from_struct) = &self.desired_state.from_struct {
-                    self.hash_of(
-                        &self
-                            .struct_to_file(from_struct, self.desired_state.to_format.as_deref())?,
-                    )
-                } else {
-                    bail!("No :content or :from");
-                },
-                self.hash_of_file(&self.path)?,
-            )
-        };
-
-        Ok(desired_hash != current_hash)
-    }
-
-    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        ensure!(
-            self.content_xor_file_xor_content_struct(),
-            "file '{}' must have exactly one of :content, :from, or :from-struct",
-            &self.path
-        );
-
-        ensure!(self.source_exists_if_needed(), "Missing source file");
-
-        let mut changes = 0;
-
-        if self.path.exists() {
-            if self.file_has_changed()? {
-                tracing::info!("updating {}", self.path);
-
-                changes = 1;
-                self.write_file(opts)?;
-            } else {
-                tracing::debug!("{} content is correct", self.path);
-            }
-        } else {
-            tracing::info!("Creating {}", self.path);
-
-            changes = 1;
-            self.write_file(opts)?;
-        }
-
-        if opts.noop {
-            return Ok(ApplySummary {
-                resources: 1,
-                changes,
-            });
-        }
-
-        file::ensure_metadata(
-            FileMetadata {
-                group: &self.desired_state.group,
-                mode: &self.desired_state.mode,
-                owner: &self.desired_state.owner,
-                path: &self.path,
-                changes,
-            },
-            opts,
-        )
-    }
-
-    fn hash_of(&self, content: &str) -> Hash {
-        blake3::hash(content.as_bytes())
-    }
-
-    fn hash_of_file(&self, path: &Utf8PathBuf) -> anyhow::Result<Hash> {
-        let mut hasher = blake3::Hasher::new();
-        let mut fh = fs::File::open(path)?;
-        std::io::copy(&mut fh, &mut hasher)?;
-        Ok(hasher.finalize())
-    }
-
-    fn hash_of_filtered_file(&self, path: &Utf8PathBuf, pattern: &str) -> anyhow::Result<Hash> {
-        let raw = fs::read_to_string(path)?;
-        let filtered = self.filter(&raw, pattern)?;
-        Ok(self.hash_of(&filtered))
-    }
-
-    fn filter(&self, content: &str, filter: &str) -> anyhow::Result<String> {
-        tracing::debug!("filtering content on '{}'", filter);
-        let rx = Regex::new(filter)?;
-        let filtered_lines: Vec<_> = content.lines().filter(|l| !rx.is_match(l)).collect();
-        Ok(filtered_lines.join("\n"))
-    }
-
-    fn write_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
-        self.back_up_file(opts)?;
-
-        let new_content = if let Some(content) = &self.desired_state.content {
-            Some(content)
-        } else if let Some(from_struct) = &self.desired_state.from_struct {
-            Some(&self.struct_to_file(from_struct, self.desired_state.to_format.as_deref())?)
-        } else {
-            None
-        };
-
-        if opts.dump_diffs
-            && let Some(new_content) = new_content
-            && let Some(existing_content) = fs::read_to_string(&self.path).ok()
-        {
-            println!(
-                "{}",
-                &helpers::dump_diff(
-                    &existing_content,
-                    new_content,
-                    self.path.as_str(),
-                    opts.colour
-                )
-            );
-        }
-
-        if let Some(from) = &self.desired_state.from {
-            tracing::debug!("copying {} -> {}", from, self.path);
-
-            if !opts.noop {
-                fs::copy(from, &self.path)?;
-            }
-
-            Ok(())
-        } else if let Some(content) = new_content {
-            tracing::debug!("Writing content to {}", self.path);
-
-            if !opts.noop {
-                let mut fh = fs::File::create(&self.path)?;
-                fh.write_all(content.as_bytes())?;
-            }
-
-            Ok(())
-        } else {
-            bail!("nothing to write. Require :from, :content, or :from-struct");
-        }
-    }
-
-    fn back_up_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
-        if let Some(suffix) = &self.desired_state.backup_suffix {
-            let suffix = if suffix == "TIMESTAMP" {
-                helpers::epoch_time_as_string()
-            } else {
-                suffix.to_owned()
-            };
-
-            let backup_target = &self.path.with_extension(suffix);
-            tracing::debug!("Backing up to {}", backup_target);
-
-            if !opts.noop {
-                fs::rename(&self.path, backup_target)?;
-                file::ensure_metadata(
-                    FileMetadata {
-                        group: "root",
-                        owner: "root",
-                        mode: "0o0400",
-                        path: backup_target,
-                        changes: 1,
-                    },
-                    opts,
-                )?;
-            }
-        } else {
-            tracing::debug!("No backup of {} requested", &self.path);
-        }
-
-        Ok(())
-    }
 }
 
 impl GurpFileRemove {
@@ -377,11 +427,12 @@ mod test {
     use assert_fs::TempDir;
     use assert_fs::prelude::*;
     use camino::Utf8PathBuf;
+    use httpmock::prelude::*;
     use indoc::{formatdoc, indoc};
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
-    use tester::{defopts, defopts_noop, fixture, janet2json, my_group, my_user};
+    use tester::{defopts, defopts_noop, fixture, janet2json, load_fixture, my_group, my_user};
 
     #[test]
     fn test_file_create_noop() {
@@ -433,6 +484,107 @@ mod test {
         assert_eq!("stuff", fs::read_to_string(path).unwrap());
     }
 
+    #[test]
+    fn test_file_create_from_uri() {
+        let server = MockServer::start();
+
+        let conf_mock = server.mock(|when, then| {
+            when.method(GET).path("/sample/file");
+            then.status(200)
+                .header("content-type", "text/plain")
+                .body(load_fixture("file/uri-sample-file"));
+        });
+
+        let temp = TempDir::new().unwrap();
+        let file = temp.join("test-file");
+        let path = Utf8PathBuf::from_path_buf(file.to_path_buf()).unwrap();
+        assert!(!path.exists());
+
+        let json_def = janet2json(&formatdoc! {r#"
+            (file/ensure "{}"
+                :from-uri "{}"
+                :with-checksum "9c1b427039a6c786db0277fb96e3b0851a972dcdad832441e802d8b0de936ec3"
+                :mode "0640"
+                :owner "{}"
+                :group "{}")
+            "#,
+            path,
+            server.url("/sample/file"),
+            my_user(),
+            my_group(),
+        });
+
+        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert!(path.exists());
+        conf_mock.assert();
+        let metadata = fs::metadata(&path).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o7777, 0o640);
+        assert_eq!(
+            load_fixture("file/uri-sample-file"),
+            fs::read_to_string(path).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_file_create_from_uri_404() {
+        let server = MockServer::start();
+
+        let conf_mock = server.mock(|when, then| {
+            when.method(GET).path("/sample/file");
+            then.status(404);
+        });
+
+        let json_def = janet2json(&formatdoc! {r#"
+            (file/ensure "/does/not/matter"
+                :from-uri "{}"
+                :mode "0640"
+                :owner "{}"
+                :group "{}")
+            "#,
+            server.url("/sample/file"),
+            my_user(),
+            my_group(),
+        });
+
+        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        assert!(sut.apply(&defopts()).is_err());
+        conf_mock.assert();
+    }
+
+    #[test]
+    fn test_file_create_from_uri_bad_checksum() {
+        let server = MockServer::start();
+
+        let conf_mock = server.mock(|when, then| {
+            when.method(GET).path("/sample/file");
+            then.status(200)
+                .header("content-type", "text/plain")
+                .body(load_fixture("file/uri-sample-file"));
+        });
+
+        let json_def = janet2json(&formatdoc! {r#"
+            (file/ensure "/does/not/matter"
+                :from-uri "{}"
+                :with-checksum "0000000000000000000000000000000000000000000000000000000000000000"
+                :mode "0640"
+                :owner "{}"
+                :group "{}")
+            "#,
+            server.url("/sample/file"),
+            my_user(),
+            my_group(),
+        });
+
+        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        let err = sut.apply(&defopts()).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Remote file has incorrect checksum")
+        );
+        conf_mock.assert();
+    }
+
     // We can't test backup because it does things a normal user can't
 
     #[test]
@@ -455,11 +607,80 @@ mod test {
                 backup_suffix: None,
                 from_struct: None,
                 to_format: None,
+                from_uri: None,
+                with_checksum: None,
+                remote_content: RefCell::new(None),
             },
         };
 
         assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
         assert!(path.exists());
+    }
+
+    #[test]
+    fn test_not_exactly_one_source_fails() {
+        let file_and_uri = GurpFileEnsure {
+            id: "IRRELEVANT".to_owned(),
+            path: Utf8PathBuf::from("/does/not/matter"),
+            desired_state: DesiredFileState {
+                group: my_group(),
+                mode: "2755".to_owned(),
+                owner: my_user(),
+                content: None,
+                ignore_pattern: None,
+                from: Some(fixture("file/binary-file")),
+                backup_suffix: None,
+                from_struct: None,
+                to_format: None,
+                from_uri: Some("http://example.com/file".to_owned()),
+                with_checksum: Some("abc123".to_owned()),
+                remote_content: RefCell::new(None),
+            },
+        };
+
+        assert!(file_and_uri.apply(&defopts()).is_err());
+
+        let file_and_content = GurpFileEnsure {
+            id: "IRRELEVANT".to_owned(),
+            path: Utf8PathBuf::from("/does/not/matter"),
+            desired_state: DesiredFileState {
+                group: my_group(),
+                mode: "2755".to_owned(),
+                owner: my_user(),
+                content: Some("content".to_owned()),
+                ignore_pattern: None,
+                from: Some(fixture("file/binary-file")),
+                backup_suffix: None,
+                from_struct: None,
+                to_format: None,
+                from_uri: None,
+                with_checksum: None,
+                remote_content: RefCell::new(None),
+            },
+        };
+
+        assert!(file_and_content.apply(&defopts()).is_err());
+
+        let no_source = GurpFileEnsure {
+            id: "IRRELEVANT".to_owned(),
+            path: Utf8PathBuf::from("/does/not/matter"),
+            desired_state: DesiredFileState {
+                group: my_group(),
+                mode: "2755".to_owned(),
+                owner: my_user(),
+                content: None,
+                ignore_pattern: None,
+                from: None,
+                backup_suffix: None,
+                from_struct: None,
+                to_format: None,
+                from_uri: None,
+                with_checksum: None,
+                remote_content: RefCell::new(None),
+            },
+        };
+
+        assert!(no_source.apply(&defopts()).is_err());
     }
 
     #[test]
@@ -482,6 +703,9 @@ mod test {
                 backup_suffix: None,
                 from_struct: None,
                 to_format: None,
+                from_uri: None,
+                with_checksum: None,
+                remote_content: RefCell::new(None),
             },
         };
 

@@ -198,14 +198,16 @@ the directory.
 | `:content`        | string         | Literal file content                                                                                                  |         | yes [*]   |
 | `:from`           | string         | Path to a file which will be copied in                                                                                |         | yes [*]   |
 | `:from-struct`    | struct, array  | A struct which Gurp will attempt to turn into a config file                                                           |         | yes [*]   |
+| `:from-uri`       | string         | A URI from which file content will be fetched                                                                         | yes [*] |           |
+| `:with-checksum`  | string         | An optional SHA256 checksum if you use `:from-uri`                                                                    |         |           |
 | `:group`          | string, number | Can be a group name or numeric GID                                                                                    | `root`  |           |
-| `:ignore-pattern` | string         | When diffing files, Gurp will ignore lines matching this regex                                                        |         |           |
+| `:ignore-pattern` | string         | When diffing text files, Gurp will ignore lines matching this regex. If you apply it to a binary, Gurp will error     |         |           |
 | `:mode`           | string         | Four-character octal string                                                                                           | `0755`  |           |
 | `:to-format`      | string         | The format of config file you wish to produce from your `:from-struct`. Can be `json`, `toml`, `yaml`, `ini` or `kvp` |         |           |
 | `:user`           | string, number | Can be a username or numeric UID                                                                                      | `root`  |           |
 
-[*] You must supply exactly one of `:content`, `:from`, or `:from-struct`. If
-you use `:from-struct` you must also supply `:to-format`.
+[*] You must supply exactly one of `:content`, `:from`, `:from-uri`, or
+`:from-struct`. If you use `:from-struct` you must also supply `:to-format`.
 
 The `(template-out)` and `(indoc)` helpers are useful when specifying
 `:content`.
