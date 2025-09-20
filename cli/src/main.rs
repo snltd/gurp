@@ -14,6 +14,9 @@ struct Cli {
 enum Commands {
     /// Configure the host with the supplied configuration
     Apply {
+        /// Use a pre-compiled config, either Janet or JSON
+        #[arg(short = 'p', long = "precompiled")]
+        precompiled: bool,
         /// Specify a gurp Janet library, in preference to the built-in
         #[arg(short = 'L', long = "gurp-lib")]
         gurp_lib_path: Option<Utf8PathBuf>,
@@ -21,10 +24,10 @@ enum Commands {
         #[arg(short, long)]
         noop: bool,
         /// Dump intermediate config files to stdout
-        #[arg(short = 'd', long)]
+        #[arg(short = 'd', long, alias = "dump-configs")]
         dump_config: bool,
         /// When files change, dump diffs to stdout
-        #[arg(short = 'D', long)]
+        #[arg(short = 'D', long, alias = "dump-diff")]
         dump_diffs: bool,
         /// When dumping configs or diffs, use syntax colouring where supported
         #[arg(short = 'C', long)]
@@ -50,7 +53,7 @@ enum Commands {
         line_no: bool,
 
         /// Output in the given format: 'janet' or 'json'
-        #[arg(short, long)]
+        #[arg(short, long, required = true)]
         format: Option<String>,
         /// Host configuration file
         #[arg(required = true)]
@@ -92,6 +95,7 @@ fn main() -> anyhow::Result<()> {
             line_no,
             gurp_lib_path,
             metrics_to,
+            precompiled,
         } => {
             let opts = ApplyOpts {
                 noop,
@@ -102,6 +106,7 @@ fn main() -> anyhow::Result<()> {
                 gurp_lib_path,
                 compile_only: false,
                 metrics_to,
+                precompiled,
             };
             commands::apply::run(&host_config_file, &opts)
         }
@@ -121,6 +126,7 @@ fn main() -> anyhow::Result<()> {
                 gurp_lib_path,
                 compile_only: true,
                 metrics_to: None,
+                precompiled: false,
             };
             commands::compile::run(&host_config_file, format.as_deref(), &opts)
         }

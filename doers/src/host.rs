@@ -1,55 +1,63 @@
 use crate::types::{ChangedIds, HostConfig};
+use anyhow::ensure;
 use common::prelude::*;
 use janet_int::helpers as janet_helpers;
 use janet_int::reader;
 use janetrs::{TaggedJanet, env::CFunOptions};
 use std::collections::BTreeSet;
+use std::fs;
 
 pub fn apply(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    let host_config = reader::read_and_enrich_host_config(host_file, None, opts)?;
+    let json = if opts.precompiled {
+        load_precompiled_file(host_file)?
+    } else {
+        let host_config = reader::read_and_enrich_host_config(host_file, None, opts)?;
 
-    if opts.dump_config {
-        println!(
-            "{}",
-            helpers::dump_config(&host_config, "Janet config", opts)
-        );
-    }
+        if opts.dump_config {
+            println!(
+                "{}",
+                helpers::dump_config(&host_config, "Janet config", opts)
+            );
+        }
 
-    let mut client = janet_helpers::janet_client();
-    client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
-    let json_wrapped_host_config = format!("{host_config}\n(encode (machine-config))");
-    let json_config = client.run(json_wrapped_host_config)?;
+        let mut client = janet_helpers::janet_client();
+        client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
+        let json_wrapped_host_config = format!("{host_config}\n(encode (machine-config))");
+        let json_config = client.run(json_wrapped_host_config)?;
 
-    let json = match json_config.unwrap() {
-        TaggedJanet::String(buf) => buf.to_string(),
-        other => bail!("expected JSON config as Janet::String; got {}", other),
+        let json = match json_config.unwrap() {
+            TaggedJanet::String(buf) => buf.to_string(),
+            other => bail!("expected JSON config as Janet::String; got {}", other),
+        };
+
+        tracing::debug!("Janet returned {} char JSON buffer", json.len());
+
+        if opts.dump_config {
+            let formatted_json = match helpers::pretty_json(&json) {
+                Ok(json) => json,
+                Err(e) => {
+                    tracing::error!("JSON processing error: {}", e);
+                    tracing::error!(json);
+                    bail!("END");
+                }
+            };
+            println!(
+                "{}",
+                helpers::dump_config(&formatted_json, "JSON Config", opts)
+            );
+        }
+
+        json
     };
 
-    tracing::debug!("Janet returned {} char JSON buffer", json.len());
     tracing::debug!("Unpacking JSON into HostConfig");
 
-    let formatted_json = match helpers::pretty_json(&json) {
-        Ok(json) => json,
-        Err(e) => {
-            tracing::error!("JSON processing error: {}", e);
-            tracing::error!(json);
-            bail!("END");
-        }
-    };
-
-    if opts.dump_config {
-        println!(
-            "{}",
-            helpers::dump_config(&formatted_json, "JSON Config", opts)
-        );
-    }
-
-    let host_config: HostConfig = match serde_json::from_str(&formatted_json) {
+    let host_config: HostConfig = match serde_json::from_str(&json) {
         Ok(conf) => conf,
         Err(e) => {
             tracing::error!("deserializing error: {}", e);
             let line = e.line();
-            let json_lines: Vec<_> = formatted_json.lines().collect();
+            let json_lines: Vec<_> = json.lines().collect();
             let first_line = line.saturating_sub(30);
             let last_line = (line + 15).clamp(0, json_lines.len());
 
@@ -62,6 +70,12 @@ pub fn apply(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<ApplyS
     };
 
     ensure_and_remove(&host_config, opts)
+}
+
+fn load_precompiled_file(path: &Utf8PathBuf) -> anyhow::Result<String> {
+    ensure!(path.exists(), "Cannot find JSON file at {}", path);
+
+    Ok(fs::read_to_string(path)?)
 }
 
 fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {

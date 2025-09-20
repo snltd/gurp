@@ -16,6 +16,7 @@ pub struct ApplyOpts {
     pub dump_diffs: bool,
     pub compile_only: bool,
     pub metrics_to: Option<String>,
+    pub precompiled: bool,
 }
 
 #[derive(Debug, Default, PartialEq, Copy, Clone)]
