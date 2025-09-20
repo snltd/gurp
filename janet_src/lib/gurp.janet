@@ -133,6 +133,7 @@
    {:optional
     {:attr ["See 'zone-attr'"]
      :autoboot ["Boot the zone on system boot" :string]
+     :bhyve ["See 'zone-bhyve'"]
      :boot-after-install ["Boot the zone n it is installed" :string]
      :bootstrap-from ["Copy gurp into the zone, and apply the given file, relative to zone root" :string]
      :capped-memory ["Set memory cap. Keys must be :physical and :swap, values are strings like '4G'" :struct]
@@ -157,15 +158,27 @@
     :mandatory
     {:value ["Attribute value" :string :boolean :number]}}
 
+   :zone-bhyve
+   {:mandatory
+    {:ram ["Amount of RAM to allocate: e.g. '3G'" :string]
+     :vcpus ["Number of VCPUs to allocate" :number]
+     :image ["Path to install image" :string]
+     :boot-volume ["ZFS boot volume" :string]
+     :cloudinit ["Whether to install with Cloudinit" :boolean]}}
+
    :zone-network
    {:optional
     {:global-nic ["Physical NIC on which to create zone VNIC" :string]
      :defrouter ["IP address of default router" :string]}
     :mandatory
     {:allowed-address ["IP address, with /netmask" :string]}}
+
    :zone-rctl
    {:mandatory
-    {:value ["rctl value" :string :number]}}
+    {:priv ["rctl privilege" :string]
+     :name ["The name of the rctl" :string]
+     :action ["rctl action" :string]
+     :limit ["rctl limit value" :string :number]}}
 
    :zone-fs
    {:optional
@@ -892,6 +905,7 @@
   (expand-resource :attr)
   (expand-resource :fs)
   (expand-resource :rctl)
+  (expand-resource :bhyve)
   (let [result (make-resource :ensure :zone name modified-specs)
         resource (struct/to-table (result :zone))]
 
@@ -947,12 +961,26 @@
 
   (struct :attr (table/to-struct spec-table)))
 
+(defn zone-bhyve
+  "Given specs, return config for a bhyve zone"
+  [& specs]
+  (let [spec-struct
+        (->>
+          (splice specs)
+          (struct/with-proto (proto :ensure :zone-bhyve))
+          (struct/proto-flatten))]
+
+    (validate-spec :ensure :zone-bhyve nil (flat-table spec-struct))
+    (struct :bhyve spec-struct)))
+
 (defn zone-rctl
   "Given specs, return a zone rctl struct. This is embedded in a zone/ensure"
   [name & specs]
-  (let [spec-struct (struct/with-proto (proto :ensure :zone-rctl) :name name (splice specs))]
+  (let [spec-struct
+        (->>
+          (splice specs)
+          (struct/with-proto (proto :ensure :zone-rctl) :name name)
+          (struct/proto-flatten))]
 
-    (if-not (has-key? spec-struct :limit)
-      (error "zone-rctl requires a :limit"))
-
-    (struct :rctl (struct/proto-flatten spec-struct))))
+    (validate-spec :ensure :zone-rctl name (flat-table spec-struct))
+    (struct :rctl spec-struct)))
