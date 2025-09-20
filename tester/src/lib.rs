@@ -31,6 +31,7 @@ pub fn defopts() -> ApplyOpts {
         dump_diffs: false,
         compile_only: false,
         metrics_to: None,
+        precompiled: false,
     }
 }
 
@@ -44,6 +45,7 @@ pub fn defopts_noop() -> ApplyOpts {
         gurp_lib_path: None,
         compile_only: false,
         metrics_to: None,
+        precompiled: false,
     }
 }
 
