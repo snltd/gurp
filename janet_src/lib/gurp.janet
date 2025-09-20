@@ -162,7 +162,7 @@
    {:optional
     {:ram ["How much RAM to allocate (e.g. '4G')" :string]
      :vcpus ["How many VCPUs to allocate" :number]
-     :install-image ["Install image" :string]
+     :image ["Install image" :string]
      :cloudinit ["Whether to install the zone with cloudinit" :boolean]}}
 
    :zone-network
@@ -742,16 +742,6 @@
   [name & specs]
   (collect :remove :group (make-resource :remove :group name specs)))
 
-(defn group/ensure
-  "Given a group name and specification, return a group ensure struct"
-  [name & specs]
-  (collect :ensure :group (ensure-resource :group name specs)))
-
-(defn group/remove
-  "Given a group name and specification, return a group remove struct"
-  [name & specs]
-  (collect :remove :group (remove-resource :group name specs)))
-
 (defn misc/ensure
   "Sets miscellaneous system properties"
   [& specs]
@@ -978,7 +968,7 @@
 
     (if-not
       (has-key? spec-struct :limit)
-      (error "zone-rctl requires :limit"))
+      (error "zone-rctl requires a :limit"))
 
     (struct :rctl (struct/proto-flatten spec-struct))))
 
@@ -988,6 +978,6 @@
 
     (each prop [:ram :vcpus]
       (if-not (has-key? spec-struct prop)
-        (error (string "zone-bhyve requires :" prop))))
+        (error (string "zone-bhyve requires a " prop))))
 
     (struct :bhyve (struct/proto-flatten spec-struct))))
