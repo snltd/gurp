@@ -1,3 +1,4 @@
+/*
 use anyhow::Context;
 use camino::Utf8PathBuf;
 use common::constants::IMG_CACHE;
@@ -32,3 +33,4 @@ pub fn image_in_cache(img_url: &str) -> anyhow::Result<Utf8PathBuf> {
 
     Ok(img_path)
 }
+*/
