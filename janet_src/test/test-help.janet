@@ -8,7 +8,7 @@
 
   (test
     (help-for "zone-fs")
-    "\e[1m(zone-fs/ensure)\e[0m\n\e[1mmandatory keys\e[0m\n  special   string          The directory in the global zone\n\e[1moptional keys\e[0m\n  options   tuple           Options with which to mount fs inside zone\n  type      string          The type of fs mount. Default 'lofs'")
+    "\e[1m(zone-fs/ensure)\e[0m\n\e[1mmandatory keys\e[0m\n  dir       string          Mountpoint in zone. This is the name of the resource, and is not specified with a key\n  special   string          The directory in the global zone\n\e[1moptional keys\e[0m\n  options   tuple           Options with which to mount fs inside zone\n  type      string          The type of fs mount. Default 'lofs'")
 
   (test
     (help-for "zone")

@@ -171,7 +171,8 @@
     {:global-nic ["Physical NIC on which to create zone VNIC" :string]
      :defrouter ["IP address of default router" :string]}
     :mandatory
-    {:allowed-address ["IP address, with /netmask" :string]}}
+    {:allowed-address ["IP address, with /netmask" :string]
+     :physical ["Zone VNIC. This is the name of the resource, and is not specified with a key" :string]}}
 
    :zone-rctl
    {:mandatory
@@ -184,7 +185,9 @@
    {:optional
     {:type ["The type of fs mount" :string]
      :options ["Options with which to mount fs inside zone" :tuple]}
-    :mandatory {:special ["The directory in the global zone" :string]}}})
+    :mandatory
+    {:dir ["Mountpoint in zone. This is the name of the resource, and is not specified with a key" :string]
+     :special ["The directory in the global zone" :string]}}})
 
 (def resource-remove-keys
   "Like resource-ensure-keys but for removing resources"
@@ -553,16 +556,17 @@
 (defn parent
   "Returns the parent directory of the given path"
   [path]
-  (def components
-    (peg/match ~{:main (some (choice (capture (some (if-not "/" 1))) 1))} path))
+  (let [components
+        (peg/match ~{:main (some (choice (capture (some (if-not "/" 1))) 1))} path)]
 
-  (array/pop components)
-  (string "/" (string/join components "/")))
+    (array/pop components)
+    (string "/" (string/join components "/"))))
 
 (defn labelise
   "Turns tokens into a safe label"
   [& chunks]
-  (string/replace-all "/" "_"
+  (string/replace-all "/"
+                      "_"
                       (string/join (map string chunks) "-")))
 
 (defn template-out
@@ -624,7 +628,6 @@
                   (string/join "\n")
                   (string/triml)))))
 
-
 (defn fields
   "Returns an array of the whitespace-separated elements in a string"
   [str]
@@ -653,12 +656,12 @@
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
 
 (defn apk/ensure
-  "Given a a apk name, return a apk ensure struct"
+  "Given a a apk name, return an apk ensure struct"
   [name & specs]
   (collect :ensure :apk (make-resource :ensure :apk name specs)))
 
 (defn apk/remove
-  "Given a apk name, return a apk remove struct"
+  "Given a apk name, return an apk remove struct"
   [name & specs]
   (collect :remove :apk (make-resource :remove :apk name specs)))
 
@@ -713,17 +716,19 @@
 (defn file-line/remove
   "Given a file name and a line pattern, make sure the file does not contain the line"
   [name & specs]
-  (def match-allowed ["exact" "starts_with" "ends_with" "contains" "matches"])
-  (def apply-to-allowed ["all" "first" "last"])
-
-  (let [spec-struct (struct ;specs)]
+  (let [match-allowed ["exact" "starts_with" "ends_with" "contains" "matches"]
+        apply-to-allowed ["all" "first" "last"]
+        spec-struct (struct ;specs)]
     (if-let [match-val (spec-struct :match)]
       (if-not (has-value? match-allowed match-val)
-        (error (string "match must be one of " (string/join match-allowed ", ") " [Got '" match-val "']"))))
+        (error
+          (string "match must be one of "
+                  (string/join match-allowed ", ") " [Got '" match-val "']"))))
 
     (if-let [type-val (spec-struct :apply-to)]
       (if-not (has-value? apply-to-allowed type-val)
-        (error (string "type must be one of " (string/join apply-to-allowed ", "))))))
+        (error
+          (string "type must be one of " (string/join apply-to-allowed ", "))))))
 
   (collect :remove :file-line (make-resource :remove :file-line name specs)))
 
@@ -786,7 +791,7 @@
 (def smf-context-keys [:user :group :privileges :environment])
 
 (defn smf/ensure
-  "Given a name and a manifest description, return an smf ensure struct"
+  "Given a name and a manifest description, return an SMF service ensure struct"
   [name & specs]
   (var modified-specs specs)
   (expand-resource :start-method :as-struct true)
@@ -804,7 +809,7 @@
     (collect :ensure :smf (make-resource :ensure :smf name (flat-table spec-table)))))
 
 (defn smf/remove
-  "Given a service name, return an smv service remove struct"
+  "Given a service name, return an SMF service remove struct"
   [name & specs]
   (collect :remove :smf (make-resource :remove :smf name specs)))
 
@@ -826,7 +831,9 @@
 
     (each k context-keys
       (set (context k)
-           (if (= k :privileges) (string/join (spec-table k) ",") (spec-table k)))
+           (if (= k :privileges)
+             (string/join (spec-table k) ",")
+             (spec-table k)))
       (set (spec-table k) nil))
 
     (if-not (empty? context)
@@ -888,12 +895,12 @@
   (collect :remove :user (make-resource :remove :user name specs)))
 
 (defn zfs/ensure
-  "Given a zfs dataset name and specification, return a zfs ensure struct"
+  "Given a zfs dataset name and specification, return a ZFS ensure struct"
   [name & specs]
   (collect :ensure :zfs (make-resource :ensure :zfs name specs)))
 
 (defn zfs/remove
-  "Given a zfs dataset name and specification, return a zfs remove struct"
+  "Given a zfs dataset name and specification, return a ZFS remove struct"
   [name & specs]
   (collect :remove :zfs (make-resource :remove :zfs name specs)))
 
@@ -924,22 +931,6 @@
   "Given a zone name and specification, return a zone remove struct"
   [name & specs]
   (collect :remove :zone (make-resource :remove :zone name specs)))
-
-(defn zone-network
-  "Given specs, return a zone network struct. This is embedded in a zone/ensure"
-  [physical & specs]
-  (struct :net
-          (struct/proto-flatten
-            (struct/with-proto (proto :ensure :zone-network)
-                               :physical physical ;specs))))
-
-(defn zone-fs
-  "Given specs, return a zone fs struct. This is embedded in a zone/ensure"
-  [mountpoint & specs]
-  (struct :fs
-          (struct/proto-flatten
-            (struct/with-proto (proto :ensure :zone-fs)
-                               :dir mountpoint ;specs))))
 
 (defn zone-attr
   "Given specs, return a zone attr struct. This is embedded in a zone/ensure"
@@ -972,6 +963,30 @@
 
     (validate-spec :ensure :zone-bhyve nil (flat-table spec-struct))
     (struct :bhyve spec-struct)))
+
+(defn zone-fs
+  "Given specs, return a zone fs struct. This is embedded in a zone/ensure"
+  [mountpoint & specs]
+  (let [spec-struct
+        (->>
+          (splice specs)
+          (struct/with-proto (proto :ensure :zone-fs) :dir mountpoint)
+          (struct/proto-flatten))]
+
+    (validate-spec :ensure :zone-fs mountpoint (flat-table spec-struct))
+    (struct :fs spec-struct)))
+
+(defn zone-network
+  "Given specs, return a zone network struct. This is embedded in a zone/ensure"
+  [physical & specs]
+  (let [spec-struct
+        (->>
+          (splice specs)
+          (struct/with-proto (proto :ensure :zone-network) :physical physical)
+          (struct/proto-flatten))]
+
+    (validate-spec :ensure :zone-network physical (flat-table spec-struct))
+    (struct :net spec-struct)))
 
 (defn zone-rctl
   "Given specs, return a zone rctl struct. This is embedded in a zone/ensure"
