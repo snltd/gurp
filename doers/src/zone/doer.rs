@@ -1,3 +1,4 @@
+use crate::zone::bhyve;
 use crate::zone::config::GurpZoneConfig;
 use crate::zone::control::{self, ZoneadmState};
 use crate::zone::lx;
@@ -113,6 +114,10 @@ impl GurpZoneEnsure {
     fn install_zone(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         tracing::info!("installing {} [{}]", self.name, self.config.brand);
         match self.config.brand.as_str() {
+            "bhyve" => {
+                bhyve::pre_install(&self.config)?;
+                cmd_output!(ZONEADM_BIN, "-z", &self.name, "install")?
+            }
             "lx" => {
                 let img_path = self.install_zone_lx_path()?;
                 cmd_output!(ZONEADM_BIN, "-z", &self.name, "install", "-s", img_path)?
@@ -121,12 +126,14 @@ impl GurpZoneEnsure {
         };
 
         tracing::debug!("zone {}: installed", self.name);
-        self.boot_zone()?;
+
+        self.boot_zone(opts)?;
         self.postinstall_zone()?;
         self.copy_in()?;
         self.bootstrap_zone(opts)?;
         self.exec_in()?;
         self.set_final_state()?;
+
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
@@ -166,7 +173,7 @@ impl GurpZoneEnsure {
         tracing::info!("zone {}: cloning from {}", self.name, source_zone);
         cmd_output!(ZONEADM_BIN, "-z", &self.name, "clone", source_zone)?;
         tracing::debug!("zone {}: cloned", self.name);
-        self.boot_zone()?;
+        self.boot_zone(opts)?;
         self.postinstall_zone()?;
         self.copy_in()?;
         self.bootstrap_zone(opts)?;
@@ -174,14 +181,15 @@ impl GurpZoneEnsure {
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
-    fn boot_zone(&self) -> anyhow::Result<ApplySummary> {
+    fn boot_zone(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if self.config.boot_after_install {
             tracing::debug!("zone {}: booting", self.name);
             cmd_output!(ZONEADM_BIN, "-z", &self.name, "boot")?;
         }
 
         match self.config.brand.as_str() {
-            "lx" => control::wait_for_readiness_lx(&self.name)?,
+            "lx" => lx::wait_for_readiness(&self.name)?,
+            "bhyve" => bhyve::wait_for_readiness(&self.name, opts)?,
             _ => control::wait_for_readiness(&self.name)?,
         };
 

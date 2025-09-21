@@ -1,14 +1,8 @@
+use crate::zone::constants::*;
 use common::prelude::*;
 use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
-
-const ZONEADM_FIELDS: usize = 8;
-const READY_SVC: &str = "svc:/milestone/multi-user-server:default";
-const STATE_WAIT_INTERVAL: Duration = Duration::from_secs(1);
-const STATE_WAIT_TIMEOUT: Duration = Duration::from_secs(60);
-const READINESS_WAIT_INTERVAL: Duration = Duration::from_secs(2);
-const READINESS_WAIT_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Debug, PartialEq)]
 pub struct ZoneadmState {
@@ -149,32 +143,13 @@ fn wait_for_state(zone: &str, desired_state: ZoneState) -> anyhow::Result<()> {
     }
 }
 
-pub fn wait_for_readiness(zone: &str) -> anyhow::Result<()> {
+pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
     // This goes a bit further than waiting for the zone state. It checks it's up and in multi-user
-    // mode
+    // mode. LX and Bhyve have their own versions of this.
     let elapsed = Duration::from_secs(0);
     loop {
         if is_ready(zone)? {
-            return Ok(());
-        }
-
-        sleep(READINESS_WAIT_INTERVAL);
-        let elapsed = elapsed + READINESS_WAIT_INTERVAL;
-
-        if elapsed >= READINESS_WAIT_TIMEOUT {
-            bail!("Timed out waiting for {} be ready", zone)
-        }
-    }
-}
-
-pub fn wait_for_readiness_lx(zone: &str) -> anyhow::Result<()> {
-    // Because there are a bunch of possible images, it's hard to know what to look for here. For
-    // starters I'm going to try, "are you running half-a-dozen processes"?
-    //
-    let elapsed = Duration::from_secs(0);
-    loop {
-        if is_ready_lx(zone)? {
-            return Ok(());
+            return Ok(true);
         }
 
         sleep(READINESS_WAIT_INTERVAL);
@@ -187,6 +162,7 @@ pub fn wait_for_readiness_lx(zone: &str) -> anyhow::Result<()> {
 }
 
 fn is_ready(zone: &str) -> anyhow::Result<bool> {
+    // LX and Bhyve provide their own versions of this
     let mut cmd = cmd!(SVCS_BIN, "-z", zone, "-Ho", "state", READY_SVC);
 
     let output = cmd.output()?;
@@ -197,9 +173,4 @@ fn is_ready(zone: &str) -> anyhow::Result<bool> {
     } else {
         Ok(false)
     }
-}
-
-fn is_ready_lx(zone: &str) -> anyhow::Result<bool> {
-    let ps_output = cmd_output!(PS_BIN, "-e", "-z", zone)?;
-    Ok(ps_output.lines().count() > 5)
 }

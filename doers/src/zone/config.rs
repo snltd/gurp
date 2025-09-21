@@ -1,3 +1,4 @@
+use crate::zone::bhyve;
 use camino::Utf8PathBuf;
 use indoc::formatdoc;
 use serde::Deserialize;
@@ -11,6 +12,7 @@ use std::fmt;
 pub struct GurpZoneConfig {
     pub attr: Option<GurpZoneAttrs>,
     pub autoboot: bool,
+    pub bhyve: Option<GurpZoneBhyve>,
     pub boot_after_install: bool,
     pub bootstrap_from: Option<Utf8PathBuf>,
     pub brand: String,
@@ -28,6 +30,17 @@ pub struct GurpZoneConfig {
     pub rctl: Option<GurpZoneRctls>,
     pub recreate: u8,
     pub zonepath: Utf8PathBuf,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GurpZoneBhyve {
+    pub boot_volume: String,
+    pub cloudinit: bool,
+    pub image_format: Option<String>,
+    pub image_url: String,
+    pub ram: String,
+    pub vcpus: u8,
 }
 
 #[derive(Debug, Deserialize)]
@@ -138,7 +151,7 @@ impl GurpZoneConfig {
 
         if let Some(attrs) = &self.attr {
             for attr in attrs {
-                ret.push_str(&self.zone_attr(attr));
+                ret.push_str(&zone_attr!(attr.name, attr.attr_type, attr.value));
             }
         }
 
@@ -148,10 +161,13 @@ impl GurpZoneConfig {
             }
         }
 
+        if &self.brand == "bhyve" {
+            ret.push_str(&bhyve::bhyve_zone_config(self));
+        }
+
         ret
     }
 
-    // We may want to add "create dataset" logic here
     fn zone_dataset(&self, ds_name: &str) -> String {
         format!("add dataset\n\tset name={ds_name}\nend\n")
     }
@@ -177,14 +193,6 @@ impl GurpZoneConfig {
         end\n", conf.physical, conf.swap}
     }
 
-    fn zone_attr(&self, conf: &GurpZoneAttr) -> String {
-        formatdoc! { "add attr
-     \tset name={}
-     \tset type={}
-     \tset value={}
-     end\n", conf.name, conf.attr_type, conf.value}
-    }
-
     fn zone_rctl(&self, conf: &GurpZoneRctl) -> String {
         formatdoc! { "add rctl
      \tset name={}
@@ -192,19 +200,11 @@ impl GurpZoneConfig {
      end\n", conf.name, conf.rctl_priv, conf.limit, conf.action}
     }
 
-    fn string_attr(&self, name: &str, value: &str) -> String {
-        formatdoc! { "add attr
-     \tset name={}
-     \tset type=string
-     \tset value={}
-     end\n", name, value}
-    }
-
     fn zone_dns(&self, conf: &GurpZoneDns) -> String {
         format!(
             "{}{}",
-            self.string_attr("dns-domain", &conf.domain),
-            self.string_attr("resolvers", &conf.nameservers.join(","))
+            zone_attr!("dns-domain", "string", &conf.domain),
+            zone_attr!("resolvers", "string", &conf.nameservers.join(","))
         )
     }
 

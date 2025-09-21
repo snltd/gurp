@@ -1,12 +1,13 @@
 use super::config::GurpZoneDns;
+use crate::zone::constants::*;
 use anyhow::bail;
 use camino::Utf8PathBuf;
+use common::prelude::*;
 use serde_json::Value;
 use std::fs::{self, File};
 use std::io::copy;
-
-const RELEASES_URL: &str = "https://api.github.com/repos/omniosorg/lx-images/releases";
-const IMG_CACHE: &str = "/var/tmp";
+use std::thread::sleep;
+use std::time::Duration;
 
 pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &GurpZoneDns) -> anyhow::Result<()> {
     let resolv_path = zonepath.join("root").join("etc").join("resolv.conf");
@@ -38,7 +39,7 @@ fn get_image(url: &str, path: &Utf8PathBuf) -> anyhow::Result<()> {
 fn fetch_latest_release_images() -> anyhow::Result<Option<Vec<String>>> {
     tracing::debug!("fetching latest release images");
 
-    let response: Value = ureq::get(RELEASES_URL).call()?.into_body().read_json()?;
+    let response: Value = ureq::get(LX_RELEASES_URL).call()?.into_body().read_json()?;
 
     Ok(response
         .get(0)
@@ -67,7 +68,7 @@ pub fn image_path(pattern: &str) -> anyhow::Result<Option<Utf8PathBuf>> {
     if let Some(img_url) = find_image(pattern)? {
         let chunks = img_url.split("/");
         if let Some(img_basename) = chunks.last() {
-            let img_path = Utf8PathBuf::from(IMG_CACHE).join(img_basename);
+            let img_path = Utf8PathBuf::from(IMG_CACHE_DIR).join(img_basename);
             if img_path.exists() {
                 tracing::debug!("found image at {img_path}");
             } else {
@@ -81,5 +82,29 @@ pub fn image_path(pattern: &str) -> anyhow::Result<Option<Utf8PathBuf>> {
         }
     } else {
         Ok(None)
+    }
+}
+
+fn is_ready_lx(zone: &str) -> anyhow::Result<bool> {
+    let ps_output = cmd_output!(PS_BIN, "-e", "-z", zone)?;
+    Ok(ps_output.lines().count() > 5)
+}
+
+pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
+    // Because there are a bunch of possible images, it's hard to know what to look for here. For
+    // starters I'm going to try, "are you running half-a-dozen processes"?
+    //
+    let elapsed = Duration::from_secs(0);
+    loop {
+        if is_ready_lx(zone)? {
+            return Ok(true);
+        }
+
+        sleep(READINESS_WAIT_INTERVAL);
+        let elapsed = elapsed + READINESS_WAIT_INTERVAL;
+
+        if elapsed >= READINESS_WAIT_TIMEOUT {
+            bail!("Timed out waiting for {} be ready", zone)
+        }
     }
 }

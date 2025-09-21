@@ -162,7 +162,7 @@
    {:mandatory
     {:ram ["Amount of RAM to allocate: e.g. '3G'" :string]
      :vcpus ["Number of VCPUs to allocate" :number]
-     :image ["Path to install image" :string]
+     :image-url ["URL of install image" :string]
      :boot-volume ["ZFS boot volume" :string]
      :cloudinit ["Whether to install with Cloudinit" :boolean]}}
 
@@ -912,7 +912,7 @@
   (expand-resource :attr)
   (expand-resource :fs)
   (expand-resource :rctl)
-  (expand-resource :bhyve)
+  (expand-resource :bhyve :as-struct true)
   (let [result (make-resource :ensure :zone name modified-specs)
         resource (struct/to-table (result :zone))]
 
