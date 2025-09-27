@@ -11,6 +11,7 @@ pub const GROUPADD_BIN: &str = "/usr/sbin/groupadd";
 pub const GROUPDEL_BIN: &str = "/usr/sbin/groupdel";
 pub const GROUPMOD_BIN: &str = "/usr/sbin/groupmod";
 pub const GROUPS_BIN: &str = "/bin/groups";
+pub const MKISOFS_BIN: &str = "/bin/mkisofs";
 pub const PKG_BIN: &str = "/bin/pkg";
 pub const PKGIN_BIN: &str = "/opt/local/bin/pkgin";
 pub const PROFILES_BIN: &str = "/bin/profiles";

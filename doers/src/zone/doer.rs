@@ -127,7 +127,7 @@ impl GurpZoneEnsure {
 
         tracing::debug!("zone {}: installed", self.name);
 
-        self.boot_zone(opts)?;
+        self.boot_zone()?;
         self.postinstall_zone()?;
         self.copy_in()?;
         self.bootstrap_zone(opts)?;
@@ -173,7 +173,7 @@ impl GurpZoneEnsure {
         tracing::info!("zone {}: cloning from {}", self.name, source_zone);
         cmd_output!(ZONEADM_BIN, "-z", &self.name, "clone", source_zone)?;
         tracing::debug!("zone {}: cloned", self.name);
-        self.boot_zone(opts)?;
+        self.boot_zone()?;
         self.postinstall_zone()?;
         self.copy_in()?;
         self.bootstrap_zone(opts)?;
@@ -181,7 +181,7 @@ impl GurpZoneEnsure {
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
-    fn boot_zone(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    fn boot_zone(&self) -> anyhow::Result<ApplySummary> {
         if self.config.boot_after_install {
             tracing::debug!("zone {}: booting", self.name);
             cmd_output!(ZONEADM_BIN, "-z", &self.name, "boot")?;
@@ -189,7 +189,7 @@ impl GurpZoneEnsure {
 
         match self.config.brand.as_str() {
             "lx" => lx::wait_for_readiness(&self.name)?,
-            "bhyve" => bhyve::wait_for_readiness(&self.name, opts)?,
+            "bhyve" => bhyve::wait_for_readiness(&self.name)?,
             _ => control::wait_for_readiness(&self.name)?,
         };
 

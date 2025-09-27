@@ -4,10 +4,10 @@ use anyhow::bail;
 use camino::Utf8PathBuf;
 use common::prelude::*;
 use serde_json::Value;
-use std::fs::{self, File};
-use std::io::copy;
+use std::fs;
 use std::thread::sleep;
 use std::time::Duration;
+use util::http;
 
 pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &GurpZoneDns) -> anyhow::Result<()> {
     let resolv_path = zonepath.join("root").join("etc").join("resolv.conf");
@@ -20,18 +20,6 @@ pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &GurpZoneDns) -> anyhow::Res
     }
 
     fs::write(resolv_path, content)?;
-
-    Ok(())
-}
-
-fn get_image(url: &str, path: &Utf8PathBuf) -> anyhow::Result<()> {
-    tracing::info!("downloading {url} -> {path}");
-
-    let response = ureq::get(url).call()?;
-    let mut reader = response.into_body().into_reader();
-
-    let mut file = File::create(path)?;
-    copy(&mut reader, &mut file)?;
 
     Ok(())
 }
@@ -73,7 +61,7 @@ pub fn image_path(pattern: &str) -> anyhow::Result<Option<Utf8PathBuf>> {
                 tracing::debug!("found image at {img_path}");
             } else {
                 tracing::debug!("no image at {img_path}: downloading");
-                get_image(&img_url, &img_path)?;
+                http::download_file(&img_url, &img_path)?;
             }
 
             Ok(Some(img_path))

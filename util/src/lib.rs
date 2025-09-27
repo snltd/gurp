@@ -2,6 +2,7 @@
 extern crate macros;
 
 pub mod file;
+pub mod http;
 pub mod metrics;
 pub mod smf_builder;
 pub mod svcs;

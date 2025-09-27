@@ -150,7 +150,7 @@
      :recreate ["1-in-n chance the zone will be destroyed and recreated" :number]
      :zonepath ["Path to zone root" :string]}
     :mandatory
-    {:brand ["Zone brand. byhve and illumos are not supported" :string]}}
+    {:brand ["Zone brand" :string]}}
 
    :zone-attr
    {:optional
@@ -159,12 +159,16 @@
     {:value ["Attribute value" :string :boolean :number]}}
 
    :zone-bhyve
-   {:mandatory
+   {:optional
+    {:cloudinit-struct ["Generate a Cloudinit file from the given struct" :struct]
+     :cloudinit-file ["Use the given Cloudinit file" :string]
+     :image-url ["URL of remote install image" :string]
+     :image-file ["Path to install image - must be raw format" :string]
+     :image-format ["Specify the format of the image pointed to by :image-url" :string]}
+    :mandatory
     {:ram ["Amount of RAM to allocate: e.g. '3G'" :string]
      :vcpus ["Number of VCPUs to allocate" :number]
-     :image-url ["URL of install image" :string]
-     :boot-volume ["ZFS boot volume" :string]
-     :cloudinit ["Whether to install with Cloudinit" :boolean]}}
+     :boot-volume ["ZFS boot volume" :string]}}
 
    :zone-network
    {:optional
@@ -652,6 +656,11 @@
   "Returns the actual path of a file in ../files"
   [path]
   (qualify-from-path path))
+
+(defn cloudinit-meta-data
+  "Returns a cloudinit meta-data struct for the given hostname"
+  [hostname]
+  {:instance-id hostname :local-hostname hostname})
 
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
 

@@ -1,11 +1,11 @@
 use crate::zone::bhyve;
 use camino::Utf8PathBuf;
-use indoc::formatdoc;
 use serde::Deserialize;
+use serde_json::Value;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
-
-// Turns Janet into Rust into zonecfg input
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -30,15 +30,18 @@ pub struct GurpZoneConfig {
     pub rctl: Option<GurpZoneRctls>,
     pub recreate: u8,
     pub zonepath: Utf8PathBuf,
+    pub cloudinit_iso_file: RefCell<Option<Utf8PathBuf>>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpZoneBhyve {
     pub boot_volume: String,
-    pub cloudinit: bool,
+    pub cloudinit_file: Option<Utf8PathBuf>,
+    pub cloudinit_struct: Option<Value>,
     pub image_format: Option<String>,
-    pub image_url: String,
+    pub image_url: Option<String>,
+    pub image_path: Option<Utf8PathBuf>,
     pub ram: String,
     pub vcpus: u8,
 }
@@ -135,69 +138,46 @@ impl GurpZoneConfig {
 
         if let Some(fs_conf) = &self.fs {
             for conf in fs_conf {
-                ret.push_str(&self.zone_fs(conf));
+                ret.push_str(&zone_fs!(conf));
             }
         }
 
         if let Some(datasets) = &self.datasets {
             for ds in datasets {
-                ret.push_str(&self.zone_dataset(ds));
+                ret.push_str(zone_dataset!(ds));
             }
         }
 
-        if let Some(conf) = &self.capped_memory {
-            ret.push_str(&self.zone_capped_memory(conf));
+        if let Some(cap) = &self.capped_memory {
+            ret.push_str(zone_capped_memory!(cap));
         }
 
         if let Some(attrs) = &self.attr {
             for attr in attrs {
-                ret.push_str(&zone_attr!(attr.name, attr.attr_type, attr.value));
+                ret.push_str(zone_attr!(attr.name, attr.attr_type, attr.value));
             }
         }
 
         if let Some(rctls) = &self.rctl {
             for rctl in rctls {
-                ret.push_str(&self.zone_rctl(rctl));
+                ret.push_str(zone_rctl!(rctl));
             }
         }
 
-        if &self.brand == "bhyve" {
-            ret.push_str(&bhyve::bhyve_zone_config(self));
+        if let Some(bhyve_config) = &self.bhyve {
+            let iso_path = if bhyve_config.cloudinit_file.is_some()
+                || bhyve_config.cloudinit_struct.is_some()
+            {
+                Some(iso_path())
+            } else {
+                None
+            };
+
+            *self.cloudinit_iso_file.borrow_mut() = iso_path.clone();
+            ret.push_str(&bhyve::zone_config(bhyve_config, iso_path));
         }
 
         ret
-    }
-
-    fn zone_dataset(&self, ds_name: &str) -> String {
-        format!("add dataset\n\tset name={ds_name}\nend\n")
-    }
-
-    fn zone_fs(&self, conf: &GurpZoneFilesystem) -> String {
-        let mut ret = formatdoc! { "add fs
-        \tset dir={}
-        \tset special={}
-        \tset type={}\n" , conf.dir, conf.special, conf.fs_type };
-
-        if let Some(options) = &conf.options {
-            ret.push_str(&format!("\tset options={}\n", options.join(",")));
-        }
-
-        ret.push_str("end\n");
-        ret
-    }
-
-    fn zone_capped_memory(&self, conf: &GurpZoneCappedMemory) -> String {
-        formatdoc! { "add capped-memory
-        \tset physical={}
-        \tset swap={}
-        end\n", conf.physical, conf.swap}
-    }
-
-    fn zone_rctl(&self, conf: &GurpZoneRctl) -> String {
-        formatdoc! { "add rctl
-     \tset name={}
-     \tset value=(priv={},limit={},action={})
-     end\n", conf.name, conf.rctl_priv, conf.limit, conf.action}
     }
 
     fn zone_dns(&self, conf: &GurpZoneDns) -> String {
@@ -223,6 +203,17 @@ impl GurpZoneConfig {
 
         ret.push_str("end\n");
         ret
+    }
+}
+
+pub fn iso_path() -> Utf8PathBuf {
+    let tmp_dir = Utf8PathBuf::from("/tmp");
+
+    loop {
+        let path = tmp_dir.join(format!("{}.iso", Uuid::new_v4()));
+        if !path.exists() {
+            return path;
+        }
     }
 }
 
