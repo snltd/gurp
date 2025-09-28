@@ -48,7 +48,7 @@
                (zone-bhyve
                  :ram "3G"
                  :vcpus 4
-                 :image-file "/var/tmp/noble-server-cloudimg-amd64.img.raw"
+                 :image-path "/var/tmp/noble-server-cloudimg-amd64.img.raw"
                  :boot-volume "tank/bhyve/test"
                  :cloudinit-struct {:network {:version 2}})
                :dns {:domain "lan.id264.net"
@@ -113,9 +113,10 @@
                          :autoboot false
                          :bhyve {:boot-volume "tank/bhyve/test"
                                  :cloudinit-struct {:network {:version 2}}
-                                 :image-file "/var/tmp/noble-server-cloudimg-amd64.img.raw"
+                                 :image-path "/var/tmp/noble-server-cloudimg-amd64.img.raw"
                                  :ram "3G"
-                                 :vcpus 4}
+                                 :vcpus 4
+                                 :wait-for-boot true}
                          :boot-after-install true
                          :brand "bhyve"
                          :dns {:domain "lan.id264.net"
