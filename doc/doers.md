@@ -813,11 +813,12 @@ Gurp will infer and add the property types.
 
 #### `(zone-fs)`
 
-| Key        | Type   | Description            | Default | Mandatory |
-| ---------- | ------ | ---------------------- | ------- | --------- |
-| Name       | string | Zone mountpoint        |         | yes       |
-| `:special` | string | Global zone mountpoint |         | yes       |
-| `:type`    | string | Type of mount          | `lofs`  |           |
+| Key        | Type         | Description                 | Default | Mandatory |
+| ---------- | ------------ | --------------------------- | ------- | --------- |
+| Name       | string       | Zone mountpoint             |         | yes       |
+| `:special` | string       | Global zone mountpoint      |         | yes       |
+| `:type`    | string       | Type of mount               | `lofs`  |           |
+| `:options` | list<string> | Mount options, such as `ro` |         |           |
 
 #### `(zone-net)`
 
