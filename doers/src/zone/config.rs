@@ -37,7 +37,7 @@ pub struct GurpZoneConfig {
 #[serde(rename_all = "kebab-case")]
 pub struct GurpZoneBhyve {
     pub boot_volume: String,
-    pub cloudinit_file: Option<Utf8PathBuf>,
+    pub cloudinit_files: Option<Vec<Utf8PathBuf>>,
     pub cloudinit_struct: Option<Value>,
     pub image_format: Option<String>,
     pub image_url: Option<String>,
@@ -165,7 +165,7 @@ impl GurpZoneConfig {
         }
 
         if let Some(bhyve_config) = &self.bhyve {
-            let iso_path = if bhyve_config.cloudinit_file.is_some()
+            let iso_path = if bhyve_config.cloudinit_files.is_some()
                 || bhyve_config.cloudinit_struct.is_some()
             {
                 Some(iso_path())

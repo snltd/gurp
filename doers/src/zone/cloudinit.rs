@@ -1,5 +1,5 @@
 use crate::zone::config::GurpZoneBhyve;
-use anyhow::{bail, ensure};
+use anyhow::{Context, ensure};
 use camino::Utf8PathBuf;
 use common::constants::MKISOFS_BIN;
 use std::fs;
@@ -33,31 +33,39 @@ pub fn setup(config: &GurpZoneBhyve, iso_file: &Utf8PathBuf) -> anyhow::Result<(
     Ok(())
 }
 
-// For now let's do hardcoded defaults. We'll add the option to use a dir another time
 fn populate(dir: &Utf8PathBuf, config: &GurpZoneBhyve) -> anyhow::Result<()> {
     tracing::debug!("Constructing cloud-init CDROM in {dir}");
 
-    if let Some(cloudinit_file) = &config.cloudinit_file {
-        tracing::debug!("Copying {} to {}", cloudinit_file, dir);
-        // fs::copy(cloudinit_file, &cloudinit_target)?;
-    } else if let Some(cloudinit_struct) = &config.cloudinit_struct {
-        if let Some(obj) = cloudinit_struct.as_object() {
-            for (file_name, content) in obj {
-                let cloudinit_target = dir.join(file_name);
-                tracing::debug!("Creating {}", cloudinit_target);
-                let cloudinit_yaml = serde_yaml_bw::to_string(&content)?;
+    if let Some(cloudinit_files) = &config.cloudinit_files {
+        for file in cloudinit_files {
+            let src_path = Utf8PathBuf::from(file);
+            let basename = src_path
+                .file_name()
+                .context(format!("Cannot get basename of {}", src_path))?;
 
-                let cloudinit_content = if file_name == "user-data" {
-                    format!("#cloud-config\n{}", cloudinit_yaml)
-                } else {
-                    cloudinit_yaml
-                };
+            let target_path = dir.join(basename);
 
-                fs::write(&cloudinit_target, cloudinit_content)?;
-            }
+            tracing::debug!("Copying {} to {}", src_path, target_path);
+            fs::copy(src_path, &target_path)?;
         }
-    } else {
-        bail!("No cloudinit info");
+    }
+
+    if let Some(cloudinit_struct) = &config.cloudinit_struct
+        && let Some(obj) = cloudinit_struct.as_object()
+    {
+        for (file_name, content) in obj {
+            let cloudinit_target = dir.join(file_name);
+            tracing::debug!("Creating {}", cloudinit_target);
+            let cloudinit_yaml = serde_yaml_bw::to_string(&content)?;
+
+            let cloudinit_content = if file_name == "user-data" {
+                format!("#cloud-config\n{}", cloudinit_yaml)
+            } else {
+                cloudinit_yaml
+            };
+
+            fs::write(&cloudinit_target, cloudinit_content)?;
+        }
     }
 
     Ok(())

@@ -86,11 +86,7 @@ pub fn pre_install(config: &GurpZoneConfig) -> anyhow::Result<()> {
 
     write_img_to_boot_zvol(&image_raw_file, &bhyve_config.boot_volume)?;
 
-    if bhyve_config.cloudinit_file.is_some() && bhyve_config.cloudinit_struct.is_some() {
-        bail!("bhyve requires at most one of :cloudinit-file or :cloudinit-struct");
-    }
-
-    if bhyve_config.cloudinit_file.is_some() || bhyve_config.cloudinit_struct.is_some() {
+    if bhyve_config.cloudinit_files.is_some() || bhyve_config.cloudinit_struct.is_some() {
         cloudinit::setup(
             bhyve_config,
             &config
@@ -149,10 +145,6 @@ fn convert_image_to_raw(
 
     Ok(())
 }
-
-// So far as I can tell, the only way to configure a bhyve zone is to use cloudinit. And so far
-// as I can tell, the only way to do that is to make a fake CD-ROM ISO image, and temporarily
-// attach it to the zone.
 
 pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
     //

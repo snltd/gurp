@@ -160,8 +160,8 @@
 
    :zone-bhyve
    {:optional
-    {:cloudinit-struct ["Generate a Cloudinit file from the given struct" :struct]
-     :cloudinit-file ["Use the given Cloudinit file" :string]
+    {:cloudinit-struct ["Generate a Cloudinit file from the given struct. Top level keys map to files, e.g. 'user-data'" :struct]
+     :cloudinit-files ["Copy the given files into the Cloudinit image" :tuple]
      :image-url ["URL of remote install image" :string]
      :image-file ["Path to install image - must be raw format" :string]
      :image-format ["Specify the format of the image pointed to by :image-url" :string]}
