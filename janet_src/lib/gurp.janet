@@ -162,9 +162,10 @@
    {:optional
     {:cloudinit-struct ["Generate a Cloudinit file from the given struct. Top level keys map to files, e.g. 'user-data'" :struct]
      :cloudinit-files ["Copy the given files into the Cloudinit image" :tuple]
+     :wait-for-boot ["Wait for boot, or detach immediately" :bool]
      :image-url ["URL of remote install image" :string]
-     :image-file ["Path to install image - must be raw format" :string]
-     :image-format ["Specify the format of the image pointed to by :image-url" :string]}
+     :image-format ["Specify the format of the image pointed to by :image-url" :string]
+     :image-path ["Path to install image - must be raw format" :string]}
     :mandatory
     {:ram ["Amount of RAM to allocate: e.g. '3G'" :string]
      :vcpus ["Number of VCPUs to allocate" :number]
