@@ -49,13 +49,13 @@
     {:backup-suffix ["Back up the file with this suff. Use 'TIMESTAMP' for an epoch timestamp" :string]
      :from ["Copy content from this file. If relative, looks in ../files" :string]
      :from-struct ["Generate a config file from the given struct. Requires :to-format" :struct]
-     :from-uri ["Fetch file from the given URI" :string]
+     :from-url ["Fetch file from the given URL" :string]
      :group ["The group name or GID of the for this file" :string :number]
      :ignore-pattern ["When comparing, ignore lines matching this Rust regex" :string]
      :mode ["Permissions written as a four-digit octal" :string]
      :owner ["The username or UID of the user who owns this file" :string :number]
      :to-format ["Used with :from-struct to try to turn the struct into this format" : string]
-     :with-checksum ["Blake3 checksum used to validate files fetched by :from-uri" :string]
+     :with-checksum ["Blake3 checksum used to validate files fetched by :from-url" :string]
      :content ["Literal content of the file. Must have :content xor :from" :string]}}
 
    :gem
@@ -703,10 +703,10 @@
     (def final-resource
       (if-let [from-path (resource :from)]
         (do
-          (let [uri-or-qualified-path (if (string/find "://" from-path)
+          (let [url-or-qualified-path (if (string/find "://" from-path)
                                         from-path
                                         (qualify-from-path from-path))]
-            (set (resource :from) uri-or-qualified-path)
+            (set (resource :from) url-or-qualified-path)
             {:file (table/to-struct resource)}))
         result))
 

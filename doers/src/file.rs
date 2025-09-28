@@ -32,7 +32,7 @@ pub struct DesiredFileState {
     pub backup_suffix: Option<String>,
     pub content: Option<String>,
     pub from_struct: Option<Value>,
-    pub from_uri: Option<String>,
+    pub from_url: Option<String>,
     pub from: Option<Utf8PathBuf>,
     pub group: String,
     pub ignore_pattern: Option<String>,
@@ -77,14 +77,14 @@ impl GurpFileEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         ensure!(
             self.content_xor_file_xor_content_struct(),
-            "file '{}' must have exactly one of :content, :from, :frum-uri, or :from-struct",
+            "file '{}' must have exactly one of :content, :from, :from-url, or :from-struct",
             &self.path
         );
 
         ensure!(self.source_exists_if_needed(), "Missing source file");
 
-        if let Some(remote_uri) = &self.desired_state.from_uri {
-            self.remote_content(remote_uri)?;
+        if let Some(remote_url) = &self.desired_state.from_url {
+            self.remote_content(remote_url)?;
         }
 
         let mut changes = 0;
@@ -127,7 +127,7 @@ impl GurpFileEnsure {
     fn content_xor_file_xor_content_struct(&self) -> bool {
         [
             self.desired_state.content.as_ref().map(|_| ()),
-            self.desired_state.from_uri.as_ref().map(|_| ()),
+            self.desired_state.from_url.as_ref().map(|_| ()),
             self.desired_state.from.as_ref().map(|_| ()),
             self.desired_state.from_struct.as_ref().map(|_| ()),
         ]
@@ -279,7 +279,7 @@ impl GurpFileEnsure {
 
             Ok(())
         } else {
-            bail!("nothing to write. Require :from, :content, :from-uri, or :from-struct");
+            bail!("nothing to write. Require :from, :content, :from-url, or :from-struct");
         }
     }
 
@@ -485,14 +485,14 @@ mod test {
     }
 
     #[test]
-    fn test_file_create_from_uri() {
+    fn test_file_create_from_url() {
         let server = MockServer::start();
 
         let conf_mock = server.mock(|when, then| {
             when.method(GET).path("/sample/file");
             then.status(200)
                 .header("content-type", "text/plain")
-                .body(load_fixture("file/uri-sample-file"));
+                .body(load_fixture("file/url-sample-file"));
         });
 
         let temp = TempDir::new().unwrap();
@@ -502,7 +502,7 @@ mod test {
 
         let json_def = janet2json(&formatdoc! {r#"
             (file/ensure "{}"
-                :from-uri "{}"
+                :from-url "{}"
                 :with-checksum "9c1b427039a6c786db0277fb96e3b0851a972dcdad832441e802d8b0de936ec3"
                 :mode "0640"
                 :owner "{}"
@@ -521,13 +521,13 @@ mod test {
         let metadata = fs::metadata(&path).unwrap();
         assert_eq!(metadata.permissions().mode() & 0o7777, 0o640);
         assert_eq!(
-            load_fixture("file/uri-sample-file"),
+            load_fixture("file/url-sample-file"),
             fs::read_to_string(path).unwrap()
         );
     }
 
     #[test]
-    fn test_file_create_from_uri_404() {
+    fn test_file_create_from_url_404() {
         let server = MockServer::start();
 
         let conf_mock = server.mock(|when, then| {
@@ -537,7 +537,7 @@ mod test {
 
         let json_def = janet2json(&formatdoc! {r#"
             (file/ensure "/does/not/matter"
-                :from-uri "{}"
+                :from-url "{}"
                 :mode "0640"
                 :owner "{}"
                 :group "{}")
@@ -553,19 +553,19 @@ mod test {
     }
 
     #[test]
-    fn test_file_create_from_uri_bad_checksum() {
+    fn test_file_create_from_url_bad_checksum() {
         let server = MockServer::start();
 
         let conf_mock = server.mock(|when, then| {
             when.method(GET).path("/sample/file");
             then.status(200)
                 .header("content-type", "text/plain")
-                .body(load_fixture("file/uri-sample-file"));
+                .body(load_fixture("file/url-sample-file"));
         });
 
         let json_def = janet2json(&formatdoc! {r#"
             (file/ensure "/does/not/matter"
-                :from-uri "{}"
+                :from-url "{}"
                 :with-checksum "0000000000000000000000000000000000000000000000000000000000000000"
                 :mode "0640"
                 :owner "{}"
@@ -607,7 +607,7 @@ mod test {
                 backup_suffix: None,
                 from_struct: None,
                 to_format: None,
-                from_uri: None,
+                from_url: None,
                 with_checksum: None,
                 remote_content: RefCell::new(None),
             },
@@ -619,7 +619,7 @@ mod test {
 
     #[test]
     fn test_not_exactly_one_source_fails() {
-        let file_and_uri = GurpFileEnsure {
+        let file_and_url = GurpFileEnsure {
             id: "IRRELEVANT".to_owned(),
             path: Utf8PathBuf::from("/does/not/matter"),
             desired_state: DesiredFileState {
@@ -632,13 +632,13 @@ mod test {
                 backup_suffix: None,
                 from_struct: None,
                 to_format: None,
-                from_uri: Some("http://example.com/file".to_owned()),
+                from_url: Some("http://example.com/file".to_owned()),
                 with_checksum: Some("abc123".to_owned()),
                 remote_content: RefCell::new(None),
             },
         };
 
-        assert!(file_and_uri.apply(&defopts()).is_err());
+        assert!(file_and_url.apply(&defopts()).is_err());
 
         let file_and_content = GurpFileEnsure {
             id: "IRRELEVANT".to_owned(),
@@ -653,7 +653,7 @@ mod test {
                 backup_suffix: None,
                 from_struct: None,
                 to_format: None,
-                from_uri: None,
+                from_url: None,
                 with_checksum: None,
                 remote_content: RefCell::new(None),
             },
@@ -674,7 +674,7 @@ mod test {
                 backup_suffix: None,
                 from_struct: None,
                 to_format: None,
-                from_uri: None,
+                from_url: None,
                 with_checksum: None,
                 remote_content: RefCell::new(None),
             },
@@ -703,7 +703,7 @@ mod test {
                 backup_suffix: None,
                 from_struct: None,
                 to_format: None,
-                from_uri: None,
+                from_url: None,
                 with_checksum: None,
                 remote_content: RefCell::new(None),
             },
