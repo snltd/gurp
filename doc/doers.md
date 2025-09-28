@@ -198,15 +198,15 @@ the directory.
 | `:content`        | string         | Literal file content                                                                                                  |         | yes [*]   |
 | `:from`           | string         | Path to a file which will be copied in                                                                                |         | yes [*]   |
 | `:from-struct`    | struct, array  | A struct which Gurp will attempt to turn into a config file                                                           |         | yes [*]   |
-| `:from-uri`       | string         | A URI from which file content will be fetched                                                                         | yes [*] |           |
-| `:with-checksum`  | string         | An optional SHA256 checksum if you use `:from-uri`                                                                    |         |           |
+| `:from-url`       | string         | A URL from which file content will be fetched                                                                         | yes [*] |           |
+| `:with-checksum`  | string         | An optional SHA256 checksum if you use `:from-url`                                                                    |         |           |
 | `:group`          | string, number | Can be a group name or numeric GID                                                                                    | `root`  |           |
 | `:ignore-pattern` | string         | When diffing text files, Gurp will ignore lines matching this regex. If you apply it to a binary, Gurp will error     |         |           |
 | `:mode`           | string         | Four-character octal string                                                                                           | `0755`  |           |
 | `:to-format`      | string         | The format of config file you wish to produce from your `:from-struct`. Can be `json`, `toml`, `yaml`, `ini` or `kvp` |         |           |
 | `:user`           | string, number | Can be a username or numeric UID                                                                                      | `root`  |           |
 
-[*] You must supply exactly one of `:content`, `:from`, `:from-uri`, or
+[*] You must supply exactly one of `:content`, `:from`, `:from-url`, or
 `:from-struct`. If you use `:from-struct` you must also supply `:to-format`.
 
 The `(template-out)` and `(indoc)` helpers are useful when specifying
@@ -458,13 +458,13 @@ You cannot currently install specific versions.
 ### `(publisher/ensure)`
 
 ```janet
-(publisher/ensure "sysdef" :uri "http://pkg.lan.id264.net/")
+(publisher/ensure "sysdef" :url "http://pkg.lan.id264.net/")
 ```
 
 | Key    | Type   | Description      | Default | Mandatory |
 | ------ | ------ | ---------------- | ------- | --------- |
 | Name   | string | Publisher name   |         | yes       |
-| `:uri` | string | URI of publisher |         | yes       |
+| `:url` | string | URL of publisher |         | yes       |
 
 The `publisher` doer only manages origins. You can't configure mirrors.
 
@@ -781,6 +781,7 @@ Gurp will infer and add the property types.
 | `:lx-image`           | string                  | Install an `lx` braned zone with this image                                                                                    |                      |           |
 | `:recreate`           | number                  | 1-in-n chance the zone will be destroyed and recreated                                                                         | 0                    |           |
 | `(zone-attr)`         | function                | See below                                                                                                                      |                      |           |
+| `(zone-bhyve)`        | function                | See below                                                                                                                      |                      |           |
 | `(zone-fs)`           | function                | See below                                                                                                                      |                      |           |
 | `(zone-net)`          | function                | See below                                                                                                                      |                      |           |
 | `:zonepath`           | string                  | Path to zone root                                                                                                              | `/zones/<zone-name>` |           |
@@ -793,6 +794,22 @@ Gurp will infer and add the property types.
 | Name     | string               | Attribute name    |                          | yes       |
 | `:type`  | string               | Type of attribute | inferred from Janet type |           |
 | `:value` | string, number, bool | Attribute value   |                          | yes       |
+
+#### `(zone-bhyve)`
+
+| Key                 | Type         | Description                                                                                                                                                                  | Default | Mandatory |
+| ------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------- |
+| Name                | string       | Zone name                                                                                                                                                                    |         | yes       |
+| `:boot-volume`      | string       | ZFS volume in which to install the image. It is the user's responsibility to create this                                                                                     | yes     |           |
+| `:cloudinit-files`  | list<string> | Files which will be copied into a cloud-init image. `(config-file)` may be useful in organising paths                                                                        |         |           |
+| `:cloudinit-struct` | struct       | A Janet struct which will be converted into one or more cloud-init files. The top-level keys map to filenames, e.g. `:user-data`, and their values will be converted to YAML |         |           |
+| `:image-format`     | string       | The format of the image pointed to by `:image-url`. If not supplied, Gurp will use the file extension                                                                        |         |           |
+| `:image-path`       | string       | The path to a RAW install image. Gurp will not try to convert `:image-path` files                                                                                            | yes [*] |           |
+| `:image-url`        | string       | URL of image to install. Can be in any format handled by `qemu-image`                                                                                                        |         | yes [*]   |
+| `:ram`              | string       | How much memory to allocate to the VM. In the form `4G`                                                                                                                      | yes     |           |
+| `:vcpus`            | number       | How many VCPUs to allocate to the VM                                                                                                                                         | yes     |           |
+
+[*] You must supply exactly one of `:image-url` and `:image-path`.
 
 #### `(zone-fs)`
 
@@ -822,7 +839,7 @@ Gurp will infer and add the property types.
 
 The doer cannot modify an existing zone.
 
-`kvm`, `bhyve` and `illumos` zones are not currently supported.
+`kvm`, and `illumos` zones are not supported.
 
 **Notes on `:recreate`**. This must be an integer, and it is the `n:1` odds of a
 zone being destroyed and recreated. So, `0` means "never recreate this zone",
