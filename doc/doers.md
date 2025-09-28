@@ -800,14 +800,14 @@ Gurp will infer and add the property types.
 | Key                 | Type         | Description                                                                                                                                                                  | Default | Mandatory |
 | ------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------- |
 | Name                | string       | Zone name                                                                                                                                                                    |         | yes       |
-| `:boot-volume`      | string       | ZFS volume in which to install the image. It is the user's responsibility to create this                                                                                     | yes     |           |
+| `:boot-volume`      | string       | ZFS volume in which to install the image. It is the user's responsibility to create this                                                                                     |         | yes       |
 | `:cloudinit-files`  | list<string> | Files which will be copied into a cloud-init image. `(config-file)` may be useful in organising paths                                                                        |         |           |
 | `:cloudinit-struct` | struct       | A Janet struct which will be converted into one or more cloud-init files. The top-level keys map to filenames, e.g. `:user-data`, and their values will be converted to YAML |         |           |
 | `:image-format`     | string       | The format of the image pointed to by `:image-url`. If not supplied, Gurp will use the file extension                                                                        |         |           |
-| `:image-path`       | string       | The path to a RAW install image. Gurp will not try to convert `:image-path` files                                                                                            | yes [*] |           |
+| `:image-path`       | string       | The path to a RAW install image. Gurp will not try to convert `:image-path` files                                                                                            |         | yes [*]   |
 | `:image-url`        | string       | URL of image to install. Can be in any format handled by `qemu-image`                                                                                                        |         | yes [*]   |
-| `:ram`              | string       | How much memory to allocate to the VM. In the form `4G`                                                                                                                      | yes     |           |
-| `:vcpus`            | number       | How many VCPUs to allocate to the VM                                                                                                                                         | yes     |           |
+| `:ram`              | string       | How much memory to allocate to the VM. In the form `4G`                                                                                                                      |         | yes       |
+| `:vcpus`            | number       | How many VCPUs to allocate to the VM                                                                                                                                         |         | yes       |
 
 [*] You must supply exactly one of `:image-url` and `:image-path`.
 
