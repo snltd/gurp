@@ -44,6 +44,7 @@ pub struct GurpZoneBhyve {
     pub image_path: Option<Utf8PathBuf>,
     pub ram: String,
     pub vcpus: u8,
+    pub wait_for_boot: bool,
 }
 
 #[derive(Debug, Deserialize)]

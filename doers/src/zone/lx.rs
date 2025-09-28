@@ -52,7 +52,18 @@ fn find_image(pattern: &str) -> anyhow::Result<Option<String>> {
     }
 }
 
-pub fn image_path(pattern: &str) -> anyhow::Result<Option<Utf8PathBuf>> {
+pub fn image_path(image: Option<&str>) -> anyhow::Result<Utf8PathBuf> {
+    if let Some(img_pattern) = image {
+        match get_image(img_pattern)? {
+            Some(path) => Ok(path),
+            None => bail!("did not find a suitable LX image"),
+        }
+    } else {
+        bail!("LX zones require an :image")
+    }
+}
+
+fn get_image(pattern: &str) -> anyhow::Result<Option<Utf8PathBuf>> {
     if let Some(img_url) = find_image(pattern)? {
         let chunks = img_url.split("/");
         if let Some(img_basename) = chunks.last() {
@@ -73,7 +84,7 @@ pub fn image_path(pattern: &str) -> anyhow::Result<Option<Utf8PathBuf>> {
     }
 }
 
-fn is_ready_lx(zone: &str) -> anyhow::Result<bool> {
+fn is_ready(zone: &str) -> anyhow::Result<bool> {
     let ps_output = cmd_output!(PS_BIN, "-e", "-z", zone)?;
     Ok(ps_output.lines().count() > 5)
 }
@@ -84,7 +95,7 @@ pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
     //
     let elapsed = Duration::from_secs(0);
     loop {
-        if is_ready_lx(zone)? {
+        if is_ready(zone)? {
             return Ok(true);
         }
 

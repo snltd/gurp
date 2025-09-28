@@ -1,6 +1,7 @@
 use crate::zone::config::GurpZoneBhyve;
 use anyhow::{Context, ensure};
 use camino::Utf8PathBuf;
+use camino_tempfile::Utf8TempDir;
 use common::constants::MKISOFS_BIN;
 use std::fs;
 
@@ -17,24 +18,14 @@ pub fn setup(config: &GurpZoneBhyve, iso_file: &Utf8PathBuf) -> anyhow::Result<(
         MKISOFS_BIN
     );
 
-    // TODO replace with tempdir
-    let cloudinit_iso_dir = Utf8PathBuf::from("/tmp/cloudinit");
-
-    if cloudinit_iso_dir.exists() {
-        fs::remove_dir_all(&cloudinit_iso_dir)?;
-    }
-
-    fs::create_dir(&cloudinit_iso_dir)?;
-    tracing::debug!("Created Cloudinit dir at {cloudinit_iso_dir}");
-
+    let cloudinit_iso_dir = camino_tempfile::tempdir()?;
     populate(&cloudinit_iso_dir, config)?;
     create_cloudinit_iso(&cloudinit_iso_dir, iso_file)?;
-
     Ok(())
 }
 
-fn populate(dir: &Utf8PathBuf, config: &GurpZoneBhyve) -> anyhow::Result<()> {
-    tracing::debug!("Constructing cloud-init CDROM in {dir}");
+fn populate(dir: &Utf8TempDir, config: &GurpZoneBhyve) -> anyhow::Result<()> {
+    tracing::debug!("Constructing cloud-init CDROM");
 
     if let Some(cloudinit_files) = &config.cloudinit_files {
         for file in cloudinit_files {
@@ -43,7 +34,7 @@ fn populate(dir: &Utf8PathBuf, config: &GurpZoneBhyve) -> anyhow::Result<()> {
                 .file_name()
                 .context(format!("Cannot get basename of {}", src_path))?;
 
-            let target_path = dir.join(basename);
+            let target_path = dir.path().join(basename);
 
             tracing::debug!("Copying {} to {}", src_path, target_path);
             fs::copy(src_path, &target_path)?;
@@ -54,7 +45,7 @@ fn populate(dir: &Utf8PathBuf, config: &GurpZoneBhyve) -> anyhow::Result<()> {
         && let Some(obj) = cloudinit_struct.as_object()
     {
         for (file_name, content) in obj {
-            let cloudinit_target = dir.join(file_name);
+            let cloudinit_target = dir.path().join(file_name);
             tracing::debug!("Creating {}", cloudinit_target);
             let cloudinit_yaml = serde_yaml_bw::to_string(&content)?;
 
@@ -71,7 +62,7 @@ fn populate(dir: &Utf8PathBuf, config: &GurpZoneBhyve) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn create_cloudinit_iso(dir: &Utf8PathBuf, target: &Utf8PathBuf) -> anyhow::Result<()> {
+fn create_cloudinit_iso(dir: &Utf8TempDir, target: &Utf8PathBuf) -> anyhow::Result<()> {
     let _ = cmd_output!(
         MKISOFS_BIN,
         "-output",
@@ -80,7 +71,7 @@ fn create_cloudinit_iso(dir: &Utf8PathBuf, target: &Utf8PathBuf) -> anyhow::Resu
         "cidata",
         "-joliet",
         "-rock",
-        format!("{dir}/")
+        format!("{}/", dir.path())
     );
 
     Ok(())

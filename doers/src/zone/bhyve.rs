@@ -1,16 +1,19 @@
 use crate::zone::cloudinit;
 use crate::zone::config::{GurpZoneBhyve, GurpZoneConfig, GurpZoneFilesystem};
-use crate::zone::constants::READINESS_WAIT_INTERVAL;
+use crate::zone::constants::{READINESS_WAIT_INTERVAL, READINESS_WAIT_TIMEOUT};
 use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::prelude::*;
-use portable_pty::{CommandBuilder, native_pty_system};
-use std::fs;
-use std::io::{Read, Write};
+use portable_pty::{CommandBuilder, PtySize, native_pty_system};
+use std::fs::{self, File};
+use std::io::{BufWriter, Read, Write};
 use std::sync::mpsc;
 use std::thread;
-use std::thread::sleep;
+use std::time::{Duration, Instant};
 use util::http;
+
+const BUFFER_SIZE: usize = 8192;
+const WINDOW_SIZE: usize = 4096;
 
 pub fn zone_config(config: &GurpZoneBhyve, iso_path: Option<Utf8PathBuf>) -> String {
     let mut ret = String::new();
@@ -41,7 +44,7 @@ pub fn zone_config(config: &GurpZoneBhyve, iso_path: Option<Utf8PathBuf>) -> Str
 // a URL, we'll do it for them.
 //
 pub fn pre_install(config: &GurpZoneConfig) -> anyhow::Result<()> {
-    tracing::info!("Running bhyve pre_install");
+    tracing::debug!("Running bhyve pre_install");
 
     let bhyve_config = config
         .bhyve
@@ -147,71 +150,219 @@ fn convert_image_to_raw(
 }
 
 pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
-    //
-    // It's hard to know when a bhyve zone is fully booted. Here we look for a login prompt,
-    // which seems universal across distributions. You somtimes have to hit return to get one
-    // though.
-    //
-    // zlogin requires a PTY, hence the use of portable_pty. We scan the raw bytes of what
-    // zlogin sees in a separate thread, because that was the only way I could avoid choking
-    // on non-UTF8 data.
-    //
-    // When the console mentions ttyS0, we "press return". When we see the login prompt, we
-    // send an escape to end the console session, then pass true back to the main thread and
-    // the function returns. If we hit EOF before that, we send back false.
-    //
-    // I might replace this all of this with a ping...
-    //
-    let pty_system = native_pty_system();
-    let pair = pty_system.openpty(Default::default())?;
-
     tracing::info!("Waiting for zone to be ready");
+
+    let console_log_dir = Utf8PathBuf::from("/var/tmp");
+    let console_log_file = console_log_dir.join(format!("{zone}.log"));
+
+    let pty_system = native_pty_system();
+    let pair = pty_system
+        .openpty(PtySize::default())
+        .context("Failed to create PTY")?;
 
     let mut cmd = CommandBuilder::new(ZLOGIN_BIN);
     cmd.arg("-C");
     cmd.arg(zone);
 
-    let mut child = pair.slave.spawn_command(cmd)?;
+    let mut child = pair
+        .slave
+        .spawn_command(cmd)
+        .context("Failed to start zlogin")?;
+
     drop(pair.slave);
 
-    let mut writer = pair.master.take_writer()?;
-    let mut reader = pair.master.try_clone_reader()?;
+    let writer = pair
+        .master
+        .take_writer()
+        .context("Failed to get PTY writer")?;
 
-    let (tx, rx) = mpsc::channel::<bool>();
+    let reader = pair
+        .master
+        .try_clone_reader()
+        .context("Failed to get PTY reader")?;
+
+    let (result_tx, result_rx) = mpsc::channel();
+
+    tracing::info!("Logging console output to {console_log_file}");
 
     thread::spawn(move || {
-        let mut buf = [0u8; 1024];
-        let mut window = Vec::new();
-
-        while let Ok(n) = reader.read(&mut buf) {
-            if n == 0 {
-                break;
-            }
-
-            window.extend_from_slice(&buf[..n]);
-            if window.len() > 4096 {
-                window.drain(..window.len() - 4096);
-            }
-
-            if window.windows(5).any(|w| w == b"ttyS0") {
-                tracing::debug!("Seen ttyS0; sending CR");
-                let _ = writeln!(writer);
-            }
-
-            if window.windows(7).any(|w| w == b" login:") {
-                tracing::debug!("Seen login prompt; sending ~.");
-                let _ = writeln!(writer, "~.");
-                let _ = tx.send(true);
-                return;
-            }
-
-            sleep(READINESS_WAIT_INTERVAL);
-        }
-
-        let _ = tx.send(false);
+        let result = monitor_console(reader, writer, &console_log_file);
+        let _ = result_tx.send(result);
     });
 
-    let ready = rx.recv().unwrap_or(false);
+    let result = result_rx.recv_timeout(READINESS_WAIT_TIMEOUT + READINESS_WAIT_INTERVAL)?;
+    let _ = child.kill();
     let _ = child.wait();
-    Ok(ready)
+
+    result
+}
+
+fn monitor_console(
+    mut reader: Box<dyn Read + Send>,
+    mut writer: Box<dyn Write + Send>,
+    log_path: &Utf8PathBuf,
+) -> anyhow::Result<bool> {
+    let mut buf = vec![0u8; BUFFER_SIZE];
+    let mut window = Vec::new();
+    let mut cr_sent = false;
+    let mut login_prompt_seen = false;
+
+    let log_file = File::create(log_path)?;
+    let mut log_writer = BufWriter::new(log_file);
+
+    let start_time = Instant::now();
+
+    while start_time.elapsed() < READINESS_WAIT_TIMEOUT {
+        match reader.read(&mut buf) {
+            Ok(0) => {
+                tracing::debug!("EOF reached on console");
+                break;
+            }
+            Ok(n) => {
+                let data = &buf[..n];
+
+                if let Err(e) = log_writer.write_all(data) {
+                    tracing::warn!("Failed to write to console log: {}", e);
+                } else {
+                    let _ = log_writer.flush();
+                }
+
+                if !data.is_empty() {
+                    let preview = if data.len() > 100 { &data[..100] } else { data };
+                    let preview_str = String::from_utf8_lossy(preview);
+                    tracing::debug!("Console data: {:?}", preview_str);
+                }
+
+                window.extend_from_slice(data);
+                if window.len() > WINDOW_SIZE {
+                    window.drain(..window.len() - WINDOW_SIZE);
+                }
+
+                if let Some(result) =
+                    scan_output(&window, &mut writer, &mut cr_sent, &mut login_prompt_seen)
+                {
+                    let _ = log_writer.flush();
+                    return Ok(result);
+                }
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                thread::sleep(Duration::from_millis(50));
+                continue;
+            }
+            Err(e) => {
+                bail!("Read error: {}", e);
+            }
+        }
+
+        thread::sleep(Duration::from_millis(50));
+    }
+
+    let _ = log_writer.flush();
+
+    bail!("Timeout reached waiting for zone readiness");
+}
+
+fn scan_output(
+    window: &[u8],
+    writer: &mut Box<dyn Write + Send>,
+    cr_sent: &mut bool,
+    login_prompt_seen: &mut bool,
+) -> Option<bool> {
+    if find_pattern(window, b"Zone halted") {
+        tracing::debug!("Zone halted detected");
+        hangup(writer);
+        return Some(false);
+    }
+
+    if !*cr_sent && find_pattern(window, b"ttyS0") {
+        tracing::debug!("ttyS0 detected; sending CR");
+        hit_return(writer);
+        *cr_sent = true;
+    }
+
+    let login_patterns: &[&[u8]] = &[b" login:", b"login:", b"Login:", b"username:", b"Username:"];
+
+    for pattern in login_patterns {
+        if find_pattern(window, pattern) && !*login_prompt_seen {
+            tracing::debug!("Login prompt detected",);
+            *login_prompt_seen = true;
+
+            thread::sleep(Duration::from_millis(500));
+            hangup(writer);
+            return Some(true);
+        }
+    }
+
+    None
+}
+
+fn find_pattern(haystack: &[u8], needle: &[u8]) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+
+    haystack
+        .windows(needle.len())
+        .any(|window| window == needle)
+}
+
+fn hit_return(writer: &mut Box<dyn Write + Send>) {
+    let _ = writer.write_all(b"\r");
+    let _ = writer.flush();
+}
+
+fn hangup(writer: &mut Box<dyn Write + Send>) {
+    let _ = writer.write_all(b"~.\r");
+    let _ = writer.flush();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_find_pattern() {
+        assert!(find_pattern(b"hello world", b"world"));
+        assert!(find_pattern(b"ubuntu login: ", b" login:"));
+        assert!(!find_pattern(b"hello", b"world"));
+        assert!(find_pattern(b"Zone halted", b"Zone halted"));
+    }
+
+    #[test]
+    fn test_check_console_patterns_login() {
+        let mut writer: Box<dyn Write + Send> = Box::new(Vec::new());
+        let mut cr_sent = false;
+        let mut login_seen = false;
+
+        let window = b"Welcome to Linux\nubuntu login: ";
+        let result = scan_output(window, &mut writer, &mut cr_sent, &mut login_seen);
+
+        assert!(matches!(result, Some(true)));
+        assert!(login_seen);
+    }
+
+    #[test]
+    fn test_check_console_patterns_halted() {
+        let mut writer: Box<dyn Write + Send> = Box::new(Vec::new());
+        let mut cr_sent = false;
+        let mut login_seen = false;
+
+        let window = b"Shutting down\nZone halted\n";
+        let result = scan_output(window, &mut writer, &mut cr_sent, &mut login_seen);
+
+        assert!(matches!(result, Some(false)));
+    }
+
+    #[test]
+    fn test_check_console_patterns_ttys0() {
+        let mut writer: Box<dyn Write + Send> = Box::new(Vec::new());
+        let mut cr_sent = false;
+        let mut login_seen = false;
+
+        let window = b"Starting ttyS0...";
+        let result = scan_output(window, &mut writer, &mut cr_sent, &mut login_seen);
+
+        assert!(result.is_none());
+        assert!(cr_sent);
+    }
 }
