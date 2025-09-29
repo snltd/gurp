@@ -1,6 +1,6 @@
 use crate::zone::cloudinit;
 use crate::zone::config::{GurpZoneBhyve, GurpZoneConfig, GurpZoneFilesystem};
-use crate::zone::constants::{READINESS_WAIT_INTERVAL, READINESS_WAIT_TIMEOUT};
+use crate::zone::constants::{READINESS_WAIT_INTERVAL, READINESS_WAIT_TIMEOUT_BHYVE};
 use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::prelude::*;
@@ -89,7 +89,7 @@ pub fn pre_install(config: &GurpZoneConfig) -> anyhow::Result<()> {
 
     write_img_to_boot_zvol(&image_raw_file, &bhyve_config.boot_volume)?;
 
-    if bhyve_config.cloudinit_files.is_some() || bhyve_config.cloudinit_struct.is_some() {
+    if bhyve_config.has_cloudinit() {
         cloudinit::setup(
             bhyve_config,
             &config
@@ -149,11 +149,12 @@ fn convert_image_to_raw(
     Ok(())
 }
 
-pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
+pub fn wait_for_readiness(zone: &str, uuid: Option<&str>) -> anyhow::Result<bool> {
     tracing::info!("Waiting for zone to be ready");
 
+    let uuid = uuid.context("no uuid for zone")?;
     let console_log_dir = Utf8PathBuf::from("/var/tmp");
-    let console_log_file = console_log_dir.join(format!("{zone}.log"));
+    let console_log_file = console_log_dir.join(format!("gurp-{uuid}.log"));
 
     let pty_system = native_pty_system();
     let pair = pty_system
@@ -190,7 +191,7 @@ pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
         let _ = result_tx.send(result);
     });
 
-    let result = result_rx.recv_timeout(READINESS_WAIT_TIMEOUT + READINESS_WAIT_INTERVAL)?;
+    let result = result_rx.recv_timeout(READINESS_WAIT_TIMEOUT_BHYVE)?;
     let _ = child.kill();
     let _ = child.wait();
 
@@ -212,7 +213,7 @@ fn monitor_console(
 
     let start_time = Instant::now();
 
-    while start_time.elapsed() < READINESS_WAIT_TIMEOUT {
+    while start_time.elapsed() < READINESS_WAIT_TIMEOUT_BHYVE {
         match reader.read(&mut buf) {
             Ok(0) => {
                 tracing::debug!("EOF reached on console");

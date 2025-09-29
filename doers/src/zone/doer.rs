@@ -49,7 +49,6 @@ impl GurpZoneEnsure {
             num == 1
         }
     }
-
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let config_input = self.config.to_zonecfg();
 
@@ -167,8 +166,17 @@ impl GurpZoneEnsure {
             "lx" => lx::wait_for_readiness(&self.name)?,
             "bhyve" => {
                 if let Some(bhyve_config) = &self.config.bhyve {
+                    if bhyve_config.has_cloudinit() {
+                        tracing::debug!("removing cloudinit cdrom from zone config");
+                        // It's safe to do this here. The config won't be re-read until the zone
+                        // boots
+                        let _ =
+                            cmd_output!(ZONECFG_BIN, "-z", &self.name, "remove attr name=cdrom")?;
+                        let _ = cmd_output!(ZONECFG_BIN, "-z", &self.name, "remove fs type=lofs")?;
+                    }
+
                     if bhyve_config.wait_for_boot {
-                        bhyve::wait_for_readiness(&self.name)?
+                        bhyve::wait_for_readiness(&self.name, self.config.uuid.borrow().as_deref())?
                     } else {
                         false
                     }

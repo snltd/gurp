@@ -155,7 +155,7 @@ pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
         sleep(READINESS_WAIT_INTERVAL);
         let elapsed = elapsed + READINESS_WAIT_INTERVAL;
 
-        if elapsed >= READINESS_WAIT_TIMEOUT {
+        if elapsed >= READINESS_WAIT_TIMEOUT_NATIVE {
             bail!("Timed out waiting for {} be ready", zone)
         }
     }

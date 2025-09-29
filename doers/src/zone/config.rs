@@ -30,6 +30,7 @@ pub struct GurpZoneConfig {
     pub rctl: Option<GurpZoneRctls>,
     pub recreate: u8,
     pub zonepath: Utf8PathBuf,
+    pub uuid: RefCell<Option<String>>,
     pub cloudinit_iso_file: RefCell<Option<Utf8PathBuf>>,
 }
 
@@ -121,6 +122,12 @@ pub struct GurpZoneNetwork {
     pub defrouter: Option<String>,
 }
 
+impl GurpZoneBhyve {
+    pub fn has_cloudinit(&self) -> bool {
+        self.cloudinit_files.is_some() || self.cloudinit_struct.is_some()
+    }
+}
+
 impl GurpZoneConfig {
     pub fn to_zonecfg(&self) -> String {
         let mut ret = "create -b\n".to_owned();
@@ -166,10 +173,12 @@ impl GurpZoneConfig {
         }
 
         if let Some(bhyve_config) = &self.bhyve {
-            let iso_path = if bhyve_config.cloudinit_files.is_some()
-                || bhyve_config.cloudinit_struct.is_some()
-            {
-                Some(iso_path())
+            let uuid = Uuid::new_v4();
+            *self.uuid.borrow_mut() = Some(uuid.to_string());
+            let iso_path = iso_path(&uuid);
+
+            let iso_path = if bhyve_config.has_cloudinit() {
+                Some(iso_path)
             } else {
                 None
             };
@@ -207,11 +216,11 @@ impl GurpZoneConfig {
     }
 }
 
-pub fn iso_path() -> Utf8PathBuf {
+pub fn iso_path(uuid: &Uuid) -> Utf8PathBuf {
     let tmp_dir = Utf8PathBuf::from("/tmp");
 
     loop {
-        let path = tmp_dir.join(format!("{}.iso", Uuid::new_v4()));
+        let path = tmp_dir.join(format!("{uuid}.iso"));
         if !path.exists() {
             return path;
         }
