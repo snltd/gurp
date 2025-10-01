@@ -20,7 +20,7 @@
                :owner "gibbus"
                :mode "0640"
                :with-checksum "0123456789abcdef"
-               :from-uri "https://example.com/files/config")
+               :from-url "https://example.com/files/config")
 
   (file/remove "/path/to/file")
 
@@ -40,7 +40,7 @@
                          :owner "dataperson"
                          :role "test-role"}
                         {:_id "/test-role/file/_file_from_remote_path"
-                         :from-uri "https://example.com/files/config"
+                         :from-url "https://example.com/files/config"
                          :group "root"
                          :mode "0640"
                          :name "/file/from/remote/path"

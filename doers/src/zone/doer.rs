@@ -1,3 +1,4 @@
+use crate::zone::bhyve;
 use crate::zone::config::GurpZoneConfig;
 use crate::zone::control::{self, ZoneadmState};
 use crate::zone::lx;
@@ -48,7 +49,6 @@ impl GurpZoneEnsure {
             num == 1
         }
     }
-
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let config_input = self.config.to_zonecfg();
 
@@ -76,11 +76,7 @@ impl GurpZoneEnsure {
             Ok(ONE_RESOURCE_NOOP)
         } else {
             self.create_from_config(&config_input)?;
-            if let Some(clone_source) = &self.config.clone_from {
-                self.clone_zone(clone_source, opts)
-            } else {
-                self.install_zone(opts)
-            }
+            self.build_zone(opts)
         }
     }
 
@@ -110,82 +106,97 @@ impl GurpZoneEnsure {
         }
     }
 
-    fn install_zone(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    fn build_zone(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        self.preinstall()?;
+
+        if let Some(clone_source) = &self.config.clone_from {
+            self.clone(clone_source)?;
+        } else {
+            self.install()?;
+        }
+
+        self.boot()?;
+        self.postinstall()?;
+        self.copy_in()?;
+        self.bootstrap(opts)?;
+        self.exec_in()?;
+        self.set_final_state()?;
+
+        Ok(ONE_RESOURCE_ONE_CHANGE)
+    }
+
+    fn preinstall(&self) -> anyhow::Result<()> {
+        if &self.config.brand == "bhyve" {
+            bhyve::pre_install(&self.config)?;
+        }
+
+        Ok(())
+    }
+
+    fn install(&self) -> anyhow::Result<()> {
         tracing::info!("installing {} [{}]", self.name, self.config.brand);
-        match self.config.brand.as_str() {
+
+        let _ = match self.config.brand.as_str() {
             "lx" => {
-                let img_path = self.install_zone_lx_path()?;
+                let img_path = lx::image_path(self.config.image.as_deref())?;
                 cmd_output!(ZONEADM_BIN, "-z", &self.name, "install", "-s", img_path)?
             }
             _ => cmd_output!(ZONEADM_BIN, "-z", &self.name, "install")?,
         };
 
         tracing::debug!("zone {}: installed", self.name);
-        self.boot_zone()?;
-        self.postinstall_zone()?;
-        self.copy_in()?;
-        self.bootstrap_zone(opts)?;
-        self.exec_in()?;
-        self.set_final_state()?;
-        Ok(ONE_RESOURCE_ONE_CHANGE)
-    }
-
-    fn set_final_state(&self) -> anyhow::Result<()> {
-        if let Some(final_state) = &self.config.final_state {
-            match final_state.as_str() {
-                "reboot" => control::reboot_zone(&self.name),
-                "installed" => control::halt_zone(&self.name),
-                _ => bail!("Only supported final states are 'reboot', 'installed'"),
-            }
-        } else {
-            Ok(())
-        }
-    }
-
-    fn postinstall_zone(&self) -> anyhow::Result<()> {
-        if self.config.brand.as_str() == "lx"
-            && let Some(dns_config) = &self.config.dns
-        {
-            lx::set_up_dns(&self.config.zonepath, dns_config)?;
-        }
         Ok(())
     }
 
-    fn install_zone_lx_path(&self) -> anyhow::Result<Utf8PathBuf> {
-        if let Some(img_pattern) = &self.config.image {
-            match lx::image_path(img_pattern)? {
-                Some(path) => Ok(path),
-                None => bail!("did not find a suitable LX image"),
-            }
-        } else {
-            bail!("LX zones require an :image")
-        }
-    }
-
-    fn clone_zone(&self, source_zone: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    fn clone(&self, source_zone: &str) -> anyhow::Result<()> {
         tracing::info!("zone {}: cloning from {}", self.name, source_zone);
         cmd_output!(ZONEADM_BIN, "-z", &self.name, "clone", source_zone)?;
+
         tracing::debug!("zone {}: cloned", self.name);
-        self.boot_zone()?;
-        self.postinstall_zone()?;
-        self.copy_in()?;
-        self.bootstrap_zone(opts)?;
-        self.exec_in()?;
-        Ok(ONE_RESOURCE_ONE_CHANGE)
+        Ok(())
     }
 
-    fn boot_zone(&self) -> anyhow::Result<ApplySummary> {
+    fn boot(&self) -> anyhow::Result<ApplySummary> {
         if self.config.boot_after_install {
             tracing::debug!("zone {}: booting", self.name);
             cmd_output!(ZONEADM_BIN, "-z", &self.name, "boot")?;
         }
 
         match self.config.brand.as_str() {
-            "lx" => control::wait_for_readiness_lx(&self.name)?,
+            "lx" => lx::wait_for_readiness(&self.name)?,
+            "bhyve" => {
+                if let Some(bhyve_config) = &self.config.bhyve {
+                    if bhyve_config.has_cloudinit() {
+                        tracing::debug!("removing cloudinit cdrom from zone config");
+                        // It's safe to do this here. The config won't be re-read until the zone
+                        // boots
+                        let _ =
+                            cmd_output!(ZONECFG_BIN, "-z", &self.name, "remove attr name=cdrom")?;
+                        let _ = cmd_output!(ZONECFG_BIN, "-z", &self.name, "remove fs type=lofs")?;
+                    }
+
+                    if bhyve_config.wait_for_boot {
+                        bhyve::wait_for_readiness(&self.name, self.config.uuid.borrow().as_deref())?
+                    } else {
+                        false
+                    }
+                } else {
+                    bail!("No bhyve config for bhyve branded zone");
+                }
+            }
             _ => control::wait_for_readiness(&self.name)?,
         };
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
+    }
+
+    fn postinstall(&self) -> anyhow::Result<()> {
+        if self.config.brand.as_str() == "lx"
+            && let Some(dns_config) = &self.config.dns
+        {
+            lx::set_up_dns(&self.config.zonepath, dns_config)?;
+        }
+        Ok(())
     }
 
     fn exec_in(&self) -> anyhow::Result<()> {
@@ -235,7 +246,7 @@ impl GurpZoneEnsure {
         Ok(())
     }
 
-    fn bootstrap_zone(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
+    fn bootstrap(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
         // Like everything else, this is super-minimal, at least for now, possibly for ever. Copy
         // our own executable into the zone, and trust the user that the file they gave us is
         // there, and can access all the roles and files it needs.
@@ -252,7 +263,6 @@ impl GurpZoneEnsure {
             }
 
             bootstrap_command.push_str("/var/tmp/gurp ");
-
             bootstrap_command.push_str("apply ");
 
             if opts.dump_config {
@@ -284,6 +294,18 @@ impl GurpZoneEnsure {
         }
 
         Ok(())
+    }
+
+    fn set_final_state(&self) -> anyhow::Result<()> {
+        if let Some(final_state) = &self.config.final_state {
+            match final_state.as_str() {
+                "reboot" => control::reboot_zone(&self.name),
+                "installed" => control::halt_zone(&self.name),
+                _ => bail!("Only supported final states are 'reboot', 'installed'"),
+            }
+        } else {
+            Ok(())
+        }
     }
 }
 

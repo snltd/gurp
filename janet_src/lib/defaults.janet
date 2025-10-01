@@ -43,6 +43,9 @@
      :recreate 0
      :boot-after-install true}
 
+    :zone-bhyve
+    {:wait-for-boot true}
+
     :zone-fs
     {:type "lofs"}
 
