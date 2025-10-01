@@ -1,3 +1,5 @@
+## v1.1.0 (2025-10-01)
+
 - Add support for Bhyve zones.
 - Add `--precompiled` (`-p`) flag to `apply` command, which applies a
   pre-compiled JSON file.
