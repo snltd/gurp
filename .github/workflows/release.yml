@@ -21,13 +21,13 @@ jobs:
       with:
         usesh: true
         prepare: |
-          pkg install developer/gcc14 developer/clang-19
+          pkg install developer/gcc14 
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         run: |
           . ${HOME}/.cargo/env 
           cd $GITHUB_WORKSPACE
           cargo test
-          cargo build --release
+          CFLAGS=-std=c99 cargo build --release
           cp target/release/gurp .
           strip gurp
           cargo clean
