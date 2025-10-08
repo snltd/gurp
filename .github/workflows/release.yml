@@ -1,4 +1,4 @@
-name: illumos
+name: illumos Build
 
 on:
   push:
@@ -21,10 +21,11 @@ jobs:
       with:
         usesh: true
         prepare: |
-          pkg install developer/gcc14
+          pkg install developer/gcc14 developer/clang-19 system/header
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         run: |
           . ${HOME}/.cargo/env 
+          export CFLAGS="-std=c99 -D_XOPEN_SOURCE=700 -D__EXTENSIONS__"
           cd $GITHUB_WORKSPACE
           cargo test
           cargo build --release

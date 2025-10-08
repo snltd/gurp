@@ -1,4 +1,6 @@
 name: Rust Tests
+permissions:
+  contents: read
 on: 
   - push
 jobs:
