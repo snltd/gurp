@@ -25,7 +25,7 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         run: |
           . ${HOME}/.cargo/env 
-          export CFLAGS='-std=c99'
+          export CFLAGS="-std=c99 -D_XOPEN_SOURCE=700 -D__EXTENSIONS__"
           cd $GITHUB_WORKSPACE
           cargo test
           cargo build --release
