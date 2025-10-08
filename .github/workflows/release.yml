@@ -21,7 +21,7 @@ jobs:
       with:
         usesh: true
         prepare: |
-          pkg install developer/gcc14 developer/clang-19
+          pkg install developer/gcc14 developer/clang-19 system/header
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         run: |
           . ${HOME}/.cargo/env 
