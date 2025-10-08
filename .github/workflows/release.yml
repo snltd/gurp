@@ -1,4 +1,4 @@
-name: illumos
+name: illumos Build
 
 on:
   push:
@@ -23,11 +23,13 @@ jobs:
         prepare: |
           pkg install developer/gcc14 developer/clang-19
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        env:
+          CFLAGS: "-std=c99"
         run: |
           . ${HOME}/.cargo/env 
           cd $GITHUB_WORKSPACE
           cargo test
-          CFLAGS=-std=c99 cargo build --release
+          cargo build --release
           cp target/release/gurp .
           strip gurp
           cargo clean
