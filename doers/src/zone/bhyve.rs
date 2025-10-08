@@ -1,6 +1,6 @@
 use crate::zone::cloudinit;
 use crate::zone::config::{GurpZoneBhyve, GurpZoneConfig, GurpZoneFilesystem};
-use crate::zone::constants::{READINESS_WAIT_INTERVAL, READINESS_WAIT_TIMEOUT_BHYVE};
+use crate::zone::constants::{READINESS_WAIT_TIMEOUT_BHYVE};
 use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::prelude::*;
