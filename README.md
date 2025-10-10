@@ -1,5 +1,6 @@
 [![Rust Tests](https://github.com/snltd/gurp/actions/workflows/test-rust.yml/badge.svg)](https://github.com/snltd/gurp/actions/workflows/test-rust.yml)
 [![Janet Tests](https://github.com/snltd/gurp/actions/workflows/test-janet.yml/badge.svg)](https://github.com/snltd/gurp/actions/workflows/test-janet.yml)
+[![illumos Build](https://github.com/snltd/gurp/actions/workflows/release.yml/badge.svg)](https://github.com/snltd/gurp/actions/workflows/release.yml)
 
 # Gurp
 
@@ -8,20 +9,42 @@ Gurp is an illumos configuration management tool.
 Hosts are described in a thin [Janet](https://janet-lang.org/) DSL.
 
 ```janet
-(section "ntp"
-         (pkg/ensure "service/network/ntpsec")
+(use ../globals)
 
-         (directory/ensure "/var/lib/ntp"
-                           :owner "root"
-                           :group "daemon")
+(def smf-method-path (pathcat site-smf-method "minidlna.sh"))
+(def smf-service "sysdef/multimedia/minidlna")
 
-         (file/ensure "/etc/ntp.conf"
-                      :from "ntp.conf"
-                      :label "ntp-conf")
+(def minidlna-conf
+  [:media_dir "A,/storage/flac"
+   :friendly_name (hostname)
+   :album_art_names "front.jpg"
+   :strict_dlna "no"
+   :notify_interval 900])
 
-         (svc/ensure "ntp"
-                     :state "online"
-                     :restarted-by [(this :file :ntp-conf)]))
+(host "minidlna-server"
+      (pkg/ensure "ooce/multimedia/minidlna")
+
+      (file/ensure smf-method-path
+                   :mode "0755"
+                   :from "minidlna/minidlna-method.sh")
+
+      (file/ensure "/etc/opt/ooce/minidlna/minidlna.conf"
+                   :from-struct minidlna-conf
+                   :to-format "k=v")
+
+      (svc/ensure smf-service :state "online")
+
+      (smf/ensure smf-service
+                  :fmri smf-service
+                  :description "MiniDLNA - DLNA/UPnP-AV media server"
+                  (smf-method "start"
+                              :exec smf-method-path
+                              :user "minidlna"
+                              :group "minidlna")
+                  (smf-method "refresh"
+                              :exec smf-method-path
+                              :user "minidlna"
+                              :group "minidlna")))
 ```
 
 If you want to know more:
@@ -37,10 +60,14 @@ If you want to know more:
   talk about the design, development, use, successes, shortcomings, and future
   of Gurp.
 
-## Building and Running
+## Get Gurp
 
-Assuming you are on an illumos system with Rust, check out the repo and
+- [Download an OmniOS binary](https://github.com/snltd/gurp/releases/).
 
-```sh
-$ CFLAGS=-std=c99 cargo install --path cli
-```
+- Build it yourself:
+  ```sh
+  $ git clone git@github.com:snltd/gurp.git && cd gurp
+  $ CFLAGS=-std=c99 cargo install --path cli
+  ```
+
+- [Get an omnios-extra style build dir](https://github.com/snltd/sysdef-extra/tree/main/build/gurp).
