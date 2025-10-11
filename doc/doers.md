@@ -27,6 +27,7 @@ an issue or a PR.
 Doers are executed in the following order. (This also serves as a page index.)
 
 - [`(publisher/ensure)`](#publisherensure)
+- [`(vnic/ensure)`](#vnicensure)
 - [`(zfs/ensure)`](#zfsensure)
 - [`(zone/ensure)`](#zoneensure)
 - [`(pkg/ensure)`](#pkgensure)
@@ -60,6 +61,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(apk/remove)`](#apkremove)
 - [`(zone/remove)`](#zoneremove)
 - [`(zfs/remove)`](#zfsremove)
+- [`(vnic/remove)`](#vnicremove)
 
 - [`(svc/ensure)`](#svcensure)
 
@@ -659,6 +661,35 @@ To unlock an account, use a hash of `NP`.
 | Key  | Type   | Description | Default | Mandatory |
 | ---- | ------ | ----------- | ------- | --------- |
 | Name | string | Username    |         | yes       |
+
+## `vnic`
+
+### `(vnic/ensure)`
+
+```janet
+(vnic/ensure "new_vnic0"
+             :over "e1000g0"
+             :vlan-tag 14)
+```
+
+| Key         | Type   | Description                                     | Default | Mandatory |
+| ----------- | ------ | ----------------------------------------------- | ------- | --------- |
+| Name        | string | Name of VNIC                                    |         | yes       |
+| `:over`     | string | The physical NIC over which the VNIC is created |         | yes       |
+| `:vlan-tag` | number | VLAN tag. Gurp does not check its validity      | 0       |           |
+
+VNICs get a random MAC address. If a VNIC exists but has a different VLAN tag or
+underlying physical NIC, Gurp will try to recreate it.
+
+### `(vnic/remove)`
+
+```janet
+(vnic/remove "old_vnic0")
+```
+
+| Key  | Type   | Description    | Default | Mandatory |
+| ---- | ------ | -------------- | ------- | --------- |
+| Name | string | VNIC to remove |         | yes       |
 
 ## `zfs`
 

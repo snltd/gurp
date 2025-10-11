@@ -20,5 +20,6 @@ pub mod svcprop;
 pub mod symlink;
 pub mod types;
 pub mod user;
+pub mod vnic;
 pub mod zfs;
 pub mod zone;
