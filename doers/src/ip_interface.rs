@@ -48,17 +48,63 @@ fn parse_ifprop(raw: &str) -> IfProperties {
 
 impl GurpIpInterfaceEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let mut ret = ONE_RESOURCE_NO_CHANGE;
+        let mut changed = false;
 
         // Create if necessary
         if interface_exists(&self.name)? {
             tracing::debug!("{} exists", self.name);
         } else {
             tracing::info!("creating {}", self.name);
-            ret = ONE_RESOURCE_ONE_CHANGE;
+            changed = true;
         }
 
-        Ok(ret)
+        if let Some(desired_properties) = &self.properties {
+            // We will ignore any properties ipadm doesn't know about
+            for (prop, val) in &self.current_ifprops()? {
+                if let Some(cv) = desired_properties.get(prop) {
+                    if cv == val {
+                        tracing::debug!("{}:{} already {}", self.name, prop, val);
+                    } else {
+                        changed = true;
+                        tracing::info!("{}:{} changing {} -> {}", self.name, prop, val, cv);
+
+                        if !opts.noop {
+                            self.set_property(prop, cv)?;
+                        }
+                    }
+                }
+            }
+        }
+
+        if changed {
+            Ok(ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        }
+    }
+
+    fn set_property(&self, property: &str, value: &str) -> anyhow::Result<()> {
+        cmd_output!(
+            IPADM_BIN,
+            "set-ifprop",
+            "-p",
+            &format!("{property}={value}"),
+            &self.name
+        )?;
+        Ok(())
+    }
+
+    fn current_ifprops(&self) -> anyhow::Result<IfProperties> {
+        let ipadm_output = cmd_output!(
+            IPADM_BIN,
+            "show-ifprop",
+            "-c",
+            "-o",
+            "property,current",
+            &self.name,
+        )?;
+
+        Ok(parse_ifprop(&ipadm_output))
     }
 }
 
