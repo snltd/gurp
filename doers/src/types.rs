@@ -14,6 +14,7 @@ use crate::svc::GurpSvcEnsure;
 use crate::svcprop::{GurpSvcpropEnsure, GurpSvcpropRemove};
 use crate::symlink::{GurpSymlinkEnsure, GurpSymlinkRemove};
 use crate::user::{GurpUserEnsure, GurpUserRemove};
+use crate::vnic::{GurpVnicEnsure, GurpVnicRemove};
 use crate::zfs::{GurpZfsEnsure, GurpZfsRemove};
 use crate::zone::{GurpZoneEnsure, GurpZoneRemove};
 use serde::{Deserialize, Serialize};
@@ -74,6 +75,8 @@ pub struct EnsureResources {
     #[serde(default)]
     pub user: Vec<GurpUserEnsure>,
     #[serde(default)]
+    pub vnic: Vec<GurpVnicEnsure>,
+    #[serde(default)]
     pub zfs: Vec<GurpZfsEnsure>,
     #[serde(default)]
     pub zone: Vec<GurpZoneEnsure>,
@@ -110,6 +113,8 @@ pub struct RemoveResources {
     pub symlink: Vec<GurpSymlinkRemove>,
     #[serde(default)]
     pub user: Vec<GurpUserRemove>,
+    #[serde(default)]
+    pub vnic: Vec<GurpVnicRemove>,
     #[serde(default)]
     pub zfs: Vec<GurpZfsRemove>,
     #[serde(default)]

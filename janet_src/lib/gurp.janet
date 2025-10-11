@@ -124,6 +124,12 @@
      :shell ["User's shell" :string]
      :uid ["UID of user" :number]}}
 
+   :vnic
+   {:optional
+    {:vlan-tag ["Enable VLAN tagging with the given tag" :number]}
+    :mandatory
+    {:over ["Physical link which will serve VNIC" :string]}}
+
    :zfs
    {:optional
     {:properties ["ZFS properties (:keyword) paired with desired value (:string)" :struct]
@@ -903,6 +909,16 @@
   "Given a user name and specification, return a user remove struct"
   [name & specs]
   (collect :remove :user (make-resource :remove :user name specs)))
+
+(defn vnic/ensure
+  "Given a VNIC name and specification, return a vnic ensure struct"
+  [name & specs]
+  (collect :ensure :vnic (make-resource :ensure :vnic name specs)))
+
+(defn vnic/remove
+  "Given a VNIC name and specification, return a vnic remove struct"
+  [name & specs]
+  (collect :remove :vnic (make-resource :remove :vnic name specs)))
 
 (defn zfs/ensure
   "Given a zfs dataset name and specification, return a ZFS ensure struct"

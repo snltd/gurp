@@ -87,6 +87,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<Ap
     let mut changed_ids: ChangedIds = BTreeSet::new();
 
     apply_resources!(summary_total, changed_ids, &ensure.publisher, opts);
+    apply_resources!(summary_total, changed_ids, &ensure.vnic, opts);
     apply_resources!(summary_total, changed_ids, &ensure.zfs, opts);
     apply_resources!(summary_total, changed_ids, &ensure.zone, opts);
 
@@ -146,6 +147,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<Ap
 
     apply_resources!(summary_total, changed_ids, &remove.zone, opts);
     apply_resources!(summary_total, changed_ids, &remove.zfs, opts);
+    apply_resources!(summary_total, changed_ids, &remove.vnic, opts);
 
     for resource in &ensure.svc {
         let summary = resource.apply(&changed_ids, opts)?;
