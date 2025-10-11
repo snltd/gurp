@@ -7,6 +7,7 @@ use regex::Regex;
 use serde::Deserialize;
 use serde_json::Value;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
@@ -41,6 +42,7 @@ pub struct DesiredFileState {
     pub to_format: Option<String>,
     pub with_checksum: Option<String>,
     pub remote_content: RefCell<Option<Vec<u8>>>,
+    // pub url_replacements: Option<HashMap<String, String>>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -52,29 +54,29 @@ pub struct GurpFileRemove {
 }
 
 impl GurpFileEnsure {
-    fn remote_content(&self, url: &str) -> anyhow::Result<()> {
-        // As usual, complete MVP.
-        // I don't think I want to cache anything between Gurp runs, so I don't have anywhere to
-        // store ETags or whatever. (And I can't be sure the thing serving will serve them.)
-        // Therefore, we're going to have to pull the file every time. Read it into memory and pop
-        // it in the RefCell.
-        let content = ureq::get(url).call()?.body_mut().read_to_vec()?;
-
-        if let Some(checksum) = self.desired_state.with_checksum.as_ref() {
-            let remote_checksum = sha256::digest(&content);
-
-            ensure!(
-                checksum == &remote_checksum,
-                "Remote file has incorrect checksum"
-            );
-        }
-
-        *self.desired_state.remote_content.borrow_mut() = Some(content);
-
-        Ok(())
-    }
-
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        //
+        // mut source = (content xor from xor from_url, xor from_struct)
+        //
+        // if file_is_binary
+        //     if hash(target_file) == hash(source)
+        //         exit
+        //     else
+        //         write(source, target_file)
+        //
+        // if url_replacements
+        //     content = replace_urls(source)
+        // if ignore_pattern
+        //     content = ignore_pattern(source)
+        //
+        // mut target = existing_content
+        // if target.exists()
+        //     if ignore_pattern
+        //         target = ignore_pattern(target)
+        //
+        // if hash(target) != hash(source)
+        //     write(target, target_file)
+        //
         ensure!(
             self.content_xor_file_xor_content_struct(),
             "file '{}' must have exactly one of :content, :from, :from-url, or :from-struct",
@@ -150,6 +152,32 @@ impl GurpFileEnsure {
 
             None => true,
         }
+    }
+
+    fn remote_content(&self, url: &str) -> anyhow::Result<()> {
+        // As usual, complete MVP.
+        // I don't think I want to cache anything between Gurp runs, so I don't have anywhere to
+        // store ETags or whatever. (And I can't be sure the thing serving will serve them.)
+        // Therefore, we're going to have to pull the file every time. Read it into memory and pop
+        // it in the RefCell.
+        let mut content = ureq::get(url).call()?.body_mut().read_to_vec()?;
+
+        if let Some(checksum) = self.desired_state.with_checksum.as_ref() {
+            let remote_checksum = sha256::digest(&content);
+
+            ensure!(
+                checksum == &remote_checksum,
+                "Remote file has incorrect checksum"
+            );
+        }
+
+        // if let Some(replacements) = self.desired_state.url_replacements {
+        //     content = self.url_replacements(&content, &replacements);
+        // }
+
+        *self.desired_state.remote_content.borrow_mut() = Some(content);
+
+        Ok(())
     }
 
     fn file_has_changed(&self) -> anyhow::Result<bool> {

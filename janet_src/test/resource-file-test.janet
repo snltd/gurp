@@ -16,6 +16,15 @@
                :mode "0600"
                :content "lots-of-data")
 
+  (file/ensure "/secret/file"
+               :owner "root"
+               :mode "0600"
+               :content "sensitive-data"
+               :url-replacements {
+                "__SENSITIVE_VALUE_1__" "https://secret-server/secrets/value_1"
+              }
+              )
+
   (file/ensure "/file/from/remote/path"
                :owner "gibbus"
                :mode "0640"
