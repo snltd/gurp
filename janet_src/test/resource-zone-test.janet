@@ -7,14 +7,14 @@
   (set *collector* (new-collector))
 
   (zone/ensure "test-zone-thin"
-               (zone-network "fs_net0"
+               (zone-network "test_net0"
                              :global-nic "auto"
                              :allowed-address "192.168.1.33/24"
                              :defrouter "192.168.1.1")
                :brand "lipkg")
 
   (zone/ensure "test-lx-zone"
-               (zone-network "fs_net0"
+               (zone-network "test_net0"
                              :global-nic "auto"
                              :allowed-address "192.168.1.33/24"
                              :defrouter "192.168.1.1")
@@ -27,7 +27,7 @@
   (zone/ensure "test-zone-fat"
                :brand "lipkg"
                :autoboot false
-               (zone-network "fs_net0"
+               (zone-network "test_net0"
                              :global-nic "auto"
                              :allowed-address "192.168.1.33/24"
                              :defrouter "192.168.1.1")
@@ -42,7 +42,7 @@
   (zone/ensure "test-zone-bhyve"
                :brand "bhyve"
                :autoboot false
-               (zone-network "fs_net0"
+               (zone-network "test_net0"
                              :allowed-address "192.168.1.33/24"
                              :global-nic "auto")
                (zone-bhyve
@@ -65,7 +65,7 @@
                          :net @[{:allowed-address "192.168.1.33/24"
                                  :defrouter "192.168.1.1"
                                  :global-nic "auto"
-                                 :physical "fs_net0"}]
+                                 :physical "test_net0"}]
                          :recreate 0
                          :role "test-role"
                          :zonepath "/zones/test-zone-thin"}
@@ -83,7 +83,7 @@
                          :net @[{:allowed-address "192.168.1.33/24"
                                  :defrouter "192.168.1.1"
                                  :global-nic "auto"
-                                 :physical "fs_net0"}]
+                                 :physical "test_net0"}]
                          :recreate 0
                          :role "test-role"
                          :zonepath "/zones/test-lx-zone"}
@@ -105,7 +105,7 @@
                          :net @[{:allowed-address "192.168.1.33/24"
                                  :defrouter "192.168.1.1"
                                  :global-nic "auto"
-                                 :physical "fs_net0"}]
+                                 :physical "test_net0"}]
                          :recreate 0
                          :role "test-role"
                          :zonepath "/zones/test-zone-fat"}
@@ -124,7 +124,7 @@
                          :name "test-zone-bhyve"
                          :net @[{:allowed-address "192.168.1.33/24"
                                  :global-nic "auto"
-                                 :physical "fs_net0"}]
+                                 :physical "test_net0"}]
                          :recreate 0
                          :role "test-role"
                          :zonepath "/zones/test-zone-bhyve"}]}

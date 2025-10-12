@@ -15,7 +15,7 @@ pub struct GurpVnicEnsure {
     pub name: String,
     pub over: String,
     pub vlan_tag: Option<VlanID>,
-    pub create_interface: bool,
+    pub with_interface: bool,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -113,11 +113,11 @@ impl GurpVnicEnsure {
             }
         }
 
-        if self.create_interface {
+        if self.with_interface {
             tracing::info!("creating interface on {}", self.name);
 
             if !opts.noop {
-                cmd_output!(IPADM_BIN, "create-if", &self.name);
+                cmd_output!(IPADM_BIN, "create-if", &self.name)?;
             }
         }
 

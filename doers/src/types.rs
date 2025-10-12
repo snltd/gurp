@@ -5,6 +5,8 @@ use crate::file::{GurpFileEnsure, GurpFileRemove};
 use crate::file_line::{GurpFileLineEnsure, GurpFileLineRemove};
 use crate::gem::{GurpGemEnsure, GurpGemRemove};
 use crate::group::{GurpGroupEnsure, GurpGroupRemove};
+// use crate::ip_address::{GurpIpAddressEnsure, GurpIpAddressRemove};
+use crate::ip_interface::{GurpIpInterfaceEnsure, GurpIpInterfaceRemove};
 use crate::misc::GurpMiscEnsure;
 use crate::pkg::{GurpPkgEnsure, GurpPkgRemove};
 use crate::pkgin::{GurpPkginEnsure, GurpPkginRemove};
@@ -54,6 +56,10 @@ pub struct EnsureResources {
     pub file_line: Vec<GurpFileLineEnsure>,
     #[serde(default)]
     pub group: Vec<GurpGroupEnsure>,
+    // #[serde(default)]
+    // pub ip_address: Vec<GurpIpAddressEnsure>,
+    #[serde(default)]
+    pub ip_interface: Vec<GurpIpInterfaceEnsure>,
     #[serde(default)]
     pub misc: Vec<GurpMiscEnsure>,
     #[serde(default)]
@@ -103,6 +109,10 @@ pub struct RemoveResources {
     pub gem: Vec<GurpGemRemove>,
     #[serde(default)]
     pub pkg: Vec<GurpPkgRemove>,
+    // #[serde(default)]
+    // pub ip_address: Vec<GurpIpAddressRemove>,
+    #[serde(default)]
+    pub ip_interface: Vec<GurpIpInterfaceRemove>,
     #[serde(default)]
     pub pkgin: Vec<GurpPkginRemove>,
     #[serde(default)]

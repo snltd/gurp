@@ -10,6 +10,8 @@ pub mod file_line;
 pub mod gem;
 pub mod group;
 pub mod host;
+// pub mod ip_address;
+pub mod ip_interface;
 pub mod misc;
 pub mod pkg;
 pub mod pkgin;
