@@ -1,11 +1,13 @@
 use common::prelude::*;
 use serde::Deserialize;
+use serde::de::Deserializer;
 use std::collections::HashMap;
 use std::fmt::Debug;
 // use std::process::Command;
 
 // THINGS TO KNOW / THINGS TO DO.
 
+type Protocols = HashMap<String, IfProperties>;
 type IfProperties = HashMap<String, String>;
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -14,8 +16,45 @@ pub struct GurpIpInterfaceEnsure {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
-    pub over: String,
-    pub properties: Option<IfProperties>,
+    #[serde(default, deserialize_with = "property_deserializer")]
+    pub protocols: Protocols,
+}
+
+fn property_deserializer<'de, D>(
+    deserializer: D,
+) -> Result<HashMap<String, HashMap<String, String>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    // Outer map: protocol name -> property map
+    let raw: HashMap<String, HashMap<String, serde_json::Value>> =
+        HashMap::deserialize(deserializer)?;
+
+    let converted = raw
+        .into_iter()
+        .map(|(proto, props)| {
+            let converted_props = props
+                .into_iter()
+                .map(|(k, v)| {
+                    let s = match v {
+                        serde_json::Value::String(s) => s,
+                        serde_json::Value::Bool(b) => {
+                            if b {
+                                "on".to_owned()
+                            } else {
+                                "off".to_owned()
+                            }
+                        }
+                        _ => v.to_string(),
+                    };
+                    (k, s)
+                })
+                .collect::<HashMap<_, _>>();
+            (proto, converted_props)
+        })
+        .collect();
+
+    Ok(converted)
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -55,21 +94,34 @@ impl GurpIpInterfaceEnsure {
             tracing::debug!("{} exists", self.name);
         } else {
             tracing::info!("creating {}", self.name);
+
+            if !opts.noop {
+                cmd_output!(IPADM_BIN, "create-if", &self.name)?;
+            }
+
             changed = true;
         }
 
-        if let Some(desired_properties) = &self.properties {
+        for (protocol, properties) in &self.protocols {
             // We will ignore any properties ipadm doesn't know about
-            for (prop, val) in &self.current_ifprops()? {
-                if let Some(cv) = desired_properties.get(prop) {
-                    if cv == val {
-                        tracing::debug!("{}:{} already {}", self.name, prop, val);
+            for (prop, current_val) in &self.current_ifprops(protocol)? {
+                if let Some(desired_val) = properties.get(prop) {
+                    println!("desired={:?} current={:?}", desired_val, current_val);
+                    if desired_val == current_val {
+                        tracing::debug!("{}:{} already {}", self.name, prop, current_val);
                     } else {
                         changed = true;
-                        tracing::info!("{}:{} changing {} -> {}", self.name, prop, val, cv);
+                        tracing::info!(
+                            "{}:{}/{} changing {} -> {}",
+                            self.name,
+                            prop,
+                            protocol,
+                            current_val,
+                            desired_val
+                        );
 
                         if !opts.noop {
-                            self.set_property(prop, cv)?;
+                            self.set_property(prop, protocol, desired_val)?;
                         }
                     }
                 }
@@ -83,24 +135,28 @@ impl GurpIpInterfaceEnsure {
         }
     }
 
-    fn set_property(&self, property: &str, value: &str) -> anyhow::Result<()> {
+    fn set_property(&self, property: &str, protocol: &str, value: &str) -> anyhow::Result<()> {
         cmd_output!(
             IPADM_BIN,
             "set-ifprop",
             "-p",
             &format!("{property}={value}"),
+            "-m",
+            protocol,
             &self.name
         )?;
         Ok(())
     }
 
-    fn current_ifprops(&self) -> anyhow::Result<IfProperties> {
+    fn current_ifprops(&self, protocol: &str) -> anyhow::Result<IfProperties> {
         let ipadm_output = cmd_output!(
             IPADM_BIN,
             "show-ifprop",
             "-c",
             "-o",
             "property,current",
+            "-m",
+            &protocol,
             &self.name,
         )?;
 
@@ -127,6 +183,41 @@ impl GurpIpInterfaceRemove {
 mod test {
     use super::*;
     use indoc::indoc;
+    use tester::janet2json;
+
+    #[test]
+    fn test_deserialize() {
+        let json_def = janet2json(indoc! {r#"
+           (ip-interface/ensure "test0"
+                                (ip-interface-protocol "ipv6"
+                                                       :mtu 1500
+                                                       :forwarding false)
+                                (ip-interface-protocol "ipv4"
+                                                       :mtu 1505
+                                                       :forwarding true))
+          "#});
+
+        let expected_ipv4: IfProperties = HashMap::from([
+            ("mtu".to_owned(), "1505".to_owned()),
+            ("forwarding".to_owned(), "on".to_owned()),
+        ]);
+
+        let expected_ipv6: IfProperties = HashMap::from([
+            ("mtu".to_owned(), "1500".to_owned()),
+            ("forwarding".to_owned(), "off".to_owned()),
+        ]);
+
+        let expected = GurpIpInterfaceEnsure {
+            id: "/NO-ROLE/ip-interface/test0".to_owned(),
+            name: "test0".to_owned(),
+            protocols: HashMap::from([
+                ("ipv4".to_owned(), expected_ipv4),
+                ("ipv6".to_owned(), expected_ipv6),
+            ]),
+        };
+
+        assert_eq!(expected, serde_json::from_str(&json_def).unwrap())
+    }
 
     #[test]
     fn test_parse_ifprop() {
