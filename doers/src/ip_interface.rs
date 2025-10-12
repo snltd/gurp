@@ -3,7 +3,7 @@ use serde::Deserialize;
 use serde::de::Deserializer;
 use std::collections::HashMap;
 use std::fmt::Debug;
-// use std::process::Command;
+use util::deserializer;
 
 // THINGS TO KNOW / THINGS TO DO.
 
@@ -26,34 +26,17 @@ fn property_deserializer<'de, D>(
 where
     D: Deserializer<'de>,
 {
-    // Outer map: protocol name -> property map
-    let raw: HashMap<String, HashMap<String, serde_json::Value>> =
-        HashMap::deserialize(deserializer)?;
-
+    let raw = HashMap::<String, HashMap<String, serde_json::Value>>::deserialize(deserializer)?;
     let converted = raw
         .into_iter()
         .map(|(proto, props)| {
             let converted_props = props
                 .into_iter()
-                .map(|(k, v)| {
-                    let s = match v {
-                        serde_json::Value::String(s) => s,
-                        serde_json::Value::Bool(b) => {
-                            if b {
-                                "on".to_owned()
-                            } else {
-                                "off".to_owned()
-                            }
-                        }
-                        _ => v.to_string(),
-                    };
-                    (k, s)
-                })
-                .collect::<HashMap<_, _>>();
+                .map(|(k, v)| (k, deserializer::value_to_string(v)))
+                .collect();
             (proto, converted_props)
         })
         .collect();
-
     Ok(converted)
 }
 

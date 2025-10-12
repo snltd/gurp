@@ -4,6 +4,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
 use std::sync::LazyLock;
+use util::deserializer::option_property_deserializer;
 
 // THINGS TO KNOW / THINGS TO DO.
 // Destroy is recursive!
@@ -12,12 +13,13 @@ static ZFS_BIN_PATH: LazyLock<&'static str> = LazyLock::new(zfs_bin);
 
 // We used to cache the ZFS output. Don't do that!
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 pub struct GurpZfsEnsure {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
     pub size: Option<String>,
+    #[serde(default, deserialize_with = "option_property_deserializer")]
     pub properties: Option<ZfsProperties>,
 }
 
@@ -177,5 +179,40 @@ impl GurpZfsRemove {
         let mut cmd = cmd!(*ZFS_BIN_PATH, "destroy", "-r", &self.name);
         return_if_noop!(opts);
         one_change_or_stderr!(cmd)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use indoc::indoc;
+    use tester::janet2json;
+
+    #[test]
+    fn test_deserialize() {
+        let json_def = janet2json(indoc! {r#"
+          (zfs/ensure "tank/test"
+                      :label "test-zfs"
+                      :properties {:compression "gzip9"
+                                   :atime true
+                                   :exec "off"
+                                   :devices false})
+          "#});
+
+        let expected_props: ZfsProperties = HashMap::from([
+            ("compression".to_owned(), "gzip9".to_owned()),
+            ("atime".to_owned(), "on".to_owned()),
+            ("exec".to_owned(), "off".to_owned()),
+            ("devices".to_owned(), "off".to_owned()),
+        ]);
+
+        let expected = GurpZfsEnsure {
+            id: "/NO-ROLE/zfs/test-zfs".to_owned(),
+            name: "tank/test".to_owned(),
+            size: None,
+            properties: Some(expected_props),
+        };
+
+        assert_eq!(expected, serde_json::from_str(&json_def).unwrap())
     }
 }
