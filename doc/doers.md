@@ -29,6 +29,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(publisher/ensure)`](#publisherensure)
 - [`(vnic/ensure)`](#vnicensure)
 - [`(ip-interface/ensure)`](#ipinterfaceensure)
+- [`(ip-address/ensure)`](#ipaddressensure)
 - [`(zfs/ensure)`](#zfsensure)
 - [`(zone/ensure)`](#zoneensure)
 - [`(pkg/ensure)`](#pkgensure)
@@ -62,6 +63,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(apk/remove)`](#apkremove)
 - [`(zone/remove)`](#zoneremove)
 - [`(zfs/remove)`](#zfsremove)
+- [`(ip-address/remove)`](#ipaddressremove)
 - [`(ip-interface/remove)`](#ipinterfaceremove)
 - [`(vnic/remove)`](#vnicremove)
 
@@ -367,6 +369,40 @@ Manages Ruby gems.
 | Key  | Type   | Description | Default | Mandatory |
 | ---- | ------ | ----------- | ------- | --------- |
 | Name | string | Group name  |         | yes       |
+
+## `ip-address`
+
+### `(ip-address/ensure)`
+
+```janet
+(ip-address/ensure "example0/v4"
+                   :type "static"
+                   :address "192.168.1.33/24"
+                   :properties {:prefixlen 24
+                                :private false})       
+
+(ip-address/ensure "example1/v4"
+                   :type "dhcp")
+```
+
+| Key        | Type   | Description                                                                                   | Default | Mandatory |
+| ---------- | ------ | --------------------------------------------------------------------------------------------- | ------- | --------- |
+| Name       | string | ip-address name                                                                               |         | yes       |
+| type       | string | Either `static` or `dhcp`. Other link types are not yet supported                             |         | yes       |
+| address    | string | CIDR IP address, with mask                                                                    |         | yes [*]   |
+| properties | struct | Any valid `ipadm addrprop` properties. Gurp will convert `true` and `false` to `on` and `off` |         |           |
+
+[*] You must provide an address if `:type "static"`.
+
+### `(ip-address/remove)`
+
+```janet
+(ip-address/remove "example0" )
+```
+
+| Key  | Type   | Description     | Default | Mandatory |
+| ---- | ------ | --------------- | ------- | --------- |
+| Name | string | ip-address name |         | yes       |
 
 ## `ip-interface`
 

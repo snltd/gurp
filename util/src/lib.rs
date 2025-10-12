@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate macros;
 
+pub mod deserializer;
 pub mod file;
 pub mod http;
 pub mod metrics;

@@ -1,3 +1,12 @@
+## v1.2.0 (2025-10-12)
+
+- Add `vnic` doer, to add and remove VNICs.
+- Add `ip-interface` doer, which adds, removes, and sets properties on network
+  interfaces.
+- Add `ip-address` doer, which allows setting of static and DHCP IP addresses.
+  It also manages `addrprop` settings.
+- Translate Janet bools into `on` and `off` when defining ZFS properties.
+
 ## v1.1.0 (2025-10-01)
 
 - Add support for Bhyve zones.

@@ -68,6 +68,13 @@
    {:mandatory
     {:gid ["The group ID" :number]}}
 
+   :ip-address
+   {:optional
+    {:address ["Local IP address with /netmask, if using static address" :string]
+     :properties ["Any valid ipadm addrprops" :stuct]}
+    :mandatory
+    {:type ["Type of connection: 'static', 'dhcp'" :string]}}
+
    :ip-interface
    {:optional
     {:protocols ["See 'ip-interface-protocol'"]}
@@ -784,6 +791,16 @@
   "Given a group name and specification, return a group remove struct"
   [name & specs]
   (collect :remove :group (make-resource :remove :group name specs)))
+
+(defn ip-address/ensure
+  "Given a ip-address name and specification, return a ip-address ensure struct"
+  [name & specs]
+  (collect :ensure :ip-address (make-resource :ensure :ip-address name specs)))
+
+(defn ip-address/remove
+  "Given a ip-address name and specification, return a ip-address remove struct"
+  [name & specs]
+  (collect :remove :ip-address (make-resource :remove :ip-address name specs)))
 
 (defn ip-interface/ensure
   "Given an interface name and specification, return an ip-interface ensure struct"
