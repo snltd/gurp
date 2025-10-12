@@ -35,6 +35,9 @@
     {:shell "/bin/zsh"
      :primary-group "staff"}
 
+    :vnic
+    {:create-interface false}
+
     :zfs
     {:properties {:mountpoint: "none"}}
 

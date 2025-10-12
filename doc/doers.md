@@ -28,6 +28,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 
 - [`(publisher/ensure)`](#publisherensure)
 - [`(vnic/ensure)`](#vnicensure)
+- [`(ip-interface/ensure)`](#ipinterfaceensure)
 - [`(zfs/ensure)`](#zfsensure)
 - [`(zone/ensure)`](#zoneensure)
 - [`(pkg/ensure)`](#pkgensure)
@@ -61,6 +62,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(apk/remove)`](#apkremove)
 - [`(zone/remove)`](#zoneremove)
 - [`(zfs/remove)`](#zfsremove)
+- [`(ip-interface/remove)`](#ipinterfaceremove)
 - [`(vnic/remove)`](#vnicremove)
 
 - [`(svc/ensure)`](#svcensure)
@@ -365,6 +367,45 @@ Manages Ruby gems.
 | Key  | Type   | Description | Default | Mandatory |
 | ---- | ------ | ----------- | ------- | --------- |
 | Name | string | Group name  |         | yes       |
+
+## `ip-interface`
+
+### `(ip-interface/ensure)`
+
+```janet
+(ip-interface/ensure "example0")
+```
+
+```janet
+(ip-interface/ensure "example0"
+             (ip-interface-protocol "ipv4"
+                                    :mtu 1500
+                                    :forwarding true)
+             (ip-interface-protocol "ipv6"
+                                    :forwarding false))
+```
+
+| Key                       | Type     | Description       | Default | Mandatory |
+| ------------------------- | -------- | ----------------- | ------- | --------- |
+| Name                      | string   | ip-interface name |         | yes       |
+| `(ip-interface-protocol)` | function | See below         |         |           |
+
+### `(ip-interface/remove)`
+
+```janet
+(ip-interface/remove "example0" )
+```
+
+| Key  | Type   | Description       | Default | Mandatory |
+| ---- | ------ | ----------------- | ------- | --------- |
+| Name | string | ip-interface name |         | yes       |
+
+#### `(ip-interface-protocol)`
+
+| Key    | Type          | Description   | Default                                                                                                     | Mandatory |
+| ------ | ------------- | ------------- | ----------------------------------------------------------------------------------------------------------- | --------- |
+| Name   | string        | protocol name |                                                                                                             | yes       |
+| values | symbol,number | boolean       | Any key-value pair supported by the protocol. You can use `true` and `false` in place of `"on"` and `"off"` |           |
 
 ## `misc`
 

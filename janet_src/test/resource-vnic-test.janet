@@ -10,6 +10,7 @@
 
   (test *collector*
     @{:ensure @{:vnic @[{:_id "/test-role/vnic/test-vnic0"
+                         :create-interface false
                          :name "test-vnic0"
                          :over "e1000g"
                          :role "test-role"}]}

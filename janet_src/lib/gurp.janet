@@ -68,14 +68,30 @@
    {:mandatory
     {:gid ["The group ID" :number]}}
 
+   :ip-interface
+   {:optional
+    {:protocols ["See 'ip-interface-protocol'"]}
+    :mandatory {}}
+
+   :ip-interface-protocol
+   {:optional {}
+    :mandatory {}
+    :mandatory
+    {:properties ["ipadm 'ifprop' properties" :struct]}}
+
    :misc
    {:optional
     {:enable-smb ["Enable SMB sharing for this username" :string]
      :nfs-domain ["NFS domain name" :string]
      :scheduler ["The scheduler class to set via dispamdin" :string]}}
 
-   :pkg {:optional {} :mandatory {}}
-   :pkgin {:optional {} :mandatory {}}
+   :pkg
+   {:optional {}
+    :mandatory {}}
+
+   :pkgin
+   {:optional {}
+    :mandatory {}}
 
    :publisher
    {:mandatory
@@ -126,7 +142,8 @@
 
    :vnic
    {:optional
-    {:vlan-tag ["Enable VLAN tagging with the given tag" :number]}
+    {:vlan-tag ["Enable VLAN tagging with the given tag" :number]
+     :with-interface ["Whether to create an IP interface on the new VNIC" :boolean]}
     :mandatory
     {:over ["Physical link which will serve VNIC" :string]}}
 
@@ -767,6 +784,41 @@
   "Given a group name and specification, return a group remove struct"
   [name & specs]
   (collect :remove :group (make-resource :remove :group name specs)))
+
+(defn ip-interface/ensure
+  "Given an interface name and specification, return an ip-interface ensure struct"
+  [name & specs]
+  (let [protocols @{}
+        other-specs @[]]
+    (each spec specs
+      (if (= (type spec) :struct)
+        (merge-into protocols spec)
+        (array/concat other-specs spec)))
+
+    (def complete-spec (array/concat other-specs :protocols protocols))
+
+    (collect :ensure :ip-interface (make-resource :ensure :ip-interface name complete-spec))))
+
+(defn ip-interface/remove
+  "Given an interface name and specification, return an ip-interface remove struct"
+  [name & specs]
+  (collect :remove :ip-interface (make-resource :remove :ip-interface name specs)))
+
+(defn ip-interface-protocol
+  "Given specs, return config for an interface protocol. Key is protocol, values
+  are params"
+  [protocol & params]
+  (struct protocol (struct (splice params))))
+
+(defn ip-address/ensure
+  "Given an IP address and specification, return an ip-address ensure struct"
+  [name & specs]
+  (collect :ensure :ip-address (make-resource :ensure :ip-address name specs)))
+
+(defn ip-address/remove
+  "Given a group name and specification, return an ip-address remove struct"
+  [name & specs]
+  (collect :remove :ip-address (make-resource :remove :ip-address name specs)))
 
 (defn misc/ensure
   "Sets miscellaneous system properties"
