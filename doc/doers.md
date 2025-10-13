@@ -32,6 +32,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(ip-interface/ensure)`](#ipinterfaceensure)
 - [`(ip-address/ensure)`](#ipaddressensure)
 - [`(route/ensure)`](#routeensure)
+- [`(ip-properties/ensure)`](#ippropertiesensure)
 - [`(zfs/ensure)`](#zfsensure)
 - [`(zone/ensure)`](#zoneensure)
 - [`(pkg/ensure)`](#pkgensure)
@@ -466,6 +467,25 @@ Manages Ruby gems.
 | ------ | ------------- | ------------- | ----------------------------------------------------------------------------------------------------------- | --------- |
 | Name   | string        | protocol name |                                                                                                             | yes       |
 | values | symbol,number | boolean       | Any key-value pair supported by the protocol. You can use `true` and `false` in place of `"on"` and `"off"` |           |
+
+## `ip-properties`
+
+### `(ip-properties/ensure)`
+
+```janet
+(ip-properties/ensure "example"
+    :ipv4 {:forwarding true}
+
+    :icmp {:recv_buf 4096}
+
+    :tcp {:smallest_anon_port 32768
+          :sack "active"}
+```
+
+| Key      | Type   | Description                                                                                                                                                                               | Default | Mandatory |
+| -------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------- |
+| Name     | string | ip-properties name                                                                                                                                                                        |         | yes       |
+| protocol | struct | Any protocol supported by `ipadm set-prop`. e.g. `tcp`, `ipv4`, `ipv6` etc , paired with a struct of properties and values. You can use `true` and `false` in place of `"on"` and `"off"` |         |           |
 
 ## `misc`
 

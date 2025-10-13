@@ -90,19 +90,20 @@
     :mandatory
     {:properties ["ipadm 'ifprop' properties" :struct]}}
 
+   :ip-properties
+   {:optional {}
+    :mandatory
+    {:properties ["Filled in by Gurp: you provide keys like :ipv4, ipv6 etc" :struct]}}
+
    :misc
    {:optional
     {:enable-smb ["Enable SMB sharing for this username" :string]
      :nfs-domain ["NFS domain name" :string]
      :scheduler ["The scheduler class to set via dispamdin" :string]}}
 
-   :pkg
-   {:optional {}
-    :mandatory {}}
+   :pkg {:optional {} :mandatory {}}
 
-   :pkgin
-   {:optional {}
-    :mandatory {}}
+   :pkgin {:optional {} :mandatory {}}
 
    :publisher
    {:mandatory
@@ -883,12 +884,12 @@
   (collect :remove :group (make-resource :remove :group name specs)))
 
 (defn ip-address/ensure
-  "Given a ip-address name and specification, return a ip-address ensure struct"
+  "Given an ip-address name and specification, return an ip-address ensure struct"
   [name & specs]
   (collect :ensure :ip-address (make-resource :ensure :ip-address name specs)))
 
 (defn ip-address/remove
-  "Given a ip-address name and specification, return a ip-address remove struct"
+  "Given an ip-address name and specification, return an ip-address remove struct"
   [name & specs]
   (collect :remove :ip-address (make-resource :remove :ip-address name specs)))
 
@@ -904,7 +905,8 @@
 
     (def complete-spec (array/concat other-specs :protocols protocols))
 
-    (collect :ensure :ip-interface (make-resource :ensure :ip-interface name complete-spec))))
+    (collect :ensure :ip-interface
+             (make-resource :ensure :ip-interface name complete-spec))))
 
 (defn ip-interface/remove
   "Given an interface name and specification, return an ip-interface remove struct"
@@ -917,15 +919,11 @@
   [protocol & params]
   (struct protocol (struct (splice params))))
 
-(defn ip-address/ensure
-  "Given an IP address and specification, return an ip-address ensure struct"
+(defn ip-properties/ensure
+  "Given a protocol and specification, return an ip-properties ensure struct"
   [name & specs]
-  (collect :ensure :ip-address (make-resource :ensure :ip-address name specs)))
-
-(defn ip-address/remove
-  "Given a group name and specification, return an ip-address remove struct"
-  [name & specs]
-  (collect :remove :ip-address (make-resource :remove :ip-address name specs)))
+  (let [spec-struct (struct :properties (struct (splice specs)))]
+    (collect :ensure :ip-properties (make-resource :ensure :ip-properties name (flat-table spec-struct)))))
 
 (defn misc/ensure
   "Sets miscellaneous system properties"

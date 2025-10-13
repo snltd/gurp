@@ -4,6 +4,7 @@
   dynamically generated content.
 - Add `(smf-dependency)` and `(smf-dependent)` to the `smf` doer, allowing the
   user to define dependencies beyond the hardcoded ones.
+- Add `ip-properties` doer to manage top-level IP properties.
 - Add route support
 
 ## v 1.3.0 (2025-11-15)
