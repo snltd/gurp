@@ -1,6 +1,7 @@
+use atty::Stream;
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
-use common::types::ApplyOpts;
+use common::types::{ApplyOpts, ServerOpts};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
@@ -51,7 +52,6 @@ enum Commands {
         /// When displaying compiled config, number lines
         #[arg(short = 'N', long)]
         line_no: bool,
-
         /// Output in the given format: 'janet' or 'json'
         #[arg(short, long, required = true)]
         format: Option<String>,
@@ -65,6 +65,12 @@ enum Commands {
         #[arg(required = true)]
         resource: String,
     },
+    /// Run Gurp in Server mode
+    Server {
+        /// Where to find host configuration files
+        #[arg(short, long, required = true)]
+        config_dir: Utf8PathBuf,
+    },
     /// Show Janet builtins
     Show {
         /// Thing to show: one of library, defaults
@@ -74,7 +80,7 @@ enum Commands {
 }
 
 fn main() -> anyhow::Result<()> {
-    let use_colour = std::env::var_os("GURP_NO_COLOUR").is_none();
+    let use_colour = !atty::is(Stream::Stdout) && std::env::var_os("GURP_NO_COLOUR").is_none();
 
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -131,6 +137,10 @@ fn main() -> anyhow::Result<()> {
             commands::compile::run(&host_config_file, format.as_deref(), &opts)
         }
         Commands::Describe { resource } => commands::describe::run(&resource),
+        Commands::Server { config_dir } => {
+            let opts = ServerOpts { config_dir };
+            commands::server::run(&opts)
+        }
         Commands::Show { thing } => commands::show::run(&thing),
     };
 

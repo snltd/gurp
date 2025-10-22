@@ -8,6 +8,7 @@ members = [
   "doers",
   "janet_int",
   "macros",
+  "server",
   "tester",
   "util",
 ]

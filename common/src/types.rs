@@ -19,6 +19,11 @@ pub struct ApplyOpts {
     pub precompiled: bool,
 }
 
+#[derive(Debug)]
+pub struct ServerOpts {
+    pub config_dir: Utf8PathBuf,
+}
+
 #[derive(Debug, Default, PartialEq, Copy, Clone)]
 pub struct ApplySummary {
     pub resources: u32,
