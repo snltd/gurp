@@ -17,6 +17,7 @@ pub struct ApplyOpts {
     pub compile_only: bool,
     pub metrics_to: Option<String>,
     pub precompiled: bool,
+    pub server: Option<String>,
 }
 
 #[derive(Debug)]

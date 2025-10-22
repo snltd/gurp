@@ -2,7 +2,7 @@
 resolver = "3"
 
 members = [
-  "cli",
+  "cli", "client",
   "commands",
   "common",
   "doers",

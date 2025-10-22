@@ -15,6 +15,9 @@ struct Cli {
 enum Commands {
     /// Configure the host with the supplied configuration
     Apply {
+        /// Get config from a Gurp server
+        #[arg(short = 's', long = "server", default_value = "gurp")]
+        server: Option<String>,
         /// Use a pre-compiled config, either Janet or JSON
         #[arg(short = 'p', long = "precompiled")]
         precompiled: bool,
@@ -102,6 +105,7 @@ fn main() -> anyhow::Result<()> {
             gurp_lib_path,
             metrics_to,
             precompiled,
+            server,
         } => {
             let opts = ApplyOpts {
                 noop,
@@ -113,6 +117,7 @@ fn main() -> anyhow::Result<()> {
                 compile_only: false,
                 metrics_to,
                 precompiled,
+                server,
             };
             commands::apply::run(&host_config_file, &opts)
         }
@@ -133,6 +138,7 @@ fn main() -> anyhow::Result<()> {
                 compile_only: true,
                 metrics_to: None,
                 precompiled: false,
+                server: None,
             };
             commands::compile::run(&host_config_file, format.as_deref(), &opts)
         }
