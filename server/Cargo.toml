@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.100"
 axum = "0.8.6"
+camino = "1.2.1"
 common = { path = "../common" }
+janet_int = { path = "../janet_int" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
 tracing = "0.1.41"

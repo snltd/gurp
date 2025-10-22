@@ -1,13 +1,19 @@
 use crate::handlers;
 use axum::Router;
+use axum::extract::Extension;
 use axum::routing::get;
 use common::constants::SERVER_PORT;
+use common::types::ServerOpts;
 use std::net::SocketAddr;
+use std::sync::Arc;
 
-pub async fn start() -> anyhow::Result<()> {
+pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
+    let server_opts = Arc::new(opts);
+
     let app = Router::new()
         .route("/status", get(handlers::status))
-        .route("/config/{host}", get(handlers::config));
+        .route("/config/{host}", get(handlers::config))
+        .layer(Extension(server_opts));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], SERVER_PORT));
     tracing::info!("Listening on {}", addr);

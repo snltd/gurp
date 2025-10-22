@@ -14,7 +14,10 @@ pub fn read_and_enrich_host_config(
     tracing::debug!("reading host config from {}", path);
 
     let gurp_lib = match &opts.gurp_lib_path {
-        Some(path) => &load_lib_from_disk(path)?,
+        Some(path) => {
+            tracing::debug!("importing Gurp lib from {path}");
+            &load_lib_from_disk(path)?
+        }
         None => crate::constants::GURP_LIB,
     };
 
@@ -58,16 +61,24 @@ pub fn janet_conf(
         match format {
             "janet" => {
                 if opts.colour {
+                    tracing::debug!("injecting colour prinf");
                     ret.push_str("\n(prinf \"%M\" (machine-config))");
                 } else {
+                    tracing::debug!("injecting non-colour prinf");
                     ret.push_str("\n(prinf \"%m\" (machine-config))");
                 }
             }
-            "json" => ret.push_str("\n(print (encode (machine-config)))"),
+            "json" => {
+                tracing::debug!("injecting json print");
+                ret.push_str("\n(print (encode (machine-config)))");
+            }
             _ => bail!("format must be 'janet' or 'json'"),
         }
+    } else {
+        tracing::debug!("leaving built library as-is");
     }
 
+    println!("{ret}");
     Ok(ret)
 }
 

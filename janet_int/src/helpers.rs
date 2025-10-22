@@ -1,4 +1,10 @@
+use crate::helpers as janet_helpers;
+use crate::reader;
+use anyhow::bail;
+use camino::Utf8PathBuf;
+use common::types::ApplyOpts;
 use janetrs::client::JanetClient;
+use janetrs::env::CFunOptions;
 use janetrs::{Janet, TaggedJanet};
 use serde_json::{Map, Value};
 
@@ -63,6 +69,45 @@ pub fn janet_to_json(j: &Janet) -> Value {
 pub fn encode(config: &mut [Janet]) -> Janet {
     let json_string = crate::helpers::janet_to_json(&config[0]).to_string();
     Janet::wrap(json_string.as_str())
+}
+
+pub fn compile_config(
+    host_file: &Utf8PathBuf,
+    format: Option<&str>,
+    opts: &ApplyOpts,
+) -> anyhow::Result<String> {
+    let host_config = match reader::read_and_enrich_host_config(host_file, format, opts) {
+        Ok(config) => config,
+        Err(e) => bail!("reader error: {}", e),
+    };
+
+    let json = run_config(&host_config)?;
+
+    Ok(json)
+
+    // let mut client = janet_helpers::janet_client();
+
+    // if let Some(format) = format
+    //     && format == "json"
+    // {
+    //     client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
+    // }
+
+    // Ok(client.run(host_config)?)
+}
+
+pub fn run_config(host_config: &str) -> anyhow::Result<String> {
+    let mut client = janet_helpers::janet_client();
+    client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
+    let json_wrapped_host_config = format!("{host_config}\n(encode (machine-config))");
+    let json_config = client.run(json_wrapped_host_config)?;
+
+    let json = match json_config.unwrap() {
+        TaggedJanet::String(buf) => buf.to_string(),
+        other => bail!("expected JSON config as Janet::String; got {}", other),
+    };
+
+    Ok(json)
 }
 
 #[cfg(test)]

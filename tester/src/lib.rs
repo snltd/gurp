@@ -32,6 +32,8 @@ pub fn defopts() -> ApplyOpts {
         compile_only: false,
         metrics_to: None,
         precompiled: false,
+        server: None,
+        hostname: None,
     }
 }
 
@@ -46,6 +48,8 @@ pub fn defopts_noop() -> ApplyOpts {
         compile_only: false,
         metrics_to: None,
         precompiled: false,
+        server: None,
+        hostname: None,
     }
 }
 

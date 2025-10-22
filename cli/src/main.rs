@@ -16,8 +16,11 @@ enum Commands {
     /// Configure the host with the supplied configuration
     Apply {
         /// Get config from a Gurp server
-        #[arg(short = 's', long = "server", default_value = "gurp")]
+        #[arg(short = 's', long = "server")]
         server: Option<String>,
+        /// Hostname to use when fetching config from server (ignored otherwise)
+        #[arg(short = 'H', long = "hostname")]
+        hostname: Option<String>,
         /// Use a pre-compiled config, either Janet or JSON
         #[arg(short = 'p', long = "precompiled")]
         precompiled: bool,
@@ -106,6 +109,7 @@ fn main() -> anyhow::Result<()> {
             metrics_to,
             precompiled,
             server,
+            hostname,
         } => {
             let opts = ApplyOpts {
                 noop,
@@ -118,6 +122,7 @@ fn main() -> anyhow::Result<()> {
                 metrics_to,
                 precompiled,
                 server,
+                hostname,
             };
             commands::apply::run(&host_config_file, &opts)
         }
@@ -139,13 +144,14 @@ fn main() -> anyhow::Result<()> {
                 metrics_to: None,
                 precompiled: false,
                 server: None,
+                hostname: None,
             };
             commands::compile::run(&host_config_file, format.as_deref(), &opts)
         }
         Commands::Describe { resource } => commands::describe::run(&resource),
         Commands::Server { config_dir } => {
             let opts = ServerOpts { config_dir };
-            commands::server::run(&opts)
+            commands::server::run(opts)
         }
         Commands::Show { thing } => commands::show::run(&thing),
     };
