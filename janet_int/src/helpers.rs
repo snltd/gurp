@@ -71,29 +71,13 @@ pub fn encode(config: &mut [Janet]) -> Janet {
     Janet::wrap(json_string.as_str())
 }
 
-pub fn compile_config(
-    host_file: &Utf8PathBuf,
-    format: Option<&str>,
-    opts: &ApplyOpts,
-) -> anyhow::Result<String> {
-    let host_config = match reader::read_and_enrich_host_config(host_file, format, opts) {
+pub fn compile_config(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<String> {
+    let host_config = match reader::assembled_config(host_file, opts) {
         Ok(config) => config,
         Err(e) => bail!("reader error: {}", e),
     };
 
-    let json = run_config(&host_config)?;
-
-    Ok(json)
-
-    // let mut client = janet_helpers::janet_client();
-
-    // if let Some(format) = format
-    //     && format == "json"
-    // {
-    //     client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
-    // }
-
-    // Ok(client.run(host_config)?)
+    run_config(&host_config)
 }
 
 pub fn run_config(host_config: &str) -> anyhow::Result<String> {

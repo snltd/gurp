@@ -3,89 +3,83 @@ use camino::{Utf8Path, Utf8PathBuf};
 use common::types::ApplyOpts;
 
 // Wherein we read and prep the user-supplied Janet code
-
-pub fn read_and_enrich_host_config(
-    path: &Utf8PathBuf,
-    format: Option<&str>,
-    opts: &ApplyOpts,
-) -> anyhow::Result<String> {
-    let path = path.canonicalize_utf8()?;
-    let janet_host_config = std::fs::read_to_string(&path)?;
-    tracing::debug!("reading host config from {}", path);
-
-    let gurp_lib = match &opts.gurp_lib_path {
-        Some(path) => {
-            tracing::debug!("importing Gurp lib from {path}");
-            &load_lib_from_disk(path)?
-        }
-        None => crate::constants::GURP_LIB,
-    };
-
-    janet_conf(&path, &janet_host_config, gurp_lib, format, opts)
-}
-
+//
 // We can inject our own Janet code into what the user gives us, that way the user doesn't
 // have to work out include paths, and doesn't even have to have the gurp library. You can
 // define and configure a host with just the gurp executable and a single (albeit quite big)
 // Janet file.
+
+// The assembled config is a big chunk of text which bundles the user's top-level configuration
+// with a Gurp library and some bindings that library requires.
 //
-// The user may specify an on-disk library file, which takes precedence over the hardcoded one.
+pub fn assembled_config(path: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<String> {
+    let host_config = users_janet_config(path)?;
+
+    assemble(&host_config, path, opts)
+}
+
+// Broken out because it needs to be called directly by tests
 //
-// By setting the syspath dynamic binding, we let the user `use` role and library files without
-// having to supply their path.
-//
-pub fn janet_conf(
-    path: &Utf8Path,
-    config: &str,
-    gurp_lib: &str,
-    format: Option<&str>,
-    opts: &ApplyOpts,
-) -> anyhow::Result<String> {
+pub fn assemble(host_conf: &str, path: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<String> {
     let host_config_dir = path
         .parent()
         .context(format!("cannot find parent of {path}"))?;
 
-    let mut ret = format!("(setdyn *syspath* \"{host_config_dir}\")\n");
-    ret.push_str(&format!(
-        "(setdyn :gurp-config-root \"{host_config_dir}\")\n"
-    ));
-    ret.push_str(&format!("(setdyn :config-file \"{path}\")\n\n"));
-    ret.push_str(crate::constants::GURP_DEFAULTS);
-    ret.push_str(gurp_lib);
-    ret.push('\n');
-    ret.push_str(config);
+    let mut conf = String::new();
 
-    if let Some(format) = format
-        && opts.compile_only
-    {
-        match format {
-            "janet" => {
-                if opts.colour {
-                    tracing::debug!("injecting colour prinf");
-                    ret.push_str("\n(prinf \"%M\" (machine-config))");
-                } else {
-                    tracing::debug!("injecting non-colour prinf");
-                    ret.push_str("\n(prinf \"%m\" (machine-config))");
-                }
-            }
-            "json" => {
-                tracing::debug!("injecting json print");
-                ret.push_str("\n(print (encode (machine-config)))");
-            }
-            _ => bail!("format must be 'janet' or 'json'"),
-        }
-    } else {
-        tracing::debug!("leaving built library as-is");
-    }
+    conf.push_str(&dynamic_bindings(host_config_dir, path));
+    conf.push_str(default_values());
+    conf.push_str(&gurp_lib(opts.gurp_lib_path.as_ref())?);
+    conf.push('\n');
+    conf.push_str(host_conf);
 
-    Ok(ret)
+    Ok(conf)
 }
 
-fn load_lib_from_disk(lib_path: &Utf8PathBuf) -> anyhow::Result<String> {
-    if lib_path.exists() {
-        tracing::debug!("injecting gurp lib '{}' in user Janet", lib_path);
-        Ok(std::fs::read_to_string(lib_path)?)
+// Raw text of the user's top-level config file. Janet will sort out all the uses and imports
+fn users_janet_config(path: &Utf8PathBuf) -> anyhow::Result<String> {
+    let path = path.canonicalize_utf8()?;
+
+    tracing::debug!("reading host config from {}", path);
+
+    let janet_host_config = std::fs::read_to_string(&path)?;
+    Ok(janet_host_config)
+}
+
+// The Gurp library. The user may specify an on-disk library file, which takes precedence
+// over the hardcoded one.
+fn gurp_lib(gurp_lib_path: Option<&Utf8PathBuf>) -> anyhow::Result<String> {
+    let lib_as_string = if let Some(lib_path) = gurp_lib_path {
+        if lib_path.exists() {
+            tracing::debug!("using Gurp lib at {lib_path}");
+            std::fs::read_to_string(lib_path)?
+        } else {
+            bail!("no Gurp lib at {}", lib_path)
+        }
     } else {
-        bail!("Could not find gurp lib at {}", lib_path)
-    }
+        tracing::debug!("using built-in Gurp lib");
+        crate::constants::GURP_LIB.to_owned()
+    };
+
+    Ok(lib_as_string)
+}
+
+// Janet dynamic bindings. These go at the top of the file and are referred to by various
+// library functions.
+//
+// By setting the `syspath`, we let the user `use`/`import` role and library files without
+// having to supply their path.
+fn dynamic_bindings(host_config_dir: &Utf8Path, config_file: &Utf8PathBuf) -> String {
+    indoc::formatdoc! { r#"
+        (setdyn *syspath* "{host_config_dir}")
+        (setdyn :gurp-config-root "{host_config_dir}")
+        (setdyn :config-file "{config_file}")
+        (setdyn *syspath* "{host_config_dir}")
+
+        "# }
+}
+
+// Hardcoded default values. At some point we'll let the user add their own.
+fn default_values() -> &'static str {
+    crate::constants::GURP_DEFAULTS
 }

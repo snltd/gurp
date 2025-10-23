@@ -20,7 +20,7 @@ pub async fn config(
     let host_file = opts.config_dir.join(&host_filename);
 
     if host_file.exists() {
-        match helpers::compile_config(&host_file, Some("json"), &ApplyOpts::default()) {
+        match helpers::compile_config(&host_file, &ApplyOpts::default()) {
             Ok(body) => (StatusCode::OK, body).into_response(),
             Err(e) => {
                 tracing::error!("{e}");

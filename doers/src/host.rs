@@ -22,7 +22,7 @@ pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Resul
         fetch_precompiled_file(from_server, &hostname)?
     } else {
         let host_file = host_file.context("No host file specified")?;
-        let host_config = reader::read_and_enrich_host_config(host_file, None, opts)?;
+        let host_config = reader::assembled_config(host_file, opts)?;
 
         if opts.dump_config {
             println!(
