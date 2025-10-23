@@ -78,7 +78,6 @@ pub fn janet_conf(
         tracing::debug!("leaving built library as-is");
     }
 
-    println!("{ret}");
     Ok(ret)
 }
 

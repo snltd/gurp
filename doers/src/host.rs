@@ -1,5 +1,5 @@
 use crate::types::{ChangedIds, HostConfig};
-use anyhow::ensure;
+use anyhow::{Context, ensure};
 use common::constants::SERVER_PORT;
 use common::helpers;
 use common::prelude::*;
@@ -9,8 +9,9 @@ use std::collections::BTreeSet;
 use std::fs;
 use util::http;
 
-pub fn apply(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     let json = if opts.precompiled {
+        let host_file = host_file.context("No host file specified")?;
         load_precompiled_file(host_file)?
     } else if let Some(from_server) = opts.server.as_ref() {
         let hostname = opts
@@ -20,6 +21,7 @@ pub fn apply(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<ApplyS
 
         fetch_precompiled_file(from_server, &hostname)?
     } else {
+        let host_file = host_file.context("No host file specified")?;
         let host_config = reader::read_and_enrich_host_config(host_file, None, opts)?;
 
         if opts.dump_config {

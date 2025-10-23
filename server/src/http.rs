@@ -8,6 +8,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
+    let conf_dir = opts.config_dir.clone();
     let server_opts = Arc::new(opts);
 
     let app = Router::new()
@@ -16,7 +17,8 @@ pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
         .layer(Extension(server_opts));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], SERVER_PORT));
-    tracing::info!("Listening on {}", addr);
+    tracing::info!("Listening on {addr}");
+    tracing::info!("Config dir is {conf_dir}");
 
     axum::serve(
         tokio::net::TcpListener::bind(addr).await.unwrap(),

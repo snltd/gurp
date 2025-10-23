@@ -18,14 +18,14 @@ enum Commands {
         /// Get config from a Gurp server
         #[arg(short = 's', long = "server")]
         server: Option<String>,
-        /// Hostname to use when fetching config from server (ignored otherwise)
-        #[arg(short = 'H', long = "hostname")]
+        /// Hostname to use when fetching config from server
+        #[arg(short = 'H', long = "hostname", requires = "server")]
         hostname: Option<String>,
         /// Use a pre-compiled config, either Janet or JSON
-        #[arg(short = 'p', long = "precompiled")]
+        #[arg(short = 'p', long = "precompiled", conflicts_with = "server")]
         precompiled: bool,
         /// Specify a gurp Janet library, in preference to the built-in
-        #[arg(short = 'L', long = "gurp-lib")]
+        #[arg(short = 'L', long = "gurp-lib", conflicts_with = "server")]
         gurp_lib_path: Option<Utf8PathBuf>,
         /// Say what would happen, without actually doing it
         #[arg(short, long)]
@@ -47,8 +47,8 @@ enum Commands {
         metrics_to: Option<String>,
 
         /// Host configuration file
-        #[arg(required = true)]
-        host_config_file: Utf8PathBuf,
+        #[arg(required_unless_present = "server", conflicts_with = "server")]
+        host_config_file: Option<Utf8PathBuf>,
     },
     /// Compile the Janet description, and optionally write it to stdout
     Compile {
@@ -86,7 +86,7 @@ enum Commands {
 }
 
 fn main() -> anyhow::Result<()> {
-    let use_colour = !atty::is(Stream::Stdout) && std::env::var_os("GURP_NO_COLOUR").is_none();
+    let use_colour = atty::is(Stream::Stdout) && std::env::var_os("GURP_NO_COLOUR").is_none();
 
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -124,7 +124,7 @@ fn main() -> anyhow::Result<()> {
                 server,
                 hostname,
             };
-            commands::apply::run(&host_config_file, &opts)
+            commands::apply::run(host_config_file.as_ref(), &opts)
         }
         Commands::Compile {
             gurp_lib_path,

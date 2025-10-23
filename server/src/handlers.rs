@@ -14,10 +14,10 @@ pub async fn config(
     Path(host): Path<String>,
     Extension(opts): Extension<Arc<ServerOpts>>,
 ) -> impl IntoResponse {
-    tracing::info!("compiling {}", host);
+    tracing::info!("request for {}", host);
 
     let host_filename = format!("{host}.janet");
-    let host_file = opts.config_dir.join(host_filename);
+    let host_file = opts.config_dir.join(&host_filename);
 
     if host_file.exists() {
         match helpers::compile_config(&host_file, Some("json"), &ApplyOpts::default()) {
@@ -28,6 +28,7 @@ pub async fn config(
             }
         }
     } else {
+        tracing::error!("No config at {host_file}");
         (StatusCode::NOT_FOUND, "host config file not found").into_response()
     }
 }
