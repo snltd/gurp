@@ -19,7 +19,18 @@ pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Resul
             .clone()
             .map_or_else(helpers::my_hostname, Ok)?;
 
-        fetch_precompiled_file(from_server, &hostname)?
+        let host_config = fetch_precompiled_file(from_server, &hostname)?;
+
+        if opts.dump_config {
+            let formatted_json = helpers::pretty_json(&host_config)?;
+
+            println!(
+                "{}",
+                helpers::dump_config(&formatted_json, "Janet config", opts)
+            );
+        }
+
+        host_config
     } else {
         let host_file = host_file.context("No host file specified")?;
         let host_config = reader::assembled_config(host_file, opts)?;
@@ -81,8 +92,10 @@ fn load_precompiled_file(path: &Utf8PathBuf) -> anyhow::Result<String> {
     Ok(fs::read_to_string(path)?)
 }
 
+// We tell the server what we think it's called so it can build file resources we can find. This
+// lets use use a raw IP address, DNS name, whatever.
 fn fetch_precompiled_file(server: &str, hostname: &str) -> anyhow::Result<String> {
-    let url = format!("http://{server}:{SERVER_PORT}/config/{hostname}");
+    let url = format!("http://{server}:{SERVER_PORT}/config/{hostname}?server_name={server}");
     tracing::info!("fetching config from {url}");
 
     http::pull_file(&url)

@@ -683,9 +683,12 @@
     (string/trim stdout)))
 
 (defn hostname
-  "Returns the name of the current host"
+  "Returns the name of the current host, or the name of the calling host if Gurp
+  is running as in server mode"
   []
-  (run-cmd "uname -n"))
+  (if-let [hostname (dyn :client-name)]
+    hostname
+    (run-cmd "uname -n")))
 
 (defn config-file
   "Returns the actual path of a file in ../files"
@@ -740,22 +743,22 @@
   (collect :remove :etherstub (make-resource :remove :etherstub name specs)))
 
 (defn file/ensure
-  "Given a file name and specification, return a file ensure struct"
+  "Given a file name and specification, return a file ensure struct. If Gurp is
+   running as a server, changes local file references into HTTP ones."
   [name & specs]
   (let [result (make-resource :ensure :file name specs)
         resource (struct/to-table (result :file))]
 
-    (def final-resource
-      (if-let [from-path (resource :from)]
+    (if-let [from-path (resource :from)]
+      (if-let [server-name (dyn :server-name)]
         (do
-          (let [url-or-qualified-path (if (string/find "://" from-path)
-                                        from-path
-                                        (qualify-from-path from-path))]
-            (set (resource :from) url-or-qualified-path)
-            {:file (table/to-struct resource)}))
-        result))
+          (set (resource :from) nil)
+          (set (resource :from-url) (string "http://" server-name "/file/" from-path)))
+        (let [url-or-qualified-path (if (string/find "://" from-path) from-path (qualify-from-path from-path))]
+          (set (resource :from) url-or-qualified-path)
+          {:file (table/to-struct resource)})))
 
-    (collect :ensure :file final-resource)))
+    (collect :ensure :file (struct :file (table/to-struct resource)))))
 
 (defn file/remove
   "Given a file name and specification, return a file remove struct"

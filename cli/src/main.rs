@@ -118,11 +118,13 @@ fn main() -> anyhow::Result<()> {
                 colour,
                 line_no,
                 gurp_lib_path,
-                compile_only: false,
                 metrics_to,
                 precompiled,
                 server,
                 hostname,
+                compile_only: false,
+                server_name: None,
+                client_name: None,
             };
             commands::apply::run(host_config_file.as_ref(), &opts)
         }
@@ -134,25 +136,15 @@ fn main() -> anyhow::Result<()> {
         } => {
             // Compile is the first part of run's code path, so we'll fake the apply options
             let opts = ApplyOpts {
-                noop: false,
-                dump_config: false,
-                dump_diffs: false,
-                colour: false,
                 line_no,
                 gurp_lib_path,
                 compile_only: true,
-                metrics_to: None,
-                precompiled: false,
-                server: None,
-                hostname: None,
+                ..Default::default()
             };
             commands::compile::run(&host_config_file, format.as_deref(), &opts)
         }
         Commands::Describe { resource } => commands::describe::run(&resource),
-        Commands::Server { config_dir } => {
-            let opts = ServerOpts { config_dir };
-            commands::server::run(opts)
-        }
+        Commands::Server { config_dir } => commands::server::run(ServerOpts { config_dir }),
         Commands::Show { thing } => commands::show::run(&thing),
     };
 

@@ -17,8 +17,10 @@ pub struct ApplyOpts {
     pub compile_only: bool,
     pub metrics_to: Option<String>,
     pub precompiled: bool,
-    pub server: Option<String>,   // client mode only
-    pub hostname: Option<String>, // currently client mode only
+    pub server: Option<String>,      // client mode only
+    pub hostname: Option<String>,    // currently client mode only
+    pub server_name: Option<String>, // server mode only
+    pub client_name: Option<String>, // server mode only
 }
 
 #[derive(Debug)]

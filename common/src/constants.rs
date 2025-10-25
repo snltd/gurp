@@ -34,7 +34,7 @@ pub const ZLOGIN_BIN: &str = "/usr/sbin/zlogin";
 pub const ZONEADM_BIN: &str = "/usr/sbin/zoneadm";
 pub const ZONECFG_BIN: &str = "/usr/sbin/zonecfg";
 
-pub const SERVER_PORT: u16 = 1991;
+pub const SERVER_PORT: u16 = 1867;
 
 pub const ONE_RESOURCE_ONE_CHANGE: ApplySummary = ApplySummary {
     resources: 1,

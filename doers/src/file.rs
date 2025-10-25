@@ -155,6 +155,7 @@ impl GurpFileEnsure {
     fn file_has_changed(&self) -> anyhow::Result<bool> {
         let (desired_hash, current_hash) = if let Some(pattern) = &self.desired_state.ignore_pattern
         {
+            // Filters apply
             (
                 if let Some(from_file) = &self.desired_state.from {
                     self.hash_of_filtered_file(from_file, pattern)?
@@ -175,23 +176,31 @@ impl GurpFileEnsure {
                         )?,
                     )
                 } else {
-                    bail!("No :content or :from")
+                    bail!("unable to determine filtered content hash of {}", self.path);
                 },
                 self.hash_of_filtered_file(&self.path, pattern)?,
             )
         } else {
+            // Filters do not apply
             (
                 if let Some(from_file) = &self.desired_state.from {
                     self.hash_of_file(from_file)?
                 } else if let Some(content) = &self.desired_state.content {
                     self.hash_of(content)
+                } else if let Some(remote_content) =
+                    self.desired_state.remote_content.borrow().as_ref()
+                {
+                    self.hash_of_bytes(remote_content)
                 } else if let Some(from_struct) = &self.desired_state.from_struct {
                     self.hash_of(
                         &self
                             .struct_to_file(from_struct, self.desired_state.to_format.as_deref())?,
                     )
                 } else {
-                    bail!("No :content or :from");
+                    bail!(
+                        "unable to determine unfiltered content hash of {}",
+                        self.path
+                    );
                 },
                 self.hash_of_file(&self.path)?,
             )

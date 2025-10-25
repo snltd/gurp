@@ -1,9 +1,18 @@
-use axum::extract::{Extension, Path};
-use axum::http::StatusCode;
+use axum::body::Body;
+use axum::extract::{Extension, Path, Query};
+use axum::http::{Response, StatusCode};
 use axum::response::IntoResponse;
 use common::types::{ApplyOpts, ServerOpts};
 use janet_int::helpers;
+use mime_guess::from_path;
 use std::sync::Arc;
+use tokio::fs::File;
+use tokio_util::io::ReaderStream;
+
+#[derive(serde::Deserialize)]
+pub struct ConfigQuery {
+    server_name: String,
+}
 
 pub async fn status() -> &'static str {
     tracing::debug!("received status request");
@@ -11,16 +20,23 @@ pub async fn status() -> &'static str {
 }
 
 pub async fn config(
-    Path(host): Path<String>,
+    Path(remote_host_name): Path<String>,
+    Query(params): Query<ConfigQuery>,
     Extension(opts): Extension<Arc<ServerOpts>>,
 ) -> impl IntoResponse {
-    tracing::info!("request for {}", host);
+    tracing::info!("request for {remote_host_name} config");
 
-    let host_filename = format!("{host}.janet");
+    let host_filename = format!("{remote_host_name}.janet");
     let host_file = opts.config_dir.join(&host_filename);
 
     if host_file.exists() {
-        match helpers::compile_config(&host_file, &ApplyOpts::default()) {
+        let opts = ApplyOpts {
+            server_name: Some(params.server_name),
+            client_name: Some(remote_host_name),
+            ..Default::default()
+        };
+
+        match helpers::compile_config(&host_file, &opts) {
             Ok(body) => (StatusCode::OK, body).into_response(),
             Err(e) => {
                 tracing::error!("{e}");
@@ -28,7 +44,43 @@ pub async fn config(
             }
         }
     } else {
-        tracing::error!("No config at {host_file}");
+        tracing::warn!("No config at {host_file}");
         (StatusCode::NOT_FOUND, "host config file not found").into_response()
+    }
+}
+
+pub async fn file(
+    Path(path): Path<String>,
+    Extension(opts): Extension<Arc<ServerOpts>>,
+) -> impl IntoResponse {
+    tracing::info!("request for file {}", path);
+
+    let path = opts.config_dir.join("files").join(&path);
+
+    let fh = match File::open(&path).await {
+        Ok(fh) => fh,
+        Err(e) => {
+            tracing::warn!("could not read {path}: {e}");
+            return (StatusCode::NOT_FOUND).into_response();
+        }
+    };
+
+    let stream = ReaderStream::new(fh);
+    let mime = from_path(&path).first_or_octet_stream();
+
+    match Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", mime.as_ref())
+        .body(Body::from_stream(stream))
+    {
+        Ok(resp) => resp.into_response(),
+        Err(e) => {
+            tracing::warn!("failed to build response for {path}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to build response: {e}"),
+            )
+                .into_response()
+        }
     }
 }

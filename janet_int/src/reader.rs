@@ -1,5 +1,6 @@
 use anyhow::{Context, bail};
 use camino::{Utf8Path, Utf8PathBuf};
+use common::constants::SERVER_PORT;
 use common::types::ApplyOpts;
 
 // Wherein we read and prep the user-supplied Janet code
@@ -28,12 +29,54 @@ pub fn assemble(host_conf: &str, path: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow
     let mut conf = String::new();
 
     conf.push_str(&dynamic_bindings(host_config_dir, path));
+    conf.push_str(&server_bindings(
+        opts.server_name.as_deref(),
+        opts.client_name.as_deref(),
+    ));
     conf.push_str(default_values());
     conf.push_str(&gurp_lib(opts.gurp_lib_path.as_ref())?);
     conf.push('\n');
     conf.push_str(host_conf);
 
     Ok(conf)
+}
+
+// Janet dynamic bindings. These go at the top of the file and are referred to by various
+// library functions.
+//
+// By setting the `syspath`, we let the user `use`/`import` role and library files without
+// having to supply their path.
+fn dynamic_bindings(host_config_dir: &Utf8Path, config_file: &Utf8PathBuf) -> String {
+    indoc::formatdoc! { r#"
+        (setdyn *syspath* "{host_config_dir}")
+        (setdyn :gurp-config-root "{host_config_dir}")
+        (setdyn :config-file "{config_file}")
+        (setdyn *syspath* "{host_config_dir}")
+
+        "# }
+}
+
+// When running in server mode the front-end converts local file references to HTTP file references.
+// This dyn tells the front-end what the client thinks the server is called.
+fn server_bindings(server_name: Option<&str>, client_name: Option<&str>) -> String {
+    if let Some(server_name) = server_name
+        && let Some(client_name) = client_name
+    {
+        indoc::formatdoc! { r#"
+            (setdyn :server-name "{server_name}:{SERVER_PORT}")
+            (setdyn :client-name "{client_name}")
+        "# }
+    } else {
+        indoc::formatdoc! { r#"
+            (setdyn :server-name nil)
+            (setdyn :client-name nil)
+        "# }
+    }
+}
+
+// Hardcoded default values. At some point we'll let the user add their own.
+fn default_values() -> &'static str {
+    crate::constants::GURP_DEFAULTS
 }
 
 // Raw text of the user's top-level config file. Janet will sort out all the uses and imports
@@ -62,24 +105,4 @@ fn gurp_lib(gurp_lib_path: Option<&Utf8PathBuf>) -> anyhow::Result<String> {
     };
 
     Ok(lib_as_string)
-}
-
-// Janet dynamic bindings. These go at the top of the file and are referred to by various
-// library functions.
-//
-// By setting the `syspath`, we let the user `use`/`import` role and library files without
-// having to supply their path.
-fn dynamic_bindings(host_config_dir: &Utf8Path, config_file: &Utf8PathBuf) -> String {
-    indoc::formatdoc! { r#"
-        (setdyn *syspath* "{host_config_dir}")
-        (setdyn :gurp-config-root "{host_config_dir}")
-        (setdyn :config-file "{config_file}")
-        (setdyn *syspath* "{host_config_dir}")
-
-        "# }
-}
-
-// Hardcoded default values. At some point we'll let the user add their own.
-fn default_values() -> &'static str {
-    crate::constants::GURP_DEFAULTS
 }

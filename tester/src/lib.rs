@@ -20,34 +20,13 @@ pub fn load_fixture(file: &str) -> String {
 }
 
 pub fn defopts() -> ApplyOpts {
-    ApplyOpts {
-        dump_config: false,
-        noop: false,
-        colour: false,
-        line_no: false,
-        gurp_lib_path: None,
-        dump_diffs: false,
-        compile_only: false,
-        metrics_to: None,
-        precompiled: false,
-        server: None,
-        hostname: None,
-    }
+    ApplyOpts::default()
 }
 
 pub fn defopts_noop() -> ApplyOpts {
     ApplyOpts {
-        dump_config: false,
         noop: true,
-        colour: true,
-        line_no: false,
-        dump_diffs: false,
-        gurp_lib_path: None,
-        compile_only: false,
-        metrics_to: None,
-        precompiled: false,
-        server: None,
-        hostname: None,
+        ..Default::default()
     }
 }
 
@@ -74,8 +53,6 @@ pub fn janet2json(janet_defn: &str) -> String {
             panic!("janet2json ERROR: {e}");
         }
     };
-
-    println!("{ret:?}");
 
     match ret.unwrap() {
         TaggedJanet::String(str) => str.to_string(),

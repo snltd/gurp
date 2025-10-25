@@ -1,4 +1,12 @@
 - Add etherstub support.
+- Add new `server` mode which serves compiled (JSON) configurations.
+- Add `-s` (`--server`) option to `apply` subcommand to request a compiled
+  configuration from a Gurp instance running in `server` mode.
+- Smarter handling of conflicting options in `apply` subcommand.
+- Don't use colour in logs when not running with a tty.
+- Refactor of code which builds lib / host config bundle.
+- Minor logging improvements.
+- Fix bug which stopped `:from-url` working without `:ignore-pattern` being set.
 
 ## v1.2.0 (2025-10-12)
 
@@ -14,8 +22,7 @@
 - Add support for Bhyve zones.
 - Add `--precompiled` (`-p`) flag to `apply` command, which applies a
   pre-compiled JSON file.
-- Fixed bug where `compile` command would fail silently without an output
-  format.
+- Fix bug where `compile` command would fail silently without an output format.
 - Add `:from-url` and `:with-checksum` to `file` doer, to copy files from a
   remote origin.
 

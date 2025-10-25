@@ -13,6 +13,7 @@ pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/status", get(handlers::status))
+        .route("/file/{*path}", get(handlers::file))
         .route("/config/{host}", get(handlers::config))
         .layer(Extension(server_opts));
 
@@ -33,6 +34,6 @@ pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
 async fn shutdown_signal() {
     tokio::signal::ctrl_c()
         .await
-        .expect("failed to install Ctrl+C handler");
+        .expect("failed to install ctrl-c handler");
     eprintln!("Shutting down");
 }
