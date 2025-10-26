@@ -1,18 +1,28 @@
 # Gurp Command-Line Usage
 
-Gurp has four commands.
+Gurp has a number of commands.
 
 ## `gurp apply`
+
+`apply` aligns the state of a host with that defined in a configuration file.
+
+You can apply locally stored Janet configurations:
 
 ```sh
 $ gurp apply [options] <host-config-file>
 ```
 
-This is the command you generally use. It compiles a Janet configuration and
-makes any changes necessary to make the host align with that configuration.
+a pre-compiled Janet or JSON configuration:
 
-The `host-config-file` must include a `(host)` definition which itself must
-include `(role)` references.
+```sh
+$ gurp apply [options] --precompiled <host-config-file>
+```
+
+or fetch configuration from a remote server:
+
+```sh
+$ gurp apply [options] --server <gurp-server>
+```
 
 Gurp uses the [Tracing framework](https://crates.io/crates/tracing) for logging.
 This means you can control the log level through the `RUST_LOG` environment
@@ -120,3 +130,12 @@ $ gurp show defaults | sed 5q
     {:hour "*"
      :minute "*"
 ```
+
+## `gurp server`
+
+Runs Gurp in server mode. It listens on port 1867, and you connect to it with
+`gurp apply --server`.
+
+Note that configuration is compiled ON THE SERVER, so if your Janet contains any
+conditional logic which refers to system state, that's the host it will be
+looking at.
