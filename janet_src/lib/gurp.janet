@@ -58,7 +58,7 @@
      :ignore-pattern ["When comparing, ignore lines matching this Rust regex" :string]
      :mode ["Permissions written as a four-digit octal" :string]
      :owner ["The username or UID of the user who owns this file" :string :number]
-     :to-format ["Used with :from-struct to try to turn the struct into this format" : string]
+     :to-format ["Used with :from-struct to try to turn the struct into this format" :string]
      :with-checksum ["Blake3 checksum used to validate files fetched by :from-url" :string]
      :content ["Literal content of the file. Must have :content xor :from" :string]}}
 
