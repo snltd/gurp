@@ -1,3 +1,5 @@
+- Add etherstub support.
+
 ## v1.2.0 (2025-10-12)
 
 - Add `vnic` doer, to add and remove VNICs.
