@@ -22,13 +22,15 @@ pub fn assembled_config(path: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<
 // Broken out because it needs to be called directly by tests
 //
 pub fn assemble(host_conf: &str, path: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<String> {
+    let path = path.canonicalize_utf8()?;
+
     let host_config_dir = path
         .parent()
         .context(format!("cannot find parent of {path}"))?;
 
     let mut conf = String::new();
 
-    conf.push_str(&dynamic_bindings(host_config_dir, path));
+    conf.push_str(&dynamic_bindings(host_config_dir, &path));
     conf.push_str(&server_bindings(
         opts.server_name.as_deref(),
         opts.client_name.as_deref(),
