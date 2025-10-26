@@ -27,6 +27,7 @@ an issue or a PR.
 Doers are executed in the following order. (This also serves as a page index.)
 
 - [`(publisher/ensure)`](#publisherensure)
+- [`(etherstub/ensure)`](#etherstubensure)
 - [`(vnic/ensure)`](#vnicensure)
 - [`(ip-interface/ensure)`](#ipinterfaceensure)
 - [`(ip-address/ensure)`](#ipaddressensure)
@@ -66,6 +67,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(ip-address/remove)`](#ipaddressremove)
 - [`(ip-interface/remove)`](#ipinterfaceremove)
 - [`(vnic/remove)`](#vnicremove)
+- [`(etherstub/remove)`](#etherstubremove)
 
 - [`(svc/ensure)`](#svcensure)
 
@@ -185,6 +187,26 @@ whatever user Gurp runs as, and created with its `umask`.
 
 This will not remove any empty ancestors, but **will** remove the contents of
 the directory.
+
+### (etherstub/ensure)
+
+```janet
+(etherstub/ensure "stub0")
+```
+
+| Key  | Type   | Description          | Default | Mandatory |
+| ---- | ------ | -------------------- | ------- | --------- |
+| Name | string | Valid etherstub name |         | yes       |
+
+### (etherstub/remove)
+
+```janet
+(etherstub/remove "stub1")
+```
+
+| Key  | Type   | Description          | Default | Mandatory |
+| ---- | ------ | -------------------- | ------- | --------- |
+| Name | string | Valid etherstub name |         | yes       |
 
 ## `file`
 

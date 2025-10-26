@@ -1,6 +1,7 @@
 use crate::apk::{GurpApkEnsure, GurpApkRemove};
 use crate::cron::{GurpCronEnsure, GurpCronRemove};
 use crate::directory::{GurpDirectoryEnsure, GurpDirectoryRemove};
+use crate::etherstub::{GurpEtherstubEnsure, GurpEtherstubRemove};
 use crate::file::{GurpFileEnsure, GurpFileRemove};
 use crate::file_line::{GurpFileLineEnsure, GurpFileLineRemove};
 use crate::gem::{GurpGemEnsure, GurpGemRemove};
@@ -51,6 +52,8 @@ pub struct EnsureResources {
     #[serde(default)]
     pub directory: Vec<GurpDirectoryEnsure>,
     #[serde(default)]
+    pub etherstub: Vec<GurpEtherstubEnsure>,
+    #[serde(default)]
     pub file: Vec<GurpFileEnsure>,
     #[serde(default)]
     pub file_line: Vec<GurpFileLineEnsure>,
@@ -97,6 +100,8 @@ pub struct RemoveResources {
     pub cron: Vec<GurpCronRemove>,
     #[serde(default)]
     pub directory: Vec<GurpDirectoryRemove>,
+    #[serde(default)]
+    pub etherstub: Vec<GurpEtherstubRemove>,
     #[serde(default)]
     pub file: Vec<GurpFileRemove>,
     #[serde(default)]
