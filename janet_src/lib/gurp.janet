@@ -36,6 +36,10 @@
      :mode ["Permissions written as a four-digit octal" :string]
      :owner ["The username or UID of the user who owns this directory" :string :number]}}
 
+  :etherstub
+   {:optional {}
+    :mandatory {}}
+  
    :file-line
    {:optional
     {:insert-at ["If a new line must be added, it will go at this index" :number]
@@ -724,6 +728,16 @@
   "Given a directory name and specification, return a directory remove struct"
   [name & specs]
   (collect :remove :directory (make-resource :remove :directory name specs)))
+
+(defn etherstub/ensure
+  "Given an etherstub name and specification, return an etherstub ensure struct"
+  [name & specs]
+  (collect :ensure :etherstub (make-resource :ensure :etherstub name specs)))
+
+(defn etherstub/remove
+  "Given an etherstub name and specification, return an etherstub remove struct"
+  [name & specs]
+  (collect :remove :etherstub (make-resource :remove :etherstub name specs)))
 
 (defn file/ensure
   "Given a file name and specification, return a file ensure struct"
