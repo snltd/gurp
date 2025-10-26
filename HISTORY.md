@@ -7,6 +7,7 @@
 - Refactor of code which builds lib / host config bundle.
 - Minor logging improvements.
 - Fix bug which stopped `:from-url` working without `:ignore-pattern` being set.
+- Use canonical paths in Janet lib dyns, for more robust file-finding.
 
 ## v1.2.0 (2025-10-12)
 
