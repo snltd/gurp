@@ -64,7 +64,7 @@ impl GurpCronEnsure {
 
         match self.ensured_crontab(&content)? {
             Some(new_crontab) => {
-                tracing::info!("changing: {}", self.name);
+                tracing::info!("changing job '{}'", self.name);
                 if opts.dump_config {
                     println!("{}", helpers::dump_config(&new_crontab, &description, opts));
                 }

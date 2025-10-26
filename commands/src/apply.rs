@@ -4,7 +4,7 @@ use doers::host;
 use std::time::{Duration, Instant};
 use util::metrics;
 
-pub fn run(host_config_file: &Utf8PathBuf, opts: &ApplyOpts) -> ExitCode {
+pub fn run(host_config_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> ExitCode {
     let start_time = Instant::now();
     match host::apply(host_config_file, opts) {
         Ok(apply_summary) => {
@@ -12,7 +12,12 @@ pub fn run(host_config_file: &Utf8PathBuf, opts: &ApplyOpts) -> ExitCode {
             report_success(&apply_summary, elapsed_time, opts.metrics_to.as_deref())
         }
         Err(e) => {
-            tracing::error!("apply error on {}: {}", host_config_file, e);
+            if let Some(host_file) = host_config_file {
+                tracing::error!("apply error on {host_file}: {e}");
+            } else {
+                tracing::error!("apply error {e}");
+            }
+
             let elapsed_time = start_time.elapsed();
             report_failure(elapsed_time, opts.metrics_to.as_deref())
         }

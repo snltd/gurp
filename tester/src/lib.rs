@@ -1,8 +1,6 @@
 use camino::Utf8PathBuf;
 use common::types::ApplyOpts;
-use janet_int::constants::GURP_LIB;
-use janet_int::helpers as janet_helpers;
-use janet_int::reader;
+use janet_int::{helpers, reader};
 use janetrs::{TaggedJanet, env::CFunOptions};
 use nix::unistd::{Group, User, getgid, getuid};
 use std::env::current_dir;
@@ -22,30 +20,13 @@ pub fn load_fixture(file: &str) -> String {
 }
 
 pub fn defopts() -> ApplyOpts {
-    ApplyOpts {
-        dump_config: false,
-        noop: false,
-        colour: false,
-        line_no: false,
-        gurp_lib_path: None,
-        dump_diffs: false,
-        compile_only: false,
-        metrics_to: None,
-        precompiled: false,
-    }
+    ApplyOpts::default()
 }
 
 pub fn defopts_noop() -> ApplyOpts {
     ApplyOpts {
-        dump_config: false,
         noop: true,
-        colour: true,
-        line_no: false,
-        dump_diffs: false,
-        gurp_lib_path: None,
-        compile_only: false,
-        metrics_to: None,
-        precompiled: false,
+        ..Default::default()
     }
 }
 
@@ -59,34 +40,19 @@ pub fn my_group() -> String {
 
 pub fn janet2json(janet_defn: &str) -> String {
     let dir = Utf8PathBuf::from_path_buf(current_dir().unwrap()).unwrap();
-    let full_janet = reader::janet_conf(&dir, "", GURP_LIB, None, &defopts()).unwrap();
+    let full_janet = reader::assemble(janet_defn, &dir, &defopts()).unwrap();
     let json_wrapped_host_config = format!("{full_janet}\n(encode (first (values {janet_defn})))");
-    let mut client = janet_helpers::janet_client();
-    client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
+    let mut client = helpers::janet_client();
+
+    client.add_c_fn(CFunOptions::new(c"encode", helpers::encode_c));
+
     let ret = match client.run(json_wrapped_host_config) {
         Ok(janet) => janet,
         Err(e) => {
-            // println!(
-            //     "{}",
-            //     helpers::dump_config(
-            //         &full_janet,
-            //         "complete Janet",
-            //         &ApplyOpts {
-            //             noop: false,
-            //             colour: false,
-            //             line_no: true,
-            //             dump_config: true,
-            //             gurp_lib_path: None,
-            //             compile_only: false,
-            //         },
-            //     )
-            // );
             println!("{janet_defn}");
             panic!("janet2json ERROR: {e}");
         }
     };
-
-    println!("{ret:?}");
 
     match ret.unwrap() {
         TaggedJanet::String(str) => str.to_string(),

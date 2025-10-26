@@ -1,7 +1,6 @@
-use anyhow::Context;
 use common::constants::GURP_VERSION;
+use common::helpers;
 use common::types::ApplySummary;
-use nix::unistd;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 // If there's a summary, we're reporting success. If not, we're reporting an error.:
@@ -19,14 +18,11 @@ pub fn send_as_influx(
         .unwrap()
         .as_nanos();
 
-    let hostname = unistd::gethostname()
-        .context("Failed getting hostname")?
-        .to_string_lossy()
-        .into_owned();
+    let hostname = helpers::my_hostname()?;
 
     // myMeasurement,tag1=val1,tag2=val2 field1="v1",field2=1i 0000000000000000000
 
-    let common_tags = format!("host={},gurp-version={}", hostname, GURP_VERSION);
+    let common_tags = format!("host={hostname},gurp-version={GURP_VERSION}");
 
     let points = if let Some(summary) = summary {
         vec![

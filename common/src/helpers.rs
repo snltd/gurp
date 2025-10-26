@@ -1,5 +1,7 @@
 use crate::types::ApplyOpts;
+use anyhow::Context;
 use colored::Colorize;
+use nix::unistd;
 use serde_json::Value;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -72,4 +74,13 @@ pub fn epoch_time_as_string() -> String {
         .unwrap()
         .as_secs()
         .to_string()
+}
+
+pub fn my_hostname() -> anyhow::Result<String> {
+    let hostname = unistd::gethostname()
+        .context("Failed getting hostname")?
+        .to_string_lossy()
+        .into_owned();
+
+    Ok(hostname)
 }

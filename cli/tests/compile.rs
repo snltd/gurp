@@ -73,8 +73,8 @@ mod test {
             .arg("/no/such/file")
             .assert()
             .failure()
-            .stdout(predicate::str::ends_with(
-                "reader error: No such file or directory (os error 2)\n",
+            .stdout(predicate::str::contains(
+                "Could not load config /no/such/file",
             ));
     }
 

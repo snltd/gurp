@@ -1,6 +1,7 @@
+use atty::Stream;
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
-use common::types::ApplyOpts;
+use common::types::{ApplyOpts, ServerOpts};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
@@ -14,11 +15,17 @@ struct Cli {
 enum Commands {
     /// Configure the host with the supplied configuration
     Apply {
+        /// Get config from a Gurp server
+        #[arg(short = 's', long = "server")]
+        server: Option<String>,
+        /// Hostname to use when fetching config from server
+        #[arg(short = 'H', long = "hostname", requires = "server")]
+        hostname: Option<String>,
         /// Use a pre-compiled config, either Janet or JSON
-        #[arg(short = 'p', long = "precompiled")]
+        #[arg(short = 'p', long = "precompiled", conflicts_with = "server")]
         precompiled: bool,
         /// Specify a gurp Janet library, in preference to the built-in
-        #[arg(short = 'L', long = "gurp-lib")]
+        #[arg(short = 'L', long = "gurp-lib", conflicts_with = "server")]
         gurp_lib_path: Option<Utf8PathBuf>,
         /// Say what would happen, without actually doing it
         #[arg(short, long)]
@@ -40,8 +47,8 @@ enum Commands {
         metrics_to: Option<String>,
 
         /// Host configuration file
-        #[arg(required = true)]
-        host_config_file: Utf8PathBuf,
+        #[arg(required_unless_present = "server", conflicts_with = "server")]
+        host_config_file: Option<Utf8PathBuf>,
     },
     /// Compile the Janet description, and optionally write it to stdout
     Compile {
@@ -51,7 +58,6 @@ enum Commands {
         /// When displaying compiled config, number lines
         #[arg(short = 'N', long)]
         line_no: bool,
-
         /// Output in the given format: 'janet' or 'json'
         #[arg(short, long, required = true)]
         format: Option<String>,
@@ -65,6 +71,12 @@ enum Commands {
         #[arg(required = true)]
         resource: String,
     },
+    /// Run Gurp in Server mode
+    Server {
+        /// Where to find host configuration files
+        #[arg(short, long, required = true)]
+        config_dir: Utf8PathBuf,
+    },
     /// Show Janet builtins
     Show {
         /// Thing to show: one of library, defaults
@@ -74,7 +86,7 @@ enum Commands {
 }
 
 fn main() -> anyhow::Result<()> {
-    let use_colour = std::env::var_os("GURP_NO_COLOUR").is_none();
+    let use_colour = atty::is(Stream::Stdout) && std::env::var_os("GURP_NO_COLOUR").is_none();
 
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -96,6 +108,8 @@ fn main() -> anyhow::Result<()> {
             gurp_lib_path,
             metrics_to,
             precompiled,
+            server,
+            hostname,
         } => {
             let opts = ApplyOpts {
                 noop,
@@ -104,11 +118,15 @@ fn main() -> anyhow::Result<()> {
                 colour,
                 line_no,
                 gurp_lib_path,
-                compile_only: false,
                 metrics_to,
                 precompiled,
+                server,
+                hostname,
+                compile_only: false,
+                server_name: None,
+                client_name: None,
             };
-            commands::apply::run(&host_config_file, &opts)
+            commands::apply::run(host_config_file.as_ref(), &opts)
         }
         Commands::Compile {
             gurp_lib_path,
@@ -118,19 +136,15 @@ fn main() -> anyhow::Result<()> {
         } => {
             // Compile is the first part of run's code path, so we'll fake the apply options
             let opts = ApplyOpts {
-                noop: false,
-                dump_config: false,
-                dump_diffs: false,
-                colour: false,
                 line_no,
                 gurp_lib_path,
                 compile_only: true,
-                metrics_to: None,
-                precompiled: false,
+                ..Default::default()
             };
             commands::compile::run(&host_config_file, format.as_deref(), &opts)
         }
         Commands::Describe { resource } => commands::describe::run(&resource),
+        Commands::Server { config_dir } => commands::server::run(ServerOpts { config_dir }),
         Commands::Show { thing } => commands::show::run(&thing),
     };
 

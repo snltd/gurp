@@ -1,17 +1,39 @@
 use crate::types::{ChangedIds, HostConfig};
-use anyhow::ensure;
+use anyhow::{Context, ensure};
+use common::constants::SERVER_PORT;
+use common::helpers;
 use common::prelude::*;
 use janet_int::helpers as janet_helpers;
 use janet_int::reader;
-use janetrs::{TaggedJanet, env::CFunOptions};
 use std::collections::BTreeSet;
 use std::fs;
+use util::http;
 
-pub fn apply(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     let json = if opts.precompiled {
+        let host_file = host_file.context("No host file specified")?;
         load_precompiled_file(host_file)?
+    } else if let Some(from_server) = opts.server.as_ref() {
+        let hostname = opts
+            .hostname
+            .clone()
+            .map_or_else(helpers::my_hostname, Ok)?;
+
+        let host_config = fetch_precompiled_file(from_server, &hostname)?;
+
+        if opts.dump_config {
+            let formatted_json = helpers::pretty_json(&host_config)?;
+
+            println!(
+                "{}",
+                helpers::dump_config(&formatted_json, "Janet config", opts)
+            );
+        }
+
+        host_config
     } else {
-        let host_config = reader::read_and_enrich_host_config(host_file, None, opts)?;
+        let host_file = host_file.context("No host file specified")?;
+        let host_config = reader::assembled_config(host_file, opts)?;
 
         if opts.dump_config {
             println!(
@@ -20,15 +42,7 @@ pub fn apply(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<ApplyS
             );
         }
 
-        let mut client = janet_helpers::janet_client();
-        client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
-        let json_wrapped_host_config = format!("{host_config}\n(encode (machine-config))");
-        let json_config = client.run(json_wrapped_host_config)?;
-
-        let json = match json_config.unwrap() {
-            TaggedJanet::String(buf) => buf.to_string(),
-            other => bail!("expected JSON config as Janet::String; got {}", other),
-        };
+        let json = janet_helpers::run_config(&host_config)?;
 
         tracing::debug!("Janet returned {} char JSON buffer", json.len());
 
@@ -76,6 +90,15 @@ fn load_precompiled_file(path: &Utf8PathBuf) -> anyhow::Result<String> {
     ensure!(path.exists(), "Cannot find JSON file at {}", path);
 
     Ok(fs::read_to_string(path)?)
+}
+
+// We tell the server what we think it's called so it can build file resources we can find. This
+// lets use use a raw IP address, DNS name, whatever.
+fn fetch_precompiled_file(server: &str, hostname: &str) -> anyhow::Result<String> {
+    let url = format!("http://{server}:{SERVER_PORT}/config/{hostname}?server_name={server}");
+    tracing::info!("fetching config from {url}");
+
+    http::pull_file(&url)
 }
 
 fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {

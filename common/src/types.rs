@@ -6,7 +6,7 @@ use std::ops::Add;
 
 pub type ExitCode = u8;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ApplyOpts {
     pub noop: bool,
     pub colour: bool,
@@ -17,6 +17,15 @@ pub struct ApplyOpts {
     pub compile_only: bool,
     pub metrics_to: Option<String>,
     pub precompiled: bool,
+    pub server: Option<String>,      // client mode only
+    pub hostname: Option<String>,    // currently client mode only
+    pub server_name: Option<String>, // server mode only
+    pub client_name: Option<String>, // server mode only
+}
+
+#[derive(Debug)]
+pub struct ServerOpts {
+    pub config_dir: Utf8PathBuf,
 }
 
 #[derive(Debug, Default, PartialEq, Copy, Clone)]
