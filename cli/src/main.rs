@@ -1,7 +1,7 @@
-use atty::Stream;
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
 use common::types::{ApplyOpts, ServerOpts};
+use std::io::IsTerminal;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
@@ -86,7 +86,8 @@ enum Commands {
 }
 
 fn main() -> anyhow::Result<()> {
-    let use_colour = atty::is(Stream::Stdout) && std::env::var_os("GURP_NO_COLOUR").is_none();
+    let use_colour =
+        std::io::stdout().is_terminal() && std::env::var_os("GURP_NO_COLOUR").is_none();
 
     tracing_subscriber::fmt()
         .with_env_filter(
