@@ -5,7 +5,6 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.98"
-atty = "0.2.14"
 camino = "1.1.9" 
 clap = { version = "4.3", features = ["derive"] }
 commands = { path = "../commands" }
