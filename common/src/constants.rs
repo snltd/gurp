@@ -19,6 +19,7 @@ pub const PKGIN_BIN: &str = "/opt/local/bin/pkgin";
 pub const PROFILES_BIN: &str = "/bin/profiles";
 pub const PS_BIN: &str = "/bin/ps";
 pub const QEMU_IMG_BIN: &str = "/opt/ooce/bin/qemu-img";
+pub const ROUTE_BIN: &str = "/usr/sbin/route";
 pub const SHARECTL_BIN: &str = "/usr/sbin/sharectl";
 pub const SMBADM_BIN: &str = "/usr/sbin/smbadm";
 pub const SVCADM_BIN: &str = "/usr/sbin/svcadm";

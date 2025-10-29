@@ -12,6 +12,7 @@ use crate::misc::GurpMiscEnsure;
 use crate::pkg::{GurpPkgEnsure, GurpPkgRemove};
 use crate::pkgin::{GurpPkginEnsure, GurpPkginRemove};
 use crate::publisher::{GurpPublisherEnsure, GurpPublisherRemove};
+use crate::route::{GurpRouteEnsure, GurpRouteRemove};
 use crate::smf::{GurpSmfEnsure, GurpSmfRemove};
 use crate::svc::GurpSvcEnsure;
 use crate::svcprop::{GurpSvcpropEnsure, GurpSvcpropRemove};
@@ -74,6 +75,8 @@ pub struct EnsureResources {
     #[serde(default)]
     pub publisher: Vec<GurpPublisherEnsure>,
     #[serde(default)]
+    pub route: Vec<GurpRouteEnsure>,
+    #[serde(default)]
     pub svcprop: Vec<GurpSvcpropEnsure>,
     #[serde(default)]
     pub smf: Vec<GurpSmfEnsure>,
@@ -122,6 +125,8 @@ pub struct RemoveResources {
     pub pkgin: Vec<GurpPkginRemove>,
     #[serde(default)]
     pub publisher: Vec<GurpPublisherRemove>,
+    #[serde(default)]
+    pub route: Vec<GurpRouteRemove>,
     #[serde(default)]
     pub smf: Vec<GurpSmfRemove>,
     #[serde(default)]

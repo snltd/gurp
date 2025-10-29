@@ -17,6 +17,7 @@ pub mod misc;
 pub mod pkg;
 pub mod pkgin;
 pub mod publisher;
+pub mod route;
 pub mod smf;
 pub mod svc;
 pub mod svcprop;
