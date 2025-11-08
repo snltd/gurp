@@ -1,13 +1,12 @@
 #[cfg(test)]
 mod test {
-    use assert_cmd::Command;
+    use assert_cmd::cargo::cargo_bin_cmd;
     use predicates::prelude::*;
 
     #[test]
     #[ignore]
     fn test_apply_no_args() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .arg("apply")
             .assert()
             .failure()
@@ -19,8 +18,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_apply_missing_file() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .env("GURP_NO_COLOUR", "1")
             .arg("apply")
             .arg("/no/such/file.janet")
@@ -34,8 +32,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_bad_janet() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .env("GURP_NO_COLOUR", "1")
             .arg("apply")
             .arg("tests/resources/bad.janet")

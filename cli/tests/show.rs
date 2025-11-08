@@ -1,13 +1,12 @@
 #[cfg(test)]
 mod test {
-    use assert_cmd::Command;
+    use assert_cmd::cargo::cargo_bin_cmd;
     use predicates::prelude::*;
 
     #[test]
     #[ignore]
     fn test_show_no_args() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .arg("show")
             .assert()
             .failure()
@@ -19,8 +18,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_show_bad_thing() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .arg("show")
             .arg("whatever")
             .assert()
@@ -33,8 +31,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_show_library() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .arg("show")
             .arg("library")
             .assert()
@@ -45,8 +42,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_show_defaults() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .arg("show")
             .arg("defaults")
             .assert()

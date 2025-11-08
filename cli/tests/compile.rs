@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use assert_cmd::Command;
+    use assert_cmd::cargo::cargo_bin_cmd;
     use predicates::prelude::*;
     use tester::{cwd, fixture, load_fixture};
 
@@ -24,8 +24,7 @@ mod test {
             let canonical_json = load_fixture(&format!("compile/outputs/{host}.json"));
             let expected_json = canonical_json.replace(canonical_test_dir, &test_dir);
 
-            Command::cargo_bin("gurp")
-                .unwrap()
+            cargo_bin_cmd!("gurp")
                 .arg("compile")
                 .arg(fixture(&format!("compile/inputs/{host}.janet")))
                 .arg("--format=json")
@@ -38,8 +37,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_compile_no_args() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .arg("compile")
             .assert()
             .failure()
@@ -51,8 +49,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_compile_no_format() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .arg("compile")
             .arg("tests/resources/sample/serv-gurp.janet")
             .assert()
@@ -65,8 +62,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_compile_missing_file() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .env("GURP_NO_COLOUR", "1")
             .arg("compile")
             .arg("--format=json")
@@ -81,8 +77,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_compile_bad_janet() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .arg("compile")
             .arg("--format=json")
             .arg("tests/resources/bad.janet")
@@ -96,8 +91,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_compile_janet() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .arg("compile")
             .arg("tests/resources/sample/serv-gurp.janet")
             .arg("--format=janet")
@@ -109,8 +103,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_compile_json() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .arg("compile")
             .arg("tests/resources/sample/serv-gurp.janet")
             .arg("--format=json")
