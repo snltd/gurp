@@ -284,8 +284,7 @@ fn remove_lines(
 #[cfg(test)]
 mod test {
     use super::*;
-    use assert_fs::TempDir;
-    use assert_fs::prelude::*;
+    use camino_tempfile_ext::prelude::*;
     use indoc::{formatdoc, indoc};
     use tester::{defopts, defopts_noop, janet2json};
 
@@ -431,18 +430,20 @@ mod test {
 
     #[test]
     fn test_file_line_remove_file_does_not_contain_desired_line() {
-        let temp = TempDir::new().unwrap();
-        temp.child("test-file")
+        let temp_dir = Utf8TempDir::new().unwrap();
+        temp_dir
+            .child("test-file")
             .write_str("line_1\nline_2\nline_3")
             .unwrap();
-        let file_to_modify = temp.join("test-file");
+
+        let file_to_modify = temp_dir.path().join("test-file");
 
         let json_def = janet2json(&formatdoc! {"
             (file-line/remove \"{}\"
                 :pattern \"line_4\"
                 :match \"exact\"
                 :apply-to \"all\")
-            ", file_to_modify.to_string_lossy()});
+            ", file_to_modify});
 
         let sut: GurpFileLineRemove = serde_json::from_str(&json_def).unwrap();
 
@@ -546,13 +547,10 @@ mod test {
         );
     }
 
-    fn test_file() -> (TempDir, Utf8PathBuf) {
-        let temp = TempDir::new().unwrap();
+    fn test_file() -> (Utf8TempDir, Utf8PathBuf) {
+        let temp = Utf8TempDir::new().unwrap();
         let file = temp.child("test-file");
         file.write_str("line_1\nline_2\nline_3").unwrap();
-        (
-            temp,
-            Utf8PathBuf::from_path_buf(file.path().to_path_buf()).unwrap(),
-        )
+        (temp, file.as_path().to_path_buf())
     }
 }
