@@ -15,7 +15,7 @@ pub fn run(host_config_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> ExitCode
             if let Some(host_file) = host_config_file {
                 tracing::error!("apply error on {host_file}: {e}");
             } else {
-                tracing::error!("apply error {e}");
+                tracing::error!("apply error: {e}");
             }
 
             let elapsed_time = start_time.elapsed();

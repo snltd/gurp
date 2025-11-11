@@ -10,7 +10,7 @@ use std::cell::RefCell;
 use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
-use util::file;
+use util::{file, http};
 
 // THINGS TO KNOW
 //
@@ -58,7 +58,7 @@ impl GurpFileEnsure {
         // store ETags or whatever. (And I can't be sure the thing serving will serve them.)
         // Therefore, we're going to have to pull the file every time. Read it into memory and pop
         // it in the RefCell.
-        let content = ureq::get(url).call()?.body_mut().read_to_vec()?;
+        let content = http::remove_file_to_memory(url)?;
 
         if let Some(checksum) = self.desired_state.with_checksum.as_ref() {
             let remote_checksum = sha256::digest(&content);

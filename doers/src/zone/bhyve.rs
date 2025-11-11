@@ -1,6 +1,6 @@
 use crate::zone::cloudinit;
 use crate::zone::config::{GurpZoneBhyve, GurpZoneConfig, GurpZoneFilesystem};
-use crate::zone::constants::{READINESS_WAIT_TIMEOUT_BHYVE};
+use crate::zone::constants::READINESS_WAIT_TIMEOUT_BHYVE;
 use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::prelude::*;
@@ -78,7 +78,7 @@ pub fn pre_install(config: &GurpZoneConfig) -> anyhow::Result<()> {
 
             if !image_cache_file.exists() {
                 tracing::debug!("No cached image file at {}", image_cache_file);
-                http::download_file(image_url, &image_cache_file)?;
+                http::remote_file_to_disk(image_url, &image_cache_file)?;
             }
 
             convert_image_to_raw(&image_cache_file, &image_raw_file, image_format)?;

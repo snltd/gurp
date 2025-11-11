@@ -26,7 +26,6 @@ pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &GurpZoneDns) -> anyhow::Res
 
 fn fetch_latest_release_images() -> anyhow::Result<Option<Vec<String>>> {
     tracing::debug!("fetching latest release images");
-
     let response: Value = ureq::get(LX_RELEASES_URL).call()?.into_body().read_json()?;
 
     Ok(response
@@ -72,7 +71,7 @@ fn get_image(pattern: &str) -> anyhow::Result<Option<Utf8PathBuf>> {
                 tracing::debug!("found image at {img_path}");
             } else {
                 tracing::debug!("no image at {img_path}: downloading");
-                http::download_file(&img_url, &img_path)?;
+                http::remote_file_to_disk(&img_url, &img_path)?;
             }
 
             Ok(Some(img_path))

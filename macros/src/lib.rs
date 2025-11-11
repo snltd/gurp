@@ -16,7 +16,14 @@ macro_rules! apply_resources {
             } else {
                 tracing::debug!("applying [{}/{}]: {}", i + 1, total_count, resource.id);
             }
-            let summary = resource.apply($opts)?;
+            let summary = match resource.apply($opts) {
+                Ok(summary) => summary,
+                Err(e) => {
+                    tracing::error!("from {} doer: {}", chunks[2], e);
+                    let err: anyhow::Error = e.into();
+                    return Err(err.context(format!("failed to apply resource {}", resource.id)));
+                }
+            };
             $summary_total = $summary_total + summary;
             if summary.changes > 0 {
                 $changed_ids.insert(resource.id.clone());

@@ -1,28 +1,52 @@
+use anyhow::Context;
 use camino::Utf8PathBuf;
-use std::fs::File;
-use std::io::{Read, copy};
+use std::fs::{self};
 
 // Downloads a file to disk
-pub fn download_file(url: &str, path: &Utf8PathBuf) -> anyhow::Result<()> {
-    tracing::info!("downloading {url} -> {path}");
-
-    let response = ureq::get(url).call()?;
-    let mut reader = response.into_body().into_reader();
-
-    let mut file = File::create(path)?;
-    copy(&mut reader, &mut file)?;
-
+pub fn remote_file_to_disk(url: &str, path: &Utf8PathBuf) -> anyhow::Result<()> {
+    tracing::info!("download {url} -> {path}");
+    let response = remove_file_to_memory(url)?;
+    fs::write(path, response)?;
     Ok(())
 }
 
 // Downloads a file to memory
-pub fn pull_file(url: &str) -> anyhow::Result<String> {
-    tracing::info!("pulling {url}");
+pub fn remove_file_to_memory(url: &str) -> anyhow::Result<Vec<u8>> {
+    tracing::debug!("requesting {url}");
 
-    let response = ureq::get(url).call()?;
-    let mut reader = response.into_body().into_reader();
+    let mut response = match ureq::get(url).call() {
+        Ok(resp) => resp,
+        Err(e) => {
+            match &e {
+                ureq::Error::StatusCode(code) => {
+                    tracing::error!("got {} code from server for {}", code, url)
+                }
+                ureq::Error::Io(err) => {
+                    tracing::error!("I/O error: {} on {}", err, url)
+                }
+                ureq::Error::HostNotFound => {
+                    tracing::error!("Host not found: {}", url)
+                }
+                ureq::Error::Http(err) => {
+                    tracing::error!("HTTP error: {} on {}", err, url)
+                }
+                ureq::Error::BadUri(err) => {
+                    tracing::error!("Bad URI: {} on {}", err, url)
+                }
+                ureq::Error::BodyExceedsLimit(size) => {
+                    tracing::error!("file send back is too big: limit {}b for {}", size, url)
+                }
+                _ => tracing::error!("unhandled error: {} on {}", e, url),
+            }
+            return Err(e).context(format!("failed to fetch file '{}'", &url));
+        }
+    };
 
-    let mut buf = String::new();
-    reader.read_to_string(&mut buf)?;
-    Ok(buf)
+    let ret = response
+        .body_mut()
+        .with_config()
+        .limit(1000 * 1024 * 1024)
+        .read_to_vec()?;
+
+    Ok(ret)
 }
