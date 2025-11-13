@@ -709,14 +709,14 @@
 
 (defn cron-minutes-from-name
   "Given a string (usually hostname) and an interval in minutes, return the
-  minutes past the hour at which gurp should run"
+  minutes past the hour at which gurp should run, as a comma-separated string"
   [seed-string interval]
 
   (if-not (= (% 60 interval) 0)
     (error (string interval " is not a divisor of 60")))
 
   (def seed (% (apply + (seq [c :in seed-string] c)) interval))
-  (map string (seq [i :range [seed 60 interval]] i)))
+  (string/join (map string (seq [i :range [seed 60 interval]] i)) ","))
 
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
 
@@ -1098,7 +1098,6 @@
 (defn zone-bootstrap
   "Given specs, return config to bootstrap a zone"
   [& specs]
-  (pp specs)
   (let [spec-struct
         (->>
           (splice specs)

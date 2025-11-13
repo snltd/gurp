@@ -32,7 +32,7 @@ pub async fn config(
     if host_file.exists() {
         let opts = ApplyOpts {
             server_name: Some(params.server_name),
-            client_name: Some(remote_host_name),
+            client_name: Some(remote_host_name.clone()),
             ..Default::default()
         };
 
@@ -43,7 +43,10 @@ pub async fn config(
                 ret
             }
             Err(e) => {
-                tracing::error!("{e}");
+                tracing::error!(
+                    remote_host = remote_host_name.to_string(),
+                    message = e.to_string()
+                );
                 (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {e}")).into_response()
             }
         }

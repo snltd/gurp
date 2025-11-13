@@ -50,8 +50,8 @@
   (test (parent "/path/to/file") "/path/to"))
 
 (deftest cron-minutes-from-name
-  (test (cron-minutes-from-name "tester" 15) @["3" "18" "33" "48"])
-  (test (cron-minutes-from-name "tester" 10) @["3" "13" "23" "33" "43" "53"])
-  (test (cron-minutes-from-name "tester" 30) @["3" "33"])
-  (test (cron-minutes-from-name "test-host-2" 30) @["14" "44"])
-  (test (cron-minutes-from-name "test-host-2" 20) @["14" "34" "54"]))
+  (test (cron-minutes-from-name "tester" 15) "3,18,33,48")
+  (test (cron-minutes-from-name "tester" 10) "3,13,23,33,43,53")
+  (test (cron-minutes-from-name "tester" 30) "3,33")
+  (test (cron-minutes-from-name "test-host-2" 30) "14,44")
+  (test (cron-minutes-from-name "test-host-2" 20) "14,34,54"))
