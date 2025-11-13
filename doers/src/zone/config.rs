@@ -14,7 +14,7 @@ pub struct GurpZoneConfig {
     pub autoboot: bool,
     pub bhyve: Option<GurpZoneBhyve>,
     pub boot_after_install: bool,
-    pub bootstrap_from: Option<Utf8PathBuf>,
+    pub bootstrap: Option<GurpZoneBootstrap>,
     pub brand: String,
     pub capped_memory: Option<GurpZoneCappedMemory>,
     pub clone_from: Option<String>,
@@ -32,6 +32,14 @@ pub struct GurpZoneConfig {
     pub zonepath: Utf8PathBuf,
     pub uuid: RefCell<Option<String>>,
     pub cloudinit_iso_file: RefCell<Option<Utf8PathBuf>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GurpZoneBootstrap {
+    pub server: Option<String>,
+    pub file: Option<String>,
+    pub hostname: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
