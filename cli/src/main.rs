@@ -76,6 +76,9 @@ enum Commands {
         /// Where to find host configuration files
         #[arg(short, long, required = true)]
         config_dir: Utf8PathBuf,
+        /// HTTP POST InfluxDB metrics to this host
+        #[arg(short = 'M', long)]
+        metrics_to: Option<String>,
     },
     /// Show Janet builtins
     Show {
@@ -145,7 +148,13 @@ fn main() -> anyhow::Result<()> {
             commands::compile::run(&host_config_file, format.as_deref(), &opts)
         }
         Commands::Describe { resource } => commands::describe::run(&resource),
-        Commands::Server { config_dir } => commands::server::run(ServerOpts { config_dir }),
+        Commands::Server {
+            config_dir,
+            metrics_to,
+        } => commands::server::run(ServerOpts {
+            config_dir,
+            metrics_to,
+        }),
         Commands::Show { thing } => commands::show::run(&thing),
     };
 

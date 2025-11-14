@@ -26,6 +26,7 @@ pub struct ApplyOpts {
 #[derive(Debug)]
 pub struct ServerOpts {
     pub config_dir: Utf8PathBuf,
+    pub metrics_to: Option<String>,
 }
 
 #[derive(Debug, Default, PartialEq, Copy, Clone)]

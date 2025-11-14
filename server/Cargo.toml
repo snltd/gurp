@@ -10,8 +10,13 @@ axum-macros = "0.5.0"
 camino = "1.2.1"
 common = { path = "../common" }
 janet_int = { path = "../janet_int" }
+metrics = "0.24.2"
 mime_guess = "2.0.5"
+opentelemetry = "0.31.0"
+opentelemetry-otlp = { version = "0.31.0", features = ["metrics", "http-proto"] }
+opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio"] }
 serde = "1.0.228"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "signal"] }
 tokio-util = { version = "0.7.16", features = ["io"] }
 tracing = "0.1.41"
+tracing-opentelemetry = "0.32.0"
