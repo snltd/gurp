@@ -1,13 +1,12 @@
 #[cfg(test)]
 mod test {
-    use assert_cmd::Command;
+    use assert_cmd::cargo::cargo_bin_cmd;
     use predicates::prelude::*;
 
     #[test]
     #[ignore]
     fn test_server_no_args() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .arg("server")
             .assert()
             .failure()
@@ -19,8 +18,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_server_mising_dir() {
-        Command::cargo_bin("gurp")
-            .unwrap()
+        cargo_bin_cmd!("gurp")
             .arg("server")
             .arg("--config-dir=/nodir")
             .assert()

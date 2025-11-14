@@ -81,23 +81,22 @@ impl GurpSymlinkRemove {
 #[cfg(test)]
 mod test {
     use super::*;
-    use assert_fs::TempDir;
-    use assert_fs::prelude::*;
-    use camino::Utf8PathBuf;
+    use camino_tempfile_ext::prelude::*;
     use std::os::unix;
     use tester::{defopts, defopts_noop, janet2json};
 
     #[test]
     fn test_symlink_create() {
-        let temp = TempDir::new().unwrap();
-        let source_file = temp.child("source-file");
+        let temp_dir = Utf8TempDir::new().unwrap();
+        let source_file = temp_dir.child("source-file");
         source_file.write_str("some-content").unwrap();
-        let source_path =
-            Utf8PathBuf::from_path_buf(temp.child("source-file").to_path_buf()).unwrap();
-        let target_path = Utf8PathBuf::from_path_buf(temp.child("target").to_path_buf()).unwrap();
+        let source_path = temp_dir.child("source-file");
+        let target_path = temp_dir.child("target");
 
         let json_def = janet2json(&format!(
-            " (symlink/ensure \"{target_path}\" :source \"{source_path}\")"
+            " (symlink/ensure \"{}\" :source \"{}\")",
+            target_path.as_path(),
+            source_path.as_path(),
         ));
 
         assert!(!target_path.exists());
@@ -109,15 +108,16 @@ mod test {
 
     #[test]
     fn test_symlink_create_noop() {
-        let temp = TempDir::new().unwrap();
-        let source_file = temp.child("source-file");
+        let temp_dir = Utf8TempDir::new().unwrap();
+        let source_file = temp_dir.child("source-file");
         source_file.write_str("some-content").unwrap();
-        let source_path =
-            Utf8PathBuf::from_path_buf(temp.child("source-file").to_path_buf()).unwrap();
-        let target_path = Utf8PathBuf::from_path_buf(temp.child("target").to_path_buf()).unwrap();
+        let source_path = temp_dir.child("source-file");
+        let target_path = temp_dir.child("target");
 
         let json_def = janet2json(&format!(
-            " (symlink/ensure \"{target_path}\" :source \"{source_path}\")"
+            " (symlink/ensure \"{}\" :source \"{}\")",
+            target_path.as_path(),
+            source_path.as_path(),
         ));
 
         assert!(!target_path.exists());
@@ -128,36 +128,34 @@ mod test {
 
     #[test]
     fn test_symlink_remove() {
-        let temp = TempDir::new().unwrap();
+        let temp = Utf8TempDir::new().unwrap();
         let source = temp.child("source");
         let target = temp.child("target");
         source.write_str("some-content").unwrap();
-        unix::fs::symlink(source.path(), target.path()).unwrap();
-        let target_path = Utf8PathBuf::from_path_buf(target.to_path_buf()).unwrap();
+        unix::fs::symlink(source, &target).unwrap();
 
-        let json_def = janet2json(&format!("(symlink/remove \"{target_path}\")"));
+        let json_def = janet2json(&format!("(symlink/remove \"{}\")", target.as_path()));
 
-        assert!(target_path.exists());
+        assert!(target.exists());
         let sut: GurpSymlinkRemove = serde_json::from_str(&json_def).unwrap();
         assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
-        assert!(!target_path.exists());
+        assert!(!target.exists());
     }
 
     #[test]
     fn test_symlink_remove_noop() {
-        let temp = TempDir::new().unwrap();
+        let temp = Utf8TempDir::new().unwrap();
         let source = temp.child("source");
         let target = temp.child("target");
         source.write_str("some-content").unwrap();
-        unix::fs::symlink(source.path(), target.path()).unwrap();
-        let target_path = Utf8PathBuf::from_path_buf(target.to_path_buf()).unwrap();
+        unix::fs::symlink(source, &target).unwrap();
 
-        let json_def = janet2json(&format!("(symlink/remove \"{target_path}\")"));
+        let json_def = janet2json(&format!("(symlink/remove \"{}\")", target.as_path()));
 
-        assert!(target_path.exists());
+        assert!(target.exists());
         let sut: GurpSymlinkRemove = serde_json::from_str(&json_def).unwrap();
         assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
-        assert!(target_path.exists());
+        assert!(target.exists());
     }
 
     #[test]

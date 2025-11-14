@@ -37,7 +37,11 @@ pub async fn config(
         };
 
         match helpers::compile_config(&host_file, &opts) {
-            Ok(body) => (StatusCode::OK, body).into_response(),
+            Ok(body) => {
+                let ret = (StatusCode::OK, body).into_response();
+                tracing::info!("sent config: {host_file}");
+                ret
+            }
             Err(e) => {
                 tracing::error!("{e}");
                 (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {e}")).into_response()
@@ -73,7 +77,11 @@ pub async fn file(
         .header("Content-Type", mime.as_ref())
         .body(Body::from_stream(stream))
     {
-        Ok(resp) => resp.into_response(),
+        Ok(resp) => {
+            let ret = resp.into_response();
+            tracing::info!("sent file {path}");
+            ret
+        }
         Err(e) => {
             tracing::warn!("failed to build response for {path}");
             (

@@ -97,8 +97,9 @@ fn load_precompiled_file(path: &Utf8PathBuf) -> anyhow::Result<String> {
 fn fetch_precompiled_file(server: &str, hostname: &str) -> anyhow::Result<String> {
     let url = format!("http://{server}:{SERVER_PORT}/config/{hostname}?server_name={server}");
     tracing::info!("fetching config from {url}");
-
-    http::pull_file(&url)
+    let response = http::remove_file_to_memory(&url)?;
+    let string_response = String::from_utf8(response)?;
+    Ok(string_response)
 }
 
 fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
