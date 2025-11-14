@@ -1,3 +1,5 @@
+- Improve zone doer's `:copy-in`. The target can now be a directory (add a
+  trailing `/`; target directories are created as required.
 - Add etherstub support.
 - Add new `server` mode which serves compiled (JSON) configurations.
 - Add `-s` (`--server`) option to `apply` subcommand to request a compiled

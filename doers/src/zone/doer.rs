@@ -222,6 +222,8 @@ impl GurpZoneEnsure {
     }
 
     fn copy_to_zone(&self, src: &Utf8PathBuf, dest: &str) -> anyhow::Result<()> {
+        // If source is a directory, copy it recursively.
+        //
         let zone_root = &self.config.zonepath.join("root");
 
         if !zone_root.exists() {
@@ -229,7 +231,20 @@ impl GurpZoneEnsure {
         }
 
         let relative_dest = dest.trim_matches('/');
-        let zone_dest = zone_root.join(relative_dest);
+        let mut zone_dest = zone_root.join(relative_dest);
+
+        // If target is a directory, append the source's filename
+        // If target.parent() does not exist, make it
+        if dest.ends_with('/')
+            && let Some(fname) = src.file_name()
+        {
+            if !zone_dest.exists() {
+                fs::create_dir_all(&zone_dest)?;
+            }
+
+            zone_dest = zone_dest.join(fname);
+        }
+
         tracing::info!("copying {} -> {}", src, zone_dest);
 
         if src.is_file() {
