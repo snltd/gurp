@@ -2,7 +2,7 @@ use crate::zone::bhyve;
 use crate::zone::config::GurpZoneConfig;
 use crate::zone::control::{self, ZoneadmState};
 use crate::zone::lx;
-use anyhow::bail;
+use anyhow::{bail, ensure};
 use common::prelude::*;
 use fs_extra::dir::CopyOptions;
 use serde::Deserialize;
@@ -262,49 +262,66 @@ impl GurpZoneEnsure {
     }
 
     fn bootstrap(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
-        // Like everything else, this is super-minimal, at least for now, possibly for ever. Copy
-        // our own executable into the zone, and trust the user that the file they gave us is
-        // there, and can access all the roles and files it needs.
-        //
-        if let Some(host_config) = &self.config.bootstrap_from {
-            tracing::info!("BEGIN BOOTSTRAP {} [{}]", self.name, host_config);
-            let mut bootstrap_command = String::new();
+        if let Some(conf) = &self.config.bootstrap {
+            let bootstrap_bin = "/var/tmp/gurp";
+
+            let mut bootstrap_words: Vec<String> = Vec::new();
 
             // Passing the env var breaks zlogin on LX zones
             if let Some(log_level) = env::var_os("RUST_LOG")
                 && self.config.brand != "lx"
             {
-                bootstrap_command.push_str(&format!("RUST_LOG={} ", log_level.to_string_lossy()));
+                bootstrap_words.push(format!("RUST_LOG={}", log_level.to_string_lossy()));
             }
 
-            bootstrap_command.push_str("/var/tmp/gurp ");
-            bootstrap_command.push_str("apply ");
+            bootstrap_words.push(bootstrap_bin.to_owned());
+            bootstrap_words.push("apply".to_owned());
 
             if opts.dump_config {
-                bootstrap_command.push_str("--dump-config ");
+                bootstrap_words.push("--dump-config".to_owned());
             }
 
             if opts.colour {
-                bootstrap_command.push_str("--colour ");
+                bootstrap_words.push("--colour".to_owned());
             }
 
             if opts.line_no {
-                bootstrap_command.push_str("--line-no ");
+                bootstrap_words.push("--line-no".to_owned());
             }
 
             if let Some(metrics_host) = &opts.metrics_to {
-                bootstrap_command.push_str("--metrics-to ");
-                bootstrap_command.push_str(metrics_host);
-                bootstrap_command.push(' ');
+                bootstrap_words.push(format!("--metrics-to={metrics_host}"));
             }
 
-            bootstrap_command.push_str(host_config.as_str());
+            if let Some(server) = conf.server.as_ref() {
+                ensure!(
+                    conf.file.is_none(),
+                    "bootstrap requires exactly one of :file and :server"
+                );
+
+                tracing::info!("bootstrapping from remote server: {server}");
+                bootstrap_words.push(format!("--server={server}"));
+
+                if let Some(hostname) = &conf.hostname {
+                    bootstrap_words.push(format!("--hostname={hostname}"));
+                }
+            } else if let Some(file) = &conf.file {
+                ensure!(
+                    conf.server.is_none(),
+                    "bootstrap requires exactly one of :file and :server"
+                );
+
+                tracing::info!("bootstrapping from local file: {file}");
+                bootstrap_words.push(file.to_owned());
+            } else {
+                bail!("bootstrap requires either :file or :server");
+            }
 
             let this_exec =
                 Utf8PathBuf::from_path_buf(env::current_exe()?).expect("can't get my path");
 
-            self.copy_to_zone(&this_exec, "/var/tmp/gurp")?;
-            run_zlogin_cmd(&self.name, &bootstrap_command)?;
+            self.copy_to_zone(&this_exec, bootstrap_bin)?;
+            run_zlogin_cmd(&self.name, &bootstrap_words.join(" "))?;
             tracing::info!("END BOOTSTRAP {}", self.name);
         }
 

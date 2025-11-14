@@ -1,5 +1,6 @@
 use crate::types::{ChangedIds, HostConfig};
 use anyhow::{Context, ensure};
+use colored::Colorize;
 use common::constants::SERVER_PORT;
 use common::helpers;
 use common::prelude::*;
@@ -8,6 +9,17 @@ use janet_int::reader;
 use std::collections::BTreeSet;
 use std::fs;
 use util::http;
+
+fn formatted_json(raw_json: &str) -> anyhow::Result<String> {
+    match helpers::pretty_json(raw_json) {
+        Ok(json) => Ok(json),
+        Err(e) => {
+            tracing::error!("JSON processing error: {}", e);
+            tracing::error!(raw_json);
+            bail!("END");
+        }
+    }
+}
 
 pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     let json = if opts.precompiled {
@@ -47,14 +59,8 @@ pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Resul
         tracing::debug!("Janet returned {} char JSON buffer", json.len());
 
         if opts.dump_config {
-            let formatted_json = match helpers::pretty_json(&json) {
-                Ok(json) => json,
-                Err(e) => {
-                    tracing::error!("JSON processing error: {}", e);
-                    tracing::error!(json);
-                    bail!("END");
-                }
-            };
+            let formatted_json = formatted_json(&json)?;
+
             println!(
                 "{}",
                 helpers::dump_config(&formatted_json, "JSON Config", opts)
@@ -70,13 +76,20 @@ pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Resul
         Ok(conf) => conf,
         Err(e) => {
             tracing::error!("deserializing error: {}", e);
-            let line = e.line();
-            let json_lines: Vec<_> = json.lines().collect();
-            let first_line = line.saturating_sub(30);
-            let last_line = (line + 15).clamp(0, json_lines.len());
+            let formatted_json = formatted_json(&json)?;
+            let error_line = e.line();
+            let json_lines: Vec<_> = formatted_json.lines().collect();
+            let first_line = error_line.saturating_sub(30);
+            let last_line = (error_line + 15).clamp(0, json_lines.len());
 
             for l in first_line..=last_line {
-                println!(" {:4} | {}", l + 1, json_lines.get(l).unwrap_or(&""));
+                let output_line = format!(" {:4} | {}", l + 1, json_lines.get(l).unwrap_or(&""));
+
+                if l == error_line {
+                    println!("{}", output_line.bold());
+                } else {
+                    println!("{output_line}");
+                }
             }
 
             bail!("end of deserializing error output")

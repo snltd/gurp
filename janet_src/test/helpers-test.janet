@@ -5,7 +5,7 @@
   (test (labelise "/some/file" 1 2 3) "_some_file-1-2-3")
   (test (labelise :key1 :key2 :key3) "key1-key2-key3")
   (test (labelise "string" 123 :keyword) "string-123-keyword"))
-  
+
 
 (deftest this
   (setdyn :role-dyn (string (quote basenode)))
@@ -24,8 +24,7 @@
 (deftest zfscat
   (def big-pool "big")
   (test (zfscat big-pool "export" "flac") "big/export/flac")
-  (test (zfscat big-pool "") "big")
-  )
+  (test (zfscat big-pool "") "big"))
 
 (deftest argcat
   (test (argcat "/bin/cat" "file1" "file2") "/bin/cat file1 file2")
@@ -46,10 +45,13 @@
     (run-cmd "/no/such/thing --verbose")
     "@[\"/no/such/thing\" \"--verbose\"]: No such file or directory"))
 
-# Inconsistent across development/test platforms
-# (deftest hostname
-#   (test (type (hostname)) :string))
-
 (deftest parent
   (test (parent "/") "/")
   (test (parent "/path/to/file") "/path/to"))
+
+(deftest cron-minutes-from-name
+  (test (cron-minutes-from-name "tester" 15) "3,18,33,48")
+  (test (cron-minutes-from-name "tester" 10) "3,13,23,33,43,53")
+  (test (cron-minutes-from-name "tester" 30) "3,33")
+  (test (cron-minutes-from-name "test-host-2" 30) "14,44")
+  (test (cron-minutes-from-name "test-host-2" 20) "14,34,54"))

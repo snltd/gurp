@@ -13,6 +13,24 @@
                              :defrouter "192.168.1.1")
                :brand "lipkg")
 
+  (zone/ensure "test-zone-bootstrap-net"
+               (zone-network "test_net0"
+                             :global-nic "auto"
+                             :allowed-address "192.168.1.33/24"
+                             :defrouter "192.168.1.1")
+               (zone-bootstrap
+                 :server "gurp.localnet"
+                 :hostname "test-zone-bootstrap")
+               :brand "lipkg")
+
+  (zone/ensure "test-zone-bootstrap-file"
+               (zone-network "test_net0"
+                             :global-nic "auto"
+                             :allowed-address "192.168.1.33/24"
+                             :defrouter "192.168.1.1")
+               (zone-bootstrap :file "/var/tmp/bootstrap.janet")
+               :brand "lipkg")
+
   (zone/ensure "test-lx-zone"
                (zone-network "test_net0"
                              :global-nic "auto"
@@ -69,6 +87,33 @@
                          :recreate 0
                          :role "test-role"
                          :zonepath "/zones/test-zone-thin"}
+                        {:_id "/test-role/zone/test-zone-bootstrap-net"
+                         :autoboot true
+                         :boot-after-install true
+                         :bootstrap {:hostname "test-zone-bootstrap"
+                                     :server "gurp.localnet"}
+                         :brand "lipkg"
+                         :name "test-zone-bootstrap-net"
+                         :net @[{:allowed-address "192.168.1.33/24"
+                                 :defrouter "192.168.1.1"
+                                 :global-nic "auto"
+                                 :physical "test_net0"}]
+                         :recreate 0
+                         :role "test-role"
+                         :zonepath "/zones/test-zone-bootstrap-net"}
+                        {:_id "/test-role/zone/test-zone-bootstrap-file"
+                         :autoboot true
+                         :boot-after-install true
+                         :bootstrap {:file "/var/tmp/bootstrap.janet"}
+                         :brand "lipkg"
+                         :name "test-zone-bootstrap-file"
+                         :net @[{:allowed-address "192.168.1.33/24"
+                                 :defrouter "192.168.1.1"
+                                 :global-nic "auto"
+                                 :physical "test_net0"}]
+                         :recreate 0
+                         :role "test-role"
+                         :zonepath "/zones/test-zone-bootstrap-file"}
                         {:_id "/test-role/zone/test-lx-zone"
                          :attr @[{:name "kernel-ver"
                                   :type "string"
@@ -193,3 +238,31 @@
            :defrouter "1.2.3.1"
            :global-nic "auto"
            :physical "test_net0"}}))
+
+(deftest "test-zone-bootstrap"
+  (test
+    (zone-bootstrap
+      :server "gurp.localhost"
+      :hostname "test-client")
+    {:bootstrap {:hostname "test-client"
+                 :server "gurp.localhost"}})
+
+  (test
+    (zone-bootstrap
+      :file "/var/tmp/boot.janet")
+    {:bootstrap {:file "/var/tmp/boot.janet"}}))
+
+(deftest "test-zone-bhyve"
+  (test
+    (zone-bhyve
+      :ram "3G"
+      :vcpus 4
+      :image-path "/var/tmp/noble-server-cloudimg-amd64.img.raw"
+      :boot-volume "tank/bhyve/test"
+      :cloudinit-struct {:network {:version 2}})
+    {:bhyve {:boot-volume "tank/bhyve/test"
+             :cloudinit-struct {:network {:version 2}}
+             :image-path "/var/tmp/noble-server-cloudimg-amd64.img.raw"
+             :ram "3G"
+             :vcpus 4
+             :wait-for-boot true}}))

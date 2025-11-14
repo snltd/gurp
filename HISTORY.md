@@ -1,17 +1,19 @@
-- Improve zone doer's `:copy-in`. The target can now be a directory (add a
-  trailing `/`; target directories are created as required.
+## v 1.3.0 (2025-11-15)
+
 - Add etherstub support.
 - Add new `server` mode which serves compiled (JSON) configurations.
 - Add `-s` (`--server`) option to `apply` subcommand to request a compiled
   configuration from a Gurp instance running in `server` mode.
+- When running as a server, pushes OpenTelemetry metrics.
 - Smarter handling of conflicting options in `apply` subcommand.
+- Improve zone doer's `:copy-in`. The target can now be a directory (add a
+  trailing `/`; target directories are created as required.
 - Don't use colour in logs when not running with a tty.
 - Refactor of code which builds lib / host config bundle.
-- Minor logging improvements.
 - Fix bug which stopped `:from-url` working without `:ignore-pattern` being set.
 - Fix bug which blocked downloading large files from server.
 - Use canonical paths in Janet lib dyns, for more robust file-finding.
-- Better error messages.
+- Minor logging improvements.
 
 ## v1.2.0 (2025-10-12)
 

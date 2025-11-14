@@ -36,10 +36,10 @@
      :mode ["Permissions written as a four-digit octal" :string]
      :owner ["The username or UID of the user who owns this directory" :string :number]}}
 
-  :etherstub
+   :etherstub
    {:optional {}
     :mandatory {}}
-  
+
    :file-line
    {:optional
     {:insert-at ["If a new line must be added, it will go at this index" :number]
@@ -169,6 +169,7 @@
      :autoboot ["Boot the zone on system boot" :string]
      :bhyve ["See 'zone-bhyve'"]
      :boot-after-install ["Boot the zone n it is installed" :string]
+     :bootstrap ["See 'zone-bootstrap'"]
      :bootstrap-from ["Copy gurp into the zone, and apply the given file, relative to zone root" :string]
      :capped-memory ["Set memory cap. Keys must be :physical and :swap, values are strings like '4G'" :struct]
      :clone-from ["Instead of installing, clone from the given zone, which must exist and be halted" :string]
@@ -204,6 +205,12 @@
     {:ram ["Amount of RAM to allocate: e.g. '3G'" :string]
      :vcpus ["Number of VCPUs to allocate" :number]
      :boot-volume ["ZFS boot volume" :string]}}
+
+   :zone-bootstrap
+   {:optional
+    {:server ["hostname/IP address of server to install from" :string]
+     :hostname ["hostname of client being bootstrapped" :string]
+     :file ["fully qualified path of file in zone which will be used to bootstrap" :string]}}
 
    :zone-network
    {:optional
@@ -423,7 +430,7 @@
         (error
           (string/format "%s '%s' has unrecognised key(s): %s"
                          resource-type
-                         resource-name
+                         (if (nil? resource-name) "<anonymous>" resource-name)
                          (string/join unrecognised ", ")))))))
 
 (defn- collect
@@ -699,6 +706,17 @@
   "Returns a cloudinit meta-data struct for the given hostname"
   [hostname]
   {:instance-id hostname :local-hostname hostname})
+
+(defn cron-minutes-from-name
+  "Given a string (usually hostname) and an interval in minutes, return the
+  minutes past the hour at which gurp should run, as a comma-separated string"
+  [seed-string interval]
+
+  (if-not (= (% 60 interval) 0)
+    (error (string interval " is not a divisor of 60")))
+
+  (def seed (% (apply + (seq [c :in seed-string] c)) interval))
+  (string/join (map string (seq [i :range [seed 60 interval]] i)) ","))
 
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
 
@@ -1025,6 +1043,7 @@
   (expand-resource :fs)
   (expand-resource :rctl)
   (expand-resource :bhyve :as-struct true)
+  (expand-resource :bootstrap :as-struct true)
   (let [result (make-resource :ensure :zone name modified-specs)
         resource (struct/to-table (result :zone))]
 
@@ -1075,6 +1094,18 @@
 
     (validate-spec :ensure :zone-bhyve nil (flat-table spec-struct))
     (struct :bhyve spec-struct)))
+
+(defn zone-bootstrap
+  "Given specs, return config to bootstrap a zone"
+  [& specs]
+  (let [spec-struct
+        (->>
+          (splice specs)
+          (struct/with-proto (proto :ensure :zone-bootstrap))
+          (struct/proto-flatten))]
+
+    (validate-spec :ensure :zone-bootstrap nil (flat-table spec-struct))
+    (struct :bootstrap spec-struct)))
 
 (defn zone-fs
   "Given specs, return a zone fs struct. This is embedded in a zone/ensure"

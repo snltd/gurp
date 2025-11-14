@@ -876,7 +876,7 @@ Gurp will infer and add the property types.
                            :defrouter "192.168.1.1")
              :dns {:domain "lan.id264.net"
                    :nameservers ["192.168.1.1" "192.168.1.53"]}
-             :bootstrap-from (pathcat gurp-dir "zone-www-proxy.janet"))
+             (zone-bootstrap :file "/path/to/zone-proxy.janet"))
 ```
 
 ```janet
@@ -891,31 +891,52 @@ Gurp will infer and add the property types.
                            :defrouter "192.168.1.1")
              :dns globals/zone-dns
              :datasets ["tank/zone/grafana")]
-             :bootstrap-from (pathcat gurp-dir "zone-grafana.janet"))
+             (zone-bootstrap :server "gurp.localnet"))
 ```
 
-| Key                   | Type                    | Description                                                                                                                                                                                                                                                                 | Default              | Mandatory |
-| --------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- | --------- |
-| Name                  | string                  | Zone name                                                                                                                                                                                                                                                                   |                      | yes       |
-| `:autoboot`           | bool                    | Boot the zone on system boot                                                                                                                                                                                                                                                | true                 |           |
-| `:boot-after-install` | bool                    | Boot the zone once it is installed                                                                                                                                                                                                                                          | true                 |           |
-| `:bootstrap-from`     | string                  | Copy gurp into the zone, and apply the given file, relative to zone root                                                                                                                                                                                                    |                      |           |
-| `:brand`              | string                  | Zone brand. One of `lipkg`, `ipkg`, `sparse`, `lx`                                                                                                                                                                                                                          |                      |           |
-| `:capped-memory`      | struct<keyword, string> | Set memory cap. Keys must be `:physical` and `:swap`                                                                                                                                                                                                                        |                      |           |
-| `:clone-from`         | string                  | Instead of installing, clone from the given zone, and be halted                                                                                                                                                                                                             |                      |           |
-| `:copy-in`            | struct<keyword, string> | Copy files into the zone. Key is source, value is dest, relative to zone root. Directories are copied recursively. If the target is a directory, it must have a trailing slash. Target directories are created if required. Unqualified src is assumed to be in `../files/` |                      |           |
-| `:datasets`           | list<string>            | ZFS datasets to be delegated to zone                                                                                                                                                                                                                                        |                      |           |
-| `:dns`                | struct                  | DNS config of the form `:domain "string" :nameservers list<string>"                                                                                                                                                                                                         |                      |           |
-| `:exec-in`            | list<string>            | Runs the given commands in the zone after booting                                                                                                                                                                                                                           |                      |           |
-| `:final-state`        | string                  | Put the zone in the given state. Can be `installed`, `ready` or `reboot`                                                                                                                                                                                                    |                      |           |
-| `:lx-image`           | string                  | Install an `lx` braned zone with this image                                                                                                                                                                                                                                 |                      |           |
-| `:recreate`           | number                  | 1-in-n chance the zone will be destroyed and recreated                                                                                                                                                                                                                      | 0                    |           |
-| `(zone-attr)`         | function                | See below                                                                                                                                                                                                                                                                   |                      |           |
-| `(zone-bhyve)`        | function                | See below                                                                                                                                                                                                                                                                   |                      |           |
-| `(zone-fs)`           | function                | See below                                                                                                                                                                                                                                                                   |                      |           |
-| `(zone-net)`          | function                | See below                                                                                                                                                                                                                                                                   |                      |           |
-| `:zonepath`           | string                  | Path to zone root                                                                                                                                                                                                                                                           | `/zones/<zone-name>` |           |
-| `(zone-rctl)`         | function                | See below                                                                                                                                                                                                                                                                   |                      |           |
+| Key                   | Type                    | Description                                                                                                                    | Default              | Mandatory |
+| --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------- | --------- |
+| Name                  | string                  | Zone name                                                                                                                      |                      | yes       |
+| `:autoboot`           | bool                    | Boot the zone on system boot                                                                                                   | true                 |           |
+| `:boot-after-install` | bool                    | Boot the zone once it is installed                                                                                             | true                 |           |
+| `:brand`              | string                  | Zone brand. One of `lipkg`, `ipkg`, `sparse`, `lx`                                                                             |                      |           |
+| `:capped-memory`      | struct<keyword, string> | Set memory cap. Keys must be `:physical` and `:swap`                                                                           |                      |           |
+| `:clone-from`         | string                  | Instead of installing, clone from the given zone, and be halted                                                                |                      |           |
+| `:copy-in`            | struct<keyword, string> | Copy files into the zone. Key is source, value is dest, relative to zone root. Unqualified src is assumed to be in `../files/` |                      |           |
+| `:datasets`           | list<string>            | ZFS datasets to be delegated to zone                                                                                           |                      |           |
+| `:dns`                | struct                  | DNS config of the form `:domain "string" :nameservers list<string>"                                                            |                      |           |
+| `:exec-in`            | list<string>            | Runs the given commands in the zone after booting                                                                              |                      |           |
+| `:final-state`        | string                  | Put the zone in the given state. Can be `installed`, `ready` or `reboot`                                                       |                      |           |
+| `:lx-image`           | string                  | Install an `lx` braned zone with this image                                                                                    |                      |           |
+| `:recreate`           | number                  | 1-in-n chance the zone will be destroyed and recreated                                                                         | 0                    |           |
+| `(zone-attr)`         | function                | See below                                                                                                                      |                      |           |
+| `(zone-bhyve)`        | function                | See below                                                                                                                      |                      |           |
+| `(zone-bootstrap)`    | function                | See below                                                                                                                      |                      |           |
+| `(zone-fs)`           | function                | See below                                                                                                                      |                      |           |
+| `(zone-net)`          | function                | See below                                                                                                                      |                      |           |
+| `:zonepath`           | string                  | Path to zone root                                                                                                              | `/zones/<zone-name>` |           |
+| `(zone-rctl)`         | function                | See below                                                                                                                      |                      |           |
+
+The doer cannot modify an existing zone.
+
+`kvm`, and `illumos` zones are not supported.
+
+**Notes on `:recreate`**. This must be an integer, and it is the `n:1` odds of a
+zone being destroyed and recreated. So, `0` means "never recreate this zone",
+and `1` means "recreate this zone on every run". You can set the number as high
+as you like, so if you run Gurp every 15 minutes and want your zone rebuilt from
+scratch about once a week, you'd set it to `672`. If you don't set it, it
+defaults to `0`.
+
+### `(zone/remove )`
+
+```janet
+(zone/remove "unwanted-zone")
+```
+
+| Key  | Type   | Description        | Default | Mandatory |
+| ---- | ------ | ------------------ | ------- | --------- |
+| Name | string | The zone to remove |         | yes       |
 
 #### `(zone-attr)`
 
@@ -940,6 +961,16 @@ Gurp will infer and add the property types.
 | `:vcpus`            | number       | How many VCPUs to allocate to the VM                                                                                                                                         |         | yes       |
 
 [*] You must supply exactly one of `:image-url` and `:image-path`.
+
+#### `(zone-bootstrap)`
+
+| Key         | Type   | Description                                                       | Default | Mandatory |
+| ----------- | ------ | ----------------------------------------------------------------- | ------- | --------- |
+| `:file`     | string | path to config file                                               |         | yes [*]   |
+| `:server`   | string | hostname of Gurp server                                           |         | yes [*]   |
+| `:hostname` | string | the zone will use this name when identifying itself to the server |         |           |
+
+[*] You must supply exactly one of `:file` and `:server`.
 
 #### `(zone-fs)`
 
@@ -967,14 +998,3 @@ Gurp will infer and add the property types.
 | Name     | string | RCTL name      |         | yes       |
 | `:priv`  | number | RCTL privilege |         | yes       |
 | `:value` | number | RCTL value     |         | yes       |
-
-The doer cannot modify an existing zone.
-
-`kvm`, and `illumos` zones are not supported.
-
-**Notes on `:recreate`**. This must be an integer, and it is the `n:1` odds of a
-zone being destroyed and recreated. So, `0` means "never recreate this zone",
-and `1` means "recreate this zone on every run". `2` You can set the number as
-high as you like, so if you run Gurp every 15 minutes and want your zone rebuilt
-from scratch about once a week, you'd set it to `672`. If you don't set it, it
-defaults to `0`.
