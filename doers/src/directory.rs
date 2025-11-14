@@ -154,10 +154,12 @@ mod test {
         });
 
         let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
-        let metadata = fs::metadata(&dir).unwrap();
 
         assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
         assert!(dir.exists());
+
+        let metadata = fs::metadata(&dir).unwrap();
+
         assert_eq!(metadata.permissions().mode() & 0o7777, 0o0775);
     }
 
