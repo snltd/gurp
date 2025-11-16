@@ -10,6 +10,9 @@ permissions:
 
 jobs:
   build-and-release:
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     name: Build and Release for OmniOS
     steps:
