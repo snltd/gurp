@@ -248,10 +248,9 @@ impl GurpFileEnsure {
             None
         };
 
-        if opts.dump_diffs
-            && let Some(new_content) = new_content
-            && let Some(existing_content) = fs::read_to_string(&self.path).ok()
-        {
+        if opts.dump_diffs && let Some(new_content) = new_content {
+            let existing_content = fs::read_to_string(&self.path).unwrap_or_default();
+            
             println!(
                 "{}",
                 &helpers::dump_diff(
