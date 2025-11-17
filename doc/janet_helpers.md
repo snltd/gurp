@@ -27,7 +27,6 @@ gives you a few convenience functions and macros.
   everything will be on the same line.
 - `(section)` does nothing at all, but can be useful to divide your config into,
   well, sections.
-
 - `(pathcat component component ...)` joins together its arguments into a
   fully-qualified Unix path.
 - `(argcat component component ...)` joins its arguments with spaces, to let you
@@ -38,9 +37,18 @@ gives you a few convenience functions and macros.
 - `(fields)` changes a whitespace-separated string into an array of strings.
 - `(labelise token ...)` turns tokens into a string which is safe to use as a
   resource `:label`.
-- `(run-cmd)` runs the given command (specified as a single string), and gives
-  you either a string of its stdout or an `(error)` of its stderr. Far too basic
-  to deal with pipes, but still useful.
+- `(run-cmd "command")` runs the given command (specified as a single string),
+  and gives you either a string of its stdout or an `(error)` of its stderr. Far
+  too basic to deal with pipes, but still useful.
+- `(config-file)` returns the fully-qualified path of a relative file path. Used
+  internally by the `file` doer, but useful on its own.
+- `(cron-minutes-from-name seed-string interval)` is used to generate
+  minutes-past-the-hour lists to run Gurp (or anything else) periodically from
+  cron. It uses `seed-string` to calculate a hash, so different hosts will run
+  at different times. `interval` must be a divisor of 60.
+- `(repeated-line-file format-string values)` returns a string, for use as a
+  config file, where each of `values` is applied to a format string. Good for
+  things like automount maps.
 
 ### Dynamic Bindings
 

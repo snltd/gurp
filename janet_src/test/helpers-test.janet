@@ -55,3 +55,12 @@
   (test (cron-minutes-from-name "tester" 30) "3,33")
   (test (cron-minutes-from-name "test-host-2" 30) "14,44")
   (test (cron-minutes-from-name "test-host-2" 20) "14,34,54"))
+
+(deftest repeated-line-file
+  (test
+    (repeated-line-file "%d: this is the %s line" [[1 :first] [2 :second] [3 :third]])
+    "1: this is the first line\n2: this is the second line\n3: this is the third line\n")
+
+  (test
+    (repeated-line-file "this is the %s line" [:first :second :third])
+    "this is the first line\nthis is the second line\nthis is the third line\n"))

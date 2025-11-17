@@ -743,6 +743,22 @@
   (def seed (% (apply + (seq [c :in seed-string] c)) interval))
   (string/join (map string (seq [i :range [seed 60 interval]] i)) ","))
 
+(defn values-as-tuple
+  "Returns a flat array of values, whatever type of values it's given"
+  [values]
+  (flatten (array values)))
+
+(defn repeated-line-file
+  "Produces a string, with a trailing newline, created by mapping the given
+  values to a string produced by using each value in the given format string.
+  If format-values is an array of arrays, each value of the inner array is used
+  in the format string"
+  [format-string format-values]
+  (->>
+    format-values
+    (map |(string/format (string format-string "\n") ;(values-as-tuple $)))
+    (string/join)))
+
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
 
 (defn apk/ensure
