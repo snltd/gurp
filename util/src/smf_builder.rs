@@ -1,4 +1,6 @@
-use common::types::{SmfDefinition, SmfDefinitionDependencySvc, SmfDefinitionExecMethod};
+use common::types::{
+    SmfDefinition, SmfDefinitionDependencySvc, SmfDefinitionDependentSvc, SmfDefinitionExecMethod,
+};
 use xmlwriter::{Options, XmlWriter};
 
 pub struct SmfBuilder {
@@ -52,14 +54,26 @@ impl ServiceBuilder<'_> {
         self.xml.end_element();
     }
 
-    // Everything's going in the `require_all` grouping.
-    //
     pub fn add_svc_dependency(&mut self, def: &SmfDefinitionDependencySvc) {
         self.xml.start_element("dependency");
         self.xml.write_attribute("name", &def.name);
-        self.xml.write_attribute("grouping", "require_all");
+        self.xml.write_attribute("grouping", &def.grouping);
         self.xml.write_attribute("restart_on", &def.restart_on);
-        self.xml.write_attribute("type", "service");
+        self.xml.write_attribute("type", &def.dep_type);
+
+        self.xml.start_element("service_fmri");
+        self.xml.write_attribute("value", &def.fmri);
+        self.xml.end_element();
+
+        self.xml.end_element();
+    }
+
+    pub fn add_svc_dependent(&mut self, def: &SmfDefinitionDependentSvc) {
+        self.xml.start_element("dependent");
+        self.xml.write_attribute("name", &def.name);
+        self.xml.write_attribute("grouping", &def.grouping);
+        self.xml.write_attribute("restart_on", &def.restart_on);
+        self.xml.write_attribute("type", &def.dep_type);
 
         self.xml.start_element("service_fmri");
         self.xml.write_attribute("value", &def.fmri);
@@ -103,7 +117,7 @@ impl ServiceBuilder<'_> {
             self.xml.end_element(); // method_context
         }
 
-        self.xml.end_element(); // e
+        self.xml.end_element(); // exec_method
     }
 
     // do you actually need this? It's in my manifests
@@ -163,14 +177,30 @@ pub fn make_manifest(def: &SmfDefinition) -> String {
         svc.add_svc_dependency(&SmfDefinitionDependencySvc {
             name: "physical".to_owned(),
             restart_on: "none".to_owned(),
+            grouping: "require_all".to_owned(),
+            dep_type: "service".to_owned(),
             fmri: "svc:/network/physical:default".to_owned(),
         });
 
         svc.add_svc_dependency(&SmfDefinitionDependencySvc {
             name: "fs-local".to_owned(),
             restart_on: "none".to_owned(),
+            grouping: "require_all".to_owned(),
+            dep_type: "service".to_owned(),
             fmri: "svc:/system/filesystem/local".to_owned(),
         });
+
+        if let Some(dependencies) = &def.dependencies {
+            for dep in dependencies {
+                svc.add_svc_dependency(dep);
+            }
+        }
+
+        if let Some(dependents) = &def.dependents {
+            for dep in dependents {
+                svc.add_svc_dependent(dep);
+            }
+        }
 
         if let Some(method) = &def.start_method {
             svc.add_exec_method("start", method)
@@ -222,6 +252,14 @@ mod test {
             single_instance: true,
             default_enabled: true,
             property_groups: None,
+            dependencies: Some(vec![SmfDefinitionDependencySvc {
+                name: "test-dep".to_owned(),
+                restart_on: "none".to_owned(),
+                fmri: "svc:/example/service:default".to_owned(),
+                grouping: "require_all".to_owned(),
+                dep_type: "service".to_owned(),
+            }]),
+            dependents: None,
             properties: None,
             start_method: Some(SmfDefinitionExecMethod {
                 exec: "/opt/site/lib/smf/method/telegraf.sh".to_owned(),
@@ -268,6 +306,8 @@ mod test {
             single_instance: true,
             default_enabled: true,
             property_groups: None,
+            dependencies: None,
+            dependents: None,
             properties: None,
             start_method: Some(SmfDefinitionExecMethod {
                 exec: "/opt/site/lib/smf/method/boot-service.sh".to_owned(),

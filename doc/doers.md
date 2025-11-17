@@ -624,6 +624,8 @@ Janet code.
 | `:properties`      | struct<keyword, string> | Create/set properties                              |         |           |
 | `:property-groups` | list<string>            | Create the given property groups                   |         |           |
 | `:single-instance` | bool                    | Whether this is a single-instance service          | true    |           |
+| `:smf-dependency`  | function                | See below                                          |         |           |
+| `:smf-dependent`   | function                | See below                                          |         |           |
 
 #### `(exec-method)`
 
@@ -649,6 +651,28 @@ comparing an export with the thing you just imported shows differences. So, Gurp
 generates an SMF manifest, writes it to disk, and will delete and reimport a
 manifest if it sees a difference between that and the thing you request. This
 will, of course, clobber any changes you've made.
+
+#### `(smf-dependency)
+
+| Key          | Type   | Description                                                         | Default       | Mandatory |
+| ------------ | ------ | ------------------------------------------------------------------- | ------------- | --------- |
+| Name         | string | The dependency name                                                 |               | yes       |
+| `fmri`       | string | FMRI of dependency service                                          |               | yes       |
+| `restart-on` | string | Policy for restarting this service if the dependency restarts       | `none`        |           |
+| `grouping`   | string | Specifies which dependencies are required for this service to start | `require_all` |           |
+| `type`       | string | Type of dependency                                                  | `service`     |           |
+
+Note: `network/physical` and `filesystem/local` are hard-coded dependencies.
+
+#### `(smf-dependent)
+
+| Key          | Type   | Description                                                         | Default       | Mandatory |
+| ------------ | ------ | ------------------------------------------------------------------- | ------------- | --------- |
+| Name         | string | The dependency name                                                 |               | yes       |
+| `fmri`       | string | FMRI of dependent service                                           |               | yes       |
+| `restart-on` | string | Policy for restarting this service if the dependent restarts        | `none`        |           |
+| `grouping`   | string | Specifies which dependencies are required for this service to start | `require_all` |           |
+| `type`       | string | Type of dependent                                                   | `service`     |           |
 
 ### `(smf/remove)`
 

@@ -60,15 +60,30 @@ pub struct SmfDefinition {
     pub refresh_method: Option<SmfDefinitionExecMethod>,
     pub property_groups: Option<PropertyGroupMap>,
     pub properties: Option<PropertyMap>,
+    pub dependencies: Option<Vec<SmfDefinitionDependencySvc>>,
+    pub dependents: Option<Vec<SmfDefinitionDependentSvc>>,
 }
 
-#[cfg_attr(test, derive(PartialEq))]
-#[derive(Deserialize, Hash)]
+#[derive(PartialEq, Debug, Deserialize, Hash)]
 #[serde(rename_all = "kebab-case")]
 pub struct SmfDefinitionDependencySvc {
     pub name: String,
     pub restart_on: String,
     pub fmri: String,
+    pub grouping: String,
+    #[serde(rename = "type")]
+    pub dep_type: String,
+}
+
+#[derive(PartialEq, Debug, Deserialize, Hash)]
+#[serde(rename_all = "kebab-case")]
+pub struct SmfDefinitionDependentSvc {
+    pub name: String,
+    pub restart_on: String,
+    pub fmri: String,
+    pub grouping: String,
+    #[serde(rename = "type")]
+    pub dep_type: String,
 }
 
 #[derive(Deserialize, Debug, Hash, PartialEq)]
