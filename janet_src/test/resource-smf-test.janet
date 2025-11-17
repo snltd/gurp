@@ -25,16 +25,16 @@
   (test *collector*
     @{:ensure @{:smf @[{:_id "/NO-ROLE/smf/telegraf"
                         :default-enabled true
-                        :dependency @[{:fmri "svc://example/service1:default"
-                                       :grouping "require_all"
-                                       :name "svc1"
-                                       :restart-on "none"
-                                       :type "service"}
-                                      {:fmri "svc://example/service2:default"
-                                       :grouping "optional-all"
-                                       :name "svc2"
-                                       :restart-on "error"
-                                       :type "service"}]
+                        :dependencies @[{:fmri "svc://example/service1:default"
+                                         :grouping "require_all"
+                                         :name "svc1"
+                                         :restart-on "none"
+                                         :type "service"}
+                                        {:fmri "svc://example/service2:default"
+                                         :grouping "optional-all"
+                                         :name "svc2"
+                                         :restart-on "error"
+                                         :type "service"}]
                         :description "Run Telegraf agent"
                         :fmri "sysdef/telegraf"
                         :name "telegraf"
