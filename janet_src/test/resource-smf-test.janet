@@ -7,6 +7,12 @@
   (smf/ensure "telegraf"
               :description "Run Telegraf agent"
               :fmri "sysdef/telegraf"
+              (smf-dependency "svc1"
+                          :fmri "svc://example/service1:default")
+              (smf-dependency "svc2"
+                          :grouping "optional-all"
+                          :restart-on "error"
+                          :fmri "svc://example/service2:default")
               (smf-method "start"
                           :exec "/opt/site/lib/smf/method/telegraf.sh"
                           :user "telegraf"
@@ -19,6 +25,16 @@
   (test *collector*
     @{:ensure @{:smf @[{:_id "/NO-ROLE/smf/telegraf"
                         :default-enabled true
+                        :dependency @[{:fmri "svc://example/service1:default"
+                                       :grouping "require_all"
+                                       :name "svc1"
+                                       :restart-on "none"
+                                       :type "service"}
+                                      {:fmri "svc://example/service2:default"
+                                       :grouping "optional-all"
+                                       :name "svc2"
+                                       :restart-on "error"
+                                       :type "service"}]
                         :description "Run Telegraf agent"
                         :fmri "sysdef/telegraf"
                         :name "telegraf"

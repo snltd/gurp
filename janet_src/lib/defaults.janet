@@ -26,6 +26,16 @@
     :smf-method
     {:timeout 60}
 
+    :smf-dependency
+    {:restart-on "none"
+     :grouping "require_all"
+     :type "service"}
+
+    :smf-dependent
+    {:restart-on "none"
+     :grouping "require_all"
+     :type "service"}
+
     :svc
     {:state "online"
      :restarted-by []

@@ -110,7 +110,9 @@
 
    :smf
    {:optional
-    {:description ["What the service does" :string]
+    {:dependency ["See 'smf-dependency'"]
+     :dependent ["See 'smf-dependent'"]
+     :description ["What the service does" :string]
      :duration ["Use this to specify 'transient' or 'wait' services" :string]
      :properties ["Create/set properties.(:keyword :string|:boolean|:number)" :struct]
      :property-groups ["Create property groups (:string)" :tuple]
@@ -121,6 +123,24 @@
      :default-enabled ["Start the service when the manifest installs" :boolean]}
     :mandatory
     {:fmri ["Service FMRI" :string]}}
+
+   :smf-dependency
+   {:optional
+    {:restart-on ["Policy for restarting this service if dependency restarts" :string]
+     :grouping ["Which dependencies are required by this service" :string]
+     :type ["Type of dependency" :string]}
+    :mandatory
+    {:name ["The name of the dependency relationship" :string]
+     :fmri ["Dependency FMRI" :string]}}
+
+   :smf-dependent
+   {:optional
+    {:restart-on ["Policy for restarting this service if dependent restarts" :string]
+     :grouping ["Which dependents are required by this service" :string]
+     :type ["Type of dependent" :string]}
+    :mandatory
+    {:name ["The name of the dependent relationship" :string]
+     :fmri ["Dependent FMRI" :string]}}
 
    :svc
    {:optional
@@ -302,8 +322,13 @@
                  (get (table ;resource-spec) :label
                       (string/replace-all "/" "_" resource-name))))
 
-(defmacro- flat-table
-  "Flattens a struct or table, including its keys"
+(defn table->tuple
+  "Turns a table into a tuple, preserving tuple keys"
+  [spec-table]
+  (mapcat identity (pairs spec-table)))
+
+(defmacro- table->flat-tuple
+  "Completely flattens a struct or table, including its keys"
   [table]
   ~(flatten (pairs ,table)))
 
@@ -914,6 +939,7 @@
   "Given a name and a manifest description, return an SMF service ensure struct"
   [name & specs]
   (var modified-specs specs)
+  (expand-resource :dependency)
   (expand-resource :start-method :as-struct true)
   (expand-resource :stop-method :as-struct true)
   (expand-resource :restart-method :as-struct true)
@@ -923,15 +949,27 @@
     (when (has-key? spec-table :properties)
       (def expanded-properties
         (struct
-          ;(map expand-svc-property (flat-table (spec-table :properties)))))
+          ;(map expand-svc-property (table->flat-tuple (spec-table :properties)))))
       (set (spec-table :properties) expanded-properties))
 
-    (collect :ensure :smf (make-resource :ensure :smf name (flat-table spec-table)))))
+    (collect :ensure :smf (make-resource :ensure :smf name (table->tuple spec-table)))))
 
 (defn smf/remove
   "Given a service name, return an SMF service remove struct"
   [name & specs]
   (collect :remove :smf (make-resource :remove :smf name specs)))
+
+(defn smf-dependency
+  "A convenience function to help produce an SMF dependency"
+  [name & specs]
+  (let [spec-struct
+        (->>
+          (splice specs)
+          (struct/with-proto (proto :ensure :smf-dependency) :name name)
+          (struct/proto-flatten))]
+
+    (validate-spec :ensure :smf-dependency name (table->flat-tuple spec-struct))
+    (struct :dependency spec-struct)))
 
 (defn smf-method
   "A convenience function to help produce an SMF exec_method, with a context"
@@ -984,7 +1022,7 @@
     (var resource (struct/to-table (result :svcprop)))
 
     (var new-properties
-      (map expand-svc-property (flat-table (resource :properties))))
+      (map expand-svc-property (table->flat-tuple (resource :properties))))
 
     (set (resource :properties) (struct ;new-properties))
     (collect :ensure :svcprop (struct :svcprop (table/to-struct resource)))))
@@ -1092,7 +1130,7 @@
           (struct/with-proto (proto :ensure :zone-bhyve))
           (struct/proto-flatten))]
 
-    (validate-spec :ensure :zone-bhyve nil (flat-table spec-struct))
+    (validate-spec :ensure :zone-bhyve nil (table->flat-tuple spec-struct))
     (struct :bhyve spec-struct)))
 
 (defn zone-bootstrap
@@ -1104,7 +1142,7 @@
           (struct/with-proto (proto :ensure :zone-bootstrap))
           (struct/proto-flatten))]
 
-    (validate-spec :ensure :zone-bootstrap nil (flat-table spec-struct))
+    (validate-spec :ensure :zone-bootstrap nil (table->flat-tuple spec-struct))
     (struct :bootstrap spec-struct)))
 
 (defn zone-fs
@@ -1116,7 +1154,7 @@
           (struct/with-proto (proto :ensure :zone-fs) :dir mountpoint)
           (struct/proto-flatten))]
 
-    (validate-spec :ensure :zone-fs mountpoint (flat-table spec-struct))
+    (validate-spec :ensure :zone-fs mountpoint (table->flat-tuple spec-struct))
     (struct :fs spec-struct)))
 
 (defn zone-network
@@ -1128,7 +1166,7 @@
           (struct/with-proto (proto :ensure :zone-network) :physical physical)
           (struct/proto-flatten))]
 
-    (validate-spec :ensure :zone-network physical (flat-table spec-struct))
+    (validate-spec :ensure :zone-network physical (table->flat-tuple spec-struct))
     (struct :net spec-struct)))
 
 (defn zone-rctl
@@ -1140,5 +1178,5 @@
           (struct/with-proto (proto :ensure :zone-rctl) :name name)
           (struct/proto-flatten))]
 
-    (validate-spec :ensure :zone-rctl name (flat-table spec-struct))
+    (validate-spec :ensure :zone-rctl name (table->flat-tuple spec-struct))
     (struct :rctl spec-struct)))

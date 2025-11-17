@@ -194,6 +194,8 @@ mod test {
                 "application".to_owned(),
                 "application".to_owned(),
             )])),
+            dependencies: None,
+            dependents: None,
             properties: Some(PropertyMap::from([(
                 "application/datadir".to_owned(),
                 PropertyStruct {
