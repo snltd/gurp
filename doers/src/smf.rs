@@ -172,6 +172,8 @@ mod test {
                 :fmri "sysdef/telegraf"
                 :property-groups {:application "application"}
                 :properties {:application/datadir "/data"}
+                (smf-dependency "example"
+                    :fmri "/example/service")
                 (smf-method "start"
                     :exec "/opt/site/lib/smf/method/telegraf.sh"
                     :user "telegraf"
@@ -194,7 +196,13 @@ mod test {
                 "application".to_owned(),
                 "application".to_owned(),
             )])),
-            dependencies: None,
+            dependencies: Some(vec![SmfDefinitionDependencySvc {
+                name: "example".to_owned(),
+                fmri: "/example/service".to_owned(),
+                restart_on: "none".to_owned(),
+                grouping: "require_all".to_owned(),
+                dep_type: "service".to_owned(),
+            }]),
             dependents: None,
             properties: Some(PropertyMap::from([(
                 "application/datadir".to_owned(),

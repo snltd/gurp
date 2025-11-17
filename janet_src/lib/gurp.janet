@@ -110,8 +110,8 @@
 
    :smf
    {:optional
-    {:dependency ["See 'smf-dependency'"]
-     :dependent ["See 'smf-dependent'"]
+    {:dependencies ["See 'smf-dependency'"]
+     :dependents ["See 'smf-dependent'"]
      :description ["What the service does" :string]
      :duration ["Use this to specify 'transient' or 'wait' services" :string]
      :properties ["Create/set properties.(:keyword :string|:boolean|:number)" :struct]
@@ -939,7 +939,8 @@
   "Given a name and a manifest description, return an SMF service ensure struct"
   [name & specs]
   (var modified-specs specs)
-  (expand-resource :dependency)
+  (expand-resource :dependencies)
+  (expand-resource :dependents)
   (expand-resource :start-method :as-struct true)
   (expand-resource :stop-method :as-struct true)
   (expand-resource :restart-method :as-struct true)
@@ -969,7 +970,19 @@
           (struct/proto-flatten))]
 
     (validate-spec :ensure :smf-dependency name (table->flat-tuple spec-struct))
-    (struct :dependency spec-struct)))
+    (struct :dependencies spec-struct)))
+
+(defn smf-dependent
+  "A convenience function to help produce an SMF dependent"
+  [name & specs]
+  (let [spec-struct
+        (->>
+          (splice specs)
+          (struct/with-proto (proto :ensure :smf-dependent) :name name)
+          (struct/proto-flatten))]
+
+    (validate-spec :ensure :smf-dependent name (table->flat-tuple spec-struct))
+    (struct :dependents spec-struct)))
 
 (defn smf-method
   "A convenience function to help produce an SMF exec_method, with a context"
