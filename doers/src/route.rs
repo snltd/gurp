@@ -9,7 +9,12 @@ use std::process::{Command, Stdio};
 // We only add persistent routes.
 // Flags only get set when a route is created. We can't change them on an existing route.
 
-type Route = (String, String); // destination, gateway
+#[derive(Debug, PartialEq)]
+struct Route {
+    destination: String,
+    gateway: String,
+}
+
 type Routes = Vec<Route>;
 type Flags = HashMap<String, String>;
 
@@ -28,7 +33,8 @@ pub struct GurpRouteEnsure {
 pub struct GurpRouteRemove {
     #[serde(rename = "_id")]
     pub id: String,
-    pub name: String,
+    #[serde(rename = "name")]
+    pub destination: String,
     pub gateway: String,
 }
 
@@ -46,7 +52,10 @@ fn route_exists(desired: &Route) -> anyhow::Result<bool> {
 
 impl GurpRouteEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let route = (self.destination.clone(), self.gateway.clone());
+        let route = Route {
+            destination: self.destination.clone(),
+            gateway: self.gateway.clone(),
+        };
 
         if route_exists(&route)? {
             tracing::debug!("{} -> {} already exists", self.destination, self.gateway);
@@ -88,11 +97,14 @@ impl GurpRouteEnsure {
 
 impl GurpRouteRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let route = (self.name.clone(), self.gateway.clone());
+        let route = Route {
+            destination: self.destination.clone(),
+            gateway: self.gateway.clone(),
+        };
 
         if route_exists(&route)? {
-            tracing::info!("removing {} -> {}", self.name, self.gateway);
-            let mut cmd = cmd!(ROUTE_BIN, "-p", "delete", &self.gateway, &self.name);
+            tracing::info!("removing {} -> {}", self.destination, self.gateway);
+            let mut cmd = cmd!(ROUTE_BIN, "-p", "delete", &self.gateway, &self.destination);
 
             if !opts.noop {
                 cmd.stderr(Stdio::piped());
@@ -105,7 +117,7 @@ impl GurpRouteRemove {
 
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
-            tracing::debug!("{} -> {} does not exist", self.name, self.gateway);
+            tracing::debug!("{} -> {} does not exist", self.destination, self.gateway);
             Ok(ONE_RESOURCE_NO_CHANGE)
         }
     }
@@ -116,7 +128,15 @@ fn parse_route_table(raw: &str) -> Routes {
 
     for line in raw.lines().filter(|l| l.starts_with("persistent: route")) {
         let fields: Vec<_> = line.split_whitespace().collect();
-        ret.push((fields[3].to_owned(), fields[4].to_owned()))
+
+        if let Some(destination) = fields.get(3)
+            && let Some(gateway) = fields.get(fields.len() - 1)
+        {
+            ret.push(Route {
+                destination: destination.to_string(),
+                gateway: gateway.to_string(),
+            })
+        }
     }
 
     ret
@@ -139,8 +159,14 @@ mod test {
 
         assert_eq!(
             vec![
-                ("default".to_owned(), "192.168.1.1".to_owned()),
-                ("10.0.0.0/16".to_owned(), "10.0.0.2".to_owned()),
+                Route {
+                    destination: "default".to_owned(),
+                    gateway: "192.168.1.1".to_owned(),
+                },
+                Route {
+                    destination: "10.0.0.0/16".to_owned(),
+                    gateway: "10.0.0.2".to_owned(),
+                }
             ],
             parse_route_table(input)
         );
