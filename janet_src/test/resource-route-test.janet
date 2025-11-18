@@ -5,6 +5,8 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
+  # Flags mostly take values. If you supply "true" the flag is just set on its
+  # own
   (route/ensure "10.0.5.0/24"
                 :gateway "10.0.5.150"
                 :flags {:mtu 1500

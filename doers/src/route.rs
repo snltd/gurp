@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use std::process::{Command, Stdio};
 
 // THINGS TO KNOW / THINGS TO DO.
+// The route command is messy legacy, and it takes all manner of commands. This is a best-
+// guess attempt to provide something useful
 // We only add persistent routes.
 // Flags only get set when a route is created. We can't change them on an existing route.
 
