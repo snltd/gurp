@@ -1,25 +1,26 @@
 - Add `route` doer, which manages persistent routes.
+- Add `ip-properties` doer to manage top-level IP properties.
 - Add `(repeated-line-file)` helper function.
-- Show content of new files when using `--dump-diff`. Useful for testing
-  dynamically generated content.
 - Add `(smf-dependency)` and `(smf-dependent)` to the `smf` doer, allowing the
   user to define dependencies beyond the hardcoded ones.
-- Add `ip-properties` doer to manage top-level IP properties.
-- Add route support
+- Show content of new files when using `--dump-diff`. Useful for testing
+  dynamically generated content.
+- When fetching config from a server, retry with an exponential backoff.
 
 ## v 1.3.0 (2025-11-15)
 
-- Add etherstub support.
-- Add new `server` mode which serves compiled (JSON) configurations.
+- Add `etherstub` doer.
+- Add `server` mode which serves compiled (JSON) configurations.
 - Add `-s` (`--server`) option to `apply` subcommand to request a compiled
   configuration from a Gurp instance running in `server` mode.
-- When running as a server, pushes OpenTelemetry metrics.
+- When running as a server, push OpenTelemetry metrics.
 - Smarter handling of conflicting options in `apply` subcommand.
-- Improve zone doer's `:copy-in`. The target can now be a directory (add a
+- Improve `zone` doer's `:copy-in`. The target can now be a directory (add a
   trailing `/`; target directories are created as required.
 - Don't use colour in logs when not running with a tty.
 - Refactor of code which builds lib / host config bundle.
-- Fix bug which stopped `:from-url` working without `:ignore-pattern` being set.
+- Fix bug which stopped `file` doer's `:from-url` working without
+  `:ignore-pattern` being set.
 - Fix bug which blocked downloading large files from server.
 - Use canonical paths in Janet lib dyns, for more robust file-finding.
 - Minor logging improvements.
