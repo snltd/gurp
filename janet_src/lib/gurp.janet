@@ -923,7 +923,8 @@
   "Given a protocol and specification, return an ip-properties ensure struct"
   [name & specs]
   (let [spec-struct (struct :properties (struct (splice specs)))]
-    (collect :ensure :ip-properties (make-resource :ensure :ip-properties name (flat-table spec-struct)))))
+    (collect :ensure :ip-properties
+             (make-resource :ensure :ip-properties name (table->tuple spec-struct)))))
 
 (defn misc/ensure
   "Sets miscellaneous system properties"
@@ -967,10 +968,12 @@
   (let [resource (make-resource :ensure :route name specs)
         resource-keys (keys (resource :route))]
 
-    (if (and (has-value? resource-keys :gateway) (has-value? resource-keys :interface))
+    (if (and (has-value? resource-keys :gateway)
+             (has-value? resource-keys :interface))
       (error "Provide only one of :gateway and :interface"))
 
-    (if (and (not (has-value? resource-keys :gateway)) (not (has-value? resource-keys :interface)))
+    (if (and (not (has-value? resource-keys :gateway))
+             (not (has-value? resource-keys :interface)))
       (error "Provide one of :gateway and :interface"))
 
     (collect :ensure :route resource)))
