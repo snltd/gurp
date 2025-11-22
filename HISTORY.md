@@ -1,3 +1,4 @@
+- Add `route` doer, which manages persistent routes.
 - Add `(repeated-line-file)` helper function.
 - Show content of new files when using `--dump-diff`. Useful for testing
   dynamically generated content.

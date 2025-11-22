@@ -31,6 +31,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(vnic/ensure)`](#vnicensure)
 - [`(ip-interface/ensure)`](#ipinterfaceensure)
 - [`(ip-address/ensure)`](#ipaddressensure)
+- [`(route/ensure)`](#routeensure)
 - [`(zfs/ensure)`](#zfsensure)
 - [`(zone/ensure)`](#zoneensure)
 - [`(pkg/ensure)`](#pkgensure)
@@ -64,6 +65,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(apk/remove)`](#apkremove)
 - [`(zone/remove)`](#zoneremove)
 - [`(zfs/remove)`](#zfsremove)
+- [`(route/remove)`](#routeremove)
 - [`(ip-address/remove)`](#ipaddressremove)
 - [`(ip-interface/remove)`](#ipinterfaceremove)
 - [`(vnic/remove)`](#vnicremove)
@@ -579,6 +581,45 @@ The `publisher` doer only manages origins. You can't configure mirrors.
 | ---- | ------ | -------------- | ------- | --------- |
 | Name | string | Publisher name |         | yes       |
 
+## `route`
+
+Manages IPv4 persistent routes.
+
+### `(route/ensure)`
+
+```janet
+(route/ensure "default" :gateway "192.168.0.1")
+```
+
+```janet
+(route/ensure "10.0.0.0/16"
+              :force-gateway
+              :gateway "192.168.1.250")
+```
+
+```janet
+(route/ensure "203.0.113.0/24"
+             :gateway "127.0.0.1"
+             :type "reject")
+```
+
+| Key              | Type   | Description                                                       | Default | Mandatory |
+| ---------------- | ------ | ----------------------------------------------------------------- | ------- | --------- |
+| Destination      | string | Destination network or IP address, with /netmask if required      |         | yes       |
+| `:flags`         | struct | key-value pairs for flags to add to route command                 |         |           |
+| `:force-gateway` | bool   | If true, inserts `-gateway` before the gateway address            | false   |           |
+| `:gateway`       | string | Gateway for the given route. For a default route, write `default` |         |           |
+| `:interface`     | string | Interface address for the given route. Conflicts with `:gateway`  |         |           |
+| `:type`          | string | Type of route, e.g `-reject`, `-blackhole`                        |         |           |
+
+### `(route/remove)`
+
+| Key         | Type   | Description                                                       | Default | Mandatory |
+| ----------- | ------ | ----------------------------------------------------------------- | ------- | --------- |
+| Destination | string | Destination network or IP address, with /netmask if required      |         | yes       |
+| `:flags`    | struct | key-value pairs for flags to add to route command                 |         |           |
+| `:gateway`  | string | Gateway for the given route. For a default route, write `default` |         |           |
+
 ## `smf`
 
 The `smf` doer (not to be confused with `svc`) lets you define SMF services as
@@ -1007,14 +1048,14 @@ defaults to `0`.
 
 #### `(zone-net)`
 
-| Key                | Type   | Description             | Default | Mandatory |
-| ------------------ | ------ | ----------------------- | ------- | --------- |
-| Name               | string | Global zone VNIC name   |         | yes       |
-| `:allowed-address` | string | IP of zone              |         | yes       |
-| `:defrouter`       | string | IP of default router    |         |           |
-| `:global-nic` | string | Underlying NIC in global zone | `auto` | |
-| `:mac-address`     | string | MAC of zone VNIC        | `auto`  |           |
-| `:physical`        | string | Name of zone NIC |   |           |
+| Key                | Type   | Description                   | Default | Mandatory |
+| ------------------ | ------ | ----------------------------- | ------- | --------- |
+| Name               | string | Global zone VNIC name         |         | yes       |
+| `:allowed-address` | string | IP of zone                    |         | yes       |
+| `:defrouter`       | string | IP of default router          |         |           |
+| `:global-nic`      | string | Underlying NIC in global zone | `auto`  |           |
+| `:mac-address`     | string | MAC of zone VNIC              | `auto`  |           |
+| `:physical`        | string | Name of zone NIC              |         |           |
 
 #### `(zone-rctl)`
 

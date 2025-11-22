@@ -95,14 +95,6 @@ impl GurpRouteEnsure {
         }
     }
 
-    // fn make_route(&self) -> Route {
-    //     Route {
-    //         destination: self.destination.clone(),
-    //         gateway: self.gateway.clone(),
-    //         interface: self.interface.clone(),
-    //     }
-    // }
-
     pub fn build_add_route_cmd(&self) -> Command {
         let mut cmd = Command::new(ROUTE_BIN);
         cmd.arg("-p");
@@ -198,44 +190,21 @@ fn current_routes() -> anyhow::Result<Vec<ExtantRoute>> {
 }
 
 fn route_exists(needle: &Route, haystack: &[ExtantRoute]) -> bool {
-    println!("needle is {:?}", needle);
-    println!("haystack is {:?}", haystack);
-
     for route in haystack {
         let destination_without_mask = needle.destination.split('/').next().unwrap();
 
-        println!("comparing to {:?}", route);
-        println!(
-            "comparing destination: {} == {}",
-            route.destination, destination_without_mask
-        );
-
         if route.destination != destination_without_mask {
-            println!("mismatch - NEXT!");
             continue;
         }
 
         if let Some(gateway) = &needle.gateway {
-            println!("comparing gateway: {} == {}", gateway, route.gateway);
-
             if gateway != &route.gateway {
-                println!("mismatch - NEXT!");
                 continue;
             }
-        } else {
-            println!("no gateway to compare");
         }
-
-        // if let Some(interface) = &needle.interface
-        //     && *interface != route.interface
-        // {
-        //     continue;
-        // }
-        println!("FOUND ROUTE!");
 
         return true;
     }
-    println!("tried everything --- no route");
 
     false
 }
@@ -264,7 +233,6 @@ fn parse_route_table(raw: &str, local_addrs: &[String]) -> Vec<ExtantRoute> {
             continue;
         }
 
-        println!("parsing {line}");
         // We expect six fields
         let fields: Vec<_> = line.split_whitespace().collect();
 
@@ -274,19 +242,13 @@ fn parse_route_table(raw: &str, local_addrs: &[String]) -> Vec<ExtantRoute> {
 
         let interface = fields.get(5).map(|f| f.to_string());
 
-        if let Some(ifce) = &interface
-            && ifce.starts_with("lo")
-        {
-            println!("Skipping loopback");
+        if fields[0] == fields[1] {
             continue;
         }
 
         if local_addrs.iter().any(|a| a == fields[1]) && fields[2] == "U" {
-            println!("skipping on U {}", fields[1]);
             continue;
         }
-
-        println!("PUSHING");
 
         ret.push(ExtantRoute {
             destination: fields[0].to_string(), // netmasks are lost
@@ -400,19 +362,37 @@ mod test {
         };
 
         assert!(!route_exists(&needle, &sample_routes()));
+
+        let needle = Route {
+            destination: "203.0.113.0/24".to_owned(),
+            gateway: Some("127.0.0.1".to_owned()),
+            interface: None,
+        };
+
+        assert!(route_exists(&needle, &sample_routes()));
+
+        let needle = Route {
+            destination: "10.0.0.0/16".to_owned(),
+            gateway: Some("192.168.1.250".to_owned()),
+            interface: None,
+        };
+
+        assert!(route_exists(&needle, &sample_routes()));
     }
 
     #[test]
     fn test_parse_route_table() {
         let input = indoc::indoc! { "
-
             Routing Table: IPv4
               Destination            Gateway          Flags  Ref     Use     Interface
             -------------------- -------------------- ----- ----- ---------- ---------
-            default              192.168.1.1          UGZ       1          1 test_net0
+            default              192.168.1.1          UGZ       1          0 test_net0
+            10.0.0.0             192.168.1.250        UG        1          0
             10.0.0.0             10.0.0.2             U         2          0 test_net1
             127.0.0.1            127.0.0.1            UH        2          0 lo0
-            192.168.1.0          192.168.1.16         U         4       7301 test_net0
+            192.168.1.0          192.168.1.16         U         5       1911 test_net0
+            192.168.1.33         192.168.1.16         UH        1          0 test_net0
+            203.0.113.0          127.0.0.1            URB       1          0 lo0
             "
         };
 
@@ -448,15 +428,27 @@ mod test {
             ExtantRoute {
                 destination: "default".to_owned(),
                 gateway: "192.168.1.1".to_owned(),
-                interface: "test_net0".to_owned(),
+                interface: Some("test_net0".to_owned()),
                 flags: vec!['U', 'G', 'Z'],
             },
-            // ExtantRoute {
-            //     destination: "10.0.0.0".to_owned(),
-            //     gateway: "10.0.0.2".to_owned(),
-            //     interface: "test_net0".to_owned(),
-            //     flags: vec!['U'],
-            // },
+            ExtantRoute {
+                destination: "10.0.0.0".to_owned(),
+                gateway: "192.168.1.250".to_owned(),
+                interface: None,
+                flags: vec!['U', 'G'],
+            },
+            ExtantRoute {
+                destination: "192.168.1.33".to_owned(),
+                gateway: "192.168.1.16".to_owned(),
+                interface: Some("test_net0".to_owned()),
+                flags: vec!['U', 'H'],
+            },
+            ExtantRoute {
+                destination: "203.0.113.0".to_owned(),
+                gateway: "127.0.0.1".to_owned(),
+                interface: Some("lo0".to_owned()),
+                flags: vec!['U', 'R', 'B'],
+            },
         ]
     }
 }
