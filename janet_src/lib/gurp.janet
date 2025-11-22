@@ -110,9 +110,12 @@
 
    :route
    {:optional
-    {:flags ["Key-value pairs for flags. If the flag does not take a value, use true" :struct]}
-    :mandatory
-    {:gateway ["Gateway for given route. For a default route specify 'default'" :string]}}
+    {:flags ["Key-value pairs for flags. If the flag does not take a value, use true" :struct]
+     :force-gateway ["If true, put '-gateway' before the gateway to remove ambiguity" :boolean]
+     :gateway ["Gateway for given route. For a default route specify 'default'" :string]
+     :interface ["Interface for given route. Conflicts with :gateway" :string]
+     :type ["Type of route: e.g. 'blackhole', 'reject'" :string]}
+    :mandatory {}}
 
    :smf
    {:optional
@@ -963,7 +966,16 @@
 (defn route/ensure
   "Given a route name and specification, return a route ensure struct"
   [name & specs]
-  (collect :ensure :route (make-resource :ensure :route name specs)))
+  (let [resource (make-resource :ensure :route name specs)
+        resource-keys (keys (resource :route))]
+
+    (if (and (has-value? resource-keys :gateway) (has-value? resource-keys :interface))
+      (error "Provide only one of :gateway and :interface"))
+
+    (if (and (not (has-value? resource-keys :gateway)) (not (has-value? resource-keys :interface)))
+      (error "Provide one of :gateway and :interface"))
+
+    (collect :ensure :route resource)))
 
 (defn route/remove
   "Given a route name and specification, return a route remove struct"

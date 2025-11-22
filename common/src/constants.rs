@@ -14,6 +14,7 @@ pub const GROUPMOD_BIN: &str = "/usr/sbin/groupmod";
 pub const GROUPS_BIN: &str = "/bin/groups";
 pub const IPADM_BIN: &str = "/usr/sbin/ipadm";
 pub const MKISOFS_BIN: &str = "/bin/mkisofs";
+pub const NETSTAT_BIN: &str = "/bin/netstat";
 pub const PKG_BIN: &str = "/bin/pkg";
 pub const PKGIN_BIN: &str = "/opt/local/bin/pkgin";
 pub const PROFILES_BIN: &str = "/bin/profiles";

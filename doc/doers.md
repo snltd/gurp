@@ -1012,8 +1012,9 @@ defaults to `0`.
 | Name               | string | Global zone VNIC name   |         | yes       |
 | `:allowed-address` | string | IP of zone              |         | yes       |
 | `:defrouter`       | string | IP of default router    |         |           |
+| `:global-nic` | string | Underlying NIC in global zone | `auto` | |
 | `:mac-address`     | string | MAC of zone VNIC        | `auto`  |           |
-| `:physical`        | string | Underlying physical NIC | `auto`  |           |
+| `:physical`        | string | Name of zone NIC |   |           |
 
 #### `(zone-rctl)`
 
