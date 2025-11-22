@@ -1,3 +1,5 @@
+## v 1.4.0 (2025-11-22)
+
 - Add `route` doer, which manages persistent routes.
 - Add `ip-properties` doer to manage top-level IP properties.
 - Add `(repeated-line-file)` helper function.
