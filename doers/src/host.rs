@@ -152,6 +152,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<Ap
     apply_resources!(summary_total, changed_ids, &ensure.ip_interface, opts);
     apply_resources!(summary_total, changed_ids, &ensure.ip_address, opts);
     apply_resources!(summary_total, changed_ids, &ensure.route, opts);
+    apply_resources!(summary_total, changed_ids, &ensure.ip_properties, opts);
     apply_resources!(summary_total, changed_ids, &ensure.zfs, opts);
     apply_resources!(summary_total, changed_ids, &ensure.zone, opts);
 

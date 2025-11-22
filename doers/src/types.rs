@@ -8,6 +8,7 @@ use crate::gem::{GurpGemEnsure, GurpGemRemove};
 use crate::group::{GurpGroupEnsure, GurpGroupRemove};
 use crate::ip_address::{GurpIpAddressEnsure, GurpIpAddressRemove};
 use crate::ip_interface::{GurpIpInterfaceEnsure, GurpIpInterfaceRemove};
+use crate::ip_properties::GurpIpPropertiesEnsure;
 use crate::misc::GurpMiscEnsure;
 use crate::pkg::{GurpPkgEnsure, GurpPkgRemove};
 use crate::pkgin::{GurpPkginEnsure, GurpPkginRemove};
@@ -64,6 +65,8 @@ pub struct EnsureResources {
     pub ip_address: Vec<GurpIpAddressEnsure>,
     #[serde(default)]
     pub ip_interface: Vec<GurpIpInterfaceEnsure>,
+    #[serde(default)]
+    pub ip_properties: Vec<GurpIpPropertiesEnsure>,
     #[serde(default)]
     pub misc: Vec<GurpMiscEnsure>,
     #[serde(default)]

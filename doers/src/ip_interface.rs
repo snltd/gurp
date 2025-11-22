@@ -1,6 +1,5 @@
 use common::prelude::*;
 use serde::Deserialize;
-use serde::de::Deserializer;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use util::deserializer;
@@ -16,28 +15,8 @@ pub struct GurpIpInterfaceEnsure {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
-    #[serde(default, deserialize_with = "property_deserializer")]
+    #[serde(default, deserialize_with = "deserializer::hash_property_deserializer")]
     pub protocols: Protocols,
-}
-
-fn property_deserializer<'de, D>(
-    deserializer: D,
-) -> Result<HashMap<String, HashMap<String, String>>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let raw = HashMap::<String, HashMap<String, serde_json::Value>>::deserialize(deserializer)?;
-    let converted = raw
-        .into_iter()
-        .map(|(proto, props)| {
-            let converted_props = props
-                .into_iter()
-                .map(|(k, v)| (k, deserializer::value_to_string(v)))
-                .collect();
-            (proto, converted_props)
-        })
-        .collect();
-    Ok(converted)
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
