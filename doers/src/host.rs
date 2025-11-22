@@ -8,6 +8,8 @@ use janet_int::helpers as janet_helpers;
 use janet_int::reader;
 use std::collections::BTreeSet;
 use std::fs;
+use std::thread;
+use std::time::Duration;
 use util::http;
 
 fn formatted_json(raw_json: &str) -> anyhow::Result<String> {
@@ -21,17 +23,38 @@ fn formatted_json(raw_json: &str) -> anyhow::Result<String> {
     }
 }
 
+fn fetch_from_server(server: &str, hostname: &str) -> anyhow::Result<String> {
+    let mut tries = 1;
+
+    while tries < 5 {
+        tracing::debug!("try {tries} of 5");
+        match fetch_precompiled_file(server, hostname) {
+            Ok(resp) => {
+                return Ok(resp);
+            }
+            Err(e) => {
+                tracing::error!("error calling remote server: {e}");
+                tracing::info!("sleeping for retry");
+                thread::sleep(Duration::from_secs(tries * tries));
+                tries += 1;
+            }
+        }
+    }
+
+    bail!("failed to get config from server");
+}
+
 pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     let json = if opts.precompiled {
         let host_file = host_file.context("No host file specified")?;
         load_precompiled_file(host_file)?
-    } else if let Some(from_server) = opts.server.as_ref() {
+    } else if let Some(server) = opts.server.as_ref() {
         let hostname = opts
             .hostname
             .clone()
             .map_or_else(helpers::my_hostname, Ok)?;
 
-        let host_config = fetch_precompiled_file(from_server, &hostname)?;
+        let host_config = fetch_from_server(server, &hostname)?;
 
         if opts.dump_config {
             let formatted_json = helpers::pretty_json(&host_config)?;
