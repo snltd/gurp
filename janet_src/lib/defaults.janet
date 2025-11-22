@@ -18,6 +18,9 @@
      :mode "0644"
      :group "root"}
 
+    :route
+    {:force-gateway false}
+    
     :smf
     {:single-instance true
      :stop-method {:exec ":kill" :timeout 10}

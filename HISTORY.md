@@ -1,8 +1,10 @@
+- Add `route` doer, which manages persistent routes.
 - Add `(repeated-line-file)` helper function.
 - Show content of new files when using `--dump-diff`. Useful for testing
   dynamically generated content.
 - Add `(smf-dependency)` and `(smf-dependent)` to the `smf` doer, allowing the
   user to define dependencies beyond the hardcoded ones.
+- Add route support
 
 ## v 1.3.0 (2025-11-15)
 
