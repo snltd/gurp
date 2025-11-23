@@ -735,7 +735,7 @@ dependencies = [
 
 [[package]]
 name = "commands"
-version = "1.0.0"
+version = "1.4.0"
 dependencies = [
  "anyhow",
  "camino",
@@ -753,7 +753,7 @@ dependencies = [
 
 [[package]]
 name = "common"
-version = "1.1.0"
+version = "1.4.0"
 dependencies = [
  "anyhow",
  "camino",
@@ -948,7 +948,7 @@ dependencies = [
 
 [[package]]
 name = "doers"
-version = "1.2.0"
+version = "1.4.0"
 dependencies = [
  "anyhow",
  "blake3",
@@ -1726,7 +1726,7 @@ checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
 name = "janet_int"
-version = "1.0.0"
+version = "1.4.0"
 dependencies = [
  "anyhow",
  "camino",
@@ -1900,7 +1900,7 @@ dependencies = [
 
 [[package]]
 name = "macros"
-version = "1.0.0"
+version = "1.4.0"
 dependencies = [
  "anyhow",
  "common",
@@ -2865,7 +2865,7 @@ dependencies = [
 
 [[package]]
 name = "server"
-version = "1.0.0"
+version = "1.4.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -3115,7 +3115,7 @@ checksum = "8f50febec83f5ee1df3015341d8bd429f2d1cc62bcba7ea2076759d315084683"
 
 [[package]]
 name = "tester"
-version = "1.1.0"
+version = "1.4.0"
 dependencies = [
  "camino",
  "common",
@@ -3611,7 +3611,7 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "util"
-version = "1.2.0"
+version = "1.4.0"
 dependencies = [
  "anyhow",
  "camino",
