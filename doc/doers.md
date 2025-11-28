@@ -31,6 +31,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(vnic/ensure)`](#vnicensure)
 - [`(ip-interface/ensure)`](#ipinterfaceensure)
 - [`(ip-address/ensure)`](#ipaddressensure)
+- [`(network-flow/ensure)`](#networkflowensure)
 - [`(route/ensure)`](#routeensure)
 - [`(ip-properties/ensure)`](#ippropertiesensure)
 - [`(zfs/ensure)`](#zfsensure)
@@ -67,6 +68,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(zone/remove)`](#zoneremove)
 - [`(zfs/remove)`](#zfsremove)
 - [`(route/remove)`](#routeremove)
+- [`(network-flow/remove)`](#networkflowremove)
 - [`(ip-address/remove)`](#ipaddressremove)
 - [`(ip-interface/remove)`](#ipinterfaceremove)
 - [`(vnic/remove)`](#vnicremove)
@@ -518,6 +520,45 @@ combination of other doers.
 ### `(misc/remove)`
 
 There is no `(misc/remove)`.
+
+### `(network-flow/ensure)`
+
+Interface to `flowadm`.
+
+```janet
+(network-flow/ensure "http-flow"
+                     :link "www_net0"
+                     :protocol "tcp"
+                     :local-port 80
+                     :priority "high"
+                     :maxbw "1G")
+```
+
+| Key            | Type   | Description                                    | Default | Mandatory |
+| -------------- | ------ | ---------------------------------------------- | ------- | --------- |
+| Name           | string | Flow name                                      |         | yes       |
+| `:dsfield`     | string | With optional :mask                            |         |           |
+| `:link`        | string | NIC/VNIC to which flow applies                 |         | yes       |
+| `:local-ip`    | string | Local IP address for flow, with optional /mask |         |           |
+| `:local-port`  | number | Local port of flow                             |         |           |
+| `:maxbw`       | string | Maximum duplex bandidth, with M or G suffix    |         |           |
+| `:priority`    | string | Priority of link: high, medium, or low         |         |           |
+| `:protocol`    | string | Flow protocol                                  |         |           |
+| `:remote-ip`   | string | RemoteIP address for flow, optional /mask      |         |           |
+| `:remote-port` | number | Remote port of flow" :number]                  |         |           |
+
+If either `property` or `maxbw` are unset, they will revert to their default
+value.
+
+### `(network-flow/remove)`
+
+```janet
+(network-flow/remove "http-flow")
+```
+
+| Key  | Type   | Description | Default | Mandatory |
+| ---- | ------ | ----------- | ------- | --------- |
+| Name | string | Flow name   |         | yes       |
 
 ## `pkg`
 

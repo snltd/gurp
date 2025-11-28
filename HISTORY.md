@@ -1,3 +1,5 @@
+- Add `network-flow` doer, a wrapper around `flowadm(8)`.
+
 ## v 1.4.0 (2025-11-22)
 
 - Add `route` doer, which manages persistent routes.

@@ -143,3 +143,19 @@ pub struct FileMetadata<'a> {
     pub path: &'a Utf8PathBuf,
     pub changes: u32,
 }
+
+#[derive(Debug, Deserialize, Eq, PartialEq)]
+#[serde(untagged)]
+pub enum StrOrNumber {
+    Str(String),
+    Number(u32),
+}
+
+impl fmt::Display for StrOrNumber {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            StrOrNumber::Str(s) => write!(f, "{s}"),
+            StrOrNumber::Number(n) => write!(f, "{n}"),
+        }
+    }
+}

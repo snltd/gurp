@@ -10,6 +10,7 @@ use crate::ip_address::{GurpIpAddressEnsure, GurpIpAddressRemove};
 use crate::ip_interface::{GurpIpInterfaceEnsure, GurpIpInterfaceRemove};
 use crate::ip_properties::GurpIpPropertiesEnsure;
 use crate::misc::GurpMiscEnsure;
+use crate::network_flow::{GurpNetworkFlowEnsure, GurpNetworkFlowRemove};
 use crate::pkg::{GurpPkgEnsure, GurpPkgRemove};
 use crate::pkgin::{GurpPkginEnsure, GurpPkginRemove};
 use crate::publisher::{GurpPublisherEnsure, GurpPublisherRemove};
@@ -72,6 +73,8 @@ pub struct EnsureResources {
     #[serde(default)]
     pub gem: Vec<GurpGemEnsure>,
     #[serde(default)]
+    pub network_flow: Vec<GurpNetworkFlowEnsure>,
+    #[serde(default)]
     pub pkg: Vec<GurpPkgEnsure>,
     #[serde(default)]
     pub pkgin: Vec<GurpPkginEnsure>,
@@ -124,6 +127,8 @@ pub struct RemoveResources {
     pub ip_address: Vec<GurpIpAddressRemove>,
     #[serde(default)]
     pub ip_interface: Vec<GurpIpInterfaceRemove>,
+    #[serde(default)]
+    pub network_flow: Vec<GurpNetworkFlowRemove>,
     #[serde(default)]
     pub pkgin: Vec<GurpPkginRemove>,
     #[serde(default)]

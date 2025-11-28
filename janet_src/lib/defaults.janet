@@ -49,7 +49,7 @@
      :primary-group "staff"}
 
     :vnic
-    {:create-interface false}
+    {:with-interface false}
 
     :zfs
     {:properties {:mountpoint: "none"}}

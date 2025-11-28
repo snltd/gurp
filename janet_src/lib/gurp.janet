@@ -85,13 +85,14 @@
     :mandatory {}}
 
    :ip-interface-protocol
-   {:optional {}
-    :mandatory {}
+   {:optional
+    {}
     :mandatory
     {:properties ["ipadm 'ifprop' properties" :struct]}}
 
    :ip-properties
-   {:optional {}
+   {:optional
+    {}
     :mandatory
     {:properties ["Filled in by Gurp: you provide keys like :ipv4, ipv6 etc" :struct]}}
 
@@ -100,6 +101,19 @@
     {:enable-smb ["Enable SMB sharing for this username" :string]
      :nfs-domain ["NFS domain name" :string]
      :scheduler ["The scheduler class to set via dispamdin" :string]}}
+
+   :network-flow
+   {:optional
+    {:local-ip ["Local IP address for flow, optional /mask" :string]
+     :remote-ip ["RemoteIP address for flow, optional /mask" :string]
+     :protocol ["Flow protocol" :string]
+     :local-port ["Local port of flow" :number]
+     :remote-port ["Remote port of flow" :number]
+     :dsfield ["With optional :mask" :string]
+     :maxbw ["Maximum duplex bandidth, with K, M or G suffix" :string]
+     :priority ["Priority of link: high, medium, low" :string]}
+    :mandatory
+    {:link ["NIC/VNIC to which flow applies" :string]}}
 
    :pkg {:optional {} :mandatory {}}
 
@@ -930,6 +944,16 @@
   "Sets miscellaneous system properties"
   [& specs]
   (collect :ensure :misc (make-resource :ensure :misc (labelise ;specs) specs)))
+
+(defn network-flow/ensure
+  "Given a flow name and specification, return a network-flow ensure struct"
+  [name & specs]
+  (collect :ensure :network-flow (make-resource :ensure :network-flow name specs)))
+
+(defn network-flow/remove
+  "Given a flow name and specification, return a network-flow remove struct"
+  [name & specs]
+  (collect :remove :network-flow (make-resource :remove :network-flow name specs)))
 
 (defn pkg/ensure
   "Given a a pkg name, return a pkg ensure struct. In OmniOS, the
