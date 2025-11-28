@@ -15,6 +15,7 @@ pub mod ip_address;
 pub mod ip_interface;
 pub mod ip_properties;
 pub mod misc;
+pub mod network_flow;
 pub mod pkg;
 pub mod pkgin;
 pub mod publisher;

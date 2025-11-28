@@ -1,7 +1,6 @@
 use common::helpers;
 use common::prelude::*;
 use serde::Deserialize;
-use std::fmt;
 use std::io::Write;
 use std::process::Command;
 
@@ -9,22 +8,6 @@ const TAG_LINE: &str = "# gurp managed ID";
 
 // THINGS TO KNOW / THINGS TO DO.
 // We use crontab(1) to apply changes. That checks values are valid, so we won't bother.
-
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
-pub enum StrOrNumber {
-    Str(String),
-    Number(u32),
-}
-
-impl fmt::Display for StrOrNumber {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            StrOrNumber::Str(s) => write!(f, "{s}"),
-            StrOrNumber::Number(n) => write!(f, "{n}"),
-        }
-    }
-}
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]

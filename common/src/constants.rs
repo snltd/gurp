@@ -7,6 +7,7 @@ pub const APK_BIN: &str = "/sbin/apk";
 pub const CRONTAB_BIN: &str = "/bin/crontab";
 pub const DISPADMIN_BIN: &str = "/usr/sbin/dispadmin";
 pub const DLADM_BIN: &str = "/usr/sbin/dladm";
+pub const FLOWADM_BIN: &str = "/usr/sbin/flowadm";
 pub const GEM_BIN: &str = "/opt/ooce/bin/gem";
 pub const GROUPADD_BIN: &str = "/usr/sbin/groupadd";
 pub const GROUPDEL_BIN: &str = "/usr/sbin/groupdel";
