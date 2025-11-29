@@ -109,6 +109,11 @@ optional keys
   apply-to    string          Which matches to act on: 'first', 'last', 'all'. Default 'all'
 ```
 
+## `gurp resources`
+
+Dumps a list of all the doers. For further information on any of them, use
+`gurp show`.
+
 ## `gurp show`
 
 Dumps the built-in library and default settings to standard out.
