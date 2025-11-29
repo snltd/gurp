@@ -112,7 +112,7 @@ optional keys
 ## `gurp resources`
 
 Dumps a list of all the doers. For further information on any of them, use
-`gurp show`.
+`gurp describe`.
 
 ## `gurp show`
 
