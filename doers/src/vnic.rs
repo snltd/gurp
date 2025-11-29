@@ -5,8 +5,6 @@ use std::process::Command;
 
 // THINGS TO KNOW / THINGS TO DO.
 
-type VlanID = u16;
-
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpVnicEnsure {

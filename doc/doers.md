@@ -29,6 +29,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(publisher/ensure)`](#publisherensure)
 - [`(etherstub/ensure)`](#etherstubensure)
 - [`(vnic/ensure)`](#vnicensure)
+- [`(vlan/ensure)`](#vlanensure)
 - [`(ip-interface/ensure)`](#ipinterfaceensure)
 - [`(ip-address/ensure)`](#ipaddressensure)
 - [`(network-flow/ensure)`](#networkflowensure)
@@ -71,6 +72,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(network-flow/remove)`](#networkflowremove)
 - [`(ip-address/remove)`](#ipaddressremove)
 - [`(ip-interface/remove)`](#ipinterfaceremove)
+- [`(vlan/remove)`](#vlanremove)
 - [`(vnic/remove)`](#vnicremove)
 - [`(etherstub/remove)`](#etherstubremove)
 
@@ -886,6 +888,36 @@ To unlock an account, use a hash of `NP`.
 | Key  | Type   | Description | Default | Mandatory |
 | ---- | ------ | ----------- | ------- | --------- |
 | Name | string | Username    |         | yes       |
+
+## `vlan`
+
+When you create VLANs with `dladm`, you do not have to specify the link name:
+the system will derive one. This is not the case with Gurp: the resource name is
+the link name,
+
+### `(vlan/ensure)`
+
+```janet
+(vlan/ensure "myvlan0"
+             :over "e1000g0"
+             :vlan-tag 99)
+```
+
+| Key         | Type   | Description                                    | Default | Mandatory |
+| ----------- | ------ | ---------------------------------------------- | ------- | --------- |
+| Name        | string | VLAN link name                                 |         | yes       |
+| `:over`     | string | The NIC the VLAN to which the VLAN is attached |         | yes       |
+| `:vlan-lag` | number | The VLAN tag ID                                |         | yes       |
+
+### `(vlan/remove)`
+
+```janet
+(vlan/remove "unwanted0")
+```
+
+| Key  | Type   | Description    | Default | Mandatory |
+| ---- | ------ | -------------- | ------- | --------- |
+| Name | string | VLAN link name |         | yes       |
 
 ## `vnic`
 

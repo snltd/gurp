@@ -195,6 +195,13 @@
      :shell ["User's shell" :string]
      :uid ["UID of user" :number]}}
 
+   :vlan
+   {:optional
+    {}
+    :mandatory
+    {:over ["Physical link which will serve VNIC" :string]
+     :vlan-tag ["The VLAN tag ID" :number]}}
+
    :vnic
    {:optional
     {:vlan-tag ["Enable VLAN tagging with the given tag" :number]
@@ -1138,6 +1145,16 @@
   "Given a user name and specification, return a user remove struct"
   [name & specs]
   (collect :remove :user (make-resource :remove :user name specs)))
+
+(defn vlan/ensure
+  "Given a VLAN name and specification, return a vlan ensure struct"
+  [name & specs]
+  (collect :ensure :vlan (make-resource :ensure :vlan name specs)))
+
+(defn vlan/remove
+  "Given a VLAN name and specification, return a vlan remove struct"
+  [name & specs]
+  (collect :remove :vlan (make-resource :remove :vlan name specs)))
 
 (defn vnic/ensure
   "Given a VNIC name and specification, return a vnic ensure struct"
