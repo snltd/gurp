@@ -105,7 +105,6 @@ fn parse_prop_info(raw: &str) -> Properties {
 mod test {
     use super::*;
     use indoc::indoc;
-    use tester::janet2json;
 
     #[test]
     fn test_parse_prop_info() {
@@ -135,32 +134,4 @@ mod test {
 
         assert_eq!(expected, parse_prop_info(input));
     }
-
-    // #[test]
-    // fn test_deserialize() {
-    //     let json_def = janet2json(indoc! {r#"
-    //        (ip-address/ensure "test0/v4"
-    //                           :type "static"
-    //                           :address "192.168.1.13/24"
-    //                           :properties {:prefixlen 24
-    //                                        :transmit true
-    //                                        :private false})
-    //       "#});
-
-    //     let expected_props: AddrProps = HashMap::from([
-    //         ("prefixlen".to_owned(), "24".to_owned()),
-    //         ("transmit".to_owned(), "on".to_owned()),
-    //         ("private".to_owned(), "off".to_owned()),
-    //     ]);
-
-    //     let expected = GurpIpAddressEnsure {
-    //         id: "/NO-ROLE/ip-address/test0_v4".to_owned(),
-    //         name: "test0/v4".to_owned(),
-    //         address_type: "static".to_owned(),
-    //         address: Some("192.168.1.13/24".to_owned()),
-    //         properties: Some(expected_props),
-    //     };
-
-    //     assert_eq!(expected, serde_json::from_str(&json_def).unwrap())
-    // }
 }

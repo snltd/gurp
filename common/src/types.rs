@@ -159,3 +159,5 @@ impl fmt::Display for StrOrNumber {
         }
     }
 }
+
+pub type VlanID = u16;

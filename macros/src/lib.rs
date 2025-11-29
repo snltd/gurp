@@ -95,6 +95,25 @@ macro_rules! cmd {
 
 #[macro_export]
 #[allow(unused_macros)]
+macro_rules! run_cmd {
+    ( $cmd:expr ) => {{
+        let output = $cmd.output()?;
+
+        if output.status.success() {
+            Result::<String, anyhow::Error>::Ok(
+                String::from_utf8_lossy(&output.stdout).trim().to_owned(),
+            )
+        } else {
+            anyhow::bail!(
+                "cmd_output error: {}",
+                String::from_utf8_lossy(&output.stderr).into_owned()
+            );
+        }
+    }};
+}
+
+#[macro_export]
+#[allow(unused_macros)]
 macro_rules! cmd_with_stdin {
     ( $bin:expr $(, $arg:expr )* $(,)? ) => {{
         use std::process::{Command, Stdio};
