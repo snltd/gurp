@@ -1,0 +1,17 @@
+(use judge)
+(use ../lib/gurp)
+
+(deftest "test-description-wrapper"
+(test (description-wrapper "test-doer" "this is a sample test for the
+   description wrapper test that ought to be nicely wrapped to 80 columns with
+   a lovely clean indent and no weird spacing in the middle of a line."
+  20
+  80)
+  @["         test-doer  this is a sample test for the description wrapper test that"
+    "                    ought to be nicely wrapped to 80 columns with a lovely clean"
+    "                    indent and no weird spacing in the middle of a line."])
+
+)
+
+(deftest "list-doers"
+  (test (list-doers) "                    apk  Manage APK packages. Only valid in an Alpine LX zone.\n                   cron  Manage cron jobs. Crontab entries are prefixed with a\n                         machine-generated string.\n              directory  Create and destroy directories. Parents are created like\n                         mkdir -p, but with the owner/group/mode of the gurp\n                         process. Removal always removes directory contents.\n              etherstub  Create and destroy etherstubs.\n                   file  Create files from multiple sources, or remove them.\n              file-line  Ensure lines do or do not exist in the given file.\n                    gem  Add and remove Ruby gems.\n                  group  Add and remove Unix groups.\n             ip-address  Manages IP addresses via ipadm\n           ip-interface  Create or remove IP interfaces, with optional\n                         properties. Properties are supplied with\n                         'ip-interface-protocol'.\n  ip-interface-protocol  Sets IP interface properties, for a given protocol.\n          ip-properties  Sets global IP properties, via 'ipadm set-prop'.\n                   misc  A collection of things too small to deserve their own\n                         doer.\n           network-flow  Manage network flows via flowadm.\n                    pkg  Add and remove pkg(5) packages.\n                  pkgin  Add and remove pkgin packages in a pkgsrc zone.\n              publisher  Add and remove pkg(5) publisher origins.\n                  route  Manage routes. Note that default routes for zones should\n                         be handled by the zone's :defrouter property.\n                    smf  Create and install a manifest for an SMF service.\n         smf-dependency  Defines a dependency of an SMF service\n          smf-dependent  Defines a dependent of an SMF service\n                    svc  Manage the state of an existing SMF service\n                svcprop  Manage properties of an existing SMF service\n                symlink  Create and remove symbolic links\n                   user  Create and destroy Unix users.\n                   vlan  Create and destroy VLAN objects.\n                   vnic  Create and destroy VNIC objects\n                    zfs  Create, destroy, and modify properties of ZFS\n                         filesystems\n                   zone  Create and destroy zones. Existing zones cannot be\n                         modified.\n              zone-attr  Set attributes on a zone being created by the zone doer\n             zone-bhyve  Describe a bhyve zone inside a zone resource\n         zone-bootstrap  Tells gurp how to bootstrap a newly created zone\n                zone-fs  Define a filesystem mapping when creating a zone\n           zone-network  Describe network configuration of a zone resource\n              zone-rctl  Define a resource control when creating a zone"))

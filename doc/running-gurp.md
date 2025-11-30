@@ -84,10 +84,10 @@ supported.
 ## `gurp describe`
 
 ```sh
-$ gurp describe <RESOURCE>
+$ gurp describe <doer>
 ```
 
-Describes the spec for the given resource type. For instance:
+Describes the spec for the given doer. For instance:
 
 ```
 $ gurp describe file-line
@@ -108,6 +108,11 @@ optional keys
                               'contains', or 'regex'. Default 'exact'
   apply-to    string          Which matches to act on: 'first', 'last', 'all'. Default 'all'
 ```
+
+## `gurp doers`
+
+Dumps a list of all the doers. For further information on any of them, use
+`gurp describe <doer>`.
 
 ## `gurp show`
 

@@ -71,6 +71,8 @@ enum Commands {
         #[arg(required = true)]
         resource: String,
     },
+    /// List the doers in this version of Gurp
+    Doers {},
     /// Run Gurp in Server mode
     Server {
         /// Where to find host configuration files
@@ -148,6 +150,7 @@ fn main() -> anyhow::Result<()> {
             commands::compile::run(&host_config_file, format.as_deref(), &opts)
         }
         Commands::Describe { resource } => commands::describe::run(&resource),
+        Commands::Doers {} => commands::doers::run(),
         Commands::Server {
             config_dir,
             metrics_to,

@@ -17,10 +17,16 @@
   types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
   to display help"
 
-  {:apk {:optional {} :mandatory {}}
+  {:apk
+   {:description "Manage APK packages. Only valid in an Alpine LX zone."
+    :name "Name of package"
+    :optional {}
+    :mandatory {}}
 
    :cron
-   {:optional
+   {:description "Manage cron jobs. Crontab entries are prefixed with a machine-generated string."
+    :name "Convenient name for job."
+    :optional
     {:day-of-month ["Day(s) of month on which job runs" :string :number]
      :day-of-week ["Numeric day(s) on  which job runs. 0=Sunday" :string :number]
      :hour ["Hour(s) at which job runs" :string :number]
@@ -31,17 +37,25 @@
     {:command ["Command which runs" :string]}}
 
    :directory
-   {:optional
+   {:description "Create and destroy directories. Parents are created like mkdir -p, but with
+                 the owner/group/mode of the gurp process. Removal always removes directory
+                 contents."
+    :name "Fully qualified path to directory"
+    :optional
     {:group ["The group name or GID of the for this directory" :string :number]
      :mode ["Permissions written as a four-digit octal" :string]
      :owner ["The username or UID of the user who owns this directory" :string :number]}}
 
    :etherstub
-   {:optional {}
+   {:description "Create and destroy etherstubs."
+    :name "Name of etherstub"
+    :optional {}
     :mandatory {}}
 
    :file-line
-   {:optional
+   {:description "Ensure lines do or do not exist in the given file."
+    :name "Fully qualified path to file"
+    :optional
     {:insert-at ["If a new line must be added, it will go at this index" :number]
      :line ["The line which must exist" :string]
      :replace ["Pattern to replace. Rust regex" :string]
@@ -49,7 +63,9 @@
      :apply-to ["Which matches to act on when replacing: 'first', 'last', 'all'" :string]}}
 
    :file
-   {:optional
+   {:description "Create files from multiple sources, or remove them."
+    :name "Fully qualified path to file"
+    :optional
     {:backup-suffix ["Back up the file with this suff. Use 'TIMESTAMP' for an epoch timestamp" :string]
      :from ["Copy content from this file. If relative, looks in ../files" :string]
      :from-struct ["Generate a config file from the given struct. Requires :to-format" :struct]
@@ -63,47 +79,65 @@
      :content ["Literal content of the file. Must have :content xor :from" :string]}}
 
    :gem
-   {:optional
+   {:description "Add and remove Ruby gems."
+    :name "Name of gem"
+    :optional
     {:gem-path ["Path to gem executable other than /opt/ooce/bin/gem" :string]
      :source ["Source other than RubyGems. Can contain tokens and usernames" :string]
      :version ["Gem version" :string]}}
 
    :group
-   {:mandatory
+   {:description "Add and remove Unix groups."
+    :name "Name of group"
+    :mandatory
     {:gid ["The group ID" :number]}}
 
    :ip-address
-   {:optional
+   {:description "Manages IP addresses via ipadm"
+    :name "Address name, e.g. vnic0/v4"
+    :optional
     {:address ["Local IP address with /netmask, if using static address" :string]
-     :properties ["Any valid ipadm addrprops" :stuct]}
+     :properties ["Struct of any valid ipadm addrprops" :struct]}
     :mandatory
     {:type ["Type of connection: 'static', 'dhcp'" :string]}}
 
    :ip-interface
-   {:optional
+   {:description "Create or remove IP interfaces, with optional properties. Properties
+                 are supplied with 'ip-interface-protocol'."
+    :name "Interface name"
+    :optional
     {:protocols ["See 'ip-interface-protocol'"]}
     :mandatory {}}
 
    :ip-interface-protocol
-   {:optional
-    {}
+   {:description "Sets IP interface properties, for a given protocol."
+    :name "Protocol. e.g. 'ipv4', 'ipv6'"
+    :optional {}
     :mandatory
-    {:properties ["ipadm 'ifprop' properties" :struct]}}
+    {:properties ["struct of ipadm 'ifprop' properties, e.g. :mtu, :forwarding" :struct]}}
 
    :ip-properties
-   {:optional
+   {:description "Sets global IP properties, via 'ipadm set-prop'."
+    :name "Any convenient name: not used internally"
+    :optional
     {}
     :mandatory
-    {:properties ["Filled in by Gurp: you provide keys like :ipv4, ipv6 etc" :struct]}}
+    {:properties ["A struct whose keys are protocols (e.g. 'ipv4', 'ipv6'), and whose values
+                  are structs pairing properties (e.g. :hoplimit, :max_buf) with values" :struct]}}
 
    :misc
-   {:optional
+   {:description "A collection of things too small to deserve their own doer."
+    :name "Any convenient name: not used internally"
+    :optional
     {:enable-smb ["Enable SMB sharing for this username" :string]
      :nfs-domain ["NFS domain name" :string]
-     :scheduler ["The scheduler class to set via dispamdin" :string]}}
+     :scheduler ["The scheduler class to set via dispamdin" :string]}
+    :mandatory {}}
 
    :network-flow
-   {:optional
+   {:description "Manage network flows via flowadm."
+    :name "Name of flow. Must be unique"
+    :optional
     {:local-ip ["Local IP address for flow, optional /mask" :string]
      :remote-ip ["RemoteIP address for flow, optional /mask" :string]
      :protocol ["Flow protocol" :string]
@@ -115,16 +149,30 @@
     :mandatory
     {:link ["NIC/VNIC to which flow applies" :string]}}
 
-   :pkg {:optional {} :mandatory {}}
+   :pkg
+   {:description "Add and remove pkg(5) packages."
+    :name "Package name, of the form 'ooce/editor/helix'"
+    :optional {}
+    :mandatory {}}
 
-   :pkgin {:optional {} :mandatory {}}
+   :pkgin
+   {:description "Add and remove pkgin packages in a pkgsrc zone."
+    :name "Package name"
+    :optional {}
+    :mandatory {}}
 
    :publisher
-   {:mandatory
+   {:description "Add and remove pkg(5) publisher origins."
+    :name "Name of publisher"
+    :optional {}
+    :mandatory
     {:uri ["Add a pkg publiser with this URI" :string]}}
 
    :route
-   {:optional
+   {:description "Manage routes. Note that default routes for zones should be handled
+                 by the zone's :defrouter property."
+    :name "The route destination, e.g. '10.10.0.0/16'"
+    :optional
     {:flags ["Key-value pairs for flags. If the flag does not take a value, use true" :struct]
      :force-gateway ["If true, put '-gateway' before the gateway to remove ambiguity" :boolean]
      :gateway ["Gateway for given route. For a default route specify 'default'" :string]
@@ -133,7 +181,9 @@
     :mandatory {}}
 
    :smf
-   {:optional
+   {:description "Create and install a manifest for an SMF service."
+    :name "Short name of service. Not used internally"
+    :optional
     {:dependencies ["See 'smf-dependency'"]
      :dependents ["See 'smf-dependent'"]
      :description ["What the service does" :string]
@@ -149,7 +199,9 @@
     {:fmri ["Service FMRI" :string]}}
 
    :smf-dependency
-   {:optional
+   {:description "Defines a dependency of an SMF service"
+    :name "Any convenient name"
+    :optional
     {:restart-on ["Policy for restarting this service if dependency restarts" :string]
      :grouping ["Which dependencies are required by this service" :string]
      :type ["Type of dependency" :string]}
@@ -158,7 +210,9 @@
      :fmri ["Dependency FMRI" :string]}}
 
    :smf-dependent
-   {:optional
+   {:description "Defines a dependent of an SMF service"
+    :name "Any convenient name"
+    :optional
     {:restart-on ["Policy for restarting this service if dependent restarts" :string]
      :grouping ["Which dependents are required by this service" :string]
      :type ["Type of dependent" :string]}
@@ -167,24 +221,33 @@
      :fmri ["Dependent FMRI" :string]}}
 
    :svc
-   {:optional
+   {:description "Manage the state of an existing SMF service"
+    :name "Any valid service FMRI"
+    :optional
     {:reloaded-by ["Labels of resources whose alteration triggers service restart" :tuple]
      :restarted-by ["Labels of resources whose alteration triggers service restart" :tuple]}
     :mandatory
     {:state ["Desired state of service, e.g. 'online'" :string]}}
 
    :svcprop
-   {:optional
+   {:description "Manage properties of an existing SMF service"
+    :name "Any valid FMRI of the service whose properties you wish to set"
+    :optional
     {:property-groups ["Property groups (:string) to create" :tuple]}
     :mandatory
     {:properties ["Properties to create. (:keyword :string|:boolean|:number)" :struct]}}
 
    :symlink
-   {:mandatory
+   {:description "Create and remove symbolic links"
+    :name "Qualified path to the link that will be created"
+    :optional {}
+    :mandatory
     {:source ["The file the symlink points to" :string]}}
 
    :user
-   {:optional
+   {:description "Create and destroy Unix users."
+    :name "User's username"
+    :optional
     {:other-groups ["Group names (:string) or GIDs (:number) to which user belongs" :tuple]
      :password-hash ["Hash to insert in /etc/shadow" :string]
      :profiles ["List of existing profiles (:string)" :tuple]}
@@ -196,26 +259,34 @@
      :uid ["UID of user" :number]}}
 
    :vlan
-   {:optional
-    {}
+   {:description "Create and destroy VLAN objects."
+    :name "VLAN name"
+    :optional {}
     :mandatory
     {:over ["Physical link which will serve VNIC" :string]
      :vlan-tag ["The VLAN tag ID" :number]}}
 
    :vnic
-   {:optional
+   {:description "Create and destroy VNIC objects"
+    :name "Name of VNIC"
+    :optional
     {:vlan-tag ["Enable VLAN tagging with the given tag" :number]
      :with-interface ["Whether to create an IP interface on the new VNIC" :boolean]}
     :mandatory
     {:over ["Physical link which will serve VNIC" :string]}}
 
    :zfs
-   {:optional
+   {:description "Create, destroy, and modify properties of ZFS filesystems"
+    :name "ZFS dataset name"
+    :optional
     {:properties ["ZFS properties (:keyword) paired with desired value (:string)" :struct]
-     :size ["If specified, creates a ZFS volume of given size (e.g. '10G')" :string]}}
+     :size ["If specified, creates a ZFS volume of given size (e.g. '10G')" :string]}
+    :mandatory {}}
 
    :zone
-   {:optional
+   {:description "Create and destroy zones. Existing zones cannot be modified."
+    :name "Zone name"
+    :optional
     {:attr ["See 'zone-attr'"]
      :autoboot ["Boot the zone on system boot" :string]
      :bhyve ["See 'zone-bhyve'"]
@@ -239,13 +310,17 @@
     {:brand ["Zone brand" :string]}}
 
    :zone-attr
-   {:optional
+   {:description "Set attributes on a zone being created by the zone doer"
+    :name "Attribute name"
+    :optional
     {:type ["The type of the value. Gurp will take a pretty good guess though" :string]}
     :mandatory
     {:value ["Attribute value" :string :boolean :number]}}
 
    :zone-bhyve
-   {:optional
+   {:description "Describe a bhyve zone inside a zone resource"
+    :name "This resource type does not accept a name"
+    :optional
     {:cloudinit-struct ["Generate a Cloudinit file from the given struct. Top level keys map to files, e.g. 'user-data'" :struct]
      :cloudinit-files ["Copy the given files into the Cloudinit image" :tuple]
      :wait-for-boot ["Wait for boot, or detach immediately" :bool]
@@ -258,13 +333,17 @@
      :boot-volume ["ZFS boot volume" :string]}}
 
    :zone-bootstrap
-   {:optional
+   {:description "Tells gurp how to bootstrap a newly created zone"
+    :name "This resource type does not accept a name"
+    :optional
     {:server ["hostname/IP address of server to install from" :string]
      :hostname ["hostname of client being bootstrapped" :string]
      :file ["fully qualified path of file in zone which will be used to bootstrap" :string]}}
 
    :zone-network
-   {:optional
+   {:description "Describe network configuration of a zone resource"
+    :name "Zone VNIC, which may already exist"
+    :optional
     {:global-nic ["Physical NIC on which to create zone VNIC" :string]
      :defrouter ["IP address of default router" :string]}
     :mandatory
@@ -272,14 +351,18 @@
      :physical ["Zone VNIC. This is the name of the resource, and is not specified with a key" :string]}}
 
    :zone-rctl
-   {:mandatory
+   {:description "Define a resource control when creating a zone"
+    :name "RCTL name"
+    :mandatory
     {:priv ["rctl privilege" :string]
-     :name ["The name of the rctl" :string]
      :action ["rctl action" :string]
+     :name ["private field managed by Gurp" :string]
      :limit ["rctl limit value" :string :number]}}
 
    :zone-fs
-   {:optional
+   {:description "Define a filesystem mapping when creating a zone"
+    :name "The mountpoint inside the zone"
+    :optional
     {:type ["The type of fs mount" :string]
      :options ["Options with which to mount fs inside zone" :tuple]}
     :mandatory
@@ -338,6 +421,11 @@
   (->
     (map |(string/trim $ "/") (tuple "" ;chunks))
     (string/join "/")))
+
+(defn compact
+  "Remove empty elements from an array"
+  [vector]
+  (filter |(not (empty? $)) vector))
 
 (defn- qualify-from-path
   "We expect files to be in a directory `files/` at the same level as
@@ -525,6 +613,37 @@
     (table/to-struct)
     (struct resource-type)))
 
+(defn description-wrapper
+  "Returns an array of strings. The first element has the given leader right-
+  aligned, along with the first words of 'words'. The remaining elements are
+  the rest of 'words', left padded so they form a neat column"
+  [leader words pad-width whole-width]
+  (let [pad (string/repeat " " pad-width)
+        raw-words (array ;(compact (string/split " " words)) nil)
+        coll @[]
+        format-string (string "%" (- pad-width 2) "s ")]
+
+    (var acc (string/format format-string leader))
+
+    (loop [w :in raw-words]
+      (if (or (nil? w) (> (+ (length w) (length acc)) whole-width))
+        (do
+          (array/push coll acc)
+          (set acc (string pad w)))
+        (set acc (string acc " " w))))
+    coll))
+
+(defn list-doers
+  "Returns a multiline string, pairing doers with their descriptions. Used by
+  the 'doers 'command"
+  []
+  (def doers (sorted (keys resource-ensure-keys)))
+
+  (string/join
+    (flatten
+      (map |(description-wrapper $ (get-in resource-ensure-keys [$ :description]) 25 80) doers))
+    "\n"))
+
 (defn help-for
   "Returns a multiline string showing keys supported by the given resource"
   [resource]
@@ -584,7 +703,11 @@
       (def remove-info (resource-remove-keys (keyword resource)))
       (string/join
         (array/concat
-          @[(bold (string "(" resource "/ensure)"))]
+          @[(bold resource)]
+          (get ensure-info :description "no description")
+          ""
+          (bold (string "(" resource "/ensure)"))
+          (string "name: " (get ensure-info :name "not specified"))
           (keys-of-type :ensure ensure-info :mandatory key-field-width)
           (keys-of-type :ensure ensure-info :optional key-field-width)
           (if (nil? remove-info)
