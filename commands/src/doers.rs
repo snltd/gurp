@@ -7,7 +7,7 @@ pub fn run() -> ExitCode {
     let mut janet = janet_int::constants::GURP_DEFAULTS.to_owned();
     janet.push('\n');
     janet.push_str(janet_int::constants::GURP_LIB);
-    janet.push_str("(each r (sort (keys resource-ensure-keys)) (print r))");
+    janet.push_str("(print (list-doers))");
 
     match client.run(janet) {
         Ok(_) => 0,
