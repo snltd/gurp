@@ -197,10 +197,10 @@ fn route_exists(needle: &Route, haystack: &[ExtantRoute]) -> bool {
             continue;
         }
 
-        if let Some(gateway) = &needle.gateway {
-            if gateway != &route.gateway {
-                continue;
-            }
+        if let Some(gateway) = &needle.gateway
+            && gateway != &route.gateway
+        {
+            continue;
         }
 
         return true;
