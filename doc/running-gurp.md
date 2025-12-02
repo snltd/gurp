@@ -52,6 +52,8 @@ There are options:
   configs to standard out. This is independent of the log level, but can be very
   useful when debugging.
 
+- `-D --dump-diffs` When the content of a text file changes, output a diff.
+
 - `-C, --colour` When dumping configs, use syntax colouring where possible. This
   only works for Janet.
 
@@ -60,6 +62,19 @@ There are options:
 - `-M, --metrics-to <METRICS_TO>` HTTP POST InfluxDB-format metrics to this
   host. At the moment ust sends the run duration, the number of resources, and
   the number of changes.
+
+- `-s, --server <SERVER>` Fetches pre-compiled JSON config, over HTTP, from a
+  Gurp server.
+
+- `-H, --hostname <HOSTNAME>` Used in conjunction with `--server`, lets you
+  request config for a specific host.
+
+- `-p, --precompiled` Applies a precompiled JSON config, rather than compiling
+  from Janet source.
+
+- `--destroy-everything-you-touch` Turns all `ensure` resources into `remove`s.
+  Useful for cleaning up during development, but should be used with extreme
+  caution.
 
 ## `gurp compile`
 
