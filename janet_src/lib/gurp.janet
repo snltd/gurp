@@ -547,8 +547,11 @@
 
 (defn finalise
   [collector]
-  {:ensure (finalise-action (collector :ensure))
-   :remove (finalise-action (collector :remove))})
+  (if (dyn :destroy-everything-you-touch)
+    {:ensure {}
+     :remove (finalise-action (collector :ensure))}
+    {:ensure (finalise-action (collector :ensure))
+     :remove (finalise-action (collector :remove))}))
 
 (defn- validate-spec
   "Checks a resource has the keys it should have, according to the correct

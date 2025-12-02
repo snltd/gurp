@@ -31,6 +31,7 @@ pub fn assemble(host_conf: &str, path: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow
     let mut conf = String::new();
 
     conf.push_str(&dynamic_bindings(host_config_dir, &path));
+    conf.push_str(&destroy_everything_you_touch(opts));
     conf.push_str(&server_bindings(
         opts.server_name.as_deref(),
         opts.client_name.as_deref(),
@@ -41,6 +42,14 @@ pub fn assemble(host_conf: &str, path: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow
     conf.push_str(host_conf);
 
     Ok(conf)
+}
+
+fn destroy_everything_you_touch(opts: &ApplyOpts) -> String {
+    if opts.destroy {
+        "(setdyn :destroy-everything-you-touch true)\n".to_owned()
+    } else {
+        String::new()
+    }
 }
 
 // Janet dynamic bindings. These go at the top of the file and are referred to by various

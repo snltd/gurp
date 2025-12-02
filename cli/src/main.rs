@@ -45,7 +45,9 @@ enum Commands {
         /// HTTP POST InfluxDB metrics to this host
         #[arg(short = 'M', long)]
         metrics_to: Option<String>,
-
+        /// Turn all ensures into removes. Use with extreme caution
+        #[arg(long)]
+        destroy_everything_you_touch: bool,
         /// Host configuration file
         #[arg(required_unless_present = "server", conflicts_with = "server")]
         host_config_file: Option<Utf8PathBuf>,
@@ -116,6 +118,7 @@ fn main() -> anyhow::Result<()> {
             precompiled,
             server,
             hostname,
+            destroy_everything_you_touch,
         } => {
             let opts = ApplyOpts {
                 noop,
@@ -131,6 +134,7 @@ fn main() -> anyhow::Result<()> {
                 compile_only: false,
                 server_name: None,
                 client_name: None,
+                destroy: destroy_everything_you_touch,
             };
             commands::apply::run(host_config_file.as_ref(), &opts)
         }
