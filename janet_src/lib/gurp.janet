@@ -18,7 +18,7 @@
   to display help"
 
   {:apk
-   {:description "Manage APK packages. Only valid in an Alpine LX zone."
+   {:description "Install and uninstall APK packages. Only valid in an Alpine LX zone."
     :name "Name of package"
     :optional {}
     :mandatory {}}
@@ -37,7 +37,7 @@
     {:command ["Command which runs" :string]}}
 
    :directory
-   {:description "Create and destroy directories. Parents are created like mkdir -p, but with
+   {:description "Create and remove directories. Parents are created like mkdir -p, but with
                  the owner/group/mode of the gurp process. Removal always removes directory
                  contents."
     :name "Fully qualified path to directory"
@@ -79,7 +79,7 @@
      :content ["Literal content of the file. Must have :content xor :from" :string]}}
 
    :gem
-   {:description "Add and remove Ruby gems."
+   {:description "Install and uninstall Ruby gems."
     :name "Name of gem"
     :optional
     {:gem-path ["Path to gem executable other than /opt/ooce/bin/gem" :string]
@@ -87,13 +87,13 @@
      :version ["Gem version" :string]}}
 
    :group
-   {:description "Add and remove Unix groups."
+   {:description "Create and destroy Unix groups."
     :name "Name of group"
     :mandatory
     {:gid ["The group ID" :number]}}
 
    :ip-address
-   {:description "Manages IP addresses via ipadm"
+   {:description "Manages IP addresses via ipadm."
     :name "Address name, e.g. vnic0/v4"
     :optional
     {:address ["Local IP address with /netmask, if using static address" :string]
@@ -102,7 +102,7 @@
     {:type ["Type of connection: 'static', 'dhcp'" :string]}}
 
    :ip-interface
-   {:description "Create or remove IP interfaces, with optional properties. Properties
+   {:description "Create and destroy IP interfaces, with optional properties. Properties
                  are supplied with 'ip-interface-protocol'."
     :name "Interface name"
     :optional
@@ -110,7 +110,7 @@
     :mandatory {}}
 
    :ip-interface-protocol
-   {:description "Sets IP interface properties, for a given protocol."
+   {:description "Sets IP interface properties for a given protocol."
     :name "Protocol. e.g. 'ipv4', 'ipv6'"
     :optional {}
     :mandatory
@@ -150,13 +150,13 @@
     {:link ["NIC/VNIC to which flow applies" :string]}}
 
    :pkg
-   {:description "Add and remove pkg(5) packages."
+   {:description "Install and uninstall pkg(5) packages."
     :name "Package name, of the form 'ooce/editor/helix'"
     :optional {}
     :mandatory {}}
 
    :pkgin
-   {:description "Add and remove pkgin packages in a pkgsrc zone."
+   {:description "Install and uninstall pkgin packages. Only valid in a pkgsrc zone."
     :name "Package name"
     :optional {}
     :mandatory {}}
@@ -199,7 +199,7 @@
     {:fmri ["Service FMRI" :string]}}
 
    :smf-dependency
-   {:description "Defines a dependency of an SMF service"
+   {:description "Defines a dependency of an SMF service, inside an smf resource."
     :name "Any convenient name"
     :optional
     {:restart-on ["Policy for restarting this service if dependency restarts" :string]
@@ -210,7 +210,7 @@
      :fmri ["Dependency FMRI" :string]}}
 
    :smf-dependent
-   {:description "Defines a dependent of an SMF service"
+   {:description "Defines a dependent of an SMF service, inside an smf resource."
     :name "Any convenient name"
     :optional
     {:restart-on ["Policy for restarting this service if dependent restarts" :string]
@@ -221,7 +221,7 @@
      :fmri ["Dependent FMRI" :string]}}
 
    :svc
-   {:description "Manage the state of an existing SMF service"
+   {:description "Manage the state of an existing SMF service."
     :name "Any valid service FMRI"
     :optional
     {:reloaded-by ["Labels of resources whose alteration triggers service restart" :tuple]
@@ -230,7 +230,7 @@
     {:state ["Desired state of service, e.g. 'online'" :string]}}
 
    :svcprop
-   {:description "Manage properties of an existing SMF service"
+   {:description "Manage properties of an existing SMF service."
     :name "Any valid FMRI of the service whose properties you wish to set"
     :optional
     {:property-groups ["Property groups (:string) to create" :tuple]}
@@ -238,14 +238,14 @@
     {:properties ["Properties to create. (:keyword :string|:boolean|:number)" :struct]}}
 
    :symlink
-   {:description "Create and remove symbolic links"
+   {:description "Create and remove symbolic links."
     :name "Qualified path to the link that will be created"
     :optional {}
     :mandatory
     {:source ["The file the symlink points to" :string]}}
 
    :user
-   {:description "Create and destroy Unix users."
+   {:description "Manage Unix users."
     :name "User's username"
     :optional
     {:other-groups ["Group names (:string) or GIDs (:number) to which user belongs" :tuple]
@@ -259,7 +259,7 @@
      :uid ["UID of user" :number]}}
 
    :vlan
-   {:description "Create and destroy VLAN objects."
+   {:description "Manage VLAN objects."
     :name "VLAN name"
     :optional {}
     :mandatory
@@ -267,7 +267,7 @@
      :vlan-tag ["The VLAN tag ID" :number]}}
 
    :vnic
-   {:description "Create and destroy VNIC objects"
+   {:description "Manage VNIC objects."
     :name "Name of VNIC"
     :optional
     {:vlan-tag ["Enable VLAN tagging with the given tag" :number]
@@ -276,7 +276,7 @@
     {:over ["Physical link which will serve VNIC" :string]}}
 
    :zfs
-   {:description "Create, destroy, and modify properties of ZFS filesystems"
+   {:description "Create, destroy, and modify properties of ZFS filesystems."
     :name "ZFS dataset name"
     :optional
     {:properties ["ZFS properties (:keyword) paired with desired value (:string)" :struct]
@@ -310,7 +310,7 @@
     {:brand ["Zone brand" :string]}}
 
    :zone-attr
-   {:description "Set attributes on a zone being created by the zone doer"
+   {:description "Set attributes on a zone being created by the zone doer."
     :name "Attribute name"
     :optional
     {:type ["The type of the value. Gurp will take a pretty good guess though" :string]}
@@ -318,7 +318,7 @@
     {:value ["Attribute value" :string :boolean :number]}}
 
    :zone-bhyve
-   {:description "Describe a bhyve zone inside a zone resource"
+   {:description "Describe a bhyve zone inside a zone resource."
     :name "This resource type does not accept a name"
     :optional
     {:cloudinit-struct ["Generate a Cloudinit file from the given struct. Top level keys map to files, e.g. 'user-data'" :struct]
@@ -333,7 +333,7 @@
      :boot-volume ["ZFS boot volume" :string]}}
 
    :zone-bootstrap
-   {:description "Tells gurp how to bootstrap a newly created zone"
+   {:description "Tells gurp how to bootstrap a newly created zone."
     :name "This resource type does not accept a name"
     :optional
     {:server ["hostname/IP address of server to install from" :string]
@@ -341,7 +341,7 @@
      :file ["fully qualified path of file in zone which will be used to bootstrap" :string]}}
 
    :zone-network
-   {:description "Describe network configuration of a zone resource"
+   {:description "Describe network configuration of a zone resource."
     :name "Zone VNIC, which may already exist"
     :optional
     {:global-nic ["Physical NIC on which to create zone VNIC" :string]
@@ -351,7 +351,7 @@
      :physical ["Zone VNIC. This is the name of the resource, and is not specified with a key" :string]}}
 
    :zone-rctl
-   {:description "Define a resource control when creating a zone"
+   {:description "Define a resource control when creating a zone."
     :name "RCTL name"
     :mandatory
     {:priv ["rctl privilege" :string]
@@ -360,7 +360,7 @@
      :limit ["rctl limit value" :string :number]}}
 
    :zone-fs
-   {:description "Define a filesystem mapping when creating a zone"
+   {:description "Define a filesystem mapping when creating a zone."
     :name "The mountpoint inside the zone"
     :optional
     {:type ["The type of fs mount" :string]
@@ -616,6 +616,18 @@
     (table/to-struct)
     (struct resource-type)))
 
+#---- THINGS THAT DISPLAY INFORMATION ----------------------------------------
+
+(defn- underline
+  "Underline the given string"
+  [text]
+  (string "\x1b[4m" text "\x1b[0m"))
+
+(defn- bold
+  "Bold the given string"
+  [text]
+  (string "\x1b[1m" text "\x1b[0m"))
+
 (defn description-wrapper
   "Returns an array of strings. The first element has the given leader right-
   aligned, along with the first words of 'words'. The remaining elements are
@@ -626,7 +638,7 @@
         coll @[]
         format-string (string "%" (- pad-width 2) "s ")]
 
-    (var acc (string/format format-string leader))
+    (var acc (bold (string/format format-string leader)))
 
     (loop [w :in raw-words]
       (if (or (nil? w) (> (+ (length w) (length acc)) whole-width))
@@ -651,17 +663,12 @@
   "Returns a multiline string showing keys supported by the given resource"
   [resource]
 
-  (defn- bold
-    "Bold the given string"
-    [text]
-    (string "\x1b[1m" text "\x1b[0m"))
-
   (defn- field-width
-    "Returns the width of a field wide enough to accomodate the longest keys"
-    [keys]
-    (if (empty? keys)
+    "Returns the width of a field which can accomodate the longest keys"
+    [key-list]
+    (if (empty? key-list)
       0
-      (+ 2 (max (splice (map length keys))))))
+      (+ 2 (max (splice (map length key-list))))))
 
   (defn- format-string
     "Returns a format string used to lay out resource key information"
@@ -687,8 +694,8 @@
 
     (if-not (empty? key-info)
       (let [ret @[(bold (string key-type " keys"))]
-            keys (keys key-info)]
-        (loop [key :in (sort keys)]
+            info-keys (keys key-info)]
+        (loop [key :in (sorted info-keys)]
           (let [desc (key-info key)
                 default-val (get-in default-protos [action (keyword resource) key])]
             (array/push ret
@@ -706,17 +713,17 @@
       (def remove-info (resource-remove-keys (keyword resource)))
       (string/join
         (array/concat
-          @[(bold resource)]
+          @[(bold (underline resource))]
           (get ensure-info :description "no description")
           ""
-          (bold (string "(" resource "/ensure)"))
+          (bold (underline (string "(" resource "/ensure)")))
           (string "name: " (get ensure-info :name "not specified"))
           (keys-of-type :ensure ensure-info :mandatory key-field-width)
           (keys-of-type :ensure ensure-info :optional key-field-width)
           (if (nil? remove-info)
             []
             (array/concat
-              @["" (bold (string "(" resource "/remove)"))]
+              @["" (bold (underline (string "(" resource "/remove)")))]
               (keys-of-type :remove remove-info :mandatory key-field-width)
               (keys-of-type :remove remove-info :optional key-field-width))))
         "\n"))
