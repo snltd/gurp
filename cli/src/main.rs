@@ -21,7 +21,7 @@ enum Commands {
         /// Hostname to use when fetching config from server
         #[arg(short = 'H', long = "hostname", requires = "server")]
         hostname: Option<String>,
-        /// Use a pre-compiled config, either Janet or JSON
+        /// Use a pre-compiled config, either Janet, jimage, or JSON
         #[arg(short = 'p', long = "precompiled", conflicts_with = "server")]
         precompiled: bool,
         /// Specify a gurp Janet library, in preference to the built-in
@@ -60,9 +60,12 @@ enum Commands {
         /// When displaying compiled config, number lines
         #[arg(short = 'N', long)]
         line_no: bool,
-        /// Output in the given format: 'janet' or 'json'
+        /// Output in the given format: 'janet', 'jimage', or 'json'
         #[arg(short, long, required = true)]
         format: Option<String>,
+        /// Output file for compiled config (required for jimage, optional for others)
+        #[arg(short = 'o', long = "output")]
+        output_file: Option<Utf8PathBuf>,
         /// Host configuration file
         #[arg(required = true)]
         host_config_file: Utf8PathBuf,

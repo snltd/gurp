@@ -20,12 +20,17 @@ pub fn run(host_file: &Utf8PathBuf, format: Option<&str>, opts: &ApplyOpts) -> E
                     }
                 }
                 "json" => {
-                    client.add_c_fn(CFunOptions::new(c"encode", helpers::encode_c));
+                    client.add_c_fn(CFunOptions::new(c"encode-to-json", helpers::encode_c));
+                    tracing::debug!("injecting json print");
+                    config.push_str("\n(print (encode-to-json (machine-config)))");
+                }
+                "jimage" => {
+                    client.add_c_fn(CFunOptions::new(c"encode-to-jimage", helpers::encode_c));
                     tracing::debug!("injecting json print");
                     config.push_str("\n(print (encode (machine-config)))");
                 }
                 _ => {
-                    tracing::error!("format must be 'janet' or 'json'");
+                    tracing::error!("format must be 'janet', 'jimage', or 'json'");
                     return 1;
                 }
             }
