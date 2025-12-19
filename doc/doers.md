@@ -37,6 +37,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(ip-properties/ensure)`](#ippropertiesensure)
 - [`(zfs/ensure)`](#zfsensure)
 - [`(zone/ensure)`](#zoneensure)
+- [`(ipnat/ensure)`](#ipnatensure)
 - [`(pkg/ensure)`](#pkgensure)
 - [`(pkgin/ensure)`](#pkginensure)
 - [`(apk/ensure)`](#apkensure)
@@ -66,6 +67,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(pkg/remove)`](#pkgremove)
 - [`(pkgin/remove)`](#pkginremove)
 - [`(apk/remove)`](#apkremove)
+- [`(ipnat/remove)`](#ipnatremove)
 - [`(zone/remove)`](#zoneremove)
 - [`(zfs/remove)`](#zfsremove)
 - [`(route/remove)`](#routeremove)
@@ -490,6 +492,34 @@ Manages Ruby gems.
 | -------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------- |
 | Name     | string | ip-properties name                                                                                                                                                                        |         | yes       |
 | protocol | struct | Any protocol supported by `ipadm set-prop`. e.g. `tcp`, `ipv4`, `ipv6` etc , paired with a struct of properties and values. You can use `true` and `false` in place of `"on"` and `"off"` |         |           |
+
+## `ipnat`
+
+### `(ipnat/ensure)`
+
+```janet
+(ipnat/ensure "test-1"
+              :from "test/ipnat-test"
+              :flags [:disable-resolution]
+              :in-zone "test-zone")
+```
+
+| Key            | Type   | Description                                                               | Default | Mandatory |
+| -------------- | ------ | ------------------------------------------------------------------------- | ------- | --------- |
+| Name           | string | Any convenient name. Not used internally.                                 |         | yes       |
+| `:content`     | string | List of rules                                                             |         | yes [*]   |
+| `:from`        | string | Path to a file of rules                                                   |         | yes [*]   |
+| `:flags`       | string | Options to pass to ipnat. Can be :disable-resolution (-R) or :remove (-r) |         |           |
+| `:in-zone`     | string | In global zone, apply rules to in-zone NAT in given zone                  |         |           |
+| `:global-zone` | string | In global zone, apply rules to global-zone controlled NAT in given zone   |         |           |
+
+### `(ipnat/remove)`
+
+```janet
+(ipnat/ensure "test-1")
+```
+
+Removes all NAT rules.
 
 ## `misc`
 

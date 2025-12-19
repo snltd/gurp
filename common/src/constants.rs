@@ -14,6 +14,7 @@ pub const GROUPDEL_BIN: &str = "/usr/sbin/groupdel";
 pub const GROUPMOD_BIN: &str = "/usr/sbin/groupmod";
 pub const GROUPS_BIN: &str = "/bin/groups";
 pub const IPADM_BIN: &str = "/usr/sbin/ipadm";
+pub const IPNAT_BIN: &str = "/usr/sbin/ipnat";
 pub const MKISOFS_BIN: &str = "/bin/mkisofs";
 pub const NETSTAT_BIN: &str = "/bin/netstat";
 pub const PKG_BIN: &str = "/bin/pkg";
@@ -38,6 +39,8 @@ pub const ZONEADM_BIN: &str = "/usr/sbin/zoneadm";
 pub const ZONECFG_BIN: &str = "/usr/sbin/zonecfg";
 
 pub const SERVER_PORT: u16 = 1867;
+
+pub const IPF_SVC: &str = "svc:/network/ipfilter:default";
 
 pub const ONE_RESOURCE_ONE_CHANGE: ApplySummary = ApplySummary {
     resources: 1,

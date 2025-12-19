@@ -157,6 +157,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<Ap
     apply_resources!(summary_total, changed_ids, &ensure.network_flow, opts);
     apply_resources!(summary_total, changed_ids, &ensure.zfs, opts);
     apply_resources!(summary_total, changed_ids, &ensure.zone, opts);
+    apply_resources!(summary_total, changed_ids, &ensure.ipnat, opts);
 
     if !&ensure.pkg.is_empty() {
         summary_total = summary_total + crate::pkg::collect_and_ensure(&ensure.pkg, opts)?;
@@ -212,6 +213,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<Ap
         summary_total = summary_total + crate::apk::collect_and_remove(&remove.apk, opts)?;
     }
 
+    apply_resources!(summary_total, changed_ids, &remove.ipnat, opts);
     apply_resources!(summary_total, changed_ids, &remove.zone, opts);
     apply_resources!(summary_total, changed_ids, &remove.zfs, opts);
     apply_resources!(summary_total, changed_ids, &remove.network_flow, opts);

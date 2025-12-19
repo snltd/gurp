@@ -1,5 +1,6 @@
 - Add `network-flow` doer, a wrapper around `flowadm(8)`.
 - Add `vlan` doer.
+- Add `ipnat` doer.
 - Add `resources` command, which dumps a list of doers to stdout.
 - Add `--destroy-everything-you-touch` to `apply` command.
 
