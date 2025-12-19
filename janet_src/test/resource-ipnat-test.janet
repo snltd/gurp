@@ -28,7 +28,7 @@ rdr le0 203.1.2.3/32 port 80 -> 203.1.2.5 port 80 tcp round-robin")
                           :name "test-1"
                           :role "test-role"}
                          {:_id "/test-role/ipnat/test-2"
-                          :content "rdr le0 203.1.2.3/32 port 80 -> 203.1.2.3,203.1.2.4 port 80 tcp round-robinrdr le0 203.1.2.3/32 port 80 -> 203.1.2.5 port 80 tcp round-robin"
+                          :content "rdr le0 203.1.2.3/32 port 80 -> 203.1.2.3,203.1.2.4 port 80 tcp round-robin\nrdr le0 203.1.2.3/32 port 80 -> 203.1.2.5 port 80 tcp round-robin"
                           :name "test-2"
                           :role "test-role"}
                          {:_id "/test-role/ipnat/test-3"
