@@ -9,6 +9,7 @@ use crate::group::{GurpGroupEnsure, GurpGroupRemove};
 use crate::ip_address::{GurpIpAddressEnsure, GurpIpAddressRemove};
 use crate::ip_interface::{GurpIpInterfaceEnsure, GurpIpInterfaceRemove};
 use crate::ip_properties::GurpIpPropertiesEnsure;
+use crate::ipnat::{GurpIpnatEnsure, GurpIpnatRemove};
 use crate::misc::GurpMiscEnsure;
 use crate::network_flow::{GurpNetworkFlowEnsure, GurpNetworkFlowRemove};
 use crate::pkg::{GurpPkgEnsure, GurpPkgRemove};
@@ -62,6 +63,8 @@ pub struct EnsureResources {
     #[serde(default)]
     pub file_line: Vec<GurpFileLineEnsure>,
     #[serde(default)]
+    pub gem: Vec<GurpGemEnsure>,
+    #[serde(default)]
     pub group: Vec<GurpGroupEnsure>,
     #[serde(default)]
     pub ip_address: Vec<GurpIpAddressEnsure>,
@@ -70,9 +73,9 @@ pub struct EnsureResources {
     #[serde(default)]
     pub ip_properties: Vec<GurpIpPropertiesEnsure>,
     #[serde(default)]
-    pub misc: Vec<GurpMiscEnsure>,
+    pub ipnat: Vec<GurpIpnatEnsure>,
     #[serde(default)]
-    pub gem: Vec<GurpGemEnsure>,
+    pub misc: Vec<GurpMiscEnsure>,
     #[serde(default)]
     pub network_flow: Vec<GurpNetworkFlowEnsure>,
     #[serde(default)]
@@ -119,19 +122,19 @@ pub struct RemoveResources {
     #[serde(default)]
     pub file_line: Vec<GurpFileLineRemove>,
     #[serde(default)]
-    pub group: Vec<GurpGroupRemove>,
-    #[serde(default)]
-    pub svcprop: Vec<GurpSvcpropRemove>,
-    #[serde(default)]
     pub gem: Vec<GurpGemRemove>,
     #[serde(default)]
-    pub pkg: Vec<GurpPkgRemove>,
+    pub group: Vec<GurpGroupRemove>,
     #[serde(default)]
     pub ip_address: Vec<GurpIpAddressRemove>,
     #[serde(default)]
     pub ip_interface: Vec<GurpIpInterfaceRemove>,
     #[serde(default)]
+    pub ipnat: Vec<GurpIpnatRemove>,
+    #[serde(default)]
     pub network_flow: Vec<GurpNetworkFlowRemove>,
+    #[serde(default)]
+    pub pkg: Vec<GurpPkgRemove>,
     #[serde(default)]
     pub pkgin: Vec<GurpPkginRemove>,
     #[serde(default)]
@@ -140,6 +143,8 @@ pub struct RemoveResources {
     pub route: Vec<GurpRouteRemove>,
     #[serde(default)]
     pub smf: Vec<GurpSmfRemove>,
+    #[serde(default)]
+    pub svcprop: Vec<GurpSvcpropRemove>,
     #[serde(default)]
     pub symlink: Vec<GurpSymlinkRemove>,
     #[serde(default)]

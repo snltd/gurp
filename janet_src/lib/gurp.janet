@@ -119,11 +119,20 @@
    :ip-properties
    {:description "Sets global IP properties, via 'ipadm set-prop'."
     :name "Any convenient name: not used internally"
-    :optional
-    {}
+    :optional {}
     :mandatory
     {:properties ["A struct whose keys are protocols (e.g. 'ipv4', 'ipv6'), and whose values
                   are structs pairing properties (e.g. :hoplimit, :max_buf) with values" :struct]}}
+
+   :ipnat
+   {:description "Set or remove NAT rules."
+    :name "Any convenient name: not used internally"
+    :optional
+    {:from ["Apply content of this file. If relative, looks in ../files" :string]
+     :content ["Literal content of the file. Must have :content xor :from" :string]
+     :flags ["Options to pass to ipnat. Can be :disable-resolution (-R) or :remove (-r)" :list]
+     :in-zone ["In global zone, apply rules to in-zone NAT in given zone" :string]
+     :global-zone ["In global zone, apply rules to global-zone controlled NAT in given zone" :string]}}
 
    :misc
    {:description "A collection of things too small to deserve their own doer."
@@ -1079,6 +1088,16 @@
   (let [spec-struct (struct :properties (struct (splice specs)))]
     (collect :ensure :ip-properties
              (make-resource :ensure :ip-properties name (table->tuple spec-struct)))))
+
+(defn ipnat/ensure
+  "Given a name and specification, return an ipnat ensure struct"
+  [name & specs]
+  (collect :ensure :ipnat (make-resource :ensure :ipnat name specs)))
+
+(defn ipnat/remove
+  "Given a name, return an ipnat remove struct"
+  [name & specs]
+  (collect :remove :ipnat (make-resource :remove :ipnat name specs)))
 
 (defn misc/ensure
   "Sets miscellaneous system properties"
