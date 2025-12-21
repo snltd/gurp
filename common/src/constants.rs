@@ -1,4 +1,5 @@
 use crate::types::ApplySummary;
+use std::time::Duration;
 
 pub const GURP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -63,3 +64,6 @@ pub const NO_RESOURCES_TO_CHANGE: ApplySummary = ApplySummary {
 };
 
 pub const IMG_CACHE_DIR: &str = "/var/tmp";
+
+pub const SVC_WAIT_INTERVAL: Duration = Duration::from_secs(1);
+pub const SVC_WAIT_TIMEOUT: Duration = Duration::from_secs(20);

@@ -52,7 +52,7 @@ pub fn dump_config(code: &str, description: &str, opts: &ApplyOpts) -> String {
 }
 
 pub fn dump_diff(existing: &str, desired: &str, description: &str, colour: bool) -> String {
-    let mut ret = banner("END", &format!("{description} diff"));
+    let mut ret = banner("BEGIN", &format!("{description} diff"));
 
     for diff in diff::lines(existing, desired) {
         match diff {

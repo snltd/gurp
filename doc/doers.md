@@ -495,23 +495,28 @@ Manages Ruby gems.
 
 ## `ipnat`
 
+Gurp assembles "bundles" of NAT rules, given as literal strings (`:content`) or
+in files (`:from`). Ordering comes from a mandatory `:priority` value, and the
+lower the value, the higher in the list they go. When all rules have been
+assembled, the resulting table is compared against the current NAT rules and, if
+different, applied in their stead.
+
+We do not support NGZ NAT rule management from the global zone.
+
 ### `(ipnat/ensure)`
 
 ```janet
 (ipnat/ensure "test-1"
-              :from "test/ipnat-test"
-              :flags [:disable-resolution]
-              :in-zone "test-zone")
+              :priority 5
+              :from "test/ipnat-test")
 ```
 
-| Key            | Type   | Description                                                               | Default | Mandatory |
-| -------------- | ------ | ------------------------------------------------------------------------- | ------- | --------- |
-| Name           | string | Any convenient name. Not used internally.                                 |         | yes       |
-| `:content`     | string | List of rules                                                             |         | yes [*]   |
-| `:from`        | string | Path to a file of rules                                                   |         | yes [*]   |
-| `:flags`       | string | Options to pass to ipnat. Can be :disable-resolution (-R) or :remove (-r) |         |           |
-| `:in-zone`     | string | In global zone, apply rules to in-zone NAT in given zone                  |         |           |
-| `:global-zone` | string | In global zone, apply rules to global-zone controlled NAT in given zone   |         |           |
+| Key         | Type   | Description                                       | Default | Mandatory |
+| ----------- | ------ | ------------------------------------------------- | ------- | --------- |
+| Name        | string | Any convenient name. Not used internally.         |         | yes       |
+| `:priority` | number | Rule bundles are sorted on this key, lowest first |         | yes       |
+| `:content`  | string | List of rules                                     |         | yes [*]   |
+| `:from`     | string | Path to a file of rules                           |         | yes [*]   |
 
 ### `(ipnat/remove)`
 
@@ -519,7 +524,7 @@ Manages Ruby gems.
 (ipnat/ensure "test-1")
 ```
 
-Removes all NAT rules.
+Removes all NAT rules. The name is not relevant.
 
 ## `misc`
 

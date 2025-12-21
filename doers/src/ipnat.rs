@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure};
+use anyhow::bail;
 use common::prelude::*;
 use serde::Deserialize;
 use std::fs;
@@ -7,143 +7,29 @@ use std::process::{Command, Output, Stdio};
 use util::svcs;
 
 // THINGS TO KNOW
+// We build a single big set of NAT rules from multiple sources, and apply it, clearing out whatever
+// was already there. I don't see another way to assert state.
+// We don't support any flags (-R, -r etc) to ipnat.
+// It's too tricky to support local-zone-from-global-zone NAT rules, so we don't.
 // ipnat/remove removes ALL NAT rules
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[derive(Debug, Clone, Deserialize)]
 pub struct GurpIpnatEnsure {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
     pub from: Option<String>,
     pub content: Option<String>,
-    pub flags: Option<Vec<String>>,
-    pub in_zone: Option<String>,
-    pub global_zone: Option<String>,
+    pub priority: usize,
 }
+
+type EnsureList = Vec<GurpIpnatEnsure>;
 
 #[derive(Debug, Deserialize)]
 pub struct GurpIpnatRemove {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
-}
-
-impl GurpIpnatEnsure {
-    pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        ensure_ipf_is_running()?;
-
-        ensure!(
-            !(self.content.is_some() && self.from.is_some()),
-            "need exactly one of :from and :content"
-        );
-
-        let mut check_cmd = self.build_ipnat_cmd(true);
-
-        match self.run_cmd(&mut check_cmd) {
-            Ok(result) => {
-                if result.status.success() {
-                    tracing::debug!("ipnat config passed check")
-                } else {
-                    bail!(
-                        "error checking ipnat config: {} {}",
-                        String::from_utf8_lossy(&result.stdout),
-                        String::from_utf8_lossy(&result.stderr),
-                    )
-                }
-            }
-            Err(e) => bail!("error checking ipnat config: {e}"),
-        }
-
-        let current_rules = parse_nat_table(&ipnat_output()?);
-
-        let desired_rules = if let Some(path) = &self.from {
-            fs::read_to_string(path)?
-        } else if let Some(content) = &self.content {
-            content.to_string()
-        } else {
-            bail!("require either :content or :from")
-        };
-
-        if let Some(cmd_flags) = &self.flags
-            && cmd_flags.contains(&":remove".to_string())
-        {
-            let current_rule_lines: Vec<_> = current_rules.lines().collect();
-
-            if desired_rules
-                .lines()
-                .all(|r| current_rule_lines.contains(&r))
-            {
-                tracing::debug!("no rules in current ruleset");
-                return Ok(ONE_RESOURCE_NO_CHANGE);
-            }
-        } else if desired_rules == current_rules {
-            tracing::debug!("ipnat rules are up to date");
-            return Ok(ONE_RESOURCE_NO_CHANGE);
-        }
-
-        tracing::info!("updating NAT rules");
-
-        let mut apply_cmd = self.build_ipnat_cmd(false);
-
-        return_if_noop!(opts);
-
-        self.run_cmd(&mut apply_cmd)?;
-
-        Ok(ONE_RESOURCE_ONE_CHANGE)
-    }
-
-    fn build_ipnat_cmd(&self, check_only: bool) -> Command {
-        let mut cmd = Command::new(IPNAT_BIN);
-
-        if let Some(zone) = &self.in_zone {
-            cmd.args(["-z", zone.as_str()]);
-        } else if let Some(zone) = &self.global_zone {
-            cmd.args(["-z", zone.as_str()]);
-        }
-
-        cmd.arg("-C");
-
-        if let Some(flags) = &self.flags {
-            for flag in flags {
-                match flag.as_str() {
-                    ":disable-resolution" => {
-                        cmd.arg("-R");
-                    }
-                    ":remove" => {
-                        cmd.arg("-r");
-                    }
-                    other => tracing::warn!("ignoring unknown ipnat flag '{other}'"),
-                };
-            }
-        }
-
-        if check_only {
-            cmd.arg("-n");
-        }
-
-        if let Some(path) = &self.from {
-            cmd.args(["-f", path]);
-        } else if self.content.is_some() {
-            cmd.args(["-f", "-"]);
-            cmd.stdin(Stdio::piped());
-        }
-
-        cmd
-    }
-
-    fn run_cmd(&self, cmd: &mut Command) -> anyhow::Result<Output> {
-        if let Some(content) = &self.content {
-            let mut child = cmd.spawn()?;
-
-            if let Some(stdin) = child.stdin.as_mut() {
-                stdin.write_all(content.as_bytes())?;
-            }
-            Ok(child.wait_with_output()?)
-        } else {
-            Ok(cmd.output()?)
-        }
-    }
 }
 
 impl GurpIpnatRemove {
@@ -163,6 +49,104 @@ impl GurpIpnatRemove {
         run_cmd!(cmd)?;
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
+}
+
+pub fn collect_and_ensure(nat_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    ensure_ipf_is_running()?;
+    svcs::wait_for_state(IPF_SVC, "online")?;
+
+    let mut nat_list = nat_list.clone();
+    nat_list.sort_by_key(|r| r.priority);
+
+    let mut desired_rules = String::new();
+
+    for nat in nat_list {
+        if let Some(content) = nat.content {
+            desired_rules.push_str(&content);
+        } else if let Some(path) = nat.from {
+            desired_rules.push_str(&fs::read_to_string(path)?);
+        } else {
+            tracing::warn!("neither :from nor :content for rul {}", nat.id)
+        }
+
+        if !desired_rules.ends_with('\n') {
+            desired_rules.push('\n');
+        }
+    }
+
+    let final_rules = desired_rules.trim();
+
+    if opts.dump_config {
+        helpers::dump_config(final_rules, "NAT rules", opts);
+    }
+
+    let mut check_cmd = build_ipnat_cmd(true);
+    check_nat_rules_are_valid(&mut check_cmd, final_rules)?;
+
+    let current_rules = parse_nat_table(&ipnat_output()?);
+    let current_rules = current_rules.trim();
+
+    if current_rules == final_rules {
+        tracing::debug!("no changes to NAT rules");
+        return Ok(ONE_RESOURCE_NO_CHANGE);
+    }
+
+    if opts.dump_diffs {
+        println!(
+            "{}",
+            &helpers::dump_diff(current_rules, final_rules, "IP NAT rules", opts.colour)
+        );
+    }
+
+    let mut apply_cmd = build_ipnat_cmd(false);
+    return_if_noop!(opts);
+
+    tracing::info!("updating NAT rules");
+    run_cmd(&mut apply_cmd, final_rules)?;
+
+    Ok(ONE_RESOURCE_ONE_CHANGE)
+}
+
+fn check_nat_rules_are_valid(check_cmd: &mut Command, config: &str) -> anyhow::Result<()> {
+    match run_cmd(check_cmd, config) {
+        Ok(result) => {
+            if result.status.success() {
+                tracing::debug!("ipnat config passed check");
+                Ok(())
+            } else {
+                bail!(
+                    "error running ipnat check config command: {} {}",
+                    String::from_utf8_lossy(&result.stdout),
+                    String::from_utf8_lossy(&result.stderr),
+                )
+            }
+        }
+        Err(e) => bail!("error checking ipnat config: {e}"),
+    }
+}
+
+fn build_ipnat_cmd(check_only: bool) -> Command {
+    let mut cmd = Command::new(IPNAT_BIN);
+    cmd.arg("-C");
+
+    if check_only {
+        cmd.arg("-n");
+    }
+
+    cmd.args(["-f", "-"]);
+    cmd.stdin(Stdio::piped());
+    cmd.stderr(Stdio::piped());
+    cmd.stdout(Stdio::piped());
+    cmd
+}
+
+fn run_cmd(cmd: &mut Command, config: &str) -> anyhow::Result<Output> {
+    let mut child = cmd.spawn()?;
+
+    if let Some(stdin) = child.stdin.as_mut() {
+        stdin.write_all(config.as_bytes())?;
+    }
+    Ok(child.wait_with_output()?)
 }
 
 fn ipnat_output() -> anyhow::Result<String> {
@@ -188,38 +172,6 @@ fn ensure_ipf_is_running() -> anyhow::Result<()> {
 mod test {
     use super::*;
     use indoc::indoc;
-    use tester::janet2json;
-
-    #[test]
-    fn test_build_ipnat_cmd_1() {
-        let json_def = janet2json(indoc! { r#"
-              (ipnat/ensure "test-1"
-                            :from "/tmp/ipnat-test"
-                            :flags [:disable-resolution]
-                            :in-zone "test-zone")
-            "# });
-
-        let sut: GurpIpnatEnsure = serde_json::from_str(&json_def).unwrap();
-
-        assert_eq!(
-            "/usr/sbin/ipnat -z test-zone -C -R -f /tmp/ipnat-test",
-            common::helpers::command_to_string(&sut.build_ipnat_cmd(false))
-        );
-    }
-
-    #[test]
-    fn test_build_ipnat_cmd_2() {
-        let json_def = janet2json(indoc! { r#"
-              (ipnat/ensure "test-1" :content "not important here")
-            "# });
-
-        let sut: GurpIpnatEnsure = serde_json::from_str(&json_def).unwrap();
-
-        assert_eq!(
-            "/usr/sbin/ipnat -C -f -",
-            common::helpers::command_to_string(&sut.build_ipnat_cmd(false))
-        );
-    }
 
     #[test]
     fn test_nats_exist() {
