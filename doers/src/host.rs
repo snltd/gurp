@@ -157,7 +157,10 @@ fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<Ap
     apply_resources!(summary_total, changed_ids, &ensure.network_flow, opts);
     apply_resources!(summary_total, changed_ids, &ensure.zfs, opts);
     apply_resources!(summary_total, changed_ids, &ensure.zone, opts);
-    apply_resources!(summary_total, changed_ids, &ensure.ipnat, opts);
+
+    if !&ensure.ipnat.is_empty() {
+        summary_total = summary_total + crate::ipnat::collect_and_ensure(&ensure.ipnat, opts)?;
+    }
 
     if !&ensure.pkg.is_empty() {
         summary_total = summary_total + crate::pkg::collect_and_ensure(&ensure.pkg, opts)?;
