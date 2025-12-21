@@ -127,12 +127,11 @@
    :ipnat
    {:description "Set or remove NAT rules."
     :name "Any convenient name: not used internally"
+    :mandatory
+    {:priority ["NAT rule resources are ordered by priority, lowest number first" :number]}
     :optional
-    {:from ["Apply content of this file. If relative, looks in ../files" :string]
-     :content ["Literal content of the file. Must have :content xor :from" :string]
-     :flags ["Options to pass to ipnat. Can be :disable-resolution (-R) or :remove (-r)" :list]
-     :in-zone ["In global zone, apply rules to in-zone NAT in given zone" :string]
-     :global-zone ["In global zone, apply rules to global-zone controlled NAT in given zone" :string]}}
+    {:from ["Apply rules in the given file. If relative, looks in ../files" :string]
+     :content ["Apply these rules. Must have :content xor :from" :string]}}
 
    :misc
    {:description "A collection of things too small to deserve their own doer."
@@ -396,6 +395,7 @@
      :version ["Gem version" :string]}}
 
    :group {:optional {} :mandatory {}}
+
    :pkg {:optional {} :mandatory {}}
    :pkgin {:optional {} :mandatory {}}
    :publisher {:optional {} :mandatory {}}
@@ -624,6 +624,11 @@
     (merge)
     (table/to-struct)
     (struct resource-type)))
+
+(defn- has-exactly-one-of?
+  "Checks whether spec contains exactly one of the required-keys"
+  [required-keys specs]
+  (= 1 (length (filter |(has-value? required-keys $) (keys (table ;specs))))))
 
 #---- THINGS THAT DISPLAY INFORMATION ----------------------------------------
 
@@ -1089,15 +1094,19 @@
     (collect :ensure :ip-properties
              (make-resource :ensure :ip-properties name (table->tuple spec-struct)))))
 
+
 (defn ipnat/ensure
   "Given a name and specification, return an ipnat ensure struct"
   [name & specs]
+  (if-not (has-exactly-one-of? [:content :from] specs)
+    (error "need exactly one of :content or :from"))
+
   (collect :ensure :ipnat (make-resource :ensure :ipnat name specs)))
 
 (defn ipnat/remove
   "Given a name, return an ipnat remove struct"
-  [name & specs]
-  (collect :remove :ipnat (make-resource :remove :ipnat name specs)))
+  [name]
+  (collect :remove :ipnat (make-resource :remove :ipnat name [])))
 
 (defn misc/ensure
   "Sets miscellaneous system properties"
@@ -1151,13 +1160,8 @@
   (let [resource (make-resource :ensure :route name specs)
         resource-keys (keys (resource :route))]
 
-    (if (and (has-value? resource-keys :gateway)
-             (has-value? resource-keys :interface))
-      (error "Provide only one of :gateway and :interface"))
-
-    (if (and (not (has-value? resource-keys :gateway))
-             (not (has-value? resource-keys :interface)))
-      (error "Provide one of :gateway and :interface"))
+    (if-not (has-exactly-one-of? [:gateway :interface] specs)
+      (error "Provide exactly one of :gateway and :interface"))
 
     (collect :ensure :route resource)))
 
