@@ -499,7 +499,10 @@ Gurp assembles "bundles" of NAT rules, given as literal strings (`:content`) or
 in files (`:from`). Ordering comes from a mandatory `:priority` value, and the
 lower the value, the higher in the list they go. When all rules have been
 assembled, the resulting table is compared against the current NAT rules and, if
-different, applied in their stead.
+different, applied in their stead. The NAT table is also written to
+`/etc/ipf/ipnat.conf`, so it will persist across a reboot.
+
+The `ipfilter` service is automatically started when rules are applied.
 
 We do not support NGZ NAT rule management from the global zone.
 

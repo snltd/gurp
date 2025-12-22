@@ -1,14 +1,19 @@
 use anyhow::bail;
+use camino::Utf8PathBuf;
 use common::prelude::*;
 use serde::Deserialize;
-use std::fs;
+use std::fs::{self, File};
 use std::io::Write;
 use std::process::{Command, Output, Stdio};
 use util::svcs;
 
+const NAT_CONF_FILE: &str = "/etc/ipf/ipnat.conf";
+
 // THINGS TO KNOW
 // We build a single big set of NAT rules from multiple sources, and apply it, clearing out whatever
-// was already there. I don't see another way to assert state.
+// was already there. We also write the same rules to /etc/ipf/ipnat.conf. I don't see another
+// way to assert persistent state.
+// Every run asserts the live and persistent state of the NAT table.
 // We don't support any flags (-R, -r etc) to ipnat.
 // It's too tricky to support local-zone-from-global-zone NAT rules, so we don't.
 // ipnat/remove removes ALL NAT rules
@@ -34,21 +39,100 @@ pub struct GurpIpnatRemove {
 
 impl GurpIpnatRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let ipnat_output = cmd_output!(IPNAT_BIN, "-l")?;
+        let nat_file = Utf8PathBuf::from(NAT_CONF_FILE);
+        let mut ret = ONE_RESOURCE_NO_CHANGE;
 
-        if parse_nat_table(&ipnat_output).is_empty() {
-            tracing::debug!("no NATs to clear");
-            return Ok(ONE_RESOURCE_NO_CHANGE);
+        if parse_nat_table(&ipnat_output()?).is_empty() {
+            tracing::debug!("no live NATs to clear");
+        } else {
+            tracing::info!("clearing live NAT table");
+            let mut cmd = cmd!(IPNAT_BIN, "-C");
+
+            if !opts.noop {
+                run_cmd!(cmd)?;
+            }
+
+            ret = ONE_RESOURCE_ONE_CHANGE;
         }
 
-        tracing::info!("clearing NAT table");
-        let mut cmd = cmd!(IPNAT_BIN, "-C");
+        if nat_file.exists() {
+            tracing::info!("clearing persistent NAT table");
 
-        return_if_noop!(opts);
+            if !opts.noop {
+                fs::remove_file(&nat_file)?;
+            }
 
-        run_cmd!(cmd)?;
-        Ok(ONE_RESOURCE_ONE_CHANGE)
+            ret = ONE_RESOURCE_ONE_CHANGE;
+        } else {
+            tracing::debug!("no persistent NATs to clear");
+        }
+
+        Ok(ret)
     }
+}
+
+fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Result<bool> {
+    let nat_file = Utf8PathBuf::from(NAT_CONF_FILE);
+
+    let current_persistent_rules = if nat_file.exists() {
+        fs::read_to_string(&nat_file)?
+    } else {
+        String::new()
+    };
+
+    if current_persistent_rules.trim() == desired_rules.trim() {
+        tracing::debug!("no changes to persistent NAT rules");
+        Ok(false)
+    } else {
+        tracing::info!("updating nat rules in {nat_file}");
+
+        if opts.dump_diffs {
+            println!(
+                "{}",
+                &helpers::dump_diff(
+                    &current_persistent_rules,
+                    desired_rules,
+                    &format!("IP NAT rules [{nat_file}]"),
+                    opts.colour
+                )
+            );
+        }
+
+        let mut fh = File::create(nat_file)?;
+        write!(fh, "{desired_rules}")?;
+        Ok(true)
+    }
+}
+
+fn ensure_live_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Result<bool> {
+    let current_live_rules = parse_nat_table(&ipnat_output()?);
+
+    if current_live_rules.trim() == desired_rules.trim() {
+        tracing::debug!("no changes to live NAT rules");
+        return Ok(false);
+    }
+
+    if opts.dump_diffs {
+        println!(
+            "{}",
+            &helpers::dump_diff(
+                &current_live_rules,
+                desired_rules,
+                "IP NAT rules [LIVE]",
+                opts.colour
+            )
+        );
+    }
+
+    let mut apply_cmd = build_ipnat_cmd(false);
+
+    tracing::info!("updating live NAT rules");
+
+    if !opts.noop {
+        run_cmd(&mut apply_cmd, desired_rules)?;
+    }
+
+    Ok(true)
 }
 
 pub fn collect_and_ensure(nat_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
@@ -74,37 +158,21 @@ pub fn collect_and_ensure(nat_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
         }
     }
 
-    let final_rules = desired_rules.trim();
-
     if opts.dump_config {
-        helpers::dump_config(final_rules, "NAT rules", opts);
+        helpers::dump_config(&desired_rules, "NAT rules", opts);
     }
 
     let mut check_cmd = build_ipnat_cmd(true);
-    check_nat_rules_are_valid(&mut check_cmd, final_rules)?;
+    check_nat_rules_are_valid(&mut check_cmd, &desired_rules)?;
 
-    let current_rules = parse_nat_table(&ipnat_output()?);
-    let current_rules = current_rules.trim();
+    let persistent_change = ensure_persistent_rules(&desired_rules, opts)?;
+    let live_change = ensure_live_rules(&desired_rules, opts)?;
 
-    if current_rules == final_rules {
-        tracing::debug!("no changes to NAT rules");
-        return Ok(ONE_RESOURCE_NO_CHANGE);
+    if persistent_change || live_change {
+        Ok(ONE_RESOURCE_ONE_CHANGE)
+    } else {
+        Ok(ONE_RESOURCE_NO_CHANGE)
     }
-
-    if opts.dump_diffs {
-        println!(
-            "{}",
-            &helpers::dump_diff(current_rules, final_rules, "IP NAT rules", opts.colour)
-        );
-    }
-
-    let mut apply_cmd = build_ipnat_cmd(false);
-    return_if_noop!(opts);
-
-    tracing::info!("updating NAT rules");
-    run_cmd(&mut apply_cmd, final_rules)?;
-
-    Ok(ONE_RESOURCE_ONE_CHANGE)
 }
 
 fn check_nat_rules_are_valid(check_cmd: &mut Command, config: &str) -> anyhow::Result<()> {
