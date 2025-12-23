@@ -127,6 +127,7 @@ impl GurpRouteEnsure {
         }
 
         cmd.stderr(Stdio::piped());
+        cmd.stdout(Stdio::piped());
         cmd
     }
 }

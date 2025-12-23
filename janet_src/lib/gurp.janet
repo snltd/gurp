@@ -353,10 +353,10 @@
     :name "Zone VNIC, which may already exist"
     :optional
     {:global-nic ["Physical NIC on which to create zone VNIC" :string]
+     :allowed-address ["IP address, with /netmask" :string]
      :defrouter ["IP address of default router" :string]}
     :mandatory
-    {:allowed-address ["IP address, with /netmask" :string]
-     :physical ["Zone VNIC. This is the name of the resource, and is not specified with a key" :string]}}
+    {:physical ["Zone VNIC. This is the name of the resource, and is not specified with a key" :string]}}
 
    :zone-rctl
    {:description "Define a resource control when creating a zone."
