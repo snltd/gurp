@@ -309,8 +309,12 @@
      :exec-in ["Runs the given commands (:string) in the zone after booting" :tuple]
      :final-state ["Put the zone in the given state. Also accepts 'reboot'" :string]
      :fs ["See 'zone-fs'"]
+     :ip-type ["IP type: exclusive or shared" :string]
+     :hostid ["Force this hostid for the zone" :string]
+     :limitpriv ["List of privileges to add to zone" :tuple]
      :lx-image ["Install zone using this image. See docs for pattern rules" :string]
      :net ["See 'zone-network'"]
+     :pool ["Resource pool to which zone should belong" :string]
      :rctl ["See 'zone-rctl'"]
      :recreate ["1-in-n chance the zone will be destroyed and recreated" :number]
      :zonepath ["Path to zone root" :string]}
