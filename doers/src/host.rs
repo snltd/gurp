@@ -1,11 +1,13 @@
 use crate::types::{ChangedIds, HostConfig};
 use anyhow::{Context, ensure};
+use camino::Utf8PathBuf;
 use colored::Colorize;
 use common::constants::SERVER_PORT;
 use common::helpers;
 use common::prelude::*;
 use janet_int::helpers as janet_helpers;
 use janet_int::reader;
+use janetrs::env::CFunOptions;
 use std::collections::BTreeSet;
 use std::fs;
 use std::thread;
@@ -44,10 +46,13 @@ fn fetch_from_server(server: &str, hostname: &str) -> anyhow::Result<String> {
     bail!("failed to get config from server");
 }
 
-pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    let json = if opts.precompiled {
+fn get_config_json(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Result<String> {
+    if opts.image {
+        let image_file = host_file.context("No host file specified")?;
+        Ok(load_image(image_file)?)
+    } else if opts.precompiled {
         let host_file = host_file.context("No host file specified")?;
-        load_precompiled_file(host_file)?
+        Ok(load_precompiled_file(host_file)?)
     } else if let Some(server) = opts.server.as_ref() {
         let hostname = opts
             .hostname
@@ -65,7 +70,7 @@ pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Resul
             );
         }
 
-        host_config
+        Ok(host_config)
     } else {
         let host_file = host_file.context("No host file specified")?;
         let host_config = reader::assembled_config(host_file, opts)?;
@@ -90,8 +95,12 @@ pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Resul
             );
         }
 
-        json
-    };
+        Ok(json)
+    }
+}
+
+pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    let json = get_config_json(host_file, opts)?;
 
     tracing::debug!("Unpacking JSON into HostConfig");
 
@@ -126,6 +135,20 @@ fn load_precompiled_file(path: &Utf8PathBuf) -> anyhow::Result<String> {
     ensure!(path.exists(), "Cannot find JSON file at {}", path);
 
     Ok(fs::read_to_string(path)?)
+}
+
+fn load_image(path: &Utf8PathBuf) -> anyhow::Result<String> {
+    ensure!(path.exists(), "Cannot find image file at {}", path);
+    let mut client = janet_helpers::janet_client();
+    client.add_c_fn(CFunOptions::new(c"encode-to-json", janet_helpers::encode_c));
+
+    let janet_instructions = format!(
+        "(merge-module (curenv) (load-image (slurp \"{path}\")) \"\" true)
+                        (encode-to-json (machine-config))"
+    );
+
+    let janet_result = client.run(janet_instructions)?;
+    Ok(janet_result.unwrap().to_string())
 }
 
 // We tell the server what we think it's called so it can build file resources we can find. This

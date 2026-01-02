@@ -1,6 +1,6 @@
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
-use common::types::{ApplyOpts, ServerOpts};
+use common::types::{ApplyOpts, CompileOpts, ServerOpts};
 use std::io::IsTerminal;
 use tracing_subscriber::EnvFilter;
 
@@ -21,9 +21,12 @@ enum Commands {
         /// Hostname to use when fetching config from server
         #[arg(short = 'H', long = "hostname", requires = "server")]
         hostname: Option<String>,
-        /// Use a pre-compiled config, either Janet, jimage, or JSON
+        /// Use a pre-compiled JSON config
         #[arg(short = 'p', long = "precompiled", conflicts_with = "server")]
         precompiled: bool,
+        /// Use a pre-compiled Janet jimage as config
+        #[arg(short = 'i', long = "image", conflicts_with = "server")]
+        image: bool,
         /// Specify a gurp Janet library, in preference to the built-in
         #[arg(short = 'L', long = "gurp-lib", conflicts_with = "server")]
         gurp_lib_path: Option<Utf8PathBuf>,
@@ -61,8 +64,8 @@ enum Commands {
         #[arg(short = 'N', long)]
         line_no: bool,
         /// Output in the given format: 'janet', 'jimage', or 'json'
-        #[arg(short, long, required = true)]
-        format: Option<String>,
+        #[arg(short, long, required = true, default_value = "json")]
+        format: String,
         /// Output file for compiled config (required for jimage, optional for others)
         #[arg(short = 'o', long = "output")]
         output_file: Option<Utf8PathBuf>,
@@ -122,6 +125,7 @@ fn main() -> anyhow::Result<()> {
             server,
             hostname,
             destroy_everything_you_touch,
+            image,
         } => {
             let opts = ApplyOpts {
                 noop,
@@ -138,6 +142,7 @@ fn main() -> anyhow::Result<()> {
                 server_name: None,
                 client_name: None,
                 destroy: destroy_everything_you_touch,
+                image,
             };
             commands::apply::run(host_config_file.as_ref(), &opts)
         }
@@ -146,15 +151,22 @@ fn main() -> anyhow::Result<()> {
             line_no,
             host_config_file,
             format,
+            output_file,
         } => {
             // Compile is the first part of run's code path, so we'll fake the apply options
-            let opts = ApplyOpts {
+            let apply_opts = ApplyOpts {
                 line_no,
                 gurp_lib_path,
                 compile_only: true,
                 ..Default::default()
             };
-            commands::compile::run(&host_config_file, format.as_deref(), &opts)
+
+            let compile_opts = CompileOpts {
+                format,
+                output_file,
+            };
+
+            commands::compile::run(&host_config_file, &compile_opts, &apply_opts)
         }
         Commands::Describe { resource } => commands::describe::run(&resource),
         Commands::Doers {} => commands::doers::run(),
