@@ -742,8 +742,8 @@ dependencies = [
  "camino",
  "common",
  "doers",
+ "embed",
  "indoc",
- "janet_int",
  "janetrs",
  "nix 0.30.1",
  "server",
@@ -959,10 +959,10 @@ dependencies = [
  "camino-tempfile-ext",
  "colored",
  "common",
+ "embed",
  "fs_extra",
  "httpmock",
  "indoc",
- "janet_int",
  "janetrs",
  "macros",
  "nix 0.30.1",
@@ -999,6 +999,20 @@ name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
+
+[[package]]
+name = "embed"
+version = "1.4.0"
+dependencies = [
+ "anyhow",
+ "camino",
+ "common",
+ "indoc",
+ "janetrs",
+ "serde",
+ "serde_json",
+ "tracing",
+]
 
 [[package]]
 name = "ena"
@@ -1729,20 +1743,6 @@ name = "itoa"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
-
-[[package]]
-name = "janet_int"
-version = "1.4.0"
-dependencies = [
- "anyhow",
- "camino",
- "common",
- "indoc",
- "janetrs",
- "serde",
- "serde_json",
- "tracing",
-]
 
 [[package]]
 name = "janetrs"
@@ -2910,7 +2910,7 @@ dependencies = [
  "axum-macros",
  "camino",
  "common",
- "janet_int",
+ "embed",
  "metrics",
  "mime_guess",
  "opentelemetry",
@@ -3157,7 +3157,7 @@ version = "1.4.0"
 dependencies = [
  "camino",
  "common",
- "janet_int",
+ "embed",
  "janetrs",
  "nix 0.30.1",
 ]

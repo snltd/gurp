@@ -1,7 +1,7 @@
 use camino::Utf8PathBuf;
 use common::types::ExitCode;
 use common::types::{ApplyOpts, CompileOpts};
-use janet_int::{helpers, reader};
+use embed::{helpers, reader};
 use janetrs::env::CFunOptions;
 use std::fs;
 
@@ -40,7 +40,7 @@ pub fn run(host_file: &Utf8PathBuf, c_opts: &CompileOpts, opts: &ApplyOpts) -> E
                     // };
 
                     config = format!(
-                        "(merge-module (curenv)  (dofile \"/tmp/x.janet\") \"\" true)\n
+                        "(merge-module (curenv) (dofile \"/tmp/x.janet\") \"\" true)\n
                         (spit \"{path}\" (make-image (curenv)))"
                     );
                 } else {

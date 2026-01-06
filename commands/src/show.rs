@@ -1,5 +1,5 @@
 use common::types::ExitCode;
-use janet_int::constants::{GURP_DEFAULTS, GURP_LIB};
+use embed::constants::{GURP_DEFAULTS, GURP_LIB};
 
 pub fn run(thing: &str) -> ExitCode {
     match thing {

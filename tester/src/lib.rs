@@ -1,6 +1,6 @@
 use camino::Utf8PathBuf;
 use common::types::ApplyOpts;
-use janet_int::{helpers, reader};
+use embed::{helpers, reader};
 use janetrs::{TaggedJanet, env::CFunOptions};
 use nix::unistd::{Group, User, getgid, getuid};
 use std::env::current_dir;

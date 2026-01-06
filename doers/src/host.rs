@@ -1,18 +1,142 @@
 use crate::types::{ChangedIds, HostConfig};
-use anyhow::{Context, ensure};
+use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use colored::Colorize;
 use common::constants::SERVER_PORT;
 use common::helpers;
 use common::prelude::*;
-use janet_int::helpers as janet_helpers;
-use janet_int::reader;
+use embed::helpers as janet_helpers;
+use embed::reader;
 use janetrs::env::CFunOptions;
 use std::collections::BTreeSet;
 use std::fs;
 use std::thread;
 use std::time::Duration;
 use util::http;
+
+pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    let json = if opts.image {
+        let image_file = host_file.context("No host file specified")?;
+        config_from_image(image_file)?
+    } else if opts.precompiled {
+        let host_file = host_file.context("No host file specified")?;
+        config_from_json(host_file)?
+    } else if let Some(server) = opts.server.as_ref() {
+        config_from_server(server, opts)?
+    } else if let Some(host_file) = host_file {
+        config_from_janet(host_file, opts)?
+    } else {
+        bail!("No configuration file specified")
+    };
+
+    tracing::debug!("Unpacking JSON into HostConfig");
+
+    let host_config: HostConfig = match serde_json::from_str(&json) {
+        Ok(conf) => conf,
+        Err(e) => {
+            tracing::error!("deserializing error: {}", e);
+            let formatted_json = formatted_json(&json)?;
+            let error_line = e.line();
+            let json_lines: Vec<_> = formatted_json.lines().collect();
+            let first_line = error_line.saturating_sub(30);
+            let last_line = (error_line + 15).clamp(0, json_lines.len());
+
+            for l in first_line..=last_line {
+                let output_line = format!(" {:4} | {}", l + 1, json_lines.get(l).unwrap_or(&""));
+
+                if l == error_line {
+                    println!("{}", output_line.bold());
+                } else {
+                    println!("{output_line}");
+                }
+            }
+
+            bail!("end of deserializing error output")
+        }
+    };
+
+    ensure_and_remove(&host_config, opts)
+}
+
+// Get a JSON string from a Janet image on disk
+fn config_from_image(path: &Utf8PathBuf) -> anyhow::Result<String> {
+    ensure!(path.exists(), "Cannot find image file at {}", path);
+    let mut client = janet_helpers::janet_client();
+    client.add_c_fn(CFunOptions::new(c"encode-to-json", janet_helpers::encode_c));
+
+    let janet_instructions = format!(
+        "(merge-module (curenv) (load-image (slurp \"{path}\")) \"\" true)
+                        (encode-to-json (machine-config))"
+    );
+
+    let janet_result = client.run(janet_instructions)?;
+    Ok(janet_result.unwrap().to_string())
+}
+
+// Get a JSON string from a pre-compiled file on disk
+fn config_from_json(path: &Utf8PathBuf) -> anyhow::Result<String> {
+    ensure!(path.exists(), "Cannot find JSON file at {}", path);
+
+    Ok(fs::read_to_string(path)?)
+}
+
+// Get a JSON string from a remote server
+fn config_from_server(server: &str, opts: &ApplyOpts) -> anyhow::Result<String> {
+    let hostname = opts
+        .hostname
+        .clone()
+        .map_or_else(helpers::my_hostname, Ok)?;
+
+    let host_config = fetch_from_server(server, &hostname)?;
+
+    if opts.dump_config {
+        let formatted_json = helpers::pretty_json(&host_config)?;
+
+        println!(
+            "{}",
+            helpers::dump_config(&formatted_json, "Janet config", opts)
+        );
+    }
+
+    Ok(host_config)
+}
+
+// Get a JSON string by compiling a local Janet file (and its dependencies)
+fn config_from_janet(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<String> {
+    let host_config = reader::assembled_config(host_file, opts)?;
+
+    if opts.dump_config {
+        println!(
+            "{}",
+            helpers::dump_config(&host_config, "Janet config", opts)
+        );
+    }
+
+    let json = janet_helpers::run_config(&host_config)?;
+
+    tracing::debug!("Janet returned {} char JSON buffer", json.len());
+
+    if opts.dump_config {
+        let formatted_json = formatted_json(&json)?;
+
+        println!(
+            "{}",
+            helpers::dump_config(&formatted_json, "JSON Config", opts)
+        );
+    }
+
+    Ok(json)
+}
+
+// We tell the server what we think it's called so it can build file resources we can find. This
+// lets use use a raw IP address, DNS name, whatever.
+fn fetch_precompiled_file(server: &str, hostname: &str) -> anyhow::Result<String> {
+    let url = format!("http://{server}:{SERVER_PORT}/config/{hostname}?server_name={server}");
+    tracing::info!("fetching config from {url}");
+    let response = http::remove_file_to_memory(&url)?;
+    let string_response = String::from_utf8(response)?;
+    Ok(string_response)
+}
 
 fn formatted_json(raw_json: &str) -> anyhow::Result<String> {
     match helpers::pretty_json(raw_json) {
@@ -44,121 +168,6 @@ fn fetch_from_server(server: &str, hostname: &str) -> anyhow::Result<String> {
     }
 
     bail!("failed to get config from server");
-}
-
-fn get_config_json(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Result<String> {
-    if opts.image {
-        let image_file = host_file.context("No host file specified")?;
-        Ok(load_image(image_file)?)
-    } else if opts.precompiled {
-        let host_file = host_file.context("No host file specified")?;
-        Ok(load_precompiled_file(host_file)?)
-    } else if let Some(server) = opts.server.as_ref() {
-        let hostname = opts
-            .hostname
-            .clone()
-            .map_or_else(helpers::my_hostname, Ok)?;
-
-        let host_config = fetch_from_server(server, &hostname)?;
-
-        if opts.dump_config {
-            let formatted_json = helpers::pretty_json(&host_config)?;
-
-            println!(
-                "{}",
-                helpers::dump_config(&formatted_json, "Janet config", opts)
-            );
-        }
-
-        Ok(host_config)
-    } else {
-        let host_file = host_file.context("No host file specified")?;
-        let host_config = reader::assembled_config(host_file, opts)?;
-
-        if opts.dump_config {
-            println!(
-                "{}",
-                helpers::dump_config(&host_config, "Janet config", opts)
-            );
-        }
-
-        let json = janet_helpers::run_config(&host_config)?;
-
-        tracing::debug!("Janet returned {} char JSON buffer", json.len());
-
-        if opts.dump_config {
-            let formatted_json = formatted_json(&json)?;
-
-            println!(
-                "{}",
-                helpers::dump_config(&formatted_json, "JSON Config", opts)
-            );
-        }
-
-        Ok(json)
-    }
-}
-
-pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    let json = get_config_json(host_file, opts)?;
-
-    tracing::debug!("Unpacking JSON into HostConfig");
-
-    let host_config: HostConfig = match serde_json::from_str(&json) {
-        Ok(conf) => conf,
-        Err(e) => {
-            tracing::error!("deserializing error: {}", e);
-            let formatted_json = formatted_json(&json)?;
-            let error_line = e.line();
-            let json_lines: Vec<_> = formatted_json.lines().collect();
-            let first_line = error_line.saturating_sub(30);
-            let last_line = (error_line + 15).clamp(0, json_lines.len());
-
-            for l in first_line..=last_line {
-                let output_line = format!(" {:4} | {}", l + 1, json_lines.get(l).unwrap_or(&""));
-
-                if l == error_line {
-                    println!("{}", output_line.bold());
-                } else {
-                    println!("{output_line}");
-                }
-            }
-
-            bail!("end of deserializing error output")
-        }
-    };
-
-    ensure_and_remove(&host_config, opts)
-}
-
-fn load_precompiled_file(path: &Utf8PathBuf) -> anyhow::Result<String> {
-    ensure!(path.exists(), "Cannot find JSON file at {}", path);
-
-    Ok(fs::read_to_string(path)?)
-}
-
-fn load_image(path: &Utf8PathBuf) -> anyhow::Result<String> {
-    ensure!(path.exists(), "Cannot find image file at {}", path);
-    let mut client = janet_helpers::janet_client();
-    client.add_c_fn(CFunOptions::new(c"encode-to-json", janet_helpers::encode_c));
-
-    let janet_instructions = format!(
-        "(merge-module (curenv) (load-image (slurp \"{path}\")) \"\" true)
-                        (encode-to-json (machine-config))"
-    );
-
-    let janet_result = client.run(janet_instructions)?;
-    Ok(janet_result.unwrap().to_string())
-}
-
-// We tell the server what we think it's called so it can build file resources we can find. This
-// lets use use a raw IP address, DNS name, whatever.
-fn fetch_precompiled_file(server: &str, hostname: &str) -> anyhow::Result<String> {
-    let url = format!("http://{server}:{SERVER_PORT}/config/{hostname}?server_name={server}");
-    tracing::info!("fetching config from {url}");
-    let response = http::remove_file_to_memory(&url)?;
-    let string_response = String::from_utf8(response)?;
-    Ok(string_response)
 }
 
 fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {

@@ -6,7 +6,7 @@ members = [
   "commands",
   "common",
   "doers",
-  "janet_int",
+  "embed",
   "macros",
   "server",
   "tester",

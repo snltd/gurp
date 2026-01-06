@@ -442,6 +442,9 @@
   to that directory, and returns the fully qualified path, but if it gets
   a fully qualified path, it simply returns it"
   [file-name]
+  (if (nil? (dyn :gurp-config-root))
+    (error (string "cannot qualify path for " file-name ": gurp-config-root is not set")))
+
   (if (string/has-prefix? "/" file-name)
     file-name
     (pathcat (dyn :gurp-config-root) "files" file-name)))
@@ -802,6 +805,8 @@
 (defn zfscat
   "Joins tokens to make a ZFS dataset name"
   [& chunks]
+  (if (nil? chunks)
+    (error "zfscat called with a nil"))
   (->
     (map |(string/trim $ "/") (tuple ;chunks))
     (string/join "/")

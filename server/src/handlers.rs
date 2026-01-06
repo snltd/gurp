@@ -3,7 +3,7 @@ use axum::extract::{Extension, Path, Query};
 use axum::http::{Response, StatusCode};
 use axum::response::IntoResponse;
 use common::types::{ApplyOpts, ServerOpts};
-use janet_int::helpers;
+use embed::helpers;
 use mime_guess::from_path;
 use std::sync::Arc;
 use tokio::fs::File;
