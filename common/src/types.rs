@@ -19,6 +19,7 @@ pub struct ApplyOpts {
     pub precompiled: bool,
     pub image: bool,
     pub server: Option<String>,      // client mode only
+    pub as_json: bool,               // client mode only
     pub hostname: Option<String>,    // currently client mode only
     pub server_name: Option<String>, // server mode only
     pub client_name: Option<String>, // server mode only

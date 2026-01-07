@@ -6,9 +6,30 @@ use janetrs::env::CFunOptions;
 use std::fs;
 
 pub fn run(host_file: &Utf8PathBuf, c_opts: &CompileOpts, opts: &ApplyOpts) -> ExitCode {
-    if let Ok(mut config) = reader::assembled_config(host_file, opts) {
+    if c_opts.format == "jimage" {
+        if let Some(path) = &c_opts.output_file {
+            match helpers::compile_to_image(host_file, opts) {
+                Ok(image_data) => match fs::write(path, image_data) {
+                    Ok(_) => {
+                        tracing::info!("wrote image file to '{path}'");
+                        0
+                    }
+                    Err(e) => {
+                        tracing::error!("error writing image file: {e}");
+                        4
+                    }
+                },
+                Err(e) => {
+                    tracing::error!("error compiling image file: {e}");
+                    3
+                }
+            }
+        } else {
+            tracing::error!("writing an image requires an output path");
+            2
+        }
+    } else if let Ok(mut config) = reader::assembled_config(host_file, opts) {
         let mut client = helpers::janet_client();
-
         match c_opts.format.as_str() {
             "janet" => {
                 if opts.colour {
@@ -24,37 +45,11 @@ pub fn run(host_file: &Utf8PathBuf, c_opts: &CompileOpts, opts: &ApplyOpts) -> E
                 tracing::debug!("injecting json print");
                 config.push_str("\n(print (encode-to-json (machine-config)))");
             }
-            "jimage" => {
-                if let Some(path) = &c_opts.output_file {
-                    // client.add_c_fn(CFunOptions::new(c"encode-to-jimage", helpers::encode_c));
-                    // tracing::debug!("injecting jimage");
-                    fs::write("/tmp/x.janet", &config)
-                        .expect("Should be able to write to `/foo/tmp`");
-
-                    // let builder_config = indoc::formatdoc! { "
-                    // (-string ``````
-                    // {config}
-                    // ``````)
-                    // (spit \"{path}\" (make-image (curenv)))
-                    // "
-                    // };
-
-                    config = format!(
-                        "(merge-module (curenv) (dofile \"/tmp/x.janet\") \"\" true)\n
-                        (spit \"{path}\" (make-image (curenv)))"
-                    );
-                } else {
-                    tracing::error!("writing an image requires an output path");
-                    return 2;
-                }
-            }
             _ => {
                 tracing::error!("format must be 'janet', 'jimage', or 'json'");
                 return 1;
             }
         }
-
-        println!("{config}");
 
         match client.run(config) {
             Ok(_) => 0,

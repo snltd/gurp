@@ -58,7 +58,7 @@ impl GurpFileEnsure {
         // store ETags or whatever. (And I can't be sure the thing serving will serve them.)
         // Therefore, we're going to have to pull the file every time. Read it into memory and pop
         // it in the RefCell.
-        let content = http::remove_file_to_memory(url)?;
+        let content = http::remote_file_to_memory(url)?;
 
         if let Some(checksum) = self.desired_state.with_checksum.as_ref() {
             let remote_checksum = sha256::digest(&content);
@@ -248,9 +248,11 @@ impl GurpFileEnsure {
             None
         };
 
-        if opts.dump_diffs && let Some(new_content) = new_content {
+        if opts.dump_diffs
+            && let Some(new_content) = new_content
+        {
             let existing_content = fs::read_to_string(&self.path).unwrap_or_default();
-            
+
             println!(
                 "{}",
                 &helpers::dump_diff(

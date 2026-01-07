@@ -18,13 +18,16 @@ enum Commands {
         /// Get config from a Gurp server
         #[arg(short = 's', long = "server")]
         server: Option<String>,
+        /// When getting server configuration, request it in JSON format, compiled on the server
+        #[arg(short = 'J', long = "as-json", requires = "server")]
+        as_json: bool,
         /// Hostname to use when fetching config from server
         #[arg(short = 'H', long = "hostname", requires = "server")]
         hostname: Option<String>,
         /// Use a pre-compiled JSON config
         #[arg(short = 'p', long = "precompiled", conflicts_with = "server")]
         precompiled: bool,
-        /// Use a pre-compiled Janet jimage as config
+        /// Use a local pre-compiled Janet jimage as config
         #[arg(short = 'i', long = "image", conflicts_with = "server")]
         image: bool,
         /// Specify a gurp Janet library, in preference to the built-in
@@ -63,6 +66,9 @@ enum Commands {
         /// When displaying compiled config, number lines
         #[arg(short = 'N', long)]
         line_no: bool,
+        /// Dump intermediate config files to stdout
+        #[arg(short = 'd', long, alias = "dump-configs")]
+        dump_config: bool,
         /// Output in the given format: 'janet', 'jimage', or 'json'
         #[arg(short, long, required = true, default_value = "json")]
         format: String,
@@ -126,6 +132,7 @@ fn main() -> anyhow::Result<()> {
             hostname,
             destroy_everything_you_touch,
             image,
+            as_json,
         } => {
             let opts = ApplyOpts {
                 noop,
@@ -143,6 +150,7 @@ fn main() -> anyhow::Result<()> {
                 client_name: None,
                 destroy: destroy_everything_you_touch,
                 image,
+                as_json,
             };
             commands::apply::run(host_config_file.as_ref(), &opts)
         }
@@ -152,12 +160,14 @@ fn main() -> anyhow::Result<()> {
             host_config_file,
             format,
             output_file,
+            dump_config,
         } => {
             // Compile is the first part of run's code path, so we'll fake the apply options
             let apply_opts = ApplyOpts {
                 line_no,
                 gurp_lib_path,
                 compile_only: true,
+                dump_config,
                 ..Default::default()
             };
 
