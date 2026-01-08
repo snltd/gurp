@@ -5,7 +5,7 @@ use std::io::IsTerminal;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
-#[clap(version, about = "gurp configures illumos systems", long_about = None)]
+#[clap(version, about = "Gurp configures illumos systems", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
