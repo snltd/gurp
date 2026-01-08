@@ -24,9 +24,13 @@ pub struct GurpZoneConfig {
     pub exec_in: Option<Vec<String>>,
     pub final_state: Option<String>,
     pub fs: Option<GurpZoneFilesystems>,
+    pub hostid: Option<String>,
+    pub ip_type: Option<String>,
+    pub limitpriv: Option<Vec<String>>,
     #[serde(rename = "lx-image")]
     pub image: Option<String>,
     pub net: GurpZoneNetworks,
+    pub pool: Option<String>,
     pub rctl: Option<GurpZoneRctls>,
     pub recreate: u8,
     pub zonepath: Utf8PathBuf,
@@ -143,6 +147,22 @@ impl GurpZoneConfig {
         ret.push_str(&format!("set brand={}\n", &self.brand));
         ret.push_str(&format!("set zonepath={}\n", &self.zonepath));
         ret.push_str(&format!("set autoboot={}\n", &self.autoboot));
+
+        if let Some(ip_type) = &self.ip_type {
+            ret.push_str(&format!("set ip-type={ip_type}\n"));
+        }
+
+        if let Some(pool) = &self.pool {
+            ret.push_str(&format!("set pool={pool}\n"));
+        }
+
+        if let Some(hostid) = &self.hostid {
+            ret.push_str(&format!("set hostid={hostid}\n"));
+        }
+
+        if let Some(limitpriv) = &self.limitpriv {
+            ret.push_str(&format!("set limitpriv={}\n", limitpriv.join(",")));
+        }
 
         for network_conf in &self.net {
             ret.push_str(&self.zone_net(network_conf));

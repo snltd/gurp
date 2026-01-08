@@ -9,6 +9,7 @@
 - Add `ipnat` doer.
 - Add `resources` command, which dumps a list of doers to stdout.
 - Add `--destroy-everything-you-touch` to `apply` command.
+- Add `limitpriv`, `hostid`, `ip-type`, `pool` to `zone` doer.
 
 ## v 1.4.0 (2025-11-22)
 
