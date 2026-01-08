@@ -1,6 +1,6 @@
 FROM leafgarland/janet-sdk
-RUN mkdir /janet_src
-COPY . /janet_src
+RUN mkdir /janet
+COPY . /janet
 RUN jpm install judge
 USER nobody
-ENTRYPOINT ["judge", "/janet_src"]
+ENTRYPOINT ["judge", "/janet"]
