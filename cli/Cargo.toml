@@ -18,9 +18,3 @@ assert_cmd = "2.0.17"
 predicates = "3.1.3"
 pretty_assertions = "1.4.1"
 tester = { path = "../tester" }
-
-[build-dependencies]
-blake3 = "1.8.2"
-camino = "1.1.9" 
-indoc = "2.0.7"
-janetrs = "0.8"

@@ -778,6 +778,7 @@ name = "embed"
 version = "1.4.0"
 dependencies = [
  "anyhow",
+ "blake3",
  "camino",
  "common",
  "indoc",
@@ -1058,13 +1059,10 @@ version = "1.4.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
- "blake3",
  "camino",
  "clap",
  "commands",
  "common",
- "indoc",
- "janetrs",
  "predicates",
  "pretty_assertions",
  "server",
