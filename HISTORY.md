@@ -1,3 +1,9 @@
+- Option to compile config into a Janet image, and to apply config from a Janet
+  image. This means in client/server mode, the configuration is pulled from the
+  server, but evaluated on the client, so you can write and trust code which
+  behaves differently on client and server. The old JSON transfer still exists.
+- Default to jimage in client/server mode. (Breaking change.)
+- Add `--as-json` option to client mode to get old behaviour.
 - Add `network-flow` doer, a wrapper around `flowadm(8)`.
 - Add `vlan` doer.
 - Add `ipnat` doer.
