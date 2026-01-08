@@ -44,7 +44,7 @@
     :name "Fully qualified path to directory"
     :optional
     {:group ["The group name or GID of the for this directory" :string :number]
-     :modee["Permissions, written as a four-digit octal" :string]
+     :mode ["Permissions, written as a four-digit octal" :string]
      :owner ["The username or UID of the user who owns this directory" :string :number]}}
 
    :etherstub

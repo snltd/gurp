@@ -24,7 +24,7 @@
 
   (test
     (help-for "directory")
-    "\e[1m\e[4mdirectory\e[0m\e[0m\nCreate and remove directories. Parents are created like mkdir -p, but with                 the owner/group/mode of the gurp process. Removal always removes directory                 contents.\n\n\e[1m\e[4m(directory/ensure)\e[0m\e[0m\nname: Fully qualified path to directory\nNo mandatory keys\n\e[1moptional keys\e[0m\n  group   string|number   The group name or GID of the for this directory. Default 'root'\n  mode    string          Permissions written as a four-digit octal. Default '0755'\n  owner   string|number   The username or UID of the user who owns this directory. Default 'root'"))
+    "\e[1m\e[4mdirectory\e[0m\e[0m\nCreate and remove directories. Parents are created like mkdir -p, but with                 the owner/group/mode of the gurp process. Removal always removes directory                 contents.\n\n\e[1m\e[4m(directory/ensure)\e[0m\e[0m\nname: Fully qualified path to directory\nNo mandatory keys\n\e[1moptional keys\e[0m\n  group   string|number   The group name or GID of the for this directory. Default 'root'\n  mode    string          Permissions, written as a four-digit octal. Default '0755'\n  owner   string|number   The username or UID of the user who owns this directory. Default 'root'"))
 
 (deftest test-help-missing
   (test (help-for "missing") "No help for 'missing'"))
