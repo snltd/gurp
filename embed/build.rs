@@ -56,5 +56,5 @@ fn main() {
         fs::write(&jimage_path, &image_bytes).expect("Failed to write jimage file");
     }
 
-    // println!("cargo:rerun-if-changed=janet/lib/gurp.jimage");
+    println!("cargo:rerun-if-changed=janet/lib/gurp.jimage");
 }
