@@ -5,13 +5,13 @@ use std::fs::{self};
 // Downloads a file to disk
 pub fn remote_file_to_disk(url: &str, path: &Utf8PathBuf) -> anyhow::Result<()> {
     tracing::info!("download {url} -> {path}");
-    let response = remove_file_to_memory(url)?;
+    let response = remote_file_to_memory(url)?;
     fs::write(path, response)?;
     Ok(())
 }
 
 // Downloads a file to memory
-pub fn remove_file_to_memory(url: &str) -> anyhow::Result<Vec<u8>> {
+pub fn remote_file_to_memory(url: &str) -> anyhow::Result<Vec<u8>> {
     tracing::debug!("requesting {url}");
 
     let mut response = match ureq::get(url).call() {

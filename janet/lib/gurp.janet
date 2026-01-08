@@ -1,4 +1,5 @@
 # We only need this import for testing. Gurp bundles the defaults file.
+# 
 (if-not (get (curenv) (symbol :default-protos))
   (use ./defaults))
 
@@ -43,7 +44,7 @@
     :name "Fully qualified path to directory"
     :optional
     {:group ["The group name or GID of the for this directory" :string :number]
-     :mode ["Permissions written as a four-digit octal" :string]
+     :mode ["Permissions, written as a four-digit octal" :string]
      :owner ["The username or UID of the user who owns this directory" :string :number]}}
 
    :etherstub
@@ -446,6 +447,9 @@
   to that directory, and returns the fully qualified path, but if it gets
   a fully qualified path, it simply returns it"
   [file-name]
+  (if (nil? (dyn :gurp-config-root))
+    (error (string "cannot qualify path for " file-name ": gurp-config-root is not set")))
+
   (if (string/has-prefix? "/" file-name)
     file-name
     (pathcat (dyn :gurp-config-root) "files" file-name)))
@@ -806,6 +810,8 @@
 (defn zfscat
   "Joins tokens to make a ZFS dataset name"
   [& chunks]
+  (if (nil? chunks)
+    (error "zfscat called with a nil"))
   (->
     (map |(string/trim $ "/") (tuple ;chunks))
     (string/join "/")

@@ -1,11 +1,11 @@
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
-use common::types::{ApplyOpts, ServerOpts};
+use common::types::{ApplyOpts, CompileOpts, ServerOpts};
 use std::io::IsTerminal;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
-#[clap(version, about = "gurp configures illumos systems", long_about = None)]
+#[clap(version, about = "Gurp configures illumos systems", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -18,12 +18,18 @@ enum Commands {
         /// Get config from a Gurp server
         #[arg(short = 's', long = "server")]
         server: Option<String>,
+        /// When getting server configuration, request it in JSON format, compiled on the server
+        #[arg(short = 'J', long = "as-json", requires = "server")]
+        as_json: bool,
         /// Hostname to use when fetching config from server
         #[arg(short = 'H', long = "hostname", requires = "server")]
         hostname: Option<String>,
-        /// Use a pre-compiled config, either Janet or JSON
+        /// Use a pre-compiled JSON config
         #[arg(short = 'p', long = "precompiled", conflicts_with = "server")]
         precompiled: bool,
+        /// Use a local pre-compiled Janet jimage as config
+        #[arg(short = 'i', long = "image", conflicts_with = "server")]
+        image: bool,
         /// Specify a gurp Janet library, in preference to the built-in
         #[arg(short = 'L', long = "gurp-lib", conflicts_with = "server")]
         gurp_lib_path: Option<Utf8PathBuf>,
@@ -60,9 +66,15 @@ enum Commands {
         /// When displaying compiled config, number lines
         #[arg(short = 'N', long)]
         line_no: bool,
-        /// Output in the given format: 'janet' or 'json'
-        #[arg(short, long, required = true)]
-        format: Option<String>,
+        /// Dump intermediate config files to stdout
+        #[arg(short = 'd', long, alias = "dump-configs")]
+        dump_config: bool,
+        /// Output in the given format: 'janet', 'jimage', or 'json'
+        #[arg(short, long, required = true, default_value = "json")]
+        format: String,
+        /// Output file for compiled config (required for jimage, optional for others)
+        #[arg(short = 'o', long = "output")]
+        output_file: Option<Utf8PathBuf>,
         /// Host configuration file
         #[arg(required = true)]
         host_config_file: Utf8PathBuf,
@@ -119,6 +131,8 @@ fn main() -> anyhow::Result<()> {
             server,
             hostname,
             destroy_everything_you_touch,
+            image,
+            as_json,
         } => {
             let opts = ApplyOpts {
                 noop,
@@ -135,6 +149,8 @@ fn main() -> anyhow::Result<()> {
                 server_name: None,
                 client_name: None,
                 destroy: destroy_everything_you_touch,
+                image,
+                as_json,
             };
             commands::apply::run(host_config_file.as_ref(), &opts)
         }
@@ -143,15 +159,24 @@ fn main() -> anyhow::Result<()> {
             line_no,
             host_config_file,
             format,
+            output_file,
+            dump_config,
         } => {
             // Compile is the first part of run's code path, so we'll fake the apply options
-            let opts = ApplyOpts {
+            let apply_opts = ApplyOpts {
                 line_no,
                 gurp_lib_path,
                 compile_only: true,
+                dump_config,
                 ..Default::default()
             };
-            commands::compile::run(&host_config_file, format.as_deref(), &opts)
+
+            let compile_opts = CompileOpts {
+                format,
+                output_file,
+            };
+
+            commands::compile::run(&host_config_file, &compile_opts, &apply_opts)
         }
         Commands::Describe { resource } => commands::describe::run(&resource),
         Commands::Doers {} => commands::doers::run(),

@@ -1,12 +1,12 @@
 use common::types::ExitCode;
-use janet_int::helpers as janet_helpers;
+use embed::helpers as janet_helpers;
 
 pub fn run() -> ExitCode {
     let client = janet_helpers::janet_client();
 
-    let mut janet = janet_int::constants::GURP_DEFAULTS.to_owned();
+    let mut janet = embed::constants::GURP_DEFAULTS.to_owned();
     janet.push('\n');
-    janet.push_str(janet_int::constants::GURP_LIB);
+    janet.push_str(embed::constants::GURP_LIB);
     janet.push_str("(print (list-doers))");
 
     match client.run(janet) {

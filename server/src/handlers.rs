@@ -1,9 +1,10 @@
+use axum::Json;
 use axum::body::Body;
 use axum::extract::{Extension, Path, Query};
 use axum::http::{Response, StatusCode};
 use axum::response::IntoResponse;
 use common::types::{ApplyOpts, ServerOpts};
-use janet_int::helpers;
+use embed::helpers;
 use mime_guess::from_path;
 use std::sync::Arc;
 use tokio::fs::File;
@@ -12,6 +13,7 @@ use tokio_util::io::ReaderStream;
 #[derive(serde::Deserialize)]
 pub struct ConfigQuery {
     server_name: String,
+    format: String,
 }
 
 pub async fn status() -> &'static str {
@@ -36,18 +38,49 @@ pub async fn config(
             ..Default::default()
         };
 
-        match helpers::compile_config(&host_file, &opts) {
-            Ok(body) => {
-                let ret = (StatusCode::OK, body).into_response();
-                tracing::info!("sent config: {host_file}");
-                ret
-            }
-            Err(e) => {
-                tracing::error!(
-                    remote_host = remote_host_name.to_string(),
-                    message = e.to_string()
-                );
-                (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {e}")).into_response()
+        tracing::info!(
+            "received request for {} as {}",
+            remote_host_name,
+            params.format
+        );
+
+        match params.format.as_str() {
+            "jimage" => match helpers::compile_to_image(&host_file, &opts) {
+                Ok(body) => {
+                    // jimage is a vec<u8> so it's automatically application/octet-stream
+                    let ret = (StatusCode::OK, body).into_response();
+                    tracing::info!("sent image config from {host_file}");
+                    ret
+                }
+                Err(e) => {
+                    tracing::error!(
+                        remote_host = remote_host_name.to_string(),
+                        message = e.to_string()
+                    );
+                    (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {e}")).into_response()
+                }
+            },
+            "json" => match helpers::compile_to_json(&host_file, &opts) {
+                Ok(body) => {
+                    let ret = (StatusCode::OK, Json(body)).into_response();
+                    tracing::info!("sent JSON config from {host_file}");
+                    ret
+                }
+                Err(e) => {
+                    tracing::error!(
+                        remote_host = remote_host_name.to_string(),
+                        message = e.to_string()
+                    );
+                    (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {e}")).into_response()
+                }
+            },
+            other => {
+                tracing::error!("unsupported format: {other}");
+                (
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    format!("unsupported format: {other}"),
+                )
+                    .into_response()
             }
         }
     } else {

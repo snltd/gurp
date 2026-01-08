@@ -1,16 +1,55 @@
+use crate::constants::GURP_LIB_IMAGE;
 use crate::helpers as janet_helpers;
 use crate::reader;
-use anyhow::bail;
+use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
+use common::helpers;
 use common::types::ApplyOpts;
 use janetrs::client::JanetClient;
 use janetrs::env::CFunOptions;
-use janetrs::{Janet, TaggedJanet};
+use janetrs::{Janet, JanetString, TaggedJanet};
 use serde_json::{Map, Value};
 
 pub fn janet_client() -> JanetClient {
     tracing::debug!("Initialising janet client");
     JanetClient::init_with_default_env().expect("Failed to create Janet client")
+}
+
+// Compile a jimage of the Gurp library, which must already be an image, and the user config
+pub fn compile_to_image(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<Vec<u8>> {
+    let mut client = janet_helpers::janet_client();
+    client.add_c_fn(CFunOptions::new(c"safe-library", safe_library_c));
+
+    let host_config_dir = host_file.parent().context("cannot get host config dir")?;
+
+    let mut janet_instructions = String::new();
+
+    janet_instructions.push_str(
+        "(merge-module (fiber/getenv (fiber/root)) (load-image (safe-library)) \"\" true)\n",
+    );
+
+    janet_instructions.push_str("(def build-env (make-env (fiber/getenv (fiber/root))))\n");
+    janet_instructions.push_str(&format!(
+        "(set (build-env *syspath*) \"{host_config_dir}\")\n"
+    ));
+    janet_instructions.push_str(&format!(
+        "(merge-module build-env (dofile \"{host_file}\" :env build-env) \"\" true)\n"
+    ));
+    janet_instructions.push_str("(make-image build-env)\n");
+
+    if opts.dump_config {
+        println!(
+            "{}",
+            helpers::dump_config(&janet_instructions, "Janet to compile image", opts)
+        );
+    }
+
+    let result = client.run(janet_instructions)?;
+
+    match result.unwrap() {
+        TaggedJanet::Buffer(buf) => Ok(buf.as_bytes().to_vec()),
+        _ => bail!("did not get image buffer"),
+    }
 }
 
 pub fn janet_to_json(j: &Janet) -> Value {
@@ -71,7 +110,14 @@ pub fn encode(config: &mut [Janet]) -> Janet {
     Janet::wrap(json_string.as_str())
 }
 
-pub fn compile_config(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<String> {
+// Janet strings/buffers are binary-safe, so we can dump an image into one
+#[janetrs::janet_fn()]
+fn safe_library(_arg: &mut [Janet]) -> Janet {
+    let lib_as_string = JanetString::new(GURP_LIB_IMAGE);
+    Janet::string(lib_as_string)
+}
+
+pub fn compile_to_json(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<String> {
     let host_config = match reader::assembled_config(host_file, opts) {
         Ok(config) => config,
         Err(e) => bail!("reader error: {}", e),
