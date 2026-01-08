@@ -18,5 +18,7 @@ jobs:
           rust-version: ${{ matrix.rust }}
       - name: Checkout Code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Audit Rust deps
+        run: cargo audit 
       - name: Run Rust Tests
         run: cargo test -- --include-ignored
