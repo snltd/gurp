@@ -43,7 +43,7 @@ There are options:
   run.
 
 - `-L, --gurp-lib <GURP_LIB_PATH>` Gurp has a built-in
-  [Janet library](../janet_src/lib/gurp.janet) which provides front-end
+  [Janet library](../janet/lib/gurp.janet) which provides front-end
   functionality. With this option you can provide a path to your own library,
   which is useful for developing new features.
 
