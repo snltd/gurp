@@ -5,7 +5,7 @@ use embed::compiler;
 use std::collections::BTreeSet;
 
 pub fn apply(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    let json = compiler::extract_json(host_file, opts)?;
+    let json = compiler::compile_to_json(host_file, opts)?;
 
     tracing::debug!(
         "Unpacking {} bytes of JSON config into HostConfig",

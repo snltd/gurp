@@ -34,7 +34,7 @@ mod test {
         }
     }
 
-    // #[test]
+    #[test]
     #[ignore]
     fn test_compile_no_args() {
         cargo_bin_cmd!("gurp")
@@ -46,7 +46,7 @@ mod test {
             ));
     }
 
-    // #[test]
+    #[test]
     #[ignore]
     fn test_compile_no_format() {
         cargo_bin_cmd!("gurp")

@@ -5,7 +5,7 @@ use std::fs;
 
 pub fn run(host_file: &Utf8PathBuf, c_opts: &CompileOpts, opts: &ApplyOpts) -> ExitCode {
     match c_opts.format.as_str() {
-        "json" => match compiler::local_janet_to_jason(host_file, opts) {
+        "json" => match compiler::local_janet_to_json(host_file, opts) {
             Ok(json) => {
                 if let Some(out_file) = &c_opts.output_file {
                     match fs::write(out_file, json) {

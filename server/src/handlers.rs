@@ -60,7 +60,7 @@ pub async fn config(
                     (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {e}")).into_response()
                 }
             },
-            "json" => match compiler::local_janet_to_jason(&host_file, &opts) {
+            "json" => match compiler::local_janet_to_json(&host_file, &opts) {
                 Ok(body) => {
                     let ret = (StatusCode::OK, Json(body)).into_response();
                     tracing::info!("sent JSON config from {host_file}");
