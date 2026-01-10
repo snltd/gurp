@@ -1,57 +1,34 @@
 use crate::constants::GURP_LIB_IMAGE;
 use crate::helpers as janet_helpers;
-use crate::reader;
-use anyhow::{Context, bail};
-use camino::Utf8PathBuf;
-use common::helpers;
-use common::types::ApplyOpts;
+use anyhow::bail;
 use janetrs::client::JanetClient;
 use janetrs::env::CFunOptions;
 use janetrs::{Janet, JanetString, TaggedJanet};
 use serde_json::{Map, Value};
 
+/// Returns a standard Janet client, with no Gurp library.
 pub fn janet_client() -> JanetClient {
     tracing::debug!("Initialising janet client");
     JanetClient::init_with_default_env().expect("Failed to create Janet client")
 }
 
-// Compile a jimage of the Gurp library, which must already be an image, and the user config
-pub fn compile_to_image(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<Vec<u8>> {
-    let mut client = janet_helpers::janet_client();
-    client.add_c_fn(CFunOptions::new(c"safe-library", safe_library_c));
+/// Returns a Janet client with the Gurp library in the root environemnt. Also includes
+/// (to-json) which turns any suitable Janet object into Json.
+pub fn gurp_client() -> anyhow::Result<JanetClient> {
+    let mut client = janet_client();
+    client.add_c_fn(CFunOptions::new(c"gurp-library", gurp_library_c));
+    client.add_c_fn(CFunOptions::new(c"to-json", janet_helpers::to_json_c));
 
-    let host_config_dir = host_file.parent().context("cannot get host config dir")?;
+    let janet_instructions =
+        r#"(merge-module (fiber/getenv (fiber/root)) (load-image (gurp-library)) "" true)"#;
 
-    let mut janet_instructions = String::new();
+    tracing::debug!("creating Janet client with Gurp environment");
+    client.run(janet_instructions)?;
 
-    janet_instructions.push_str(
-        "(merge-module (fiber/getenv (fiber/root)) (load-image (safe-library)) \"\" true)\n",
-    );
-
-    janet_instructions.push_str("(def build-env (make-env (fiber/getenv (fiber/root))))\n");
-    janet_instructions.push_str(&format!(
-        "(set (build-env *syspath*) \"{host_config_dir}\")\n"
-    ));
-    janet_instructions.push_str(&format!(
-        "(merge-module build-env (dofile \"{host_file}\" :env build-env) \"\" true)\n"
-    ));
-    janet_instructions.push_str("(make-image build-env)\n");
-
-    if opts.dump_config {
-        println!(
-            "{}",
-            helpers::dump_config(&janet_instructions, "Janet to compile image", opts)
-        );
-    }
-
-    let result = client.run(janet_instructions)?;
-
-    match result.unwrap() {
-        TaggedJanet::Buffer(buf) => Ok(buf.as_bytes().to_vec()),
-        _ => bail!("did not get image buffer"),
-    }
+    Ok(client)
 }
 
+/// Converts Janet objects into JSON
 pub fn janet_to_json(j: &Janet) -> Value {
     // I'm going to leave the :s at the beginning of the key names for now, because it will
     // make it clear we're talking about user data.
@@ -105,31 +82,22 @@ pub fn janet_to_json(j: &Janet) -> Value {
 }
 
 #[janetrs::janet_fn(arity(fix(1)))]
-pub fn encode(config: &mut [Janet]) -> Janet {
-    let json_string = crate::helpers::janet_to_json(&config[0]).to_string();
+pub fn to_json(config: &mut [Janet]) -> Janet {
+    let json_string = janet_to_json(&config[0]).to_string();
     Janet::wrap(json_string.as_str())
 }
 
 // Janet strings/buffers are binary-safe, so we can dump an image into one
 #[janetrs::janet_fn()]
-fn safe_library(_arg: &mut [Janet]) -> Janet {
+fn gurp_library(_arg: &mut [Janet]) -> Janet {
     let lib_as_string = JanetString::new(GURP_LIB_IMAGE);
     Janet::string(lib_as_string)
 }
 
-pub fn compile_to_json(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<String> {
-    let host_config = match reader::assembled_config(host_file, opts) {
-        Ok(config) => config,
-        Err(e) => bail!("reader error: {}", e),
-    };
-
-    run_config(&host_config)
-}
-
 pub fn run_config(host_config: &str) -> anyhow::Result<String> {
     let mut client = janet_helpers::janet_client();
-    client.add_c_fn(CFunOptions::new(c"encode", janet_helpers::encode_c));
-    let json_wrapped_host_config = format!("{host_config}\n(encode (machine-config))");
+    client.add_c_fn(CFunOptions::new(c"to_json", janet_helpers::to_json_c));
+    let json_wrapped_host_config = format!("{host_config}\n(to-json (machine-config))");
     let json_config = client.run(json_wrapped_host_config)?;
 
     let json = match json_config.unwrap() {
@@ -143,8 +111,31 @@ pub fn run_config(host_config: &str) -> anyhow::Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    // use crate::tester::fixture;
     use janetrs::{Janet, JanetTable, array};
     use serde_json::json;
+
+    #[test]
+    fn test_janet_client() {
+        let client = janet_client();
+        assert_eq!(3, janet_to_json(&client.run("(+ 1 2)").unwrap()));
+    }
+
+    #[test]
+    fn test_gurp_client() {
+        let client = gurp_client().unwrap();
+        assert_eq!(3, janet_to_json(&client.run("(+ 1 2)").unwrap()));
+
+        assert_eq!(
+            "/path/to/file",
+            janet_to_json(&client.run(r#"(pathcat "path" "to" "file")"#).unwrap())
+        );
+
+        assert_eq!(
+            r#"{"a":123}"#,
+            janet_to_json(&client.run(r#"(to-json {:a 123})"#).unwrap())
+        );
+    }
 
     #[test]
     fn test_janet_to_json_string() {
