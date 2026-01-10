@@ -5,7 +5,7 @@ use colored::Colorize;
 use common::constants::SERVER_PORT;
 use common::helpers;
 use common::prelude::*;
-use janetrs::env::{CFunOptions, DefOptions};
+use janetrs::env::DefOptions;
 use janetrs::{Janet, JanetString, TaggedJanet};
 use serde_json::Error;
 use std::fs;
@@ -22,7 +22,10 @@ use util::http;
 //
 // In cases 3 and 5 it's the responsibility of this code to fetch the file before applying it.
 //
-pub fn extract_json(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow::Result<String> {
+pub fn compile_to_json(
+    host_file: Option<&Utf8PathBuf>,
+    opts: &ApplyOpts,
+) -> anyhow::Result<String> {
     let ret = if opts.image {
         tracing::debug!("applying precompiled jimage config");
         // case 4
@@ -46,7 +49,7 @@ pub fn extract_json(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> anyhow
     } else if let Some(host_file) = host_file {
         tracing::debug!("compiling and applying local Janet config");
         // case 1
-        local_janet_to_jason(host_file, opts)?
+        local_janet_to_json(host_file, opts)?
     } else {
         bail!("No configuration file specified")
     };
@@ -124,7 +127,7 @@ fn remote_json_to_json(server: &str, opts: &ApplyOpts) -> anyhow::Result<JsonCon
 }
 
 // Get a JSON string by compiling a local Janet file (and its dependencies)
-pub fn local_janet_to_jason(
+pub fn local_janet_to_json(
     host_file: &Utf8PathBuf,
     opts: &ApplyOpts,
 ) -> anyhow::Result<JsonConfig> {
@@ -137,10 +140,13 @@ pub fn local_janet_to_jason(
     let config_dir = host_file
         .parent()
         .context("cannot get parent of config file")?;
+
     let client = janet_helpers::gurp_client()?;
+
     let mut janet_instructions = String::new();
 
     janet_instructions.push_str(&format!("(setdyn *syspath* \"{config_dir}\")\n"));
+    janet_instructions.push_str(&format!("(setdyn :gurp-config-dir \"{config_dir}\")\n"));
 
     if opts.destroy {
         janet_instructions.push_str("(setdyn :destroy-everything-you-touch true)\n");
@@ -238,6 +244,9 @@ pub fn local_janet_to_jimage(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyho
         "(set (build-env *syspath*) \"{host_config_dir}\")\n"
     ));
     janet_instructions.push_str(&format!(
+        "(set (build-env :gurp-config-dir) \"{host_config_dir}\")\n"
+    ));
+    janet_instructions.push_str(&format!(
         "(merge-module build-env (dofile \"{host_file}\" :env build-env) \"\" true)\n"
     ));
     janet_instructions.push_str("(make-image build-env)\n");
@@ -267,14 +276,14 @@ mod test {
         let image =
             local_janet_to_jimage(&fixture("basic_config.janet"), &ApplyOpts::default()).unwrap();
 
-        assert_eq!(20486, image.len());
+        assert_eq!(20505, image.len());
     }
 
     #[test]
     fn test_local_janet_to_json() {
         assert_eq!(
             r#"{"metadata":{"name":"test"},"resources":{"ensure":{"file":[{"_id":"/basenode/file/_tmp_tester","content":"blah","group":"root","mode":"0644","name":"/tmp/tester","owner":"root","role":"basenode"}]},"remove":{}}}"#,
-            local_janet_to_jason(&fixture("basic_config.janet"), &ApplyOpts::default()).unwrap()
+            local_janet_to_json(&fixture("basic_config.janet"), &ApplyOpts::default()).unwrap()
         );
     }
 
