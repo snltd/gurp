@@ -1,11 +1,27 @@
 (use judge)
 (use ../lib/gurp)
 
+(deftest qualified-path?
+  (test (qualified-path? "/this/is/qualified") true)
+  (test (qualified-path? "and/this/is/not") false))
+
+(deftest qualify-from-path-without-dyn
+  (test (qualify-from-path "/this/is/qualified") "/this/is/qualified")
+  (test-error
+    (qualify-from-path "and/this/is/not")
+    "cannot qualify path for and/this/is/not: gurp-config-root is not set"))
+
+(deftest qualify-from-path-with-dyn
+  (setdyn :gurp-config-root "/test/root")
+  (test (qualify-from-path "/this/is/qualified") "/this/is/qualified")
+  (test
+    (qualify-from-path "some/path")
+    "/test/root/files/some/path"))
+
 (deftest labelise
   (test (labelise "/some/file" 1 2 3) "_some_file-1-2-3")
   (test (labelise :key1 :key2 :key3) "key1-key2-key3")
   (test (labelise "string" 123 :keyword) "string-123-keyword"))
-
 
 (deftest this
   (setdyn :role-dyn (string (quote basenode)))
