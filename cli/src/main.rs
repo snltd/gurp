@@ -63,11 +63,11 @@ enum Commands {
         /// Dump intermediate config files to stdout
         #[arg(short = 'd', long, alias = "dump-configs")]
         dump_config: bool,
-        /// Output in the given format: 'janet', 'jimage', or 'json'
+        /// Output in the given format: 'jimage' or 'json'
         #[arg(short, long, required = true, default_value = "json")]
         format: String,
         /// Output file for compiled config (required for jimage, optional for others)
-        #[arg(short = 'o', long = "output")]
+        #[arg(short = 'o', long = "output-file")]
         output_file: Option<Utf8PathBuf>,
         /// Host configuration file
         #[arg(required = true)]

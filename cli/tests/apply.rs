@@ -25,7 +25,7 @@ mod test {
             .assert()
             .failure()
             .stdout(predicate::str::ends_with(
-                "No such file or directory (os error 2)\n",
+                "Cannot find host config file at /no/such/file.janet\n",
             ));
     }
 
@@ -35,11 +35,12 @@ mod test {
         cargo_bin_cmd!("gurp")
             .env("GURP_NO_COLOUR", "1")
             .arg("apply")
-            .arg("tests/resources/bad.janet")
+            .arg("./tests/resources/bad.janet")
             .assert()
             .failure()
-            .stderr(predicate::str::ends_with(
-                "compile error: unknown symbol physical\n",
-            ));
+            .stderr(predicate::str::contains(
+                "bad.janet:2:5: compile error: unknown symbol physical",
+            ))
+            .stdout(predicate::str::ends_with("Runtime VM error\n"));
     }
 }
