@@ -4,7 +4,7 @@ use axum::extract::{Extension, Path, Query};
 use axum::http::{Response, StatusCode};
 use axum::response::IntoResponse;
 use common::types::{ApplyOpts, ServerOpts};
-use embed::helpers;
+use embed::compiler;
 use mime_guess::from_path;
 use std::sync::Arc;
 use tokio::fs::File;
@@ -45,7 +45,7 @@ pub async fn config(
         );
 
         match params.format.as_str() {
-            "jimage" => match helpers::compile_to_image(&host_file, &opts) {
+            "jimage" => match compiler::local_jimage_to_json(&host_file, &opts) {
                 Ok(body) => {
                     // jimage is a vec<u8> so it's automatically application/octet-stream
                     let ret = (StatusCode::OK, body).into_response();
@@ -60,7 +60,7 @@ pub async fn config(
                     (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {e}")).into_response()
                 }
             },
-            "json" => match helpers::compile_to_json(&host_file, &opts) {
+            "json" => match compiler::local_janet_to_jason(&host_file, &opts) {
                 Ok(body) => {
                     let ret = (StatusCode::OK, Json(body)).into_response();
                     tracing::info!("sent JSON config from {host_file}");
