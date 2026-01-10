@@ -2,14 +2,17 @@ use common::types::ExitCode;
 use embed::helpers as janet_helpers;
 
 pub fn run(resource_type: &str) -> ExitCode {
-    let client = janet_helpers::janet_client();
+    let client = match janet_helpers::gurp_client() {
+        Ok(client) => client,
+        Err(e) => {
+            tracing::error!("could not create gurp-specific Janet client: {e}");
+            return 1;
+        }
+    };
 
-    let mut janet = embed::constants::GURP_DEFAULTS.to_owned();
-    janet.push('\n');
-    janet.push_str(embed::constants::GURP_LIB);
-    janet.push_str(&format!("\n(print (help-for \"{resource_type}\"))"));
+    let janet_instruction = format!("(print (help-for \"{resource_type}\"))");
 
-    match client.run(janet) {
+    match client.run(janet_instruction) {
         Ok(_) => 0,
         Err(e) => {
             tracing::error!("Janet execution error: {}", e);
