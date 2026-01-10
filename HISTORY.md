@@ -1,4 +1,5 @@
 - Removed `show` command. (Breaking change.)
+- Removed option to compile to Janet struct. (Breaking change.)
 - Add `repl` command, which opens a Janet REPL with the Gurp library loaded into the root environment.
 - Removed the "show" command.
 - Option to compile config into a Janet image, and to apply config from a Janet
