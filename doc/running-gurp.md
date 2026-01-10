@@ -129,26 +129,28 @@ optional keys
 Dumps a list of all the doers. For further information on any of them, use
 `gurp describe <doer>`.
 
-## `gurp show`
+## `gurp repl`
 
-Dumps the built-in library and default settings to standard out.
-
-```
-$ gurp show library | sed 5q
-# We only need this import for testing. Gurp bundles the defaults file.
-(if-not (get (curenv) (symbol :default-protos))
-  (use ./defaults))
-
-(defn new-collector
-```
+Opens a Janet REPL with the built-in Gurp library loaded into the root environment.
 
 ```
-$ gurp show defaults | sed 5q
-(def default-protos
-  {:ensure
-   {:cron
-    {:hour "*"
-     :minute "*"
+$ gurp repl
+repl:1:> (doc file/ensure)
+
+
+    function
+    /home/rob/work/gurp/janet/lib/gurp.janet on line 997, column 1
+
+    (file/ensure name & specs)
+
+    Given a file name and specification, return a file ensure struct.
+    If Gurp is running as a server, changes local file references into
+    HTTP ones.
+
+
+nil
+repl:2:> (zfscat "rpool" "zones" "example")
+"rpool/zones/example"
 ```
 
 ## `gurp server`

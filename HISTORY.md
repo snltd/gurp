@@ -1,3 +1,6 @@
+- Removed `show` command. (Breaking change.)
+- Add `repl` command, which opens a Janet REPL with the Gurp library loaded into the root environment.
+- Removed the "show" command.
 - Option to compile config into a Janet image, and to apply config from a Janet
   image. This means in client/server mode, the configuration is pulled from the
   server, but evaluated on the client, so you can write and trust code which
