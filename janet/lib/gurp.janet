@@ -764,7 +764,7 @@
   "The top-level wrapper used to define a host to be configured"
   [host-name & host-definition]
   ~(upscope
-     (def this-host ,host-name)
+     (setdyn :host-dyn (string ,host-name))
      (defn machine-config
        []
        ,;host-definition
@@ -785,9 +785,9 @@
   ~(array ,;body))
 
 (defn this-host
-  "Returns the name of the host, which is set by a definition in the host macro"
+  "Returns the name of the host, which is set by a dyn in the host macro"
   []
-  this-host)
+  (dyn :host-dyn))
 
 (defn this-host-k
   "Returns the name of the host as a keyword. This is set by a dyn in the host macro"
