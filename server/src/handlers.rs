@@ -3,6 +3,7 @@ use axum::body::Body;
 use axum::extract::{Extension, Path, Query};
 use axum::http::{Response, StatusCode};
 use axum::response::IntoResponse;
+use common::prelude::GURP_VERSION;
 use common::types::{ApplyOpts, ServerOpts};
 use embed::compiler;
 use mime_guess::from_path;
@@ -19,6 +20,11 @@ pub struct ConfigQuery {
 pub async fn status() -> &'static str {
     tracing::debug!("received status request");
     "ok"
+}
+
+pub async fn version() -> &'static str {
+    tracing::debug!("received version request");
+    GURP_VERSION
 }
 
 pub async fn config(

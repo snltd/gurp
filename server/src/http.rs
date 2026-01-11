@@ -25,6 +25,7 @@ pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
     let server_opts = Arc::new(opts);
 
     let app = Router::new()
+        .route("/version", get(handlers::version))
         .route("/status", get(handlers::status))
         .route("/file/{*path}", get(handlers::file))
         .route("/config/{host}", get(handlers::config))
