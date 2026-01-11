@@ -160,6 +160,13 @@ pub fn local_janet_to_json(
 
     janet_instructions.push_str("(to-json (machine-config))\n");
 
+    if opts.dump_config {
+        println!(
+            "{}",
+            helpers::dump_config(&janet_instructions, "Janet config", opts)
+        );
+    }
+
     let janet_result = client.run(janet_instructions)?;
     Ok(janet_result.unwrap().to_string())
 }
