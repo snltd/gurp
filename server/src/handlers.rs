@@ -51,11 +51,12 @@ pub async fn config(
         );
 
         match params.format.as_str() {
-            "jimage" => match compiler::local_jimage_to_json(&host_file, &opts) {
+            "jimage" => match compiler::local_janet_to_jimage(&host_file, &opts) {
                 Ok(body) => {
                     // jimage is a vec<u8> so it's automatically application/octet-stream
+                    let bytes = body.len();
                     let ret = (StatusCode::OK, body).into_response();
-                    tracing::info!("sent image config from {host_file}");
+                    tracing::info!("sent {bytes}b image config generated from {host_file}");
                     ret
                 }
                 Err(e) => {
