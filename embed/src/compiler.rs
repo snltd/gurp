@@ -137,6 +137,8 @@ pub fn local_janet_to_json(
         host_file
     );
 
+    let host_file = host_file.canonicalize_utf8()?;
+
     let config_dir = host_file
         .parent()
         .context("cannot get parent of config file")?;
@@ -235,8 +237,16 @@ fn fetch_from_server(server: &str, hostname: &str, format: &str) -> anyhow::Resu
 
 /// Returns a Janet jimage of the user's config
 pub fn local_janet_to_jimage(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<Vec<u8>> {
-    let client = janet_helpers::gurp_client()?;
+    ensure!(
+        host_file.exists(),
+        "Cannot find host config file at {}",
+        host_file
+    );
+
+    let host_file = host_file.canonicalize_utf8()?;
     let host_config_dir = host_file.parent().context("cannot get host config dir")?;
+    let client = janet_helpers::gurp_client()?;
+
     let mut janet_instructions = String::new();
 
     janet_instructions.push_str("(def build-env (make-env (fiber/getenv (fiber/root))))\n");
