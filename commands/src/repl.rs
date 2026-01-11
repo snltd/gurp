@@ -2,19 +2,5 @@ use common::types::ExitCode;
 use embed::helpers;
 
 pub fn run() -> ExitCode {
-    let client = match helpers::gurp_client() {
-        Ok(client) => client,
-        Err(e) => {
-            tracing::error!("could not create gurp-specific Janet client: {e}");
-            return 1;
-        }
-    };
-
-    match client.run("(repl)") {
-        Ok(_) => 0,
-        Err(e) => {
-            tracing::error!("Janet execution error: {}", e);
-            1
-        }
-    }
+    helpers::run_command_and_exit("(repl)")
 }
