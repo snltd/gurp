@@ -4,7 +4,7 @@
 (test-macro
   (host "example-node" (role "basenode") (role "devtools"))
   (upscope
-    (setdyn :host-dyn (string "example-node"))
+    (def this-host "example-node")
     (defn machine-config
       []
       (role "basenode")
