@@ -3,6 +3,7 @@ use axum::extract::Extension;
 use axum::routing::get;
 use axum::{Router, extract::Request, middleware::Next, response::Response};
 use common::constants::SERVER_PORT;
+use common::prelude::GURP_VERSION;
 use common::types::ServerOpts;
 use opentelemetry::{KeyValue, global};
 use opentelemetry_otlp::{MetricExporter, WithExportConfig};
@@ -33,7 +34,7 @@ pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
         .layer(Extension(server_opts));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], SERVER_PORT));
-    tracing::info!("Listening on {addr}");
+    tracing::info!("Gurp version {GURP_VERSION} listening on {addr}");
     tracing::info!("Config dir is {conf_dir}");
 
     axum::serve(
