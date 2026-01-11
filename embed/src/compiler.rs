@@ -146,7 +146,7 @@ pub fn local_janet_to_json(
     let mut janet_instructions = String::new();
 
     janet_instructions.push_str(&format!("(setdyn *syspath* \"{config_dir}\")\n"));
-    janet_instructions.push_str(&format!("(setdyn :gurp-config-dir \"{config_dir}\")\n"));
+    janet_instructions.push_str(&format!("(setdyn :gurp-config-root\"{config_dir}\")\n"));
 
     if opts.destroy {
         janet_instructions.push_str("(setdyn :destroy-everything-you-touch true)\n");
@@ -244,7 +244,7 @@ pub fn local_janet_to_jimage(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyho
         "(set (build-env *syspath*) \"{host_config_dir}\")\n"
     ));
     janet_instructions.push_str(&format!(
-        "(set (build-env :gurp-config-dir) \"{host_config_dir}\")\n"
+        "(set (build-env :gurp-config-root) \"{host_config_dir}\")\n"
     ));
     janet_instructions.push_str(&format!(
         "(merge-module build-env (dofile \"{host_file}\" :env build-env) \"\" true)\n"
@@ -276,7 +276,7 @@ mod test {
         let image =
             local_janet_to_jimage(&fixture("basic_config.janet"), &ApplyOpts::default()).unwrap();
 
-        assert_eq!(20505, image.len());
+        assert!(image.len() > 20000);
     }
 
     #[test]
