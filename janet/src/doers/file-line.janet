@@ -55,9 +55,9 @@
       (error
         (string "type must be one of " (comma-sep apply-to-allowed)))))
 
-  (def all-specs (spec-with-defaults default-ensure-prop-values spec-struct))
+  (def all-specs (spec-with-defaults default-remove-prop-values spec-struct))
   (def safe-specs (checked-spec all-specs
-                                mandatory-ensure-props
-                                optional-ensure-props))
+                                mandatory-remove-props
+                                optional-remove-props))
 
   (collector/push :remove doer (spec->resource doer name safe-specs)))
