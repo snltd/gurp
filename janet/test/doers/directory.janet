@@ -42,10 +42,7 @@
                                :owner "myself"
                                :role "test-role"}]}
       :remove @{:directory @[@{:_id "/test-role/directory/_path_to_dir"
-                               :group "root"
-                               :mode "0755"
                                :name "/path/to/dir"
-                               :owner "root"
                                :role "test-role"}]}}))
 
 (deftest "directory-error"
