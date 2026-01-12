@@ -8,14 +8,15 @@
 (def optional-ensure-props {})
 (def mandatory-remove-props {})
 (def optional-remove-props {})
-(def default-prop-values {})
+(def default-ensure-prop-values {})
+(def default-remove-prop-values {})
 
 (defn ensure
   "Given an etherstub name and specification, return an etherstub ensure struct"
   [name & spec]
-  (collector/push :ensure doer (make-resource)))
+  (collector/push :ensure doer (make-ensure-resource)))
 
 (defn remove
   "Given an etherstub name and specification, return an etherstub remove struct"
   [name & spec]
-  (collector/push :remove doer (make-resource)))
+  (collector/push :remove doer (make-remove-resource)))

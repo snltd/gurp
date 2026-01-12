@@ -17,17 +17,18 @@
 (def optional-ensure-props {})
 (def mandatory-remove-props {})
 (def optional-remove-props {})
-(def default-prop-values
+(def default-ensure-prop-values
   {:owner "root"
    :mode "0755"
    :group "root"})
+(def default-remove-prop-values {})
 
 (defn ensure
   "Given a directory name and specification, return a directory ensure struct"
   [name & spec]
-  (collector/push :ensure doer (make-resource)))
+  (collector/push :ensure doer (make-ensure-resource)))
 
 (defn remove
   "Given a directory name and specification, return a directory remove struct"
   [name & spec]
-  (collector/push :remove doer (make-resource)))
+  (collector/push :remove doer (make-remove-resource)))
