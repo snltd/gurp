@@ -1,5 +1,6 @@
 (use judge)
-(use ../lib/gurp)
+(import ../../src/doers/file-line)
+(use ../../src/collector)
 
 (deftest "test file-line functions"
   (setdyn :role-dyn "test-role")
@@ -51,7 +52,7 @@
                       :line "and"
                       :after "gibbus"
                       :before "chubb")
-    "Failed to validate user input for file-line '/missing/line': file-line '/missing/line' has unrecognised key(s): before, after")
+    "unexpected property 'before'. Valid properties are: with, apply-to, replace, label, insert-at, line")
 
   (test-error
     (file-line/remove "/my/file"

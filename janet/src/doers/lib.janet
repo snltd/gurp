@@ -1,6 +1,11 @@
 #
 # Functions required by the doer modules in this directory.
 # 
+(defn comma-sep
+  "Return a comma-separated string of the items in list"
+  [list]
+  (string/join list ", "))
+
 (defn check-key-type
   "Checks something is of a permissible type. Raises an error if it is not"
   [prop-name prop-value allowed-types]
@@ -11,7 +16,7 @@
       (string/format "%s is of type %v. Allowed types: %s"
                      prop-name
                      prop-type
-                     (string/join allowed-types ", ")))))
+                     (comma-sep allowed-types)))))
 
 (defn make-spec-struct
   "Turn a list of property key/value pairs into a struct or, raise a more
@@ -41,7 +46,7 @@
         (string/format
           "did not find mandatory property '%s'. Mandatory propties are: %s"
           prop-name
-          (string/join (keys mandatory-props) ", ")))))
+          (comma-sep (keys mandatory-props))))))
 
   (loop [[prop-name prop-value] :pairs spec-struct]
     (if-not (has-key? mandatory-props prop-name) # we've already checked these
@@ -51,9 +56,7 @@
           (string
             (string/format "unexpected property '%s'. Valid properties are: "
                            prop-name)
-            (string/join
-              (array/concat @[] (keys mandatory-props) (keys optional-props))
-              ", "))))))
+            (comma-sep (array/concat @[] (keys mandatory-props) (keys optional-props))))))))
 
   spec-struct)
 

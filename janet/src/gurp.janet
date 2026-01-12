@@ -418,29 +418,6 @@
   [name & specs]
   (collect :remove :file (make-resource :remove :file name specs)))
 
-(defn file-line/ensure
-  "Given a file name and a line pattern, make sure the file contains the line"
-  [name & specs]
-  (collect :ensure :file-line (make-resource :ensure :file-line name specs)))
-
-(defn file-line/remove
-  "Given a file name and a line pattern, make sure the file does not contain the line"
-  [name & specs]
-  (let [match-allowed ["exact" "starts_with" "ends_with" "contains" "matches"]
-        apply-to-allowed ["all" "first" "last"]
-        spec-struct (struct ;specs)]
-    (if-let [match-val (spec-struct :match)]
-      (if-not (has-value? match-allowed match-val)
-        (error
-          (string "match must be one of "
-                  (string/join match-allowed ", ") " [Got '" match-val "']"))))
-
-    (if-let [type-val (spec-struct :apply-to)]
-      (if-not (has-value? apply-to-allowed type-val)
-        (error
-          (string "type must be one of " (string/join apply-to-allowed ", "))))))
-
-  (collect :remove :file-line (make-resource :remove :file-line name specs)))
 
 (defn gem/ensure
   "Given a a gem name, return a gem ensure struct"
