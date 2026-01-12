@@ -16,25 +16,6 @@
   types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
   to display help"
 
-
-
-   :ip-properties
-   {:description "Sets global IP properties, via 'ipadm set-prop'."
-    :name "Any convenient name: not used internally"
-    :optional {}
-    :mandatory
-    {:properties ["A struct whose keys are protocols (e.g. 'ipv4', 'ipv6'), and whose values
-                  are structs pairing properties (e.g. :hoplimit, :max_buf) with values" :struct]}}
-
-   :ipnat
-   {:description "Set or remove NAT rules."
-    :name "Any convenient name: not used internally"
-    :mandatory
-    {:priority ["NAT rule resources are ordered by priority, lowest number first" :number]}
-    :optional
-    {:from ["Apply rules in the given file. If relative, looks in ../files" :string]
-     :content ["Apply these rules. Must have :content xor :from" :string]}}
-
    :misc
    {:description "A collection of things too small to deserve their own doer."
     :name "Any convenient name: not used internally"
@@ -439,10 +420,6 @@
 
 
 
-(defn- has-exactly-one-of?
-  "Checks whether spec contains exactly one of the required-keys"
-  [required-keys specs]
-  (= 1 (length (filter |(has-value? required-keys $) (keys (table ;specs))))))
 
 #---- HELPERS FOR THE USER ---------------------------------------------------
 
@@ -643,34 +620,9 @@
 
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
 
-(defn ip-interface/ensure
-  "Given an interface name and specification, return an ip-interface ensure struct"
-  [name & specs]
-  (let [protocols @{}
-        other-specs @[]]
-    (each spec specs
-      (if (= (type spec) :struct)
-        (merge-into protocols spec)
-        (array/concat other-specs spec)))
-
-    (def complete-spec (array/concat other-specs :protocols protocols))
-
-    (collect :ensure :ip-interface
-             (make-resource :ensure :ip-interface name complete-spec))))
-
-(defn ip-properties/ensure
-  "Given a protocol and specification, return an ip-properties ensure struct"
-  [name & specs]
-  (let [spec-struct (struct :properties (struct (splice specs)))]
-    (collect :ensure :ip-properties
-             (make-resource :ensure :ip-properties name (table->tuple spec-struct)))))
-
-
 (defn ipnat/ensure
   "Given a name and specification, return an ipnat ensure struct"
   [name & specs]
-  (if-not (has-exactly-one-of? [:content :from] specs)
-    (error "need exactly one of :content or :from"))
 
   (collect :ensure :ipnat (make-resource :ensure :ipnat name specs)))
 

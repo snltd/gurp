@@ -24,3 +24,4 @@
         (error
           (string "cannot qualify path for " file-name ": gurp-config-root is not set")))
       (pathcat (dyn :gurp-config-root) "files" file-name))))
+
