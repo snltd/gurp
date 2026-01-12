@@ -27,4 +27,4 @@
   (test-error
     (gem/ensure "wavefront-sdk"
                 :merp 11)
-    "unexpected property 'merp'. Valid properties are: gem-path, version, source, label"))
+    "unexpected property :merp. Valid properties are: :gem-path, :version, :source, :label"))

@@ -22,10 +22,10 @@
 (deftest "group-errors"
   (test-error
     (group/ensure "wat")
-    "did not find mandatory property 'gid'. Mandatory properties are: gid")
+    "did not find mandatory property gid. Mandatory properties are: :gid")
 
   (test-error
     (group/ensure "group"
                  :gid 264
                  :gecos "Test User")
-    "unexpected property 'gecos'. Valid properties are: gid, label"))
+    "unexpected property :gecos. Valid properties are: :gid, :label"))

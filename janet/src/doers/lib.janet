@@ -4,7 +4,7 @@
 (defn comma-sep
   "Return a comma-separated string of the items in list"
   [list]
-  (string/join list ", "))
+  (string/join (map |(string/format "%p" $) list) ", "))
 
 (defn check-key-type
   "Checks something is of a permissible type. Raises an error if it is not"
@@ -44,7 +44,7 @@
       (check-key-type prop-name prop-value (prop-spec :types))
       (error
         (string/format
-          "did not find mandatory property '%s'. Mandatory properties are: %s"
+          "did not find mandatory property %s. Mandatory properties are: %s"
           prop-name
           (comma-sep (keys mandatory-props))))))
 
@@ -54,7 +54,7 @@
         (check-key-type prop-name prop-value (prop-spec :types))
         (error
           (string
-            (string/format "unexpected property '%s'. Valid properties are: "
+            (string/format "unexpected property %p. Valid properties are: "
                            prop-name)
             (comma-sep (array/concat @[] (keys mandatory-props) (keys optional-props))))))))
 

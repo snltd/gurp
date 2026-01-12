@@ -17,20 +17,6 @@
   to display help"
 
 
-   :ip-interface
-   {:description "Create and destroy IP interfaces, with optional properties. Properties
-                 are supplied with 'ip-interface-protocol'."
-    :name "Interface name"
-    :optional
-    {:protocols ["See 'ip-interface-protocol'"]}
-    :mandatory {}}
-
-   :ip-interface-protocol
-   {:description "Sets IP interface properties for a given protocol."
-    :name "Protocol. e.g. 'ipv4', 'ipv6'"
-    :optional {}
-    :mandatory
-    {:properties ["struct of ipadm 'ifprop' properties, e.g. :mtu, :forwarding" :struct]}}
 
    :ip-properties
    {:description "Sets global IP properties, via 'ipadm set-prop'."
@@ -671,17 +657,6 @@
 
     (collect :ensure :ip-interface
              (make-resource :ensure :ip-interface name complete-spec))))
-
-(defn ip-interface/remove
-  "Given an interface name and specification, return an ip-interface remove struct"
-  [name & specs]
-  (collect :remove :ip-interface (make-resource :remove :ip-interface name specs)))
-
-(defn ip-interface-protocol
-  "Given specs, return config for an interface protocol. Key is protocol, values
-  are params"
-  [protocol & params]
-  (struct protocol (struct (splice params))))
 
 (defn ip-properties/ensure
   "Given a protocol and specification, return an ip-properties ensure struct"

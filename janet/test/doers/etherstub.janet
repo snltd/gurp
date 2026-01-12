@@ -25,4 +25,4 @@
   (test-error
     (etherstub/ensure "estub4"
                       :with "field")
-    "unexpected property 'with'. Valid properties are: label"))
+    "unexpected property :with. Valid properties are: :label"))

@@ -55,7 +55,7 @@
                  :owner "merp"
                  :group "byerp"
                  :permissions "rwxr-xr-x")
-    "unexpected property 'permissions'. Valid properties are: owner, content, from-url, group, mode, from-struct, with-checksum, from, ignore-pattern, to-format, backup-suffix, label"))
+    "unexpected property :permissions. Valid properties are: :owner, :content, :from-url, :group, :mode, :from-struct, :with-checksum, :from, :ignore-pattern, :to-format, :backup-suffix, :label"))
 
 # In server mode local file references get turned into http ones, pointing
 # to the server.
@@ -114,4 +114,4 @@
                  :owner "merp"
                  :group "byerp"
                  :permissions "rwxr-xr-x")
-    "unexpected property 'permissions'. Valid properties are: owner, content, from-url, group, mode, from-struct, with-checksum, from, ignore-pattern, to-format, backup-suffix, label"))
+    "unexpected property :permissions. Valid properties are: :owner, :content, :from-url, :group, :mode, :from-struct, :with-checksum, :from, :ignore-pattern, :to-format, :backup-suffix, :label"))

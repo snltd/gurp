@@ -52,11 +52,11 @@
                       :line "and"
                       :after "gibbus"
                       :before "chubb")
-    "unexpected property 'before'. Valid properties are: with, apply-to, replace, label, insert-at, line")
+    "unexpected property :before. Valid properties are: :with, :apply-to, :replace, :label, :insert-at, :line")
 
   (test-error
     (file-line/remove "/my/file"
                       :pattern "merp"
                       :match "end")
-    "match must be one of exact, starts_with, ends_with, contains, matches [Got 'end']"))
+    "match must be one of \"exact\", \"starts_with\", \"ends_with\", \"contains\", \"matches\" [Got 'end']"))
 
