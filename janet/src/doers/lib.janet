@@ -44,7 +44,7 @@
       (check-key-type prop-name prop-value (prop-spec :types))
       (error
         (string/format
-          "did not find mandatory property '%s'. Mandatory propties are: %s"
+          "did not find mandatory property '%s'. Mandatory properties are: %s"
           prop-name
           (comma-sep (keys mandatory-props))))))
 

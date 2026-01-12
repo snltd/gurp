@@ -1,5 +1,6 @@
 (use judge)
-(use ../lib/gurp)
+(use ../../src/collector)
+(import ../../src/doers/ip-address)
 
 (deftest "ip-address"
   (setdyn :role-dyn "test-role")
@@ -36,5 +37,5 @@
 
 (deftest "ip-address-error"
   (test-error
-    (ip-interface/ensure "bad0" :over "e1000g")
+    (ip-address/ensure "bad0" :over "e1000g")
     "Failed to validate user input for ip-interface 'bad0': ip-interface 'bad0' has unrecognised key(s): over"))

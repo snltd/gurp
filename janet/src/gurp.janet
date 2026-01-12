@@ -17,15 +17,6 @@
   to display help"
 
 
-   :ip-address
-   {:description "Manages IP addresses via ipadm."
-    :name "Address name, e.g. vnic0/v4"
-    :optional
-    {:address ["Local IP address with /netmask, if using static address" :string]
-     :properties ["Struct of any valid ipadm addrprops" :struct]}
-    :mandatory
-    {:type ["Type of connection: 'static', 'dhcp'" :string]}}
-
    :ip-interface
    {:description "Create and destroy IP interfaces, with optional properties. Properties
                  are supplied with 'ip-interface-protocol'."
@@ -665,26 +656,6 @@
     (string/join)))
 
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
-
-(defn group/ensure
-  "Given a group name and specification, return a group ensure struct"
-  [name & specs]
-  (collect :ensure :group (make-resource :ensure :group name specs)))
-
-(defn group/remove
-  "Given a group name and specification, return a group remove struct"
-  [name & specs]
-  (collect :remove :group (make-resource :remove :group name specs)))
-
-(defn ip-address/ensure
-  "Given an ip-address name and specification, return an ip-address ensure struct"
-  [name & specs]
-  (collect :ensure :ip-address (make-resource :ensure :ip-address name specs)))
-
-(defn ip-address/remove
-  "Given an ip-address name and specification, return an ip-address remove struct"
-  [name & specs]
-  (collect :remove :ip-address (make-resource :remove :ip-address name specs)))
 
 (defn ip-interface/ensure
   "Given an interface name and specification, return an ip-interface ensure struct"
