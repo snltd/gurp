@@ -42,4 +42,4 @@
 (deftest "ip-interface-error"
   (test-error
     (ip-interface/ensure "bad0" :over "e1000g")
-    "unexpected property :over. Valid properties are: :protocols, :label"))
+    "unexpected property :over. Valid properties are :protocols, :label"))

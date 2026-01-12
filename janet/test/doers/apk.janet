@@ -25,5 +25,5 @@
   (test-error
     (apk/ensure "gurp"
                 :version "1.1.1")
-    "unexpected property :version. Valid properties are: :label"))
+    "unexpected property :version. Valid properties are :label"))
 

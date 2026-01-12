@@ -51,7 +51,7 @@
 (deftest "cron-error"
   (test-error
     (cron/ensure "missing-data" :hour 6)
-    "did not find mandatory property command. Mandatory properties are: :command")
+    "did not find mandatory property :command. Mandatory properties are :command")
 
   (test-error
     (cron/ensure "junk-keys"
@@ -60,4 +60,4 @@
                  :day "monday"
                  :colour "blue"
                  :hour 6)
-    "unexpected property :colour. Valid properties are: :command, :minute, :hour, :month-of-year, :day-of-month, :user, :label, :day-of-week"))
+    "unexpected property :colour. Valid properties are :command, :minute, :hour, :month-of-year, :day-of-month, :user, :label, :day-of-week"))

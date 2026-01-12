@@ -16,15 +16,6 @@
   types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
   to display help"
 
-   :misc
-   {:description "A collection of things too small to deserve their own doer."
-    :name "Any convenient name: not used internally"
-    :optional
-    {:enable-smb ["Enable SMB sharing for this username" :string]
-     :nfs-domain ["NFS domain name" :string]
-     :scheduler ["The scheduler class to set via dispamdin" :string]}
-    :mandatory {}}
-
    :network-flow
    {:description "Manage network flows via flowadm."
     :name "Name of flow. Must be unique"
@@ -492,12 +483,6 @@
     (array/pop components)
     (string "/" (string/join components "/"))))
 
-(defn labelise
-  "Turns tokens into a safe label"
-  [& chunks]
-  (string/replace-all "/"
-                      "_"
-                      (string/join (map string chunks) "-")))
 
 (defn template-out
   "Takes a template with vars in {{ brackets }} and a table of vars to values.
@@ -632,7 +617,6 @@
   (collect :remove :ipnat (make-resource :remove :ipnat name [])))
 
 (defn misc/ensure
-  "Sets miscellaneous system properties"
   [& specs]
   (collect :ensure :misc (make-resource :ensure :misc (labelise ;specs) specs)))
 

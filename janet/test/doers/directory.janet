@@ -51,5 +51,5 @@
                       :owner "me"
                       :gid 234
                       :recursive true)
-    "unexpected property :recursive. Valid properties are: :owner, :group, :mode, :label"))
+    "unexpected property :recursive. Valid properties are :owner, :group, :mode, :label"))
 

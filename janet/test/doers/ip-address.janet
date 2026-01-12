@@ -38,4 +38,4 @@
 (deftest "ip-address-error"
   (test-error
     (ip-address/ensure "bad0" :over "e1000g")
-    "did not find mandatory property type. Mandatory properties are: :type"))
+    "did not find mandatory property :type. Mandatory properties are :type"))

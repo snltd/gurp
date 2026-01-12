@@ -29,13 +29,13 @@
   (test-error
     (checked-spec
       {:group 14 :mode 755 :owner 264} mandatory-keys optional-keys)
-    "mode is of type :number. Allowed types: :string"))
+    "mode is of type :number. Allowed types :string"))
 
 (deftest test-checked-spec-with-directory-unknown-optional
   (test-error
     (checked-spec
       {:group 14 :mode "0755" :owner 264 :oops "merp"} mandatory-keys optional-keys)
-    "unexpected property :oops. Valid properties are: :owner, :group, :mode, :label"))
+    "unexpected property :oops. Valid properties are :owner, :group, :mode, :label"))
 
 (deftest test-check-key-type
   (test (check-key-type :name 123 [:number :string]) nil)
@@ -43,7 +43,7 @@
 
   (test-error
     (check-key-type :name 123 [:string])
-    "name is of type :number. Allowed types: :string"))
+    "name is of type :number. Allowed types :string"))
 
 (deftest make-spec-struct
   (test (make-spec-struct :a 1 :b 2 :c 3) {:a 1 :b 2 :c 3})
