@@ -41,7 +41,7 @@
         (string/format
           "did not find mandatory property '%s'. Mandatory propties are: %s"
           prop-name
-          (string/join (keys spec-struct) ", ")))))
+          (string/join (keys mandatory-props) ", ")))))
 
   (loop [[prop-name prop-value] :pairs spec-struct]
     (if-not (mandatory-props prop-name) # we've already checked these
