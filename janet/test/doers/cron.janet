@@ -51,7 +51,7 @@
 (deftest "cron-error"
   (test-error
     (cron/ensure "missing-data" :hour 6)
-    "did not find mandatory property 'command'. Mandatory propties are: command")
+    "did not find mandatory property 'command'. Mandatory properties are: command")
 
   (test-error
     (cron/ensure "junk-keys"

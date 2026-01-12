@@ -22,7 +22,7 @@
 (deftest "group-errors"
   (test-error
     (group/ensure "wat")
-    "did not find mandatory property 'gid'. Mandatory propties are: gid")
+    "did not find mandatory property 'gid'. Mandatory properties are: gid")
 
   (test-error
     (group/ensure "group"
