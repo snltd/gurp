@@ -16,11 +16,6 @@
   types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
   to display help"
 
-   :group
-   {:description "Create and destroy Unix groups."
-    :name "Name of group"
-    :mandatory
-    {:gid ["The group ID" :number]}}
 
    :ip-address
    {:description "Manages IP addresses via ipadm."
