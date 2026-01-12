@@ -44,7 +44,7 @@
           (string/join (keys mandatory-props) ", ")))))
 
   (loop [[prop-name prop-value] :pairs spec-struct]
-    (if-not (mandatory-props prop-name) # we've already checked these
+    (if-not (has-key? mandatory-props prop-name) # we've already checked these
       (if-let [prop-spec (get optional-props prop-name)]
         (check-key-type prop-name prop-value (prop-spec :types))
         (error
@@ -80,14 +80,26 @@
   [default-prop-values spec-struct]
   (merge default-prop-values spec-struct))
 
-(defmacro make-resource
-  "Pulls together some boilerplate in doer ensure/remove functions"
+(defmacro make-ensure-resource
+  "Pulls together some boilerplate in doer ensure functions"
   []
   ~(do
      (def spec-struct (make-spec-struct spec))
-     (def all-specs (spec-with-defaults default-prop-values spec-struct))
+     (def all-specs (spec-with-defaults default-ensure-prop-values spec-struct))
      (def safe-specs (checked-spec all-specs
                                    mandatory-ensure-props
                                    optional-ensure-props))
+
+     (spec->resource doer name safe-specs)))
+
+(defmacro make-remove-resource
+  "Pulls together some boilerplate in doer remove functions"
+  []
+  ~(do
+     (def spec-struct (make-spec-struct spec))
+     (def all-specs (spec-with-defaults default-remove-prop-values spec-struct))
+     (def safe-specs (checked-spec all-specs
+                                   mandatory-remove-props
+                                   optional-remove-props))
 
      (spec->resource doer name safe-specs)))
