@@ -63,10 +63,11 @@
 (defn resource-id
   "Safely generate a resource ID"
   [resource-type role name]
-  (string/format "/%s/%s/%s"
-                 role
-                 resource-type
-                 (string/replace-all "/" "_" name)))
+  (def name (if (nil? name)
+              "NO-NAME"
+              (string/replace-all "/" "_" name)))
+
+  (string/format "/%s/%s/%s" role resource-type name))
 
 (defn spec->resource
   "Decorate a spec struct with everything it needs to become a resource."
@@ -112,4 +113,11 @@
   [required-keys spec]
   (= 1
      (length
-      (filter |(has-value? required-keys $) (keys (make-spec-struct ;spec))))))
+       (filter |(has-value? required-keys $) (keys (make-spec-struct ;spec))))))
+
+(defn labelise
+  "Turns tokens into a safe label"
+  [& chunks]
+  (string/replace-all "/"
+                      "_"
+                      (string/join (map string (flatten chunks)) "-")))
