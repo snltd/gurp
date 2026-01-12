@@ -16,30 +16,6 @@
   types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
   to display help"
 
-   :file
-   {:description "Create files from multiple sources, or remove them."
-    :name "Fully qualified path to file"
-    :optional
-    {:backup-suffix ["Back up the file with this suff. Use 'TIMESTAMP' for an epoch timestamp" :string]
-     :from ["Copy content from this file. If relative, looks in ../files" :string]
-     :from-struct ["Generate a config file from the given struct. Requires :to-format" :struct]
-     :from-url ["Fetch file from the given URL" :string]
-     :group ["The group name or GID of the for this file" :string :number]
-     :ignore-pattern ["When comparing, ignore lines matching this Rust regex" :string]
-     :mode ["Permissions written as a four-digit octal" :string]
-     :owner ["The username or UID of the user who owns this file" :string :number]
-     :to-format ["Used with :from-struct to try to turn the struct into this format" :string]
-     :with-checksum ["Blake3 checksum used to validate files fetched by :from-url" :string]
-     :content ["Literal content of the file. Must have :content xor :from" :string]}}
-
-   :gem
-   {:description "Install and uninstall Ruby gems."
-    :name "Name of gem"
-    :optional
-    {:gem-path ["Path to gem executable other than /opt/ooce/bin/gem" :string]
-     :source ["Source other than RubyGems. Can contain tokens and usernames" :string]
-     :version ["Gem version" :string]}}
-
    :group
    {:description "Create and destroy Unix groups."
     :name "Name of group"
@@ -337,13 +313,6 @@
 
 (def resource-remove-keys
   "Like resource-ensure-keys but for removing resources"
-   :file {:optional {} :mandatory {}}
-
-   :gem
-   {:optional
-    {:gem-path ["Path to gem executable other than /opt/ooce/bin/gem" :string]
-     :version ["Gem version" :string]}}
-
    :group {:optional {} :mandatory {}}
 
    :pkg {:optional {} :mandatory {}}
@@ -701,70 +670,6 @@
     (string/join)))
 
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
-
-(defn apk/ensure
-  "Given a a apk name, return an apk ensure struct"
-  [name & specs]
-  (collect :ensure :apk (make-resource :ensure :apk name specs)))
-
-(defn apk/remove
-  "Given a apk name, return an apk remove struct"
-  [name & specs]
-  (collect :remove :apk (make-resource :remove :apk name specs)))
-
-(defn cron/ensure
-  "Given a name and specification, return a cron ensure struct"
-  [name & specs]
-  (collect :ensure :cron (make-resource :ensure :cron name specs)))
-
-(defn cron/remove
-  "Given a name and specification, return a cron remove struct"
-  [name & specs]
-  (collect :remove :cron (make-resource :remove :cron name specs)))
-
-(defn directory/ensure
-  "Given a directory name and specification, return a directory ensure struct"
-  [name & specs]
-  (collect :ensure :directory (make-resource :ensure :directory name specs)))
-
-(defn directory/remove
-  "Given a directory name and specification, return a directory remove struct"
-  [name & specs]
-  (collect :remove :directory (make-resource :remove :directory name specs)))
-
-(defn file/ensure
-  "Given a file name and specification, return a file ensure struct. If Gurp is
-   running as a server, changes local file references into HTTP ones."
-  [name & specs]
-  (let [result (make-resource :ensure :file name specs)
-        resource (struct/to-table (result :file))]
-
-    (if-let [from-path (resource :from)]
-      (if-let [server-name (dyn :server-name)]
-        (do
-          (set (resource :from) nil)
-          (set (resource :from-url) (string "http://" server-name "/file/" from-path)))
-        (let [url-or-qualified-path (if (string/find "://" from-path) from-path (qualify-from-path from-path))]
-          (set (resource :from) url-or-qualified-path)
-          {:file (table/to-struct resource)})))
-
-    (collect :ensure :file (struct :file (table/to-struct resource)))))
-
-(defn file/remove
-  "Given a file name and specification, return a file remove struct"
-  [name & specs]
-  (collect :remove :file (make-resource :remove :file name specs)))
-
-
-(defn gem/ensure
-  "Given a a gem name, return a gem ensure struct"
-  [name & specs]
-  (collect :ensure :gem (make-resource :ensure :gem name specs)))
-
-(defn gem/remove
-  "Given a gem name, return a gem remove struct"
-  [name & specs]
-  (collect :remove :gem (make-resource :remove :gem name specs)))
 
 (defn group/ensure
   "Given a group name and specification, return a group ensure struct"
