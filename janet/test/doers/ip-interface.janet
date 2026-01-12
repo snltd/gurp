@@ -1,5 +1,7 @@
 (use judge)
-(use ../lib/gurp)
+(use ../../src/collector)
+(use ../../src/doers/ip-interface-protocol)
+(import ../../src/doers/ip-interface)
 
 (deftest "ip-interface-protocol"
   (test
