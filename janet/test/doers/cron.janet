@@ -1,6 +1,6 @@
 (use judge)
 (use ../../src/collector)
-(use ../../src/helpers)
+(use ../../src/user-helpers)
 (import ../../src/doers/cron)
 
 (deftest "cron-resources"
