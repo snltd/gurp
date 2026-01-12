@@ -24,11 +24,11 @@
 (def default-remove-prop-values {})
 
 (defn ensure
-  "Given a directory name and specification, return a directory ensure struct"
+  "Given a directory path and spec, put an ensure struct in the collector"
   [name & spec]
   (collector/push :ensure doer (make-ensure-resource)))
 
 (defn remove
-  "Given a directory name and specification, return a directory remove struct"
+  "Given a directory path, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))

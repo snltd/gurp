@@ -33,11 +33,11 @@
 (def default-remove-prop-values {})
 
 (defn ensure
-  "Given a cron package name, put an ensure struct in the collector"
+  "Given a cron job name and spec, put an ensure struct in the collector"
   [name & spec]
   (collector/push :ensure doer (make-ensure-resource)))
 
 (defn remove
-  "Given a cron package name, put a remove struct in the collector"
+  "Given a cron job name, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
