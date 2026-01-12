@@ -13,7 +13,7 @@
 
   (if-not (has-value? allowed-types prop-type)
     (error
-      (string/format "%s is of type %v. Allowed types: %s"
+      (string/format "%s is of type %v. Allowed types %s"
                      prop-name
                      prop-type
                      (comma-sep allowed-types)))))
@@ -44,7 +44,7 @@
       (check-key-type prop-name prop-value (prop-spec :types))
       (error
         (string/format
-          "did not find mandatory property %s. Mandatory properties are: %s"
+          "did not find mandatory property %p. Mandatory properties are %s"
           prop-name
           (comma-sep (keys mandatory-props))))))
 
@@ -54,7 +54,7 @@
         (check-key-type prop-name prop-value (prop-spec :types))
         (error
           (string
-            (string/format "unexpected property %p. Valid properties are: "
+            (string/format "unexpected property %p. Valid properties are "
                            prop-name)
             (comma-sep (array/concat @[] (keys mandatory-props) (keys optional-props))))))))
 
@@ -106,3 +106,10 @@
                                    optional-remove-props))
 
      (spec->resource doer name safe-specs)))
+
+(defn has-exactly-one-of?
+  "Checks whether a spec contains exactly one of the required-keys"
+  [required-keys spec]
+  (= 1
+     (length
+      (filter |(has-value? required-keys $) (keys (make-spec-struct ;spec))))))
