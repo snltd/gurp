@@ -1,5 +1,6 @@
 (use judge)
-(use ../lib/gurp)
+(use ../../src/collector)
+(import ../../src/doers/user)
 
 (deftest "user-resources"
   (set *collector* (new-collector))

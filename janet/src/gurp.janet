@@ -85,20 +85,6 @@
     :mandatory
     {:properties ["Properties to create. (:keyword :string|:boolean|:number)" :struct]}}
 
-   :user
-   {:description "Manage Unix users."
-    :name "User's username"
-    :optional
-    {:other-groups ["Group names (:string) or GIDs (:number) to which user belongs" :tuple]
-     :password-hash ["Hash to insert in /etc/shadow" :string]
-     :profiles ["List of existing profiles (:string)" :tuple]}
-    :mandatory
-    {:gecos ["User's name or description" :string]
-     :home-dir ["User's home dir" :string]
-     :primary-group ["Group name or GID to which user belongs" :string :number]
-     :shell ["User's shell" :string]
-     :uid ["UID of user" :number]}}
-
    :zfs
    {:description "Create, destroy, and modify properties of ZFS filesystems."
     :name "ZFS dataset name"
@@ -213,7 +199,6 @@
     {:properties ["Properties to create. (:keyword :string|:boolean|:number)" :struct]}}
 
    :smlink {:optional {} :mandatory {}}
-   :user {:optional {} :mandatory {}}
    :zfs {:optional {} :mandatory {}}
    :zone {:optional {} :mandatory {}}})
 
@@ -670,16 +655,6 @@
   "Given a name and state, return a svcprop remove struct"
   [name & specs]
   (collect :remove :svcprop (make-resource :remove :svcprop name specs)))
-
-(defn user/ensure
-  "Given a user name and specification, return a user ensure struct"
-  [name & specs]
-  (collect :ensure :user (make-resource :ensure :user name specs)))
-
-(defn user/remove
-  "Given a user name and specification, return a user remove struct"
-  [name & specs]
-  (collect :remove :user (make-resource :remove :user name specs)))
 
 (defn zfs/ensure
   "Given a zfs dataset name and specification, return a ZFS ensure struct"
