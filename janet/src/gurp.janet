@@ -16,18 +16,6 @@
   types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
   to display help"
 
-   :route
-   {:description "Manage routes. Note that default routes for zones should be handled
-                 by the zone's :defrouter property."
-    :name "The route destination, e.g. '10.10.0.0/16'"
-    :optional
-    {:flags ["Key-value pairs for flags. If the flag does not take a value, use true" :struct]
-     :force-gateway ["If true, put '-gateway' before the gateway to remove ambiguity" :boolean]
-     :gateway ["Gateway for given route. For a default route specify 'default'" :string]
-     :interface ["Interface for given route. Conflicts with :gateway" :string]
-     :type ["Type of route: e.g. 'blackhole', 'reject'" :string]}
-    :mandatory {}}
-
    :smf
    {:description "Create and install a manifest for an SMF service."
     :name "Short name of service. Not used internally"
@@ -187,18 +175,12 @@
   "Like resource-ensure-keys but for removing resources"
    :smf {:optional {} :mandatory {}}
 
-   :route
-   {:optional {}
-    :mandatory
-    {:gateway ["Gateway for given route. For a default route specify 'default'" :string]}}
-
    :svcprop
    {:optional
     {:property-groups ["Property groups (:string) to create" :tuple]}
     :mandatory
     {:properties ["Properties to create. (:keyword :string|:boolean|:number)" :struct]}}
 
-   :smlink {:optional {} :mandatory {}}
    :zfs {:optional {} :mandatory {}}
    :zone {:optional {} :mandatory {}}})
 
@@ -534,8 +516,6 @@
   (let [resource (make-resource :ensure :route name specs)
         resource-keys (keys (resource :route))]
 
-    (if-not (has-exactly-one-of? [:gateway :interface] specs)
-      (error "Provide exactly one of :gateway and :interface"))
 
     (collect :ensure :route resource)))
 
