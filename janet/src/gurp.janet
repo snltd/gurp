@@ -99,23 +99,6 @@
      :shell ["User's shell" :string]
      :uid ["UID of user" :number]}}
 
-   :vlan
-   {:description "Manage VLAN objects."
-    :name "VLAN name"
-    :optional {}
-    :mandatory
-    {:over ["Physical link which will serve VNIC" :string]
-     :vlan-tag ["The VLAN tag ID" :number]}}
-
-   :vnic
-   {:description "Manage VNIC objects."
-    :name "Name of VNIC"
-    :optional
-    {:vlan-tag ["Enable VLAN tagging with the given tag" :number]
-     :with-interface ["Whether to create an IP interface on the new VNIC" :boolean]}
-    :mandatory
-    {:over ["Physical link which will serve VNIC" :string]}}
-
    :zfs
    {:description "Create, destroy, and modify properties of ZFS filesystems."
     :name "ZFS dataset name"
@@ -697,26 +680,6 @@
   "Given a user name and specification, return a user remove struct"
   [name & specs]
   (collect :remove :user (make-resource :remove :user name specs)))
-
-(defn vlan/ensure
-  "Given a VLAN name and specification, return a vlan ensure struct"
-  [name & specs]
-  (collect :ensure :vlan (make-resource :ensure :vlan name specs)))
-
-(defn vlan/remove
-  "Given a VLAN name and specification, return a vlan remove struct"
-  [name & specs]
-  (collect :remove :vlan (make-resource :remove :vlan name specs)))
-
-(defn vnic/ensure
-  "Given a VNIC name and specification, return a vnic ensure struct"
-  [name & specs]
-  (collect :ensure :vnic (make-resource :ensure :vnic name specs)))
-
-(defn vnic/remove
-  "Given a VNIC name and specification, return a vnic remove struct"
-  [name & specs]
-  (collect :remove :vnic (make-resource :remove :vnic name specs)))
 
 (defn zfs/ensure
   "Given a zfs dataset name and specification, return a ZFS ensure struct"

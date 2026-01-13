@@ -1,5 +1,6 @@
 (use judge)
-(use ../lib/gurp)
+(use ../../src/collector)
+(import ../../src/doers/vnic)
 
 (deftest "vnic-resources"
   (setdyn :role-dyn "test-role")
@@ -21,8 +22,8 @@
 (deftest "vnic-error"
   (test-error
     (vnic/ensure "missing_link0")
-    "Failed to validate user input for vnic 'missing_link0': vnic missing required key(s): over")
+    "did not find mandatory property :over. Mandatory properties are :over")
 
   (test-error
     (vnic/ensure "bad_link0" :over "e1000g" :speed 100)
-    "Failed to validate user input for vnic 'bad_link0': vnic 'bad_link0' has unrecognised key(s): speed"))
+    "unexpected property :speed. Valid properties are :over, :with-interface, :vlan-tag, :label"))
