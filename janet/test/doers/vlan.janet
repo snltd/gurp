@@ -1,5 +1,6 @@
 (use judge)
-(use ../lib/gurp)
+(use ../../src/collector)
+(import ../../src/doers/vlan)
 
 (deftest "vlan-resources"
   (setdyn :role-dyn "test-role")
@@ -33,11 +34,11 @@
   (deftest "vlan-error"
     (test-error
       (vlan/ensure "test-vlan-1")
-      "Failed to validate user input for vlan 'test-vlan-1': vlan missing required key(s): over, vlan-tag")
+      "did not find mandatory property :over. Mandatory properties are :over, :vlan-tag")
 
     (test-error
       (vlan/ensure "test-vlan"
                    :over "e1000g0"
                    :vlan-tag 24
                    :with "field")
-      "Failed to validate user input for vlan 'test-vlan': vlan 'test-vlan' has unrecognised key(s): with")))
+      "unexpected property :with. Valid properties are :over, :vlan-tag, :label")))
