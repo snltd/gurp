@@ -1,5 +1,6 @@
 (use judge)
-(use ../lib/gurp)
+(use ../../src/collector)
+(import ../../src/doers/pkg)
 
 (deftest "pkg-resources"
   (setdyn :role-dyn "test-role")

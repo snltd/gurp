@@ -16,12 +16,6 @@
   types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
   to display help"
 
-   :pkg
-   {:description "Install and uninstall pkg(5) packages."
-    :name "Package name, of the form 'ooce/editor/helix'"
-    :optional {}
-    :mandatory {}}
-
    :pkgin
    {:description "Install and uninstall pkgin packages. Only valid in a pkgsrc zone."
     :name "Package name"
@@ -242,9 +236,6 @@
 
 (def resource-remove-keys
   "Like resource-ensure-keys but for removing resources"
-   :group {:optional {} :mandatory {}}
-
-   :pkg {:optional {} :mandatory {}}
    :pkgin {:optional {} :mandatory {}}
    :publisher {:optional {} :mandatory {}}
    :smf {:optional {} :mandatory {}}
@@ -589,17 +580,6 @@
     (string/join)))
 
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
-
-(defn pkg/ensure
-  "Given a a pkg name, return a pkg ensure struct. In OmniOS, the
-  pkg version is effectively part of the name, so there are no parameters"
-  [name & specs]
-  (collect :ensure :pkg (make-resource :ensure :pkg name specs)))
-
-(defn pkg/remove
-  "Given a pkg name, return a pkg remove struct"
-  [name & specs]
-  (collect :remove :pkg (make-resource :remove :pkg name specs)))
 
 (defn pkgin/ensure
   "Given a a pkgin name, return a pkgin ensure struct."
