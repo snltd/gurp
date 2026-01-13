@@ -34,7 +34,7 @@
   (test-error
     (user/ensure "wat"
                  :uid 100)
-    "Failed to validate user input for user 'wat': user missing required key(s): home-dir, primary-group, gecos, shell")
+    "did not find mandatory property :home-dir. Mandatory properties are :home-dir, :primary-group, :uid, :gecos, :shell")
 
   (test-error
     (user/ensure "rob"
@@ -46,4 +46,4 @@
                  :shell "/bin/zsh"
                  :gecos "Test User"
                  :password-hash "w0934cm-4i5c-42u5cn492hrc97h234ui")
-    "Failed to validate user input for user 'rob': user 'rob' has unrecognised key(s): height, hair"))
+    "unexpected property :height. Valid properties are :home-dir, :primary-group, :uid, :gecos, :shell, :other-groups, :password-hash, :profiles, :label"))
