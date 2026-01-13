@@ -25,5 +25,5 @@
   (test-error
     (pkg/ensure "sysdef/tools/gurp"
                 :version "1.1.1")
-    "Failed to validate user input for pkg 'sysdef/tools/gurp': pkg 'sysdef/tools/gurp' has unrecognised key(s): version"))
+    "unexpected property :version. Valid properties are :label"))
 
