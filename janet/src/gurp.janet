@@ -16,19 +16,6 @@
   types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
   to display help"
 
-   :pkgin
-   {:description "Install and uninstall pkgin packages. Only valid in a pkgsrc zone."
-    :name "Package name"
-    :optional {}
-    :mandatory {}}
-
-   :publisher
-   {:description "Add and remove pkg(5) publisher origins."
-    :name "Name of publisher"
-    :optional {}
-    :mandatory
-    {:uri ["Add a pkg publiser with this URI" :string]}}
-
    :route
    {:description "Manage routes. Note that default routes for zones should be handled
                  by the zone's :defrouter property."
@@ -236,8 +223,6 @@
 
 (def resource-remove-keys
   "Like resource-ensure-keys but for removing resources"
-   :pkgin {:optional {} :mandatory {}}
-   :publisher {:optional {} :mandatory {}}
    :smf {:optional {} :mandatory {}}
 
    :route
@@ -581,25 +566,6 @@
 
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
 
-(defn pkgin/ensure
-  "Given a a pkgin name, return a pkgin ensure struct."
-  [name & specs]
-  (collect :ensure :pkgin (make-resource :ensure :pkgin name specs)))
-
-(defn pkgin/remove
-  "Given a pkgin name, return a pkgin remove struct"
-  [name & specs]
-  (collect :remove :pkgin (make-resource :remove :pkgin name specs)))
-
-(defn publisher/ensure
-  "Given a a publisher name, return a publisher ensure struct"
-  [name & specs]
-  (collect :ensure :publisher (make-resource :ensure :publisher name specs)))
-
-(defn publisher/remove
-  "Given a publisher name, return a publisher remove struct"
-  [name & specs]
-  (collect :remove :publisher (make-resource :remove :publisher name specs)))
 
 (defn route/ensure
   "Given a route name and specification, return a route ensure struct"

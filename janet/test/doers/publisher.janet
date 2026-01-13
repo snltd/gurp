@@ -1,5 +1,6 @@
 (use judge)
-(use ../lib/gurp)
+(use ../../src/collector)
+(import ../../src/doers/publisher)
 
 (deftest "publisher-resources"
   (setdyn :role-dyn "test-role")
@@ -22,4 +23,4 @@
 (deftest "publisher-error"
   (test-error
     (publisher/ensure "sysdef")
-    "Failed to validate user input for publisher 'sysdef': publisher missing required key(s): uri"))
+    "did not find mandatory property :uri. Mandatory properties are :uri"))
