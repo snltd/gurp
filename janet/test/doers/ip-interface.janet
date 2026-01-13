@@ -5,7 +5,7 @@
 
 (deftest "ip-interface-protocol"
   (test
-  (ip-interface-protocol "ipv4"
+  (ip-interface/protocol "ipv4"
       :mtu 1500
       :forwarding true)
     [:protocols
@@ -18,10 +18,10 @@
   (ip-interface/ensure "test-vnic0")
 
   (ip-interface/ensure "test-vnic1"
-                       (ip-interface-protocol "ipv6"
+                       (ip-interface/protocol "ipv6"
                                     :mtu 1500
                                     :forwarding false)
-                       (ip-interface-protocol "ipv4"
+                       (ip-interface/protocol "ipv4"
                                     :mtu 1500
                                     :forwarding true))
 
