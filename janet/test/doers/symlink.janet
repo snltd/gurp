@@ -1,5 +1,7 @@
 (use judge)
-(use ../lib/gurp)
+(use ../../src/collector)
+(use ../../src/user-helpers)
+(import ../../src/doers/symlink)
 
 (deftest "symlink-resources"
   (set *collector* (new-collector))
@@ -25,10 +27,10 @@
 (deftest "symlink-resources"
   (test-error
     (symlink/ensure "/where/does/this/point")
-    "Failed to validate user input for symlink '/where/does/this/point': symlink missing required key(s): source")
+    "did not find mandatory property :source. Mandatory properties are :source")
 
   (test-error
     (symlink/ensure "/symlinks/dont/work/like/that"
                     :source "/some/file"
                     :owner "me")
-    "Failed to validate user input for symlink '/symlinks/dont/work/like/that': symlink '/symlinks/dont/work/like/that' has unrecognised key(s): owner"))
+    "unexpected property :owner. Valid properties are :source, :label"))
