@@ -23,10 +23,10 @@
   useful error than 'expected even number of arguments'"
   [& spec]
   (try
-    (struct ;(flatten spec))
+    (struct ;spec)
     ([e]
       (error
-        (string/format "unable to create struct from %p: %s" spec e)))))
+        (string/format "unable to create struct from %d arg(s):  %p: %s" (length spec)spec e)))))
 
 (defn checked-spec
   "Compares a user's spec against what a resource definiton expects. Raises
@@ -91,10 +91,10 @@
   []
   ~(do
      (def spec-struct (make-spec-struct spec))
-     (def all-specs (spec-with-defaults default-ensure-prop-values spec-struct))
+     (def all-specs (spec-with-defaults defaults-ensure spec-struct))
      (def safe-specs (checked-spec all-specs
-                                   mandatory-ensure-props
-                                   optional-ensure-props))
+                                   mandatory-props-ensure
+                                   optional-props-ensure))
 
      (spec->resource doer name safe-specs)))
 
@@ -103,10 +103,10 @@
   []
   ~(do
      (def spec-struct (make-spec-struct spec))
-     (def all-specs (spec-with-defaults default-remove-prop-values spec-struct))
+     (def all-specs (spec-with-defaults defaults-remove spec-struct))
      (def safe-specs (checked-spec all-specs
-                                   mandatory-remove-props
-                                   optional-remove-props))
+                                   mandatory-props-remove
+                                   optional-props-remove))
 
      (spec->resource doer name safe-specs)))
 
@@ -123,3 +123,31 @@
   (string/replace-all "/"
                       "_"
                       (string/join (map string (flatten chunks)) "-")))
+
+(defmacro table->flat-tuple
+  "Completely flattens a struct or table, including its keys"
+  [table]
+  ~(flatten (pairs ,table)))
+
+(defmacro expand-resource
+  "Group the results of in-resource functions like (zone-fs) into a list under
+  a single key. Partitions `modified-spec` items whose keys do or do not match
+  the given `key`. The matches ('is' group) are flattened into a single array
+  (or, if `:as-struct` is passed, reduced to the first matching struct) and
+  stored under `key`. Non-matching items ('is-not' group) are preserved."
+  [key &keys {:as-struct as-struct}]
+  (with-syms [$is-key $key-list $vals]
+    ~(do
+       (let [$is-key
+             (group-by
+               |(and (struct? $) (deep= @[,key] (keys $)))
+               modified-spec)]
+
+         (if-let [$key-list ($is-key true)]
+           (let [$vals (mapcat values $key-list)]
+             (set modified-spec
+                  (tuple
+                    ;(get $is-key false @[])
+                    ,key
+                    (if ,as-struct (first $vals) $vals)))))))))
+
