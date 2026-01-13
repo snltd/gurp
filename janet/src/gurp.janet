@@ -85,13 +85,6 @@
     :mandatory
     {:properties ["Properties to create. (:keyword :string|:boolean|:number)" :struct]}}
 
-   :symlink
-   {:description "Create and remove symbolic links."
-    :name "Qualified path to the link that will be created"
-    :optional {}
-    :mandatory
-    {:source ["The file the symlink points to" :string]}}
-
    :user
    {:description "Manage Unix users."
     :name "User's username"
@@ -694,16 +687,6 @@
   "Given a name and state, return a svcprop remove struct"
   [name & specs]
   (collect :remove :svcprop (make-resource :remove :svcprop name specs)))
-
-(defn symlink/ensure
-  "Given a symlink name and specification, return a symlink ensure struct"
-  [name & specs]
-  (collect :ensure :symlink (make-resource :ensure :symlink name specs)))
-
-(defn symlink/remove
-  "Given a symlink name and specification, return a symlink remove struct"
-  [name & specs]
-  (collect :remove :symlink (make-resource :remove :symlink name specs)))
 
 (defn user/ensure
   "Given a user name and specification, return a user ensure struct"

@@ -73,9 +73,10 @@
   "Decorate a spec struct with everything it needs to become a resource."
   [resource-type resource-name spec-struct]
   (def role (dyn :role-dyn "NO-ROLE"))
+  (def final-id-chunk (get spec-struct :label resource-name))
 
   (table/to-struct
-    (merge {:_id (resource-id resource-type role resource-name)
+    (merge {:_id (resource-id resource-type role final-id-chunk)
             :name resource-name
             :role role}
            spec-struct)))

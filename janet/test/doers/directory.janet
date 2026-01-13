@@ -21,7 +21,7 @@
   (directory/remove "/path/to/dir")
 
   (test *collector*
-    @{:ensure @{:directory @[{:_id "/test-role/directory/_path_to_dir"
+    @{:ensure @{:directory @[{:_id "/test-role/directory/my-dir"
                               :group "root"
                               :label "my-dir"
                               :mode "0700"
@@ -34,7 +34,7 @@
                               :name "/path/to/default/dir"
                               :owner "root"
                               :role "test-role"}
-                             {:_id "/test-role/directory/_highly_specified_dir"
+                             {:_id "/test-role/directory/all-the-specs"
                               :group "sysadmin"
                               :label "all-the-specs"
                               :mode "0700"

@@ -33,7 +33,7 @@
                          :name "loosely-specced"
                          :role "test-role"
                          :user "root"}
-                        {:_id "/test-role/cron/tightly-specced"
+                        {:_id "/test-role/cron/some-cron-job"
                          :command "/bin/thing arg1 arg2 arg3"
                          :day-of-month "*"
                          :day-of-week 5
