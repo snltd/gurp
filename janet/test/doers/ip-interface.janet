@@ -1,9 +1,8 @@
 (use judge)
 (use ../../src/collector)
-(use ../../src/doers/ip-interface-protocol)
 (import ../../src/doers/ip-interface)
 
-(deftest "ip-interface-protocol"
+(deftest "ip-interface/protocol"
   (test
   (ip-interface/protocol "ipv4"
       :mtu 1500
