@@ -23,30 +23,30 @@
   (cron/remove "that-old-cron-job")
 
   (test *collector*
-    @{:ensure @{:cron @[@{:_id "/test-role/cron/loosely-specced"
-                          :command "/bin/thing arg1 arg2 arg3"
-                          :day-of-month "*"
-                          :day-of-week "*"
-                          :hour "*"
-                          :minute 6
-                          :month-of-year "*"
-                          :name "loosely-specced"
-                          :role "test-role"
-                          :user "root"}
-                        @{:_id "/test-role/cron/tightly-specced"
-                          :command "/bin/thing arg1 arg2 arg3"
-                          :day-of-month "*"
-                          :day-of-week 5
-                          :hour 4
-                          :label "some-cron-job"
-                          :minute 6
-                          :month-of-year "*"
-                          :name "tightly-specced"
-                          :role "test-role"
-                          :user "test-user"}]}
-      :remove @{:cron @[@{:_id "/test-role/cron/that-old-cron-job"
-                          :name "that-old-cron-job"
-                          :role "test-role"}]}}))
+    @{:ensure @{:cron @[{:_id "/test-role/cron/loosely-specced"
+                         :command "/bin/thing arg1 arg2 arg3"
+                         :day-of-month "*"
+                         :day-of-week "*"
+                         :hour "*"
+                         :minute 6
+                         :month-of-year "*"
+                         :name "loosely-specced"
+                         :role "test-role"
+                         :user "root"}
+                        {:_id "/test-role/cron/tightly-specced"
+                         :command "/bin/thing arg1 arg2 arg3"
+                         :day-of-month "*"
+                         :day-of-week 5
+                         :hour 4
+                         :label "some-cron-job"
+                         :minute 6
+                         :month-of-year "*"
+                         :name "tightly-specced"
+                         :role "test-role"
+                         :user "test-user"}]}
+      :remove @{:cron @[{:_id "/test-role/cron/that-old-cron-job"
+                         :name "that-old-cron-job"
+                         :role "test-role"}]}}))
 
 (deftest "cron-error"
   (test-error

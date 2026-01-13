@@ -11,13 +11,13 @@
   (group/remove "old-group")
 
   (test *collector*
-    @{:ensure @{:group @[@{:_id "/test-role/group/new-group"
-                           :gid 264
-                           :name "new-group"
-                           :role "test-role"}]}
-      :remove @{:group @[@{:_id "/test-role/group/old-group"
-                           :name "old-group"
-                           :role "test-role"}]}}))
+    @{:ensure @{:group @[{:_id "/test-role/group/new-group"
+                          :gid 264
+                          :name "new-group"
+                          :role "test-role"}]}
+      :remove @{:group @[{:_id "/test-role/group/old-group"
+                          :name "old-group"
+                          :role "test-role"}]}}))
 
 (deftest "group-errors"
   (test-error

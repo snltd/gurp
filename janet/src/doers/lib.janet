@@ -74,10 +74,11 @@
   [resource-type resource-name spec-struct]
   (def role (dyn :role-dyn "NO-ROLE"))
 
-  (merge {:_id (resource-id resource-type role resource-name)
-          :name resource-name
-          :role role}
-         spec-struct))
+  (table/to-struct
+    (merge {:_id (resource-id resource-type role resource-name)
+            :name resource-name
+            :role role}
+           spec-struct)))
 
 (defn spec-with-defaults
   "Merge defaults with user values. We don't use prototypes now"

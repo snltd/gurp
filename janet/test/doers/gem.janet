@@ -11,17 +11,17 @@
   (gem/remove "webscale")
 
   (test *collector*
-    @{:ensure @{:gem @[@{:_id "/test-role/gem/wavefront-cli"
-                         :name "wavefront-cli"
-                         :role "test-role"
-                         :version "8.0.1"}
-                       @{:_id "/test-role/gem/my-gem"
-                         :name "my-gem"
-                         :role "test-role"
-                         :source "https://my-gem-repo.com"}]}
-      :remove @{:gem @[@{:_id "/test-role/gem/webscale"
-                         :name "webscale"
-                         :role "test-role"}]}}))
+    @{:ensure @{:gem @[{:_id "/test-role/gem/wavefront-cli"
+                        :name "wavefront-cli"
+                        :role "test-role"
+                        :version "8.0.1"}
+                       {:_id "/test-role/gem/my-gem"
+                        :name "my-gem"
+                        :role "test-role"
+                        :source "https://my-gem-repo.com"}]}
+      :remove @{:gem @[{:_id "/test-role/gem/webscale"
+                        :name "webscale"
+                        :role "test-role"}]}}))
 
 (deftest "gem-error"
   (test-error

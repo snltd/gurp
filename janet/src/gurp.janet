@@ -16,21 +16,6 @@
   types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
   to display help"
 
-   :network-flow
-   {:description "Manage network flows via flowadm."
-    :name "Name of flow. Must be unique"
-    :optional
-    {:local-ip ["Local IP address for flow, optional /mask" :string]
-     :remote-ip ["RemoteIP address for flow, optional /mask" :string]
-     :protocol ["Flow protocol" :string]
-     :local-port ["Local port of flow" :number]
-     :remote-port ["Remote port of flow" :number]
-     :dsfield ["With optional :mask" :string]
-     :maxbw ["Maximum duplex bandidth, with K, M or G suffix" :string]
-     :priority ["Priority of link: high, medium, low" :string]}
-    :mandatory
-    {:link ["NIC/VNIC to which flow applies" :string]}}
-
    :pkg
    {:description "Install and uninstall pkg(5) packages."
     :name "Package name, of the form 'ooce/editor/helix'"
@@ -604,31 +589,6 @@
     (string/join)))
 
 #---- RESOURCE ENSURE AND REMOVE ---------------------------------------------
-
-(defn ipnat/ensure
-  "Given a name and specification, return an ipnat ensure struct"
-  [name & specs]
-
-  (collect :ensure :ipnat (make-resource :ensure :ipnat name specs)))
-
-(defn ipnat/remove
-  "Given a name, return an ipnat remove struct"
-  [name]
-  (collect :remove :ipnat (make-resource :remove :ipnat name [])))
-
-(defn misc/ensure
-  [& specs]
-  (collect :ensure :misc (make-resource :ensure :misc (labelise ;specs) specs)))
-
-(defn network-flow/ensure
-  "Given a flow name and specification, return a network-flow ensure struct"
-  [name & specs]
-  (collect :ensure :network-flow (make-resource :ensure :network-flow name specs)))
-
-(defn network-flow/remove
-  "Given a flow name and specification, return a network-flow remove struct"
-  [name & specs]
-  (collect :remove :network-flow (make-resource :remove :network-flow name specs)))
 
 (defn pkg/ensure
   "Given a a pkg name, return a pkg ensure struct. In OmniOS, the

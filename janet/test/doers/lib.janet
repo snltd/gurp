@@ -61,9 +61,9 @@
 (deftest spec->resource
   (test (spec->resource
           :directory "/tmp/testdir" {:owner "rob" :group "sysadmin" :mode "0700"})
-    @{:_id "/NO-ROLE/directory/_tmp_testdir"
-      :group "sysadmin"
-      :mode "0700"
-      :name "/tmp/testdir"
-      :owner "rob"
-      :role "NO-ROLE"}))
+    {:_id "/NO-ROLE/directory/_tmp_testdir"
+     :group "sysadmin"
+     :mode "0700"
+     :name "/tmp/testdir"
+     :owner "rob"
+     :role "NO-ROLE"}))

@@ -28,16 +28,16 @@
   (ip-interface/remove "test-vnic3")
 
   (test *collector*
-    @{:ensure @{:ip-interface @[@{:_id "/test-role/ip-interface/test-vnic0"
-                                  :name "test-vnic0"
-                                  :role "test-role"}
-                                @{:_id "/test-role/ip-interface/test-vnic1"
-                                  :name "test-vnic1"
-                                  :protocols {"ipv4" {:forwarding true :mtu 1500}}
-                                  :role "test-role"}]}
-      :remove @{:ip-interface @[@{:_id "/test-role/ip-interface/test-vnic3"
-                                  :name "test-vnic3"
-                                  :role "test-role"}]}}))
+    @{:ensure @{:ip-interface @[{:_id "/test-role/ip-interface/test-vnic0"
+                                 :name "test-vnic0"
+                                 :role "test-role"}
+                                {:_id "/test-role/ip-interface/test-vnic1"
+                                 :name "test-vnic1"
+                                 :protocols {"ipv4" {:forwarding true :mtu 1500}}
+                                 :role "test-role"}]}
+      :remove @{:ip-interface @[{:_id "/test-role/ip-interface/test-vnic3"
+                                 :name "test-vnic3"
+                                 :role "test-role"}]}}))
 
 (deftest "ip-interface-error"
   (test-error

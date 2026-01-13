@@ -13,10 +13,10 @@
                                      :icmp {:max_buf 1234567}})
 
   (test *collector*
-    @{:ensure @{:ip-properties @[@{:_id "/test-role/ip-properties/general"
-                                   :name "general"
-                                   :properties {:icmp {:max_buf 1234567}
-                                                :ipv4 {:hostmodel "weak"}
-                                                :ipv6 {:hoplimit 123 :hostmodel "weak"}}
-                                   :role "test-role"}]}
+    @{:ensure @{:ip-properties @[{:_id "/test-role/ip-properties/general"
+                                  :name "general"
+                                  :properties {:icmp {:max_buf 1234567}
+                                               :ipv4 {:hostmodel "weak"}
+                                               :ipv6 {:hoplimit 123 :hostmodel "weak"}}
+                                  :role "test-role"}]}
       :remove @{}}))
