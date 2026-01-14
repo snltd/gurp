@@ -26,7 +26,7 @@
     (struct ;spec)
     ([e]
       (error
-        (string/format "unable to create struct from %d arg(s):  %p: %s" (length spec)spec e)))))
+        (string/format "unable to create struct from %d arg(s):  %p: %s" (length spec) spec e)))))
 
 (defn checked-spec
   "Compares a user's spec against what a resource definiton expects. Raises
@@ -40,13 +40,14 @@
            optional-props))
 
   (loop [[prop-name prop-spec] :pairs mandatory-props]
-    (if-let [prop-value (get spec-struct prop-name)]
-      (check-key-type prop-name prop-value (prop-spec :types))
+    (def prop-value (get spec-struct prop-name))
+    (if (nil? prop-value)
       (error
         (string/format
           "did not find mandatory property %p. Mandatory properties are %s"
           prop-name
-          (comma-sep (keys mandatory-props))))))
+          (comma-sep (keys mandatory-props))))
+      (check-key-type prop-name prop-value (prop-spec :types))))
 
   (loop [[prop-name prop-value] :pairs spec-struct]
     (if-not (has-key? mandatory-props prop-name) # we've already checked these
