@@ -7,11 +7,12 @@
   (string/join (map |(string/format "%p" $) list) ", "))
 
 (defn check-key-type
-  "Checks something is of a permissible type. Raises an error if it is not"
+  "Checks something is of a permissible type. Raises an error if it is not. Values
+  can *always* be keywords, because they denote references."
   [prop-name prop-value allowed-types]
   (def prop-type (type prop-value))
 
-  (if-not (has-value? allowed-types prop-type)
+    (if-not (or (= prop-type :keyword) (has-value? allowed-types prop-type))
     (error
       (string/format "%s is of type %v. Allowed types %s"
                      prop-name
