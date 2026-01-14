@@ -9,44 +9,6 @@
 
 # 
 # Definitions for the doers. Used to display help information, and to sanity-
-# check user input.
-# 
-(def resource-ensure-keys
-  "Pretty much the instructions for Gurp. Defines the specs for all resource
-  types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
-  to display help"
-
-    :mandatory {}}
-
-   :zone
-   {:description "Create and destroy zones. Existing zones cannot be modified."
-    :name "Zone name"
-    :optional
-    {:attr ["See 'zone-attr'"]
-     :autoboot ["Boot the zone on system boot" :string]
-     :bhyve ["See 'zone-bhyve'"]
-     :boot-after-install ["Boot the zone n it is installed" :string]
-     :bootstrap ["See 'zone-bootstrap'"]
-     :bootstrap-from ["Copy gurp into the zone, and apply the given file, relative to zone root" :string]
-     :capped-memory ["Set memory cap. Keys must be :physical and :swap, values are strings like '4G'" :struct]
-     :clone-from ["Instead of installing, clone from the given zone, which must exist and be halted" :string]
-     :copy-in ["Copy files into the zone. Key (keyword) is src, val is dest, relative to zone root. Unqualified src is assumed to be in ../files/" :struct]
-     :datasets ["ZFS datasets (as strings) to be delegated to zone" :tuple]
-     :dns ["DNS info. :domain is a string; :nameservers a tuple of strings" :struct]
-     :exec-in ["Runs the given commands (:string) in the zone after booting" :tuple]
-     :final-state ["Put the zone in the given state. Also accepts 'reboot'" :string]
-     :fs ["See 'zone-fs'"]
-     :ip-type ["IP type: exclusive or shared" :string]
-     :hostid ["Force this hostid for the zone" :string]
-     :limitpriv ["List of privileges to add to zone" :tuple]
-     :lx-image ["Install zone using this image. See docs for pattern rules" :string]
-     :net ["See 'zone-network'"]
-     :pool ["Resource pool to which zone should belong" :string]
-     :rctl ["See 'zone-rctl'"]
-     :recreate ["1-in-n chance the zone will be destroyed and recreated" :number]
-     :zonepath ["Path to zone root" :string]}
-    :mandatory
-    {:brand ["Zone brand" :string]}}
 
    :zone-attr
    {:description "Set attributes on a zone being created by the zone doer."
@@ -79,16 +41,6 @@
      :hostname ["hostname of client being bootstrapped" :string]
      :file ["fully qualified path of file in zone which will be used to bootstrap" :string]}}
 
-   :zone-network
-   {:description "Describe network configuration of a zone resource."
-    :name "Zone VNIC, which may already exist"
-    :optional
-    {:global-nic ["Physical NIC on which to create zone VNIC" :string]
-     :allowed-address ["IP address, with /netmask" :string]
-     :defrouter ["IP address of default router" :string]}
-    :mandatory
-    {:physical ["Zone VNIC. This is the name of the resource, and is not specified with a key" :string]}}
-
    :zone-rctl
    {:description "Define a resource control when creating a zone."
     :name "RCTL name"
@@ -107,11 +59,6 @@
     :mandatory
     {:dir ["Mountpoint in zone. This is the name of the resource, and is not specified with a key" :string]
      :special ["The directory in the global zone" :string]}}})
-
-(def resource-remove-keys
-  "Like resource-ensure-keys but for removing resources"
-
-   :zone {:optional {} :mandatory {}}})
 
 # For now this is a shim around the hardcoded fallbacks. In the future we'll
 # let the user supply their own. Not sure how, yet.
@@ -418,34 +365,6 @@
   (collect :remove :route (make-resource :remove :route name specs)))
 
 
-(defn zone/ensure
-  "Given a zone name and specification, return a zone ensure struct"
-  [name & specs]
-  (var modified-specs specs)
-  (expand-resource :net)
-  (expand-resource :attr)
-  (expand-resource :fs)
-  (expand-resource :rctl)
-  (expand-resource :bhyve :as-struct true)
-  (expand-resource :bootstrap :as-struct true)
-  (let [result (make-resource :ensure :zone name modified-specs)
-        resource (struct/to-table (result :zone))]
-
-    (if-let [copy-resource (resource :copy-in)]
-      (set (resource :copy-in)
-           (table/to-struct
-             (zipcoll (map qualify-from-path (keys copy-resource))
-                      (values copy-resource)))))
-
-    (if-not (has-key? resource :zonepath)
-      (set (resource :zonepath) (pathcat "/zones" name)))
-
-    (collect :ensure :zone {:zone (table/to-struct resource)})))
-
-(defn zone/remove
-  "Given a zone name and specification, return a zone remove struct"
-  [name & specs]
-  (collect :remove :zone (make-resource :remove :zone name specs)))
 
 (defn zone-attr
   "Given specs, return a zone attr struct. This is embedded in a zone/ensure"
@@ -503,17 +422,6 @@
     (validate-spec :ensure :zone-fs mountpoint (table->flat-tuple spec-struct))
     (struct :fs spec-struct)))
 
-(defn zone-network
-  "Given specs, return a zone network struct. This is embedded in a zone/ensure"
-  [physical & specs]
-  (let [spec-struct
-        (->>
-          (splice specs)
-          (struct/with-proto (proto :ensure :zone-network) :physical physical)
-          (struct/proto-flatten))]
-
-    (validate-spec :ensure :zone-network physical (table->flat-tuple spec-struct))
-    (struct :net spec-struct)))
 
 (defn zone-rctl
   "Given specs, return a zone rctl struct. This is embedded in a zone/ensure"
