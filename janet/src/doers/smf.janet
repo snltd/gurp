@@ -1,4 +1,7 @@
 (use ./lib)
+(import ./smf/dependency :prefix "" :export true)
+(import ./smf/dependent :prefix "" :export true)
+(import ./smf/method :prefix "" :export true)
 (import ../collector)
 
 (def doer :smf)
@@ -83,109 +86,3 @@
   "Given an apk package name, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
-
-(def allowed-methods ["start" "stop" "refresh" "reload"])
-(def optional-props-method
-  {:user {:types [:string]
-          :help "User the method runs as"}
-   :group {:types [:string]
-           :help "Group the method runs as"}
-   :privileges {:types [:tuple]
-                :help "Privileges the method has. Use ! to remove them"}
-   :environment {:types [:struct :table]
-                 :help "Environment variables set inside context"}})
-(def mandatory-props-method
-  {:exec
-   {:types [:string]
-    :help "Method or command to execute"}
-   :timeout
-   {:types [:number]
-    :help "Seconds until method times out"}})
-
-(def defaults-method {:timeout 60})
-(def context-props [:user :group :privileges :environment])
-
-(defn method
-  "Produce an SMF exec_method, with a context"
-  [name & spec]
-  (if-not (has-value? allowed-methods name)
-    (error
-      (string "smf/method name must be one of " (comma-sep allowed-methods))))
-
-  (def spec-table (spec-with-defaults defaults-method (make-spec-struct ;spec)))
-
-  # We have to move context related properties (context-props) into a
-  # :context struct
-
-  (var context-table @{})
-
-  (loop [prop :in context-props]
-    (when-let [spec-value (get spec-table prop)]
-    (def value-to-move (if (= prop :privileges)
-                         (string/join spec-value ",")
-                         spec-value))
-
-    (set (context-table prop) value-to-move)
-    (set (spec-table prop) nil)))
-
-  (if-not (empty? context-table)
-    (set (spec-table :context) (table/to-struct context-table)))
-
-  (struct (keyword (string name "-method")) spec-table))
-
-
-(def description-dependency "Defines a dependency of an SMF service, inside an
-                            smf resource.")
-(def name-dependency "Any convenient name - not used internally")
-(def optional-props-dependency
-  {:restart-on {:types [:string]
-                :help "Policy for restarting this service if dependency restarts"}
-   :grouping {:types [:string]
-              :help "Which dependencies are required by this service"}
-   :type {:types [:string]
-          :help "Type of dependency"}})
-(def mandatory-props-dependency
-  {:name {:types [:string]
-          :help "Convenient name for dependency, derived from resource name"}
-   :fmri {:types [:string]
-          :help "Dependency FMRI"}})
-
-(def defaults-dependency
-  {:restart-on "none"
-   :grouping "require_all"
-   :type "service"})
-
-(defn dependency
-  "A convenience function to help produce an SMF dependency"
-  [name & spec]
-  (def spec-struct (checked-spec (make-spec-struct :name name ;spec) mandatory-props-dependency optional-props-dependency))
-  (def all-specs (spec-with-defaults defaults-dependency spec-struct))
-  (struct :dependencies all-specs))
-
-(def description-dependent "Defines a dependent of an SMF service, inside an
-                            smf resource.")
-(def name-dependent "Any convenient name - not used internally")
-(def optional-props-dependent
-  {:restart-on {:types [:string]
-                :help "Policy for restarting this service if dependent restarts"}
-   :grouping {:types [:string]
-              :help "Which dependencies are required by this service"}
-   :type {:types [:string]
-          :help "Type of dependent"}})
-(def mandatory-props-dependent
-  {:name {:types [:string]
-          :help "Convenient name for dependency, derived from resource name"}
-   :fmri {:types [:string]
-          :help "Dependent FMRI"}})
-
-(def defaults-dependent
-  {:restart-on "none"
-   :grouping "require_all"
-   :type "service"})
-
-(defn dependent
-  "A convenience function to help produce an SMF dependent"
-  [name & spec]
-  (def spec-struct (checked-spec (make-spec-struct :name name ;spec) mandatory-props-dependency optional-props-dependency))
-  (def all-specs (spec-with-defaults defaults-dependent spec-struct))
-  (struct :dependencies all-specs))

@@ -2,73 +2,7 @@
 (use ../../src/collector)
 (import ../../src/doers/smf)
 
-(deftest method
-  (test
-    (smf/method "start"
-                :exec "/opt/site/lib/smf/method/telegraf.sh"
-                :user "telegraf"
-                :group "daemon"
-                :privileges ["basic" "file_dac_search" "sys_admin"
-                             "proc_owner" "proc_zone"])
-    {:start-method @{:context {:group "daemon"
-                               :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"
-                               :user "telegraf"}
-                     :exec "/opt/site/lib/smf/method/telegraf.sh"
-                     :timeout 60}}))
-
-(deftest dependency
-  (test
-    (smf/dependency "svc1" :fmri "svc://test/svc1:default")
-    {:dependencies @{:fmri "svc://test/svc1:default"
-                     :grouping "require_all"
-                     :name "svc1"
-                     :restart-on "none"
-                     :type "service"}})
-  (test
-    (smf/dependency "svc2"
-                    :grouping "optional-all"
-                    :restart-on "error"
-                    :fmri "svc://example/service2:default")
-    {:dependencies @{:fmri "svc://example/service2:default"
-                     :grouping "optional-all"
-                     :name "svc2"
-                     :restart-on "error"
-                     :type "service"}})
-
-  (test-error
-    (smf/dependency "svc1" :service "svc://test/svc1:default")
-    "did not find mandatory property :fmri. Mandatory properties are :name, :fmri")
-  (test-error
-    (smf/dependency "svc1" :fmri "svc://test/svc1:default" :junk "junk")
-    "unexpected property :junk. Valid properties are :name, :fmri, :grouping, :type, :restart-on, :label"))
-
-(deftest dependent
-  (test
-    (smf/dependent "svc1" :fmri "svc://test/svc1:default")
-    {:dependencies @{:fmri "svc://test/svc1:default"
-                     :grouping "require_all"
-                     :name "svc1"
-                     :restart-on "none"
-                     :type "service"}})
-  (test
-    (smf/dependent "svc2"
-                   :grouping "optional-all"
-                   :restart-on "error"
-                   :fmri "svc://example/service2:default")
-    {:dependencies @{:fmri "svc://example/service2:default"
-                     :grouping "optional-all"
-                     :name "svc2"
-                     :restart-on "error"
-                     :type "service"}})
-
-  (test-error
-    (smf/dependent "svc1" :service "svc://test/svc1:default")
-    "did not find mandatory property :fmri. Mandatory properties are :name, :fmri")
-  (test-error
-    (smf/dependent "svc1" :fmri "svc://test/svc1:default" :junk "junk")
-    "unexpected property :junk. Valid properties are :name, :fmri, :grouping, :type, :restart-on, :label"))
-
-(deftest "smf-resources"
+(deftest smf
   (set *collector* (new-collector))
 
   (smf/ensure "telegraf"
@@ -117,7 +51,6 @@
                             :stop-method {:exec ":kill" :timeout 10}}]}
           :remove @{}}))
 
-(deftest "smf-error"
   (test-error
     (smf/ensure "telegraf"
                 :description "Run Telegraf agent"
@@ -133,5 +66,4 @@
                             :exec "/opt/site/lib/smf/method/telegraf.sh"
                             :user "telegraf"
                             :group "daemon"))
-    "did not find mandatory property :fmri. Mandatory properties are :fmri"))
-
+    "did not find mandatory property :fmri. Mandatory properties are :fmri")
