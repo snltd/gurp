@@ -5,10 +5,10 @@
 (def description "Manage cron jobs. Crontab entries are prefixed with a
                   machine-generated string.")
 (def name-is "Convenient name for job.")
-(def mandatory-ensure-props
+(def mandatory-props-ensure
   {:command {:types [:string]
              :help "Command which runs"}})
-(def optional-ensure-props
+(def optional-props-ensure
   {:day-of-month {:types [:string :number]
                   :help "Day(s) of month on which job runs"}
    :day-of-week {:types [:string :number]
@@ -21,16 +21,16 @@
                    :help "Month(s) in which job runs"}
    :user {:types [:string]
           :help "Username which runs job. Must already exist"}})
-(def mandatory-remove-props {})
-(def optional-remove-props {})
-(def default-ensure-prop-values
+(def mandatory-props-remove {})
+(def optional-props-remove {})
+(def defaults-ensure
   {:hour "*"
    :minute "*"
    :day-of-month "*"
    :day-of-week "*"
    :month-of-year "*"
    :user "root"})
-(def default-remove-prop-values {})
+(def defaults-remove {})
 
 (defn ensure
   "Given a cron job name and spec, put an ensure struct in the collector"

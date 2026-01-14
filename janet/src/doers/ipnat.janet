@@ -4,18 +4,18 @@
 (def doer :ipnat)
 (def description "Set or remove NAT rules.")
 (def name-is "Any convenient name: not used internally")
-(def mandatory-ensure-props
+(def mandatory-props-ensure
   {:priority {:types [:number]
               :help "NAT rule resources are ordered by priority, lowest number first"}})
-(def optional-ensure-props
+(def optional-props-ensure
   {:from {:types [:string]
           :help "Apply rules in the given file. If relative, looks in ../files"}
    :content {:types [:string]
              :help "Apply these rules. Must have :content xor :from"}})
-(def mandatory-remove-props {})
-(def optional-remove-props {})
-(def default-ensure-prop-values {})
-(def default-remove-prop-values {})
+(def mandatory-props-remove {})
+(def optional-props-remove {})
+(def defaults-ensure {})
+(def defaults-remove {})
 
 (defn ensure
   "Given rules or a path to a rules file, put an ensure struct in the collector"

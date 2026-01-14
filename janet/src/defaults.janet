@@ -21,24 +21,6 @@
     :route
     {:force-gateway false}
     
-    :smf
-    {:single-instance true
-     :stop-method {:exec ":kill" :timeout 10}
-     :default-enabled true}
-
-    :smf-method
-    {:timeout 60}
-
-    :smf-dependency
-    {:restart-on "none"
-     :grouping "require_all"
-     :type "service"}
-
-    :smf-dependent
-    {:restart-on "none"
-     :grouping "require_all"
-     :type "service"}
-
     :svc
     {:state "online"
      :restarted-by []

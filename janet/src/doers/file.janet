@@ -5,8 +5,8 @@
 (def doer :file)
 (def description "Create files from multiple sources, or remove them.")
 (def name-is "Fully qualified path to file")
-(def mandatory-ensure-props {})
-(def optional-ensure-props
+(def mandatory-props-ensure {})
+(def optional-props-ensure
   {:backup-suffix {:types [:string]
                    :help "Back up the file with this suff. Use 'TIMESTAMP' for
                           an epoch timestamp"}
@@ -33,10 +33,10 @@
                          :from-url"}
    :content {:types [:string]
              :help "Literal content of the file. Must have :content xor :from"}})
-(def mandatory-remove-props {})
-(def optional-remove-props {})
-(def default-ensure-prop-values {})
-(def default-remove-prop-values {})
+(def mandatory-props-remove {})
+(def optional-props-remove {})
+(def defaults-ensure {})
+(def defaults-remove {})
 
 (defn- server-url
   [server-name from-path]
@@ -46,7 +46,7 @@
   "Given a file path and spec, put an ensure struct in the collector. If Gurp is
    running as a server, changes local file references into HTTP ones."
   [name & spec]
-  (def spec-table (struct/to-table (make-spec-struct spec)))
+  (def spec-table (struct/to-table (make-spec-struct ;spec)))
 
   (if-let [from-path (spec-table :from)]
   (if-let [server-name (dyn :server-name)]
@@ -59,10 +59,10 @@
             (qualify-from-path from-path))]
       (set (spec-table :from) url-or-qualified-path))))
 
-  (def all-specs (spec-with-defaults default-ensure-prop-values spec-table))
+  (def all-specs (spec-with-defaults defaults-ensure spec-table))
   (def safe-specs (checked-spec all-specs
-                                mandatory-ensure-props
-                                optional-ensure-props))
+                                mandatory-props-ensure
+                                optional-props-ensure))
 
   (collector/push :ensure doer (spec->resource doer name safe-specs)))
 

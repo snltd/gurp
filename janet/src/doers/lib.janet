@@ -90,7 +90,7 @@
   "Pulls together some boilerplate in doer ensure functions"
   []
   ~(do
-     (def spec-struct (make-spec-struct spec))
+     (def spec-struct (make-spec-struct ;spec))
      (def all-specs (spec-with-defaults defaults-ensure spec-struct))
      (def safe-specs (checked-spec all-specs
                                    mandatory-props-ensure
@@ -102,7 +102,7 @@
   "Pulls together some boilerplate in doer remove functions"
   []
   ~(do
-     (def spec-struct (make-spec-struct spec))
+     (def spec-struct (make-spec-struct ;spec))
      (def all-specs (spec-with-defaults defaults-remove spec-struct))
      (def safe-specs (checked-spec all-specs
                                    mandatory-props-remove

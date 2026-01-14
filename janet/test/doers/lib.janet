@@ -47,7 +47,7 @@
 
 (deftest make-spec-struct
   (test (make-spec-struct :a 1 :b 2 :c 3) {:a 1 :b 2 :c 3})
-  (test (make-spec-struct []) {})
+  (test (make-spec-struct ;[]) {})
   (test (make-spec-struct) {})
 
   (test-error

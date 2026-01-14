@@ -7,21 +7,21 @@
    the owner/group/mode of the gurp process. Removal always removes directory
    contents.")
 (def name-is "Fully qualified path to directory")
-(def mandatory-ensure-props
+(def mandatory-props-ensure
   {:group {:types [:string :number]
            :help "The group name or GID of the for this directory"}
    :mode {:types [:string]
           :help "Permissions, written as a four-digit octal"}
    :owner {:types [:string :number]
            :help "The username or UID of the user who owns this directory"}})
-(def optional-ensure-props {})
-(def mandatory-remove-props {})
-(def optional-remove-props {})
-(def default-ensure-prop-values
+(def optional-props-ensure {})
+(def mandatory-props-remove {})
+(def optional-props-remove {})
+(def defaults-ensure
   {:owner "root"
    :mode "0755"
    :group "root"})
-(def default-remove-prop-values {})
+(def defaults-remove {})
 
 (defn ensure
   "Given a directory path and spec, put an ensure struct in the collector"

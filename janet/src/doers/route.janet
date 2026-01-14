@@ -5,8 +5,8 @@
 (def description "Manage routes. Note that default routes for zones should be
                  handled by the zone's :defrouter property.")
 (def name-is "The route destination, e.g. 10.10.0.0/16")
-(def mandatory-ensure-props {})
-(def optional-ensure-props
+(def mandatory-props-ensure {})
+(def optional-props-ensure
   {:flags {:types [:struct]
            :help "Key-value pairs for flags. If the flag does not take a value,
                   use true"}
@@ -20,14 +20,14 @@
                :help "Interface for given route. Conflicts with :gateway"}
    :type {:types [:string]
           :help "Type of route: e.g. 'blackhole', 'reject'"}})
-(def mandatory-remove-props
+(def mandatory-props-remove
   {:gateway {:types [:string]
              :help "Gateway for given route. For a default route specify
                    'default'"}})
-(def optional-remove-props {})
-(def default-ensure-prop-values
+(def optional-props-remove {})
+(def defaults-ensure
   {:force-gateway false})
-(def default-remove-prop-values {})
+(def defaults-remove {})
 
 (defn ensure
   "Given a route destination and spec, put an ensure struct in the collector"

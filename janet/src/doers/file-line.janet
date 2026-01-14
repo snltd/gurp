@@ -8,8 +8,8 @@
 (def match-allowed ["exact" "starts_with" "ends_with" "contains" "matches"])
 (def apply-to-allowed ["all" "first" "last"])
 
-(def mandatory-ensure-props {})
-(def optional-ensure-props
+(def mandatory-props-ensure {})
+(def optional-props-ensure
   {:insert-at {:types [:number]
                :help "If a new line must be added, it will go at this index"}
    :line {:types [:string]
@@ -21,17 +21,17 @@
    :apply-to {:types [:string]
               :help (string "Which matches to act on when replacing: "
                             (comma-sep apply-to-allowed))}})
-(def mandatory-remove-props
+(def mandatory-props-remove
   {:pattern {:types [:string]
              :help "The line or pattern which must be removed"}})
-(def optional-remove-props
+(def optional-props-remove
   {:match {:types [:string]
            :help (string "How to match the line: " (comma-sep match-allowed))}
    :apply-to {:types [:string]
               :help (string "Which matches to act on: "
                             (comma-sep apply-to-allowed))}})
-(def default-ensure-prop-values {})
-(def default-remove-prop-values {:match "exact"
+(def defaults-ensure {})
+(def defaults-remove {:match "exact"
                                  :apply-to "all"})
 
 (defn ensure
@@ -42,7 +42,7 @@
 (defn remove
   "Given a path and specification, put a remove struct in the collector"
   [name & spec]
-  (def spec-struct (make-spec-struct spec))
+  (def spec-struct (make-spec-struct ;spec))
 
   (if-let [match-val (spec-struct :match)]
     (if-not (has-value? match-allowed match-val)
@@ -55,9 +55,9 @@
       (error
         (string "type must be one of " (comma-sep apply-to-allowed)))))
 
-  (def all-specs (spec-with-defaults default-remove-prop-values spec-struct))
+  (def all-specs (spec-with-defaults defaults-remove spec-struct))
   (def safe-specs (checked-spec all-specs
-                                mandatory-remove-props
-                                optional-remove-props))
+                                mandatory-props-remove
+                                optional-props-remove))
 
   (collector/push :remove doer (spec->resource doer name safe-specs)))

@@ -4,10 +4,10 @@
 (def doer :network-flow)
 (def description "Manage network flows via flowadm.")
 (def name-is "Name of flow. Must be unique")
-(def mandatory-ensure-props
+(def mandatory-props-ensure
   {:link {:types [:string]
           :help "NIC/VNIC to which flow applies"}})
-(def optional-ensure-props
+(def optional-props-ensure
   {:local-ip {:types [:string]
               :help "Local IP address for flow, optional /mask"}
    :remote-ip {:types [:string]
@@ -24,10 +24,10 @@
            :help "Maximum duplex bandidth, with K, M or G suffix"}
    :priority {:types [:string]
               :help "Priority of link: high, medium, low"}})
-(def mandatory-remove-props {})
-(def optional-remove-props {})
-(def default-ensure-prop-values {})
-(def default-remove-prop-values {})
+(def mandatory-props-remove {})
+(def optional-props-remove {})
+(def defaults-ensure {})
+(def defaults-remove {})
 
 (defn ensure
   "Given a name and spec, put an ensure struct in the collector"

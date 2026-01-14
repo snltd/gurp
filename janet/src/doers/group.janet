@@ -4,14 +4,14 @@
 (def doer :group)
 (def description "Create and destroy Unix groups.")
 (def name-is "Group name")
-(def mandatory-ensure-props
+(def mandatory-props-ensure
   {:gid {:types [:number]
          :help "The group ID"}})
-(def optional-ensure-props {})
-(def mandatory-remove-props {})
-(def optional-remove-props {})
-(def default-ensure-prop-values {})
-(def default-remove-prop-values {})
+(def optional-props-ensure {})
+(def mandatory-props-remove {})
+(def optional-props-remove {})
+(def defaults-ensure {})
+(def defaults-remove {})
 
 (defn ensure
   "Given a group name and GID, put an ensure struct in the collector"

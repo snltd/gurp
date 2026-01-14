@@ -4,15 +4,15 @@
 (def doer :misc)
 (def description "A collection of things too small to deserve their own doer.")
 (def name-is "Package name")
-(def mandatory-ensure-props {})
-(def optional-ensure-props
+(def mandatory-props-ensure {})
+(def optional-props-ensure
   {:enable-smb {:types [:string]
                 :help "Enable SMB sharing for this username"}
    :nfs-domain {:types [:string]
                 :help "NFS domain name"}
    :scheduler {:types [:string]
                :help "The scheduler class to set via dispamdin"}})
-(def default-ensure-prop-values {})
+(def defaults-ensure {})
 
 (defn ensure
   "Sets miscellaneous system properties"

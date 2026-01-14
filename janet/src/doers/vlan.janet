@@ -4,16 +4,16 @@
 (def doer :vlan)
 (def description "Manage VLAN objects")
 (def name-is "VLAN name")
-(def optional-ensure-props {})
-(def mandatory-ensure-props
+(def optional-props-ensure {})
+(def mandatory-props-ensure
   {:over {:types [:string]
           :help "Physical link which will serve the VLAN"}
    :vlan-tag {:types [:number]
               :help "The VLAN tag ID"}})
-(def mandatory-remove-props {})
-(def optional-remove-props {})
-(def default-ensure-prop-values {})
-(def default-remove-prop-values {})
+(def mandatory-props-remove {})
+(def optional-props-remove {})
+(def defaults-ensure {})
+(def defaults-remove {})
 
 (defn ensure
   "Given a VNIC name ans spec, put an ensure struct in the collector"

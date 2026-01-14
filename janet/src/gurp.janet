@@ -16,47 +16,7 @@
   types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
   to display help"
 
-   :smf
-   {:description "Create and install a manifest for an SMF service."
-    :name "Short name of service. Not used internally"
-    :optional
-    {:dependencies ["See 'smf-dependency'"]
-     :dependents ["See 'smf-dependent'"]
-     :description ["What the service does" :string]
-     :duration ["Use this to specify 'transient' or 'wait' services" :string]
-     :properties ["Create/set properties.(:keyword :string|:boolean|:number)" :struct]
-     :property-groups ["Create property groups (:string)" :tuple]
-     :refresh-method ["See 'smf-method'"]
-     :single-instance ["Is this a single-instance service" :boolean]
-     :start-method ["See 'smf-method'"]
-     :stop-method ["See 'smf-method'"]
-     :default-enabled ["Start the service when the manifest installs" :boolean]}
-    :mandatory
-    {:fmri ["Service FMRI" :string]}}
-
-   :smf-dependency
-   {:description "Defines a dependency of an SMF service, inside an smf resource."
-    :name "Any convenient name"
-    :optional
-    {:restart-on ["Policy for restarting this service if dependency restarts" :string]
-     :grouping ["Which dependencies are required by this service" :string]
-     :type ["Type of dependency" :string]}
-    :mandatory
-    {:name ["The name of the dependency relationship" :string]
-     :fmri ["Dependency FMRI" :string]}}
-
-   :smf-dependent
-   {:description "Defines a dependent of an SMF service, inside an smf resource."
-    :name "Any convenient name"
-    :optional
-    {:restart-on ["Policy for restarting this service if dependent restarts" :string]
-     :grouping ["Which dependents are required by this service" :string]
-     :type ["Type of dependent" :string]}
-    :mandatory
-    {:name ["The name of the dependent relationship" :string]
-     :fmri ["Dependent FMRI" :string]}}
-
-   :svc
+  :svc
    {:description "Manage the state of an existing SMF service."
     :name "Any valid service FMRI"
     :optional
@@ -173,7 +133,6 @@
 
 (def resource-remove-keys
   "Like resource-ensure-keys but for removing resources"
-   :smf {:optional {} :mandatory {}}
 
    :svcprop
    {:optional
@@ -208,36 +167,8 @@
   [spec-table]
   (mapcat identity (pairs spec-table)))
 
-(defmacro- table->flat-tuple
-  "Completely flattens a struct or table, including its keys"
-  [table]
-  ~(flatten (pairs ,table)))
 
-(defn- expand-svc-property
-  "Turns a svcprop value into a struct describing a typed value"
-  [value]
-  (match (type value)
-    :keyword value
-    :number {:type "integer" :value value}
-    :boolean {:type "boolean" :value value}
-    _ {:type "astring" :value value}))
 
-(defmacro expand-resource
-  "Group the results of in-resource functions like (zone-fs) into a list under
-  a single key. Partitions `modified-specs` items whose keys do or do not match
-  the given `key`. The matches ('is' group) are flattened into a single array
-  (or, if `:as-struct` is passed, reduced to the first matching struct) and
-  stored under `key`. Non-matching items ('is-not' group) are preserved."
-  [key &keys {:as-struct as-struct}]
-  (with-syms [$is-key $key-list $vals]
-    ~(do
-       (let [$is-key
-             (group-by |(and (struct? $) (deep= @[,key] (keys $))) modified-specs)]
-
-         (if-let [$key-list ($is-key true)]
-           (let [$vals (mapcat values $key-list)]
-             (set modified-specs
-                  (tuple ;(get $is-key false @[]) ,key (if ,as-struct (first $vals) $vals)))))))))
 
 (defn check-unique-ids
   "If there are any duplicate resource IDs, throw an error"
@@ -523,87 +454,6 @@
   "Given a route name and specification, return a route remove struct"
   [name & specs]
   (collect :remove :route (make-resource :remove :route name specs)))
-
-(def smf-context-keys [:user :group :privileges :environment])
-
-(defn smf/ensure
-  "Given a name and a manifest description, return an SMF service ensure struct"
-  [name & specs]
-  (var modified-specs specs)
-  (expand-resource :dependencies)
-  (expand-resource :dependents)
-  (expand-resource :start-method :as-struct true)
-  (expand-resource :stop-method :as-struct true)
-  (expand-resource :restart-method :as-struct true)
-  (expand-resource :refresh-method :as-struct true)
-
-  (let [spec-table (table (splice modified-specs))]
-    (when (has-key? spec-table :properties)
-      (def expanded-properties
-        (struct
-          ;(map expand-svc-property (table->flat-tuple (spec-table :properties)))))
-      (set (spec-table :properties) expanded-properties))
-
-    (collect :ensure :smf (make-resource :ensure :smf name (table->tuple spec-table)))))
-
-(defn smf/remove
-  "Given a service name, return an SMF service remove struct"
-  [name & specs]
-  (collect :remove :smf (make-resource :remove :smf name specs)))
-
-(defn smf-dependency
-  "A convenience function to help produce an SMF dependency"
-  [name & specs]
-  (let [spec-struct
-        (->>
-          (splice specs)
-          (struct/with-proto (proto :ensure :smf-dependency) :name name)
-          (struct/proto-flatten))]
-
-    (validate-spec :ensure :smf-dependency name (table->flat-tuple spec-struct))
-    (struct :dependencies spec-struct)))
-
-(defn smf-dependent
-  "A convenience function to help produce an SMF dependent"
-  [name & specs]
-  (let [spec-struct
-        (->>
-          (splice specs)
-          (struct/with-proto (proto :ensure :smf-dependent) :name name)
-          (struct/proto-flatten))]
-
-    (validate-spec :ensure :smf-dependent name (table->flat-tuple spec-struct))
-    (struct :dependents spec-struct)))
-
-(defn smf-method
-  "A convenience function to help produce an SMF exec_method, with a context"
-  [action & specs]
-  (let [actions ["start" "stop" "refresh" "reload"]]
-    (if-not (has-value? actions action)
-      (error (string "action must be one of " (string/join actions ", ")))))
-
-  (let [spec-table (table (splice specs))
-        context-keys (filter |(has-value? smf-context-keys $) (keys spec-table))
-        context @{}]
-
-    (if-not (has-key? spec-table :exec)
-      (error "smf-method requires an :exec"))
-
-    (table/setproto spec-table (struct/to-table (proto :ensure :smf-method)))
-
-    (each k context-keys
-      (set (context k)
-           (if (= k :privileges)
-             (string/join (spec-table k) ",")
-             (spec-table k)))
-      (set (spec-table k) nil))
-
-    (if-not (empty? context)
-      (set (spec-table :context) (table/to-struct context)))
-
-    (struct
-      (keyword (string action "-method"))
-      (table/proto-flatten spec-table))))
 
 (defn svc/ensure
   "Given a name and state, return a svc ensure struct"

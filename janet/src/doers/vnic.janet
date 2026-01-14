@@ -4,19 +4,19 @@
 (def doer :vnic)
 (def description "Manage VNIC objects")
 (def name-is "VNIC name")
-(def optional-ensure-props
+(def optional-props-ensure
   {:vlan-tag {:types [:number]
               :help "Enable VLAN tagging with the given tag"}
    :with-interface {:types [:boolean]
                     :help "Whether to create an IP interface on the new VNIC"}})
-(def mandatory-ensure-props
+(def mandatory-props-ensure
   {:over {:types [:string]
           :help "Physical link which will serve the VNIC"}})
-(def mandatory-remove-props {})
-(def optional-remove-props {})
-(def default-ensure-prop-values
+(def mandatory-props-remove {})
+(def optional-props-remove {})
+(def defaults-ensure
   {:with-interface false})
-(def default-remove-prop-values {})
+(def defaults-remove {})
 
 (defn ensure
   "Given a VNIC name ans spec, put an ensure struct in the collector"

@@ -4,7 +4,7 @@
 (def doer :user)
 (def description "Manage Unix users")
 (def name-is "User's username")
-(def mandatory-ensure-props
+(def mandatory-props-ensure
   {:gecos {:types [:string]
            :help "User's name or description"}
    :home-dir {:types [:string]
@@ -15,17 +15,17 @@
            :help "User's shell"}
    :uid {:types [:number]
          :help "UID of user"}})
-(def optional-ensure-props
+(def optional-props-ensure
   {:other-groups {:types [:tuple]
                   :help "Group names (:string) or GIDs (:number) to which user belongs"}
    :password-hash {:types [:string]
                    :help "Hash to insert in /etc/shadow"}
    :profiles {:types [:tuple]
               :help "List of existing profiles (:string)"}})
-(def mandatory-remove-props {})
-(def optional-remove-props {})
-(def default-ensure-prop-values {})
-(def default-remove-prop-values {})
+(def mandatory-props-remove {})
+(def optional-props-remove {})
+(def defaults-ensure {})
+(def defaults-remove {})
 
 (defn ensure
   "Given an apk package name, put an ensure struct in the collector"

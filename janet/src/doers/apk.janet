@@ -4,12 +4,12 @@
 (def doer :apk)
 (def description "Install and uninstall APK packages. Only valid in an Alpine LX zone.")
 (def name-is "Package name")
-(def mandatory-ensure-props {})
-(def optional-ensure-props {})
-(def mandatory-remove-props {})
-(def optional-remove-props {})
-(def default-ensure-prop-values {})
-(def default-remove-prop-values {})
+(def mandatory-props-ensure {})
+(def optional-props-ensure {})
+(def mandatory-props-remove {})
+(def optional-props-remove {})
+(def defaults-ensure {})
+(def defaults-remove {})
 
 (defn ensure
   "Given an apk package name, put an ensure struct in the collector"

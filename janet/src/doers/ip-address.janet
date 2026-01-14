@@ -4,18 +4,18 @@
 (def doer :ip-address)
 (def description "Manages IP addresses via ipadm.")
 (def name-is "Address name, e.g. vnic0/v4")
-(def mandatory-ensure-props
+(def mandatory-props-ensure
   {:type {:types [:string]
           :help "Type of connection: 'static', 'dhcp'"}})
-(def optional-ensure-props
+(def optional-props-ensure
   {:address {:types [:string]
              :help "Local IP address with /netmask, if using static address"}
    :properties {:types [:struct]
                 :help "Struct of any valid ipadm addrprops"}})
-(def mandatory-remove-props {})
-(def optional-remove-props {})
-(def default-ensure-prop-values {})
-(def default-remove-prop-values {})
+(def mandatory-props-remove {})
+(def optional-props-remove {})
+(def defaults-ensure {})
+(def defaults-remove {})
 
 (defn ensure
   "Given an IP address spec, put an ensure struct in the collector"
