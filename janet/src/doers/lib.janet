@@ -118,13 +118,6 @@
      (length
        (filter |(has-value? required-keys $) (keys (make-spec-struct ;spec))))))
 
-(defn labelise
-  "Turns tokens into a safe label"
-  [& chunks]
-  (string/replace-all "/"
-                      "_"
-                      (string/join (map string (flatten chunks)) "-")))
-
 (defmacro table->flat-tuple
   "Completely flattens a struct or table, including its keys"
   [table]

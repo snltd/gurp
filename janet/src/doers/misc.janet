@@ -1,4 +1,5 @@
 (use ./lib)
+(use ../user-helpers)
 (import ../collector)
 
 (def doer :misc)
