@@ -16,12 +16,6 @@
   types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
   to display help"
 
-   :zfs
-   {:description "Create, destroy, and modify properties of ZFS filesystems."
-    :name "ZFS dataset name"
-    :optional
-    {:properties ["ZFS properties (:keyword) paired with desired value (:string)" :struct]
-     :size ["If specified, creates a ZFS volume of given size (e.g. '10G')" :string]}
     :mandatory {}}
 
    :zone
@@ -117,7 +111,6 @@
 (def resource-remove-keys
   "Like resource-ensure-keys but for removing resources"
 
-   :zfs {:optional {} :mandatory {}}
    :zone {:optional {} :mandatory {}}})
 
 # For now this is a shim around the hardcoded fallbacks. In the future we'll
@@ -276,15 +269,7 @@
   (keyword (string/join (tuple "" (this-role) ;args) "/")))
 
 
-(defn zfscat
-  "Joins tokens to make a ZFS dataset name"
-  [& chunks]
-  (if (nil? chunks)
-    (error "zfscat called with a nil"))
-  (->
-    (map |(string/trim $ "/") (tuple ;chunks))
-    (string/join "/")
-    (string/trim "/")))
+
 
 (defn parent
   "Returns the parent directory of the given path"
@@ -432,17 +417,6 @@
   [name & specs]
   (collect :remove :route (make-resource :remove :route name specs)))
 
-
-
-(defn zfs/ensure
-  "Given a zfs dataset name and specification, return a ZFS ensure struct"
-  [name & specs]
-  (collect :ensure :zfs (make-resource :ensure :zfs name specs)))
-
-(defn zfs/remove
-  "Given a zfs dataset name and specification, return a ZFS remove struct"
-  [name & specs]
-  (collect :remove :zfs (make-resource :remove :zfs name specs)))
 
 (defn zone/ensure
   "Given a zone name and specification, return a zone ensure struct"

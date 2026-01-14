@@ -1,5 +1,7 @@
 (use judge)
-(use ../lib/gurp)
+(use ../../src/collector)
+(use ../../src/user-helpers)
+(import ../../src/doers/zfs)
 
 (deftest "zfs-resources"
   (setdyn :role-dyn "test-role")
