@@ -13,9 +13,33 @@
   "Returns a multiline string, pairing doers with their descriptions. Used by
   Gurp's 'doers 'command"
   []
-  (def descriptions
-    [["directory" directory/description]
-     ["etherstub" etherstub/description]])
+  (def descriptions [["apk" apk/description]
+                     ["cron" cron/description]
+                     ["directory" directory/description]
+                     ["etherstub" etherstub/description]
+                     ["file-line" file-line/description]
+                     ["file" file/description]
+                     ["gem" gem/description]
+                     ["group" group/description]
+                     ["ip-address" ip-address/description]
+                     ["ip-interface" ip-interface/description]
+                     ["ip-properties" ip-properties/description]
+                     ["ipnat" ipnat/description]
+                     ["misc" misc/description]
+                     ["network-flow" network-flow/description]
+                     ["pkg" pkg/description]
+                     ["pkgin" pkgin/description]
+                     ["publisher" publisher/description]
+                     ["route" route/description]
+                     ["smf" smf/description]
+                     ["svc" svc/description]
+                     ["svcprop" svcprop/description]
+                     ["symlink" symlink/description]
+                     ["user" user/description]
+                     ["vlan" vlan/description]
+                     ["vnic" vnic/description]
+                     ["zfs" zfs/description]
+                     ["zone" zone/description]])
 
   (string/join
     (flatten
