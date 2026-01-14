@@ -40,4 +40,4 @@
     (zfs/ensure "pool/fs"
                 :properties {:mountpoint "none"}
                 :volume-size "100M")
-    "Failed to validate user input for zfs 'pool/fs': zfs 'pool/fs' has unrecognised key(s): volume-size"))
+    "unexpected property :volume-size. Valid properties are :properties, :size, :label"))
