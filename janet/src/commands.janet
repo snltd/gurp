@@ -1,11 +1,8 @@
 #
 # Interfaces called by the Gurp binary.
 # 
-(use ./doer-defs)
-(use ./defaults)
 (import ./formatting)
-(import ./doers/directory)
-(import ./doers/etherstub)
+(import ./doers :prefix "")
 
 (defn- doer-lookup
   [doer binding]
@@ -24,7 +21,6 @@
     (flatten
       (map |(formatting/description-wrapper ;$ 25 80) descriptions))
     "\n"))
-
 
 (defn- field-width
   "Returns the width of a field which can accomodate the longest value in list"

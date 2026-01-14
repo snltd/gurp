@@ -1,4 +1,4 @@
-(use ./lib)
+(import ./user-helpers :as lib :only [compact])
 
 (defn underline
   "Underline the given string"
@@ -25,7 +25,7 @@
   (print "pad-width " pad-width)
   (print "whole-width " whole-width)
   (let [pad (string/repeat " " pad-width)
-        raw-words (array ;(compact (string/split " " words)) nil)
+        raw-words (array ;(lib/compact (string/split " " words)) nil)
         coll @[]
         format-string (string "%" (- pad-width 2) "s ")]
 

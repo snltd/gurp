@@ -1,42 +1,41 @@
 (use judge)
-(use ../lib/gurp)
+(use ../src/gurp)
 
-(set *collector* (new-collector))
+(deftest end-to-end-test
+  (set *collector* (new-collector))
 
-(role devtools
-      (pkg/ensure "ooce/developer/rust")
-      (pkg/ensure "ooce/developer/git")
-      (file/ensure "/tmp/hx-config.txt"
-                   :owner :/devtools/file/git-config/owner
-                   :content "hx-config")
-      (file/ensure "/tmp/git-config.txt"
-                   :label "git-config"
-                   :owner :/basenode/directory/merp/owner
-                   :content "git-config"))
+  (role devtools
+        (pkg/ensure "ooce/developer/rust")
+        (pkg/ensure "ooce/developer/git")
+        (file/ensure "/tmp/hx-config.txt"
+                     :owner :/devtools/file/git-config/owner
+                     :content "hx-config")
+        (file/ensure "/tmp/git-config.txt"
+                     :label "git-config"
+                     :owner :/basenode/directory/merp/owner
+                     :content "git-config"))
 
-(role basenode
-      (section packages
-               (pkg/ensure "ooce/editor/helix")
-               (pkg/ensure "shell/zsh")
-               (pkg/ensure "network/netcat")
-               (pkg/ensure "network/openssh")
-               (pkg/ensure "network/openssh-server")
-               (pkg/ensure "network/rsync")
-               (pkg/remove "go"))
-      (file/ensure "/tmp/basenode.txt"
-                   :content "some words")
-      (directory/ensure "/tmp/merp"
-                        :label "merp"
-                        :owner "rob"
-                        :group "sysadmin"
-                        :mode "0755")
-      (directory/remove "/tmp/junk"))
+  (role basenode
+        (section packages
+                 (pkg/ensure "ooce/editor/helix")
+                 (pkg/ensure "shell/zsh")
+                 (pkg/ensure "network/netcat")
+                 (pkg/ensure "network/openssh")
+                 (pkg/ensure "network/openssh-server")
+                 (pkg/ensure "network/rsync")
+                 (pkg/remove "go"))
+        (file/ensure "/tmp/basenode.txt"
+                     :content "some words")
+        (directory/ensure "/tmp/merp"
+                          :label "merp"
+                          :owner "rob"
+                          :group "sysadmin")
+        (directory/remove "/tmp/junk"))
 
-(host "end-to-end"
-      (basenode)
-      (devtools))
+  (host "end-to-end"
+        (basenode)
+        (devtools))
 
-(deftest "produce-config-struct-for-rust"
   (test (machine-config)
         {:metadata {:name "end-to-end"}
          :resources
