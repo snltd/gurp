@@ -1,5 +1,4 @@
 (use ./lib)
-(use ./ip-interface-protocol)
 (import ../collector)
 
 (def doer :ip-interface)
@@ -9,7 +8,7 @@
 (def mandatory-props-ensure {})
 (def optional-props-ensure
   {:protocols
-   {:types [:struct]
+   {:types [:struct :table]
     :help "See 'ip-interface-protocol'"}})
 (def mandatory-props-remove {})
 (def optional-props-remove {})
@@ -17,8 +16,18 @@
 (def defaults-remove {})
 
 (defn ensure
-  "Given an IP interface spec, put an ensure struct in the collector"
-  [name & spec]
+  [name & temp-spec]
+  (def protocols @{})
+  (def spec @[])
+
+  (loop [[prop-name prop-value] :in (partition 2 (flatten temp-spec))]
+    (if (= (type prop-value) :struct) # making a big assumption here!
+      (set (protocols prop-name) prop-value)
+      (array/concat spec [prop-name prop-value])))
+
+  (if-not (empty? protocols)
+    (array/concat spec [:protocols protocols]))
+
   (collector/push :ensure doer (make-ensure-resource)))
 
 (defn remove
@@ -35,7 +44,6 @@
     :help "Struct of ipadm 'ifprop' properties, e.g. :mtu, :forwarding"}})
 
 (defn protocol
-  "Given specs, return config for an interface protocol. Key is protocol, values
-  are params"
+  "Given specs, return config for an interface protocol."
   [protocol & params]
-  [:protocols {protocol (struct ;params)}])
+  [protocol (make-spec-struct ;params)])
