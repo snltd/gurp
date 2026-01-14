@@ -1,5 +1,5 @@
 (use ./lib)
-(use ../lib)
+(use ../user-helpers)
 (import ../collector)
 
 (def doer :file)
@@ -35,7 +35,10 @@
              :help "Literal content of the file. Must have :content xor :from"}})
 (def mandatory-props-remove {})
 (def optional-props-remove {})
-(def defaults-ensure {})
+(def defaults-ensure
+  {:owner "root"
+   :mode "0644"
+   :group "root"})
 (def defaults-remove {})
 
 (defn- server-url
