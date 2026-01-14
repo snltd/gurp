@@ -14,7 +14,8 @@
     :help "If specified, creates a ZFS volume of given size (e.g. '10G')"}})
 (def mandatory-props-remove {})
 (def optional-props-remove {})
-(def defaults-ensure {})
+(def defaults-ensure
+  {:properties {:mountpoint: "none"}})
 (def defaults-remove {})
 
 (defn ensure

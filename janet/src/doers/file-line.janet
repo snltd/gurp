@@ -32,7 +32,7 @@
                             (comma-sep apply-to-allowed))}})
 (def defaults-ensure {})
 (def defaults-remove {:match "exact"
-                                 :apply-to "all"})
+                      :apply-to "all"})
 
 (defn ensure
   "Given a path and specification, put an ensure struct in the collector"

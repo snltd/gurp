@@ -1,5 +1,4 @@
 (use ./lib)
-(use ../lib)
 (use ../user-helpers)
 (import ./zone/attr :prefix "" :export true)
 (import ./zone/bhyve :prefix "" :export true)

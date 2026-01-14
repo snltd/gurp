@@ -24,7 +24,9 @@
               :help "List of existing profiles (:string)"}})
 (def mandatory-props-remove {})
 (def optional-props-remove {})
-(def defaults-ensure {})
+(def defaults-ensure
+  {:shell "/bin/zsh"
+   :primary-group "staff"})
 (def defaults-remove {})
 
 (defn ensure
