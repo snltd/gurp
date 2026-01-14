@@ -16,14 +16,6 @@
   types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
   to display help"
 
-   :svcprop
-   {:description "Manage properties of an existing SMF service."
-    :name "Any valid FMRI of the service whose properties you wish to set"
-    :optional
-    {:property-groups ["Property groups (:string) to create" :tuple]}
-    :mandatory
-    {:properties ["Properties to create. (:keyword :string|:boolean|:number)" :struct]}}
-
    :zfs
    {:description "Create, destroy, and modify properties of ZFS filesystems."
     :name "ZFS dataset name"
@@ -124,12 +116,6 @@
 
 (def resource-remove-keys
   "Like resource-ensure-keys but for removing resources"
-
-   :svcprop
-   {:optional
-    {:property-groups ["Property groups (:string) to create" :tuple]}
-    :mandatory
-    {:properties ["Properties to create. (:keyword :string|:boolean|:number)" :struct]}}
 
    :zfs {:optional {} :mandatory {}}
    :zone {:optional {} :mandatory {}}})
@@ -446,22 +432,7 @@
   [name & specs]
   (collect :remove :route (make-resource :remove :route name specs)))
 
-(defn svcprop/ensure
-  "Given a name and state, return a svcprop ensure struct"
-  [name & specs]
-  (let [result (make-resource :ensure :svcprop name specs)]
-    (var resource (struct/to-table (result :svcprop)))
 
-    (var new-properties
-      (map expand-svc-property (table->flat-tuple (resource :properties))))
-
-    (set (resource :properties) (struct ;new-properties))
-    (collect :ensure :svcprop (struct :svcprop (table/to-struct resource)))))
-
-(defn svcprop/remove
-  "Given a name and state, return a svcprop remove struct"
-  [name & specs]
-  (collect :remove :svcprop (make-resource :remove :svcprop name specs)))
 
 (defn zfs/ensure
   "Given a zfs dataset name and specification, return a ZFS ensure struct"

@@ -151,3 +151,11 @@
                     ,key
                     (if ,as-struct (first $vals) $vals)))))))))
 
+(defn expand-svc-property
+  "Turns a svcprop value into a struct describing a typed value"
+  [value]
+  (match (type value)
+    :keyword value
+    :number {:type "integer" :value value}
+    :boolean {:type "boolean" :value value}
+    _ {:type "astring" :value value}))
