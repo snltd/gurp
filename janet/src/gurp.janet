@@ -16,15 +16,6 @@
   types. Used by (validate-ensure-spec) to validate user input, and by (help-for)
   to display help"
 
-  :svc
-   {:description "Manage the state of an existing SMF service."
-    :name "Any valid service FMRI"
-    :optional
-    {:reloaded-by ["Labels of resources whose alteration triggers service restart" :tuple]
-     :restarted-by ["Labels of resources whose alteration triggers service restart" :tuple]}
-    :mandatory
-    {:state ["Desired state of service, e.g. 'online'" :string]}}
-
    :svcprop
    {:description "Manage properties of an existing SMF service."
     :name "Any valid FMRI of the service whose properties you wish to set"
@@ -454,20 +445,6 @@
   "Given a route name and specification, return a route remove struct"
   [name & specs]
   (collect :remove :route (make-resource :remove :route name specs)))
-
-(defn svc/ensure
-  "Given a name and state, return a svc ensure struct"
-  [name & specs]
-  (let [result (make-resource :ensure :svc name specs)]
-    (var resource (struct/to-table (result :svc)))
-
-    (if-let [restarters (resource :restarted-by)]
-      (set (resource :restarted-by) (map string restarters)))
-
-    (if-let [reloaders (resource :reloaded-by)]
-      (set (resource :reloaded-by) (map string reloaders)))
-
-    (collect :ensure :svc (struct :svc (table/to-struct resource)))))
 
 (defn svcprop/ensure
   "Given a name and state, return a svcprop ensure struct"

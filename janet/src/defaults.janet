@@ -22,9 +22,6 @@
     {:force-gateway false}
     
     :svc
-    {:state "online"
-     :restarted-by []
-     :reloaded-by []}
 
     :user
     {:shell "/bin/zsh"
