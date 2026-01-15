@@ -1,21 +1,30 @@
 (use judge)
-(use ../src/commands)
-(import ../src/formatting)
+(use ../src/gurp)
 
-(deftest "test-description-wrapper"
+(deftest list-doers
   (test
-    (formatting/description-wrapper
-      "test-doer"
-      "this is a sample test for the description wrapper test that ought to be
-      nicely wrapped to 80 columns with a lovely clean indent and no weird
-      spacing in the middle of a line."
-      20
-      80)
-    @["\e[1m         test-doer \e[0m this is a sample test for the description wrapper"
-      "                    test that ought to be nicely wrapped to 80 columns with a"
-      "                    lovely clean indent and no weird spacing in the middle of a"
-      "                    line."]))
+    (list-doers)
+    "                    apk  Install and uninstall APK packages. Only valid in an\n                         Alpine LX zone.\n                   cron  Manage cron jobs. Crontab entries are prefixed with a\n                         machine-generated string.\n              directory  Create and remove directories. Parents are created like\n                         mkdir -p, but with the owner/group/mode of the gurp\n                         process. Removal always removes directory contents.\n              etherstub  Create and destroy etherstubs.\n              file-line  Ensure lines do or do not exist in the given file.\n                   file  Create files from multiple sources, or remove them.\n                    gem  Install and uninstall Ruby gems.\n                  group  Create and destroy Unix groups.\n             ip-address  Manages IP addresses via ipadm.\n           ip-interface  Create and destroy IP interfaces, with optional\n                         properties. Properties are supplied with\n                         'ip-interface-protocol'.\n          ip-properties  Sets global IP properties, via 'ipadm set-prop'.\n                  ipnat  Set or remove NAT rules.\n                   misc  A collection of things too small to deserve their own\n                         doer.\n           network-flow  Manage network flows via flowadm.\n                    pkg  Install and uninstall pkg(5) packages.\n                  pkgin  Install and uninstall pkgin packages. Only valid in a\n                         pkgsrc zone.\n              publisher  Add and remove pkg(5) publisher origins.\n                  route  Manage routes. Note that default routes for zones should\n                         be handled by the zone's :defrouter property.\n                    smf  Create and install a manifest for an SMF service.\n                    svc  Manage the state of an existing SMF service.\n                svcprop  Manage properties of an existing SMF service.\n                symlink  Create and remove symbolic links.\n                   user  Manage Unix users\n                   vlan  Manage VLAN objects\n                   vnic  Manage VNIC objects\n                    zfs  Create, destroy, and modify properties of ZFS\n                         filesystems.\n                   zone  Create and destroy zones. Existing zones cannot be\n                         modified."))
 
-(deftest "list-doers"
-  (test (list-doers)
-  "\e[1m                    apk \e[0m Install and uninstall APK packages. Only valid\n                         in an Alpine LX zone.\n\e[1m                   cron \e[0m Manage cron jobs. Crontab entries are prefixed\n                         with a machine-generated string.\n\e[1m              directory \e[0m Create and remove directories. Parents are\n                         created like mkdir -p, but with the owner/group/mode of\n                         the gurp process. Removal always removes directory\n                         contents.\n\e[1m              etherstub \e[0m Create and destroy etherstubs.\n\e[1m                   file \e[0m Create files from multiple sources, or remove\n                         them.\n\e[1m              file-line \e[0m Ensure lines do or do not exist in the given\n                         file.\n\e[1m                    gem \e[0m Install and uninstall Ruby gems.\n\e[1m                  group \e[0m Create and destroy Unix groups.\n\e[1m             ip-address \e[0m Manages IP addresses via ipadm.\n\e[1m           ip-interface \e[0m Create and destroy IP interfaces, with optional\n                         properties. Properties are supplied with\n                         'ip-interface-protocol'.\n\e[1m  ip-interface-protocol \e[0m Sets IP interface properties for a given\n                         protocol.\n\e[1m          ip-properties \e[0m Sets global IP properties, via 'ipadm set-prop'.\n\e[1m                  ipnat \e[0m Set or remove NAT rules.\n\e[1m                   misc \e[0m A collection of things too small to deserve\n                         their own doer.\n\e[1m           network-flow \e[0m Manage network flows via flowadm.\n\e[1m                    pkg \e[0m Install and uninstall pkg(5) packages.\n\e[1m                  pkgin \e[0m Install and uninstall pkgin packages. Only valid\n                         in a pkgsrc zone.\n\e[1m              publisher \e[0m Add and remove pkg(5) publisher origins.\n\e[1m                  route \e[0m Manage routes. Note that default routes for\n                         zones should be handled by the zone's :defrouter\n                         property.\n\e[1m                    smf \e[0m Create and install a manifest for an SMF\n                         service.\n\e[1m         smf-dependency \e[0m Defines a dependency of an SMF service, inside\n                         an smf resource.\n\e[1m          smf-dependent \e[0m Defines a dependent of an SMF service, inside an\n                         smf resource.\n\e[1m                    svc \e[0m Manage the state of an existing SMF service.\n\e[1m                svcprop \e[0m Manage properties of an existing SMF service.\n\e[1m                symlink \e[0m Create and remove symbolic links.\n\e[1m                   user \e[0m Manage Unix users.\n\e[1m                   vlan \e[0m Manage VLAN objects.\n\e[1m                   vnic \e[0m Manage VNIC objects.\n\e[1m                    zfs \e[0m Create, destroy, and modify properties of ZFS\n                         filesystems.\n\e[1m                   zone \e[0m Create and destroy zones. Existing zones cannot\n                         be modified.\n\e[1m              zone-attr \e[0m Set attributes on a zone being created by the\n                         zone doer.\n\e[1m             zone-bhyve \e[0m Describe a bhyve zone inside a zone resource.\n\e[1m         zone-bootstrap \e[0m Tells gurp how to bootstrap a newly created\n                         zone.\n\e[1m                zone-fs \e[0m Define a filesystem mapping when creating a\n                         zone.\n\e[1m           zone-network \e[0m Describe network configuration of a zone\n                         resource.\n\e[1m              zone-rctl \e[0m Define a resource control when creating a zone."))
+(deftest help-for-doer
+  (test
+    (help-for-doer "directory")
+    "\e[1m\e[4mdirectory\e[0m\e[0m\n  Create and remove directories. Parents are created like mkdir -p, but with the\n  owner/group/mode of the gurp process. Removal always removes directory\n  contents.\n\n\e[1m\e[4mdirectory/ensure\e[0m\e[0m\n  \e[1mname\e[0m  [:string]  Fully qualified path to directory\n\n\e[1mMandatory properties\e[0m\n  \e[1mowner\e[0m [:string :number]  The username or UID of the user who owns this\n                           directory\n  \e[1mgroup\e[0m [:string :number]  The group name or GID of the for this\n                           directory\n  \e[1mmode\e[0m  [:string]          Permissions, written as a four-digit octal\n\n\e[1mOptional properties\e[0m\n  None\n\n\e[1m\e[4mdirectory/remove\e[0m\e[0m\n\n\e[1mMandatory properties\e[0m\n  None\n\n\e[1mOptional properties\e[0m\n  None\n"))
+
+(deftest help-for-sub-resource
+  (test
+    (help-for-sub-resource :zone :network)
+    "\e[1m\e[4mzone/network\e[0m\e[0m\n  Describe network configuration of a zone resource.\n\n  \e[1mname\e[0m  [:string]  Zone VNIC, which may already exist\n\n\e[1mMandatory properties\e[0m\n  \e[1mphysical\e[0m [:string]  Zone VNIC. This is the name of the resource, and is\n                      not specified with a key\n\n\e[1mOptional properties\e[0m\n  \e[1mglobal-nic\e[0m      [:string]  Physical NIC on which to create zone VNIC\n  \e[1mallowed-address\e[0m [:string]  IP address, with /netmask\n  \e[1mdefrouter\e[0m       [:string]  IP address of default router\n"))
+
+(deftest doer-lookup
+  (test
+    (doer-lookup :directory :description)
+    "Create and remove directories. Parents are created like mkdir -p, but with   the owner/group/mode of the gurp process. Removal always removes directory   contents.")
+
+  (test
+    (doer-lookup :zone :description-fs)
+    "Define a filesystem mapping when creating a zone.")
+
+  (test-error
+    (doer-lookup :wat :nothing)
+    "unknown symbol wat/nothing"))
