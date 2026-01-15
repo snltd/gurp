@@ -268,18 +268,18 @@ mod test {
             (zone/ensure "test-zone"
                 :brand "lipkg"
                 :autoboot false
-                (zone-network "test_net0"
+                (zone/network "test_net0"
                            :allowed-address "192.168.1.33/24"
                            :defrouter "192.168.1.1")
-                (zone-fs "/home" :special "/export/home")
+                (zone/fs "/home" :special "/export/home")
                 :capped-memory {
                     :physical "500M"
                     :swap "500M"
                 }
-                (zone-attr "numeric-attr" :value 123)
-                (zone-attr "bool-attr" :type "boolean" :value false)
-                (zone-attr "string-attr" :value "la-de-da")
-                (zone-rctl "zone.max-swap"
+                (zone/attr "numeric-attr" :value 123)
+                (zone/attr "bool-attr" :type "boolean" :value false)
+                (zone/attr "string-attr" :value "la-de-da")
+                (zone/rctl "zone.max-swap"
                     :priv "privileged"
                     :limit 524288000
                     :action "deny")

@@ -151,10 +151,10 @@ mod test {
     fn test_deserialize() {
         let json_def = janet2json(indoc! {r#"
            (ip-interface/ensure "test0"
-                                (ip-interface-protocol "ipv6"
+                                (ip-interface/protocol "ipv6"
                                                        :mtu 1500
                                                        :forwarding false)
-                                (ip-interface-protocol "ipv4"
+                                (ip-interface/protocol "ipv4"
                                                        :mtu 1505
                                                        :forwarding true))
           "#});
