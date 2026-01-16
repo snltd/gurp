@@ -49,8 +49,12 @@ gives you a few convenience functions and macros.
 - `(repeated-line-file format-string values)` returns a string, for use as a
   config file, where each of `values` is applied to a format string. Good for
   things like automount maps.
+- `(compact arr)` removes nil elements from an array or tuple.
+- `(qualified-path?` path)` returns true if the argument looks like a qualified
+  path.
+- `
 
 ### Dynamic Bindings
 
-- `*gurp-config-root*` is bound to the directory which contains your top-level
+- `:gurp-config-root` is bound to the directory which contains your top-level
   host config file.

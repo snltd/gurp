@@ -1,14 +1,21 @@
+## v 2.0.0
+
 Items marked [*] are breaking changes.
 
-- Sub-resources like `zone-fs` or `smf-method` are now referred to as `zone/fs` and `smf/method`. [*]
-- The front-end checks the types of resource properties, producing helpful error messages.
+- Sub-resources like `zone-fs` or `smf-method` are now referred to as `zone/fs`
+  and `smf/method`. [*]
+- The front-end checks the types of resource properties, producing helpful error
+  messages.
 - The front-end checks sub-resource properties and their types.
-- Huge refactor of the front-end Janet. The old single library file is now fully modular, with improved code clarity, better test coverage, and all knots untangled. [*]
+- Huge refactor of the front-end Janet. The old single library file is now fully
+  modular, with improved code clarity, better test coverage, and all knots
+  untangled. [*]
 - Various small bugfixes in front-end.
 - Removed `-L` option from `apply` and `compile` commands. [*]
 - Removed `show` command. [*]
 - Removed option to compile to Janet struct. [*]
-- Add `repl` command, which opens a Janet REPL with the Gurp library loaded into the root environment.
+- Add `repl` command, which opens a Janet REPL with the Gurp library loaded into
+  the root environment.
 - Option to compile config into a Janet image, and to apply config from a Janet
   image. This means in client/server mode, the configuration is pulled from the
   server, but evaluated on the client, so you can write and trust code which
