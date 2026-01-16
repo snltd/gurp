@@ -261,7 +261,7 @@ pub fn local_janet_to_jimage(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyho
         "(set (build-env *syspath*) \"{host_config_dir}\")\n"
     ));
     janet_instructions.push_str(&format!(
-        "(set (build-env :gurp-config-root) \"{host_config_dir}\")\n"
+        "(setdyn :gurp-config-root \"{host_config_dir}\")\n"
     ));
     janet_instructions.push_str(&format!(
         "(merge-module build-env (dofile \"{host_file}\" :env build-env) \"\" true)\n"
