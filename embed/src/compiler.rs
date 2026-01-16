@@ -145,20 +145,19 @@ pub fn local_janet_to_json(
 
     let client = janet_helpers::gurp_client()?;
 
-    let mut janet_instructions = String::new();
+    let destroyer = if opts.destroy {
+        "(setdyn :destroy-everything-you-touch true)"
+    } else {
+        ""
+    };
 
-    janet_instructions.push_str(&format!("(setdyn *syspath* \"{config_dir}\")\n"));
-    janet_instructions.push_str(&format!("(setdyn :gurp-config-root\"{config_dir}\")\n"));
-
-    if opts.destroy {
-        janet_instructions.push_str("(setdyn :destroy-everything-you-touch true)\n");
-    }
-
-    janet_instructions.push_str(&format!(
-        "(merge-module (curenv) (dofile \"{host_file}\" :env (curenv)) \"\" true)\n"
-    ));
-
-    janet_instructions.push_str("(to-json (machine-config))\n");
+    let janet_instructions = indoc::formatdoc! { r#"
+            (setdyn *syspath* "{config_dir}")
+            (setdyn :gurp-config-root "{config_dir}")
+            {destroyer}
+            (merge-module (curenv) (dofile "{host_file}" :env (curenv)) "" true)
+            (to-json (machine-config))
+        "#};
 
     if opts.dump_config {
         println!(
@@ -256,17 +255,13 @@ pub fn local_janet_to_jimage(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyho
 
     let mut janet_instructions = String::new();
 
-    janet_instructions.push_str("(def build-env (make-env (fiber/getenv (fiber/root))))\n");
-    janet_instructions.push_str(&format!(
-        "(set (build-env *syspath*) \"{host_config_dir}\")\n"
-    ));
-    janet_instructions.push_str(&format!(
-        "(setdyn :gurp-config-root \"{host_config_dir}\")\n"
-    ));
-    janet_instructions.push_str(&format!(
-        "(merge-module build-env (dofile \"{host_file}\" :env build-env) \"\" true)\n"
-    ));
-    janet_instructions.push_str("(make-image build-env)\n");
+    let janet_instructions = indoc::formatdoc! { r#"
+            (def build-env (make-env (fiber/getenv (fiber/root))))
+            (set (build-env *syspath*) "{host_config_dir}")
+            (setdyn :gurp-config-root "{host_config_dir}")
+            (merge-module build-env (dofile "{host_file}" :env build-env) "" true)
+            (make-image build-env)
+        "#};
 
     if opts.dump_config {
         println!(
