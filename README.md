@@ -37,11 +37,11 @@ Hosts are described in a thin [Janet](https://janet-lang.org/) DSL.
       (smf/ensure smf-service
                   :fmri smf-service
                   :description "MiniDLNA - DLNA/UPnP-AV media server"
-                  (smf-method "start"
+                  (smf/method "start"
                               :exec smf-method-path
                               :user "minidlna"
                               :group "minidlna")
-                  (smf-method "refresh"
+                  (smf/method "refresh"
                               :exec smf-method-path
                               :user "minidlna"
                               :group "minidlna")))
