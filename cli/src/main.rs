@@ -30,9 +30,6 @@ enum Commands {
         /// Use a local pre-compiled Janet jimage as config
         #[arg(short = 'i', long = "image", conflicts_with = "server")]
         image: bool,
-        /// Specify a gurp Janet library, in preference to the built-in
-        #[arg(short = 'L', long = "gurp-lib", conflicts_with = "server")]
-        gurp_lib_path: Option<Utf8PathBuf>,
         /// Say what would happen, without actually doing it
         #[arg(short, long)]
         noop: bool,
@@ -60,20 +57,17 @@ enum Commands {
     },
     /// Compile the Janet description, and optionally write it to stdout
     Compile {
-        /// Specify a gurp Janet library, in preference to the built-in
-        #[arg(short = 'L', long = "gurp-lib")]
-        gurp_lib_path: Option<Utf8PathBuf>,
         /// When displaying compiled config, number lines
         #[arg(short = 'N', long)]
         line_no: bool,
         /// Dump intermediate config files to stdout
         #[arg(short = 'd', long, alias = "dump-configs")]
         dump_config: bool,
-        /// Output in the given format: 'janet', 'jimage', or 'json'
+        /// Output in the given format: 'jimage' or 'json'
         #[arg(short, long, required = true, default_value = "json")]
         format: String,
         /// Output file for compiled config (required for jimage, optional for others)
-        #[arg(short = 'o', long = "output")]
+        #[arg(short = 'o', long = "output-file")]
         output_file: Option<Utf8PathBuf>,
         /// Host configuration file
         #[arg(required = true)]
@@ -87,6 +81,8 @@ enum Commands {
     },
     /// List the doers in this version of Gurp
     Doers {},
+    /// Open a Janet REPL with the Gurp library already loaded into the root environment
+    Repl {},
     /// Run Gurp in Server mode
     Server {
         /// Where to find host configuration files
@@ -95,12 +91,6 @@ enum Commands {
         /// HTTP POST InfluxDB metrics to this host
         #[arg(short = 'M', long)]
         metrics_to: Option<String>,
-    },
-    /// Show Janet builtins
-    Show {
-        /// Thing to show: one of library, defaults
-        #[arg(required = true)]
-        thing: String,
     },
 }
 
@@ -125,7 +115,6 @@ fn main() -> anyhow::Result<()> {
             dump_diffs,
             colour,
             line_no,
-            gurp_lib_path,
             metrics_to,
             precompiled,
             server,
@@ -140,7 +129,6 @@ fn main() -> anyhow::Result<()> {
                 dump_diffs,
                 colour,
                 line_no,
-                gurp_lib_path,
                 metrics_to,
                 precompiled,
                 server,
@@ -155,7 +143,6 @@ fn main() -> anyhow::Result<()> {
             commands::apply::run(host_config_file.as_ref(), &opts)
         }
         Commands::Compile {
-            gurp_lib_path,
             line_no,
             host_config_file,
             format,
@@ -165,7 +152,6 @@ fn main() -> anyhow::Result<()> {
             // Compile is the first part of run's code path, so we'll fake the apply options
             let apply_opts = ApplyOpts {
                 line_no,
-                gurp_lib_path,
                 compile_only: true,
                 dump_config,
                 ..Default::default()
@@ -180,6 +166,7 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Describe { resource } => commands::describe::run(&resource),
         Commands::Doers {} => commands::doers::run(),
+        Commands::Repl {} => commands::repl::run(),
         Commands::Server {
             config_dir,
             metrics_to,
@@ -187,7 +174,6 @@ fn main() -> anyhow::Result<()> {
             config_dir,
             metrics_to,
         }),
-        Commands::Show { thing } => commands::show::run(&thing),
     };
 
     tracing::debug!("exiting {}", exit_code);

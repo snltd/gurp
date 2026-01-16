@@ -69,7 +69,7 @@
                            :fmri startup-svc
                            :description "transient service to create pkg repo"
                            :duration "transient"
-                           (smf-method "start" :exec startup-method))
+                           (smf/method "start" :exec startup-method))
 
                (file/ensure startup-method
                             :mode "0755"

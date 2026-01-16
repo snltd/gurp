@@ -960,12 +960,15 @@ mod test {
         assert!(temp_file.exists());
 
         let json_def = janet2json(&formatdoc! {r#"
+            (do
+            (setdyn :gurp-config-root "{}")
             (file/ensure "{}"
                 :from "{}"
                 :mode "0444"
                 :owner "{}"
-                :group "{}")
+                :group "{}"))
             "#,
+            temp_file.parent().unwrap(),
             temp_file,
             &fixture("file/copy-file"),
             my_user(),

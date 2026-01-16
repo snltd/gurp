@@ -172,15 +172,15 @@ mod test {
                 :fmri "sysdef/telegraf"
                 :property-groups {:application "application"}
                 :properties {:application/datadir "/data"}
-                (smf-dependency "example"
+                (smf/dependency "example"
                     :fmri "/example/service")
-                (smf-method "start"
+                (smf/method "start"
                     :exec "/opt/site/lib/smf/method/telegraf.sh"
                     :user "telegraf"
                     :group "daemon"
                     :privileges ["basic" "file_dac_search" "sys_admin" "proc_owner" "proc_zone"]
                     :environment {:LC_CTYPE "en_US.UTF-8"})
-                (smf-method "refresh"
+                (smf/method "refresh"
                     :exec ":kill -THAW"
                     :timeout 60))
             "#};

@@ -80,7 +80,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 
 - [`(svc/ensure)`](#svcensure)
 
-## `apk`
+## apk
 
 ### `(apk/ensure)`
 
@@ -108,7 +108,7 @@ You cannot install or pin specific versions.
 | ---- | ------ | ------------ | ------- | --------- |
 | Name | string | Package name |         | yes       |
 
-## `cron`
+## cron
 
 ### `(cron/ensure)`
 
@@ -162,7 +162,7 @@ define.
 
 This doer has no way to assert that a system-defined job does or does not exist.
 
-## `directory`
+## directory
 
 ### `(directory/ensure)`
 
@@ -184,7 +184,7 @@ Directories are created in a `mkdir -p` style, though only the named directory
 will get the owner, group, and mode you specified. Ancestors will be owned by
 whatever user Gurp runs as, and created with its `umask`.
 
-### (directory/remove)
+### `(directory/remove)`
 
 ```janet
 (directory/remove "/path/to/directory")
@@ -197,7 +197,9 @@ whatever user Gurp runs as, and created with its `umask`.
 This will not remove any empty ancestors, but **will** remove the contents of
 the directory.
 
-### (etherstub/ensure)
+## etherstub
+
+### `(etherstub/ensure)`
 
 ```janet
 (etherstub/ensure "stub0")
@@ -207,7 +209,7 @@ the directory.
 | ---- | ------ | -------------------- | ------- | --------- |
 | Name | string | Valid etherstub name |         | yes       |
 
-### (etherstub/remove)
+### `(etherstub/remove)`
 
 ```janet
 (etherstub/remove "stub1")
@@ -217,7 +219,7 @@ the directory.
 | ---- | ------ | -------------------- | ------- | --------- |
 | Name | string | Valid etherstub name |         | yes       |
 
-## `file`
+## file
 
 ### `(file/ensure)`
 
@@ -276,7 +278,7 @@ keys.
 | ---- | ------ | -------------------- | ------- | --------- |
 | Name | string | Fully-qualified path |         | yes       |
 
-## `file-line`
+## file-line
 
 ### `(file-line/ensure)`
 
@@ -342,7 +344,7 @@ file with a `(file)` resource. Files are created before lines are managed.
 If `(file-line/remove)` removes a line, it will always add a newline to the end
 of the file, if there isn't one already.
 
-## `gem`
+## gem
 
 Manages Ruby gems.
 
@@ -378,7 +380,7 @@ Manages Ruby gems.
 | `:gem-path` | string | Remove with this `gem` binary | `/opt/ooce/bin/gem` |           |
 | `:version`  | string | Version to remove             | all installed       |           |
 
-## `group`
+## group
 
 ### `(group/ensure)`
 
@@ -401,7 +403,7 @@ Manages Ruby gems.
 | ---- | ------ | ----------- | ------- | --------- |
 | Name | string | Group name  |         | yes       |
 
-## `ip-address`
+## ip-address
 
 ### `(ip-address/ensure)`
 
@@ -435,7 +437,7 @@ Manages Ruby gems.
 | ---- | ------ | --------------- | ------- | --------- |
 | Name | string | ip-address name |         | yes       |
 
-## `ip-interface`
+## ip-interface
 
 ### `(ip-interface/ensure)`
 
@@ -445,17 +447,17 @@ Manages Ruby gems.
 
 ```janet
 (ip-interface/ensure "example0"
-             (ip-interface-protocol "ipv4"
+             (ip-interface/protocol "ipv4"
                                     :mtu 1500
                                     :forwarding true)
-             (ip-interface-protocol "ipv6"
+             (ip-interface/protocol "ipv6"
                                     :forwarding false))
 ```
 
 | Key                       | Type     | Description       | Default | Mandatory |
 | ------------------------- | -------- | ----------------- | ------- | --------- |
 | Name                      | string   | ip-interface name |         | yes       |
-| `(ip-interface-protocol)` | function | See below         |         |           |
+| `(ip-interface/protocol)` | function | See below         |         |           |
 
 ### `(ip-interface/remove)`
 
@@ -467,14 +469,14 @@ Manages Ruby gems.
 | ---- | ------ | ----------------- | ------- | --------- |
 | Name | string | ip-interface name |         | yes       |
 
-#### `(ip-interface-protocol)`
+#### `(ip-interface/protocol)`
 
 | Key    | Type          | Description   | Default                                                                                                     | Mandatory |
 | ------ | ------------- | ------------- | ----------------------------------------------------------------------------------------------------------- | --------- |
 | Name   | string        | protocol name |                                                                                                             | yes       |
 | values | symbol,number | boolean       | Any key-value pair supported by the protocol. You can use `true` and `false` in place of `"on"` and `"off"` |           |
 
-## `ip-properties`
+## ip-properties
 
 ### `(ip-properties/ensure)`
 
@@ -493,7 +495,7 @@ Manages Ruby gems.
 | Name     | string | ip-properties name                                                                                                                                                                        |         | yes       |
 | protocol | struct | Any protocol supported by `ipadm set-prop`. e.g. `tcp`, `ipv4`, `ipv6` etc , paired with a struct of properties and values. You can use `true` and `false` in place of `"on"` and `"off"` |         |           |
 
-## `ipnat`
+## ipnat
 
 Gurp assembles "bundles" of NAT rules, given as literal strings (`:content`) or
 in files (`:from`). Ordering comes from a mandatory `:priority` value, and the
@@ -529,7 +531,7 @@ We do not support NGZ NAT rule management from the global zone.
 
 Removes all NAT rules. The name is not relevant.
 
-## `misc`
+## misc
 
 There are certain tasks I used to manage with shell-script bodges. The `misc`
 doer is where I turn them into proper, reliable code. They are all what I would
@@ -560,6 +562,8 @@ combination of other doers.
 ### `(misc/remove)`
 
 There is no `(misc/remove)`.
+
+## network-flow
 
 ### `(network-flow/ensure)`
 
@@ -600,7 +604,7 @@ value.
 | ---- | ------ | ----------- | ------- | --------- |
 | Name | string | Flow name   |         | yes       |
 
-## `pkg`
+## pkg
 
 ### `(pkg/ensure)`
 
@@ -631,7 +635,7 @@ flag. Therefore it can cause a noop run to fail.
 | ---- | ------ | ------------ | ------- | --------- |
 | Name | string | Package name |         | yes       |
 
-## `pkgin`
+## pkgin
 
 ### `(pkgin/ensure)`
 
@@ -647,7 +651,7 @@ The `pkgin` doer lets you add and install packages in `pkgsrc` branded zones.
 
 You cannot currently install specific versions.
 
-### (pkgin/remove)
+### `(pkgin/remove)`
 
 ```janet
 (pkgin/remove "go" )
@@ -657,7 +661,7 @@ You cannot currently install specific versions.
 | ---- | ------ | ------------ | ------- | --------- |
 | Name | string | Package name |         | yes       |
 
-## `publisher`
+## publisher
 
 ### `(publisher/ensure)`
 
@@ -682,7 +686,7 @@ The `publisher` doer only manages origins. You can't configure mirrors.
 | ---- | ------ | -------------- | ------- | --------- |
 | Name | string | Publisher name |         | yes       |
 
-## `route`
+## route
 
 Manages IPv4 persistent routes.
 
@@ -721,7 +725,7 @@ Manages IPv4 persistent routes.
 | `:flags`    | struct | key-value pairs for flags to add to route command                 |         |           |
 | `:gateway`  | string | Gateway for the given route. For a default route, write `default` |         |           |
 
-## `smf`
+## smf
 
 The `smf` doer (not to be confused with `svc`) lets you define SMF services as
 Janet code.
@@ -732,16 +736,16 @@ Janet code.
 (smf/ensure "telegraf"
             :description "Run Telegraf agent"
             :fmri "sysdef/telegraf"
-            (exec-method "start"
-                         :exec "/bin/sleep 1200"
-                         :timeout 60
-                         :user "telegraf"
-                         :group "daemon"
-                         :privileges ["basic" "file_dac_search" "sys_admin"
+            (smf/method "start"
+                        :exec "/bin/sleep 1200"
+                        :timeout 60
+                        :user "telegraf"
+                        :group "daemon"
+                        :privileges ["basic" "file_dac_search" "sys_admin"
                                       "proc_owner" "proc_zone"])
-            (exec-method "refresh"
-                         :exec ":kill -THAW"
-                         :timeout 60)
+            (smf/method "refresh"
+                        :exec ":kill -THAW"
+                        :timeout 60)
             :properties {:restarter/contract "fixed"
                          :restarter/count 10
                          :restarter/delay 10}
@@ -753,7 +757,7 @@ Janet code.
             :fmri "sysdef/application/service-setup"
             :description "transient service"
             :duration "transient"
-            (smf-method "start" :exec "some-method-or-other"))
+            (smf/method "start" :exec "some-method-or-other"))
 ```
 
 | Key                | Type                    | Description                                        | Default | Mandatory |
@@ -766,12 +770,12 @@ Janet code.
 | `:properties`      | struct<keyword, string> | Create/set properties                              |         |           |
 | `:property-groups` | list<string>            | Create the given property groups                   |         |           |
 | `:single-instance` | bool                    | Whether this is a single-instance service          | true    |           |
-| `:smf-dependency`  | function                | See below                                          |         |           |
-| `:smf-dependent`   | function                | See below                                          |         |           |
+| `:smf/dependency`  | function                | See below                                          |         |           |
+| `:smf/dependent`   | function                | See below                                          |         |           |
 
-#### `(exec-method)`
+#### `(smf/method)`
 
-The `(exec-method)` function is used to define the methods and contexts which
+The `(smf/method)` function is used to define the methods and contexts which
 start and stop the service. Its spec is a flat structure: Gurp puts things into
 the correct nested structs.
 
@@ -794,7 +798,7 @@ generates an SMF manifest, writes it to disk, and will delete and reimport a
 manifest if it sees a difference between that and the thing you request. This
 will, of course, clobber any changes you've made.
 
-#### `(smf-dependency)
+#### `(smf/dependency)`
 
 | Key          | Type   | Description                                                         | Default       | Mandatory |
 | ------------ | ------ | ------------------------------------------------------------------- | ------------- | --------- |
@@ -806,7 +810,7 @@ will, of course, clobber any changes you've made.
 
 Note: `network/physical` and `filesystem/local` are hard-coded dependencies.
 
-#### `(smf-dependent)
+#### `(smf/dependent)`
 
 | Key          | Type   | Description                                                         | Default       | Mandatory |
 | ------------ | ------ | ------------------------------------------------------------------- | ------------- | --------- |
@@ -828,7 +832,7 @@ This stops the service and deletes it from the SMF registry.
 | ---- | ------ | ---------------- | ------- | --------- |
 | Name | string | The service name |         | yes       |
 
-## `svc`
+## svc
 
 ### `(svc/ensure)`
 
@@ -855,7 +859,7 @@ valid FMRI.
 
 There is no `(svc/remove)`.
 
-## `symlink`
+## symlink
 
 ### `(symlink/ensure)`
 
@@ -876,7 +880,7 @@ link, that's an error.
 
 Hard links are not supported.
 
-### `(symlink/remove )`
+### `(symlink/remove)`
 
 ```janet
 (symlink/remove "/unwanted/link")
@@ -886,7 +890,7 @@ Hard links are not supported.
 | ---- | ------ | ------------------ | ------- | --------- |
 | Name | string | The link to remove |         | yes       |
 
-## `user`
+## user
 
 ### `(user/ensure)`
 
@@ -927,7 +931,7 @@ To unlock an account, use a hash of `NP`.
 | ---- | ------ | ----------- | ------- | --------- |
 | Name | string | Username    |         | yes       |
 
-## `vlan`
+## vlan
 
 When you create VLANs with `dladm`, you do not have to specify the link name:
 the system will derive one. This is not the case with Gurp: the resource name is
@@ -957,7 +961,7 @@ the link name,
 | ---- | ------ | -------------- | ------- | --------- |
 | Name | string | VLAN link name |         | yes       |
 
-## `vnic`
+## vnic
 
 ### `(vnic/ensure)`
 
@@ -986,7 +990,7 @@ underlying physical NIC, Gurp will try to recreate it.
 | ---- | ------ | -------------- | ------- | --------- |
 | Name | string | VNIC to remove |         | yes       |
 
-## `zfs`
+## zfs
 
 ### `(zfs/ensure)`
 
@@ -1025,7 +1029,7 @@ Gurp cannot change the size of an extant volume.
 
 Remove is done with `-R`, so it takes all snapshots with it.
 
-## `svcprop`
+## svcprop
 
 ### `(svcprop/ensure)`
 
@@ -1057,7 +1061,7 @@ Gurp will infer and add the property types.
 | `:properties`      | list<string> | Remove these properties      |         | yes       |
 | `:property-groups` | list<string> | Remove these property groups |         |           |
 
-## `zone`
+## zone
 
 ### `(zone/ensure)`
 
@@ -1066,13 +1070,13 @@ Gurp will infer and add the property types.
              :brand "lipkg"
              :clone-from gold-zone
              :capped-memory {:physical "300m" :swap "300m"}
-             (zone-fs "/home" :special "/export/home")
-             (zone-network "wwwpx_net0"
+             (zone/fs "/home" :special "/export/home")
+             (zone/network "wwwpx_net0"
                            :allowed-address "192.168.1.25/24")
                            :defrouter "192.168.1.1")
              :dns {:domain "lan.id264.net"
                    :nameservers ["192.168.1.1" "192.168.1.53"]}
-             (zone-bootstrap :file "/path/to/zone-proxy.janet"))
+             (zone/bootstrap :file "/path/to/zone-proxy.janet"))
 ```
 
 ```janet
@@ -1081,13 +1085,13 @@ Gurp will infer and add the property types.
              :lx-image "alpine"
              :recreate 1
              :final-state "reboot"
-             (zone-attr "kernel-version" :value "4.4")
-             (zone-network "wwwpx_net0"
+             (zone/attr "kernel-version" :value "4.4")
+             (zone/network "wwwpx_net0"
                            :allowed-address "192.168.1.25/24")
                            :defrouter "192.168.1.1")
              :dns globals/zone-dns
              :datasets ["tank/zone/grafana")]
-             (zone-bootstrap :server "gurp.localnet"))
+             (zone/bootstrap :server "gurp.localnet"))
 ```
 
 | Key                   | Type                    | Description                                                                                                                    | Default              | Mandatory |
@@ -1109,13 +1113,13 @@ Gurp will infer and add the property types.
 | `:lx-image`           | string                  | Install an `lx` braned zone with this image                                                                                    |                      |           |
 | `:pool`               | string                  | Resource pool to which zone should belong                                                                                      |                      |           |
 | `:recreate`           | number                  | 1-in-n chance the zone will be destroyed and recreated                                                                         | 0                    |           |
-| `(zone-attr)`         | function                | See below                                                                                                                      |                      |           |
-| `(zone-bhyve)`        | function                | See below                                                                                                                      |                      |           |
-| `(zone-bootstrap)`    | function                | See below                                                                                                                      |                      |           |
-| `(zone-fs)`           | function                | See below                                                                                                                      |                      |           |
-| `(zone-net)`          | function                | See below                                                                                                                      |                      |           |
+| `(zone/attr)`         | function                | See below                                                                                                                      |                      |           |
+| `(zone/bhyve)`        | function                | See below                                                                                                                      |                      |           |
+| `(zone/bootstrap)`    | function                | See below                                                                                                                      |                      |           |
+| `(zone/fs)`           | function                | See below                                                                                                                      |                      |           |
+| `(zone/net)`          | function                | See below                                                                                                                      |                      |           |
 | `:zonepath`           | string                  | Path to zone root                                                                                                              | `/zones/<zone-name>` |           |
-| `(zone-rctl)`         | function                | See below                                                                                                                      |                      |           |
+| `(zone/rctl)`         | function                | See below                                                                                                                      |                      |           |
 
 The doer cannot modify an existing zone.
 
@@ -1138,7 +1142,7 @@ defaults to `0`.
 | ---- | ------ | ------------------ | ------- | --------- |
 | Name | string | The zone to remove |         | yes       |
 
-#### `(zone-attr)`
+#### `(zone/attr)`
 
 | Key      | Type                 | Description       | Default                  | Mandatory |
 | -------- | -------------------- | ----------------- | ------------------------ | --------- |
@@ -1146,7 +1150,7 @@ defaults to `0`.
 | `:type`  | string               | Type of attribute | inferred from Janet type |           |
 | `:value` | string, number, bool | Attribute value   |                          | yes       |
 
-#### `(zone-bhyve)`
+#### `(zone/bhyve)`
 
 | Key                 | Type         | Description                                                                                                                                                                  | Default | Mandatory |
 | ------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------- |
@@ -1162,7 +1166,7 @@ defaults to `0`.
 
 [*] You must supply exactly one of `:image-url` and `:image-path`.
 
-#### `(zone-bootstrap)`
+#### `(zone/bootstrap)`
 
 | Key         | Type   | Description                                                       | Default | Mandatory |
 | ----------- | ------ | ----------------------------------------------------------------- | ------- | --------- |
@@ -1172,7 +1176,7 @@ defaults to `0`.
 
 [*] You must supply exactly one of `:file` and `:server`.
 
-#### `(zone-fs)`
+#### `(zone/fs)`
 
 | Key        | Type         | Description                 | Default | Mandatory |
 | ---------- | ------------ | --------------------------- | ------- | --------- |
@@ -1181,7 +1185,7 @@ defaults to `0`.
 | `:type`    | string       | Type of mount               | `lofs`  |           |
 | `:options` | list<string> | Mount options, such as `ro` |         |           |
 
-#### `(zone-net)`
+#### `(zone/net)`
 
 | Key                | Type   | Description                   | Default | Mandatory |
 | ------------------ | ------ | ----------------------------- | ------- | --------- |
@@ -1192,7 +1196,7 @@ defaults to `0`.
 | `:mac-address`     | string | MAC of zone VNIC              | `auto`  |           |
 | `:physical`        | string | Name of zone NIC              |         |           |
 
-#### `(zone-rctl)`
+#### `(zone/rctl)`
 
 | Key      | Type   | Description    | Default | Mandatory |
 | -------- | ------ | -------------- | ------- | --------- |

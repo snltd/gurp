@@ -21,17 +21,18 @@ fn main() {
         Utf8PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("cannot get CARGO_MANIFEST_DIR"));
 
     let top_level = crate_dir.parent().expect("cannot get top-level directory");
+    let src_dir = top_level.join("janet/src");
     let lib_dir = top_level.join("janet/lib");
-    let lib_file = lib_dir.join("gurp.janet");
+    let src_file = src_dir.join("gurp.janet");
     let jimage_path = lib_dir.join("gurp.jimage");
 
-    env::set_current_dir(&lib_dir).expect("Failed to change to janet/lib directory");
+    env::set_current_dir(&src_dir).expect("Failed to change to janet/lib directory");
 
     let client = JanetClient::init_with_default_env().expect("Failed to create Janet client");
 
     let janet_instructions = formatdoc! { r#"
         (def build-env (make-env (fiber/getenv (fiber/root))))
-        (merge-module build-env (dofile "{lib_file}" :env build-env) "" true)
+        (merge-module build-env (dofile "{src_file}" :env build-env) "" true)
         (make-image build-env)
         "#
     };

@@ -45,7 +45,7 @@
       (smf/ensure "telegraf"
                   :description "Run Telegraf agent"
                   :fmri svc
-                  (smf-method "start"
+                  (smf/method "start"
                               :exec method
                               :user "telegraf"
                               :group "daemon"

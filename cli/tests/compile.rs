@@ -2,6 +2,7 @@
 mod test {
     use assert_cmd::cargo::cargo_bin_cmd;
     use predicates::prelude::*;
+    use pretty_assertions::assert_eq;
     use tester::{cwd, fixture, load_fixture};
 
     #[test]
@@ -66,11 +67,11 @@ mod test {
             .env("GURP_NO_COLOUR", "1")
             .arg("compile")
             .arg("--format=json")
-            .arg("/no/such/file")
+            .arg("/no/such/file.janet")
             .assert()
             .failure()
-            .stdout(predicate::str::contains(
-                "Could not load config /no/such/file",
+            .stdout(predicate::str::ends_with(
+                "Cannot find host config file at /no/such/file.janet\n",
             ));
     }
 
@@ -90,25 +91,40 @@ mod test {
 
     #[test]
     #[ignore]
-    fn test_compile_janet() {
-        cargo_bin_cmd!("gurp")
-            .arg("compile")
-            .arg("tests/resources/sample/serv-gurp.janet")
-            .arg("--format=janet")
-            .assert()
-            .success()
-            .stdout(predicate::str::contains(":directory"));
-    }
+    fn test_compile_janet_to_json() {
+        use camino_tempfile_ext::prelude::*;
+        use std::fs;
 
-    #[test]
-    #[ignore]
-    fn test_compile_json() {
+        let reference_file = "tests/resources/compile/outputs/compile-test.json";
+
+        let expected_output = fs::read_to_string(reference_file).unwrap();
+
         cargo_bin_cmd!("gurp")
             .arg("compile")
-            .arg("tests/resources/sample/serv-gurp.janet")
             .arg("--format=json")
+            .arg("tests/resources/sample/serv-gurp.janet")
             .assert()
             .success()
-            .stdout(predicate::str::contains("\"directory\":"));
+            .stdout(expected_output);
+
+        let temp_dir = Utf8TempDir::new().unwrap();
+        let output_file = temp_dir.child("test-output.json");
+
+        cargo_bin_cmd!("gurp")
+            .arg("compile")
+            .arg("--format=json")
+            .arg(format!("--output-file={}", output_file.as_path()))
+            .arg("tests/resources/sample/serv-gurp.janet")
+            .assert()
+            .success()
+            .stdout(predicate::str::ends_with(format!(
+                "wrote JSON to {}\n",
+                output_file.as_path()
+            )));
+
+        assert_eq!(
+            std::fs::read_to_string(output_file).unwrap().trim(),
+            std::fs::read_to_string(reference_file).unwrap().trim(),
+        );
     }
 }

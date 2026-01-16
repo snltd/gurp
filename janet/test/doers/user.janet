@@ -1,0 +1,49 @@
+(use judge)
+(use ../../src/collector)
+(import ../../src/doers/user)
+
+(deftest "user-resources"
+  (set *collector* (new-collector))
+
+  (setdyn :role-dyn "test-role")
+  (user/ensure "rob"
+               :uid 264
+               :primary-group "sysadmin"
+               :home-dir "/home/rob"
+               :shell "/bin/zsh"
+               :gecos "Test User"
+               :password-hash "w0934cm-4i5c-42u5cn492hrc97h234ui")
+
+  (user/remove "lolex")
+
+  (test *collector*
+        @{:ensure @{:user @[{:_id "/test-role/user/rob"
+                             :gecos "Test User"
+                             :home-dir "/home/rob"
+                             :name "rob"
+                             :password-hash "w0934cm-4i5c-42u5cn492hrc97h234ui"
+                             :primary-group "sysadmin"
+                             :role "test-role"
+                             :shell "/bin/zsh"
+                             :uid 264}]}
+          :remove @{:user @[{:_id "/test-role/user/lolex"
+                             :name "lolex"
+                             :role "test-role"}]}}))
+
+(deftest "user-errors"
+  (test-error
+    (user/ensure "wat"
+                 :uid 100)
+    "did not find mandatory property :home-dir. Mandatory properties are :home-dir, :primary-group, :uid, :gecos, :shell")
+
+  (test-error
+    (user/ensure "rob"
+                 :uid 264
+                 :hair "reddish"
+                 :height "quite-tall"
+                 :primary-group "sysadmin"
+                 :home-dir "/home/rob"
+                 :shell "/bin/zsh"
+                 :gecos "Test User"
+                 :password-hash "w0934cm-4i5c-42u5cn492hrc97h234ui")
+    "unexpected property :height. Valid properties are :home-dir, :primary-group, :uid, :gecos, :shell, :other-groups, :password-hash, :profiles, :label"))

@@ -1,7 +1,7 @@
 use camino::Utf8PathBuf;
 use common::types::ApplyOpts;
-use embed::{helpers, reader};
-use janetrs::{TaggedJanet, env::CFunOptions};
+use embed::helpers;
+use janetrs::TaggedJanet;
 use nix::unistd::{Group, User, getgid, getuid};
 use std::env::current_dir;
 use std::fs;
@@ -39,17 +39,15 @@ pub fn my_group() -> String {
 }
 
 pub fn janet2json(janet_defn: &str) -> String {
-    let dir = Utf8PathBuf::from_path_buf(current_dir().unwrap()).unwrap();
-    let full_janet = reader::assemble(janet_defn, &dir, &defopts()).unwrap();
-    let json_wrapped_host_config = format!("{full_janet}\n(encode (first (values {janet_defn})))");
-    let mut client = helpers::janet_client();
+    let client = helpers::gurp_client().expect("janet2json failed to create gurp client");
+    let janet_instructions = format!("(to-json (first (values {janet_defn})))");
 
-    client.add_c_fn(CFunOptions::new(c"encode", helpers::encode_c));
-
-    let ret = match client.run(json_wrapped_host_config) {
+    let ret = match client.run(&janet_instructions) {
         Ok(janet) => janet,
         Err(e) => {
-            println!("{janet_defn}");
+            eprintln!("-- ERROR CAUSED BY ------------------------------------------");
+            eprintln!("{janet_instructions}");
+            eprintln!("-------------------------------------------------------------");
             panic!("janet2json ERROR: {e}");
         }
     };

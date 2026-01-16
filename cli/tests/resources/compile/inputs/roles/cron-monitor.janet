@@ -29,7 +29,7 @@
       (smf/ensure "cron_monitor"
                   :fmri "sysdef/cron_monitor"
                   :description "DTrace cron monitor"
-                  (smf-method "start"
+                  (smf/method "start"
                               :exec method-path
                               :timeout 10
                               :user "cronmon"
