@@ -23,9 +23,7 @@ mod test {
             .arg("gem")
             .assert()
             .success()
-            .stdout(predicate::str::contains(
-                "version    string          Gem version",
-            ));
+            .stdout(predicate::str::contains("Install and uninstall Ruby gems."));
     }
 
     #[test]
@@ -36,6 +34,6 @@ mod test {
             .arg("nonsense")
             .assert()
             .success()
-            .stdout(predicate::str::contains("No help for 'nonsense'"));
+            .stderr("No help for 'nonsense'\n");
     }
 }

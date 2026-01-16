@@ -56,15 +56,14 @@
 
 (defn flatten-types
   [types]
-  (string "[" (string/join (map |(string/format "%p" $) types)  " ") "]"))
- 
-  
+  (string "[" (string/join (map |(string/format "%p" $) types) " ") "]"))
+
+
 (defn type-list
   [types]
   # (pp types)
-  (map flatten-types types) 
-  )
-  
+  (map flatten-types types))
+
 (defn strip-ansi [s]
   "Remove ANSI escape codes from string"
   (string/replace-all (peg/compile ~(* "\e[" (any (if-not "m" 1)) "m")) "" s))
@@ -166,7 +165,10 @@
 (defn help-for
   "Called by the Rust 'describe' command"
   [object]
-  (print
-    (if (string/find "/" object)
-      (help-for-sub-resource (splice (string/split "/" object 0 2)))
-      (help-for-doer object))))
+  (try
+    (print
+      (if (string/find "/" object)
+        (help-for-sub-resource (splice (string/split "/" object 0 2)))
+        (help-for-doer object)))
+    ([_e]
+      (eprint "No help for '" object "'"))))

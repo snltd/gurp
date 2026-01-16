@@ -50,7 +50,7 @@
                   :properties {:restarter/contract "fixed"
                                :restarter/count 10
                                :restarter/delay 10}
-                  (smf-method "start"
+                  (smf/method "start"
                               :exec (string/format
                                       "%s rackup -E prod -D $(%s)"
                                       (pathcat globals/gem-dir "rackup")

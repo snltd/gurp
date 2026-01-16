@@ -12,7 +12,7 @@
                           an epoch timestamp"}
    :from {:types [:string]
           :help "Copy content from this file. If relative, looks in ../files"}
-   :from-struct {:types [:struct]
+   :from-struct {:types [:struct :table :tuple]
                  :help "Generate a config file from the given struct. Requires
                        :to-format"}
    :from-url {:types [:string]
