@@ -2,7 +2,7 @@
 (use ../../src/collector)
 (import ../../src/doers/svc)
 
-(deftest "svc-resources"
+(deftest svc
   (set *collector* (new-collector))
 
   (svc/ensure "important/service"
@@ -18,7 +18,7 @@
                             :state "enabled"}]}
           :remove @{}}))
 
-(deftest "svc-error"
+(deftest svc-error
   (test-error
     (svc/ensure "too/many/keys"
                 :state "enabled"

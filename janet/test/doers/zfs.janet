@@ -3,7 +3,7 @@
 (use ../../src/user-helpers)
 (import ../../src/doers/zfs)
 
-(deftest "zfs-resources"
+(deftest zfs
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
@@ -35,7 +35,7 @@
                             :name "old/filesystem"
                             :role "test-role"}]}}))
 
-(deftest "zfs-errors"
+(deftest zfs-error
   (test-error
     (zfs/ensure "pool/fs"
                 :properties {:mountpoint "none"}

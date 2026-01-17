@@ -2,7 +2,7 @@
 (use ../../src/collector)
 (import ../../src/doers/network-flow)
 
-(deftest "network-flow-test"
+(deftest network-flow
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
@@ -69,7 +69,7 @@
                                      :role "test-role"}]}
           :remove @{}}))
 
-(deftest "network-flow-errors"
+(deftest network-flow-errors
   (test-error
     (network-flow/ensure "extraneous-property"
                          :this-should-break-it true

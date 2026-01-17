@@ -2,7 +2,7 @@
 (use ../../src/collector)
 (import ../../src/doers/apk)
 
-(deftest "apk-resources"
+(deftest apk
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
@@ -11,19 +11,18 @@
   (apk/remove "python")
 
   (test *collector*
-    @{:ensure @{:apk @[{:_id "/test-role/apk/rust"
-                        :name "rust"
-                        :role "test-role"}]}
-      :remove @{:apk @[{:_id "/test-role/apk/go"
-                        :name "go"
-                        :role "test-role"}
-                       {:_id "/test-role/apk/python"
-                        :name "python"
-                        :role "test-role"}]}}))
+        @{:ensure @{:apk @[{:_id "/test-role/apk/rust"
+                            :name "rust"
+                            :role "test-role"}]}
+          :remove @{:apk @[{:_id "/test-role/apk/go"
+                            :name "go"
+                            :role "test-role"}
+                           {:_id "/test-role/apk/python"
+                            :name "python"
+                            :role "test-role"}]}}))
 
-(deftest "apk-error"
+(deftest apk-error
   (test-error
     (apk/ensure "gurp"
                 :version "1.1.1")
     "unexpected property :version. Valid properties are :label"))
-

@@ -2,7 +2,7 @@
 (use ../../src/collector)
 (import ../../src/doers/publisher)
 
-(deftest "publisher-resources"
+(deftest publisher
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
@@ -20,7 +20,7 @@
                                   :name "sysdef"
                                   :role "test-role"}]}}))
 
-(deftest "publisher-error"
+(deftest publisher-error
   (test-error
     (publisher/ensure "sysdef")
     "did not find mandatory property :uri. Mandatory properties are :uri"))

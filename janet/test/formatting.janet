@@ -2,7 +2,7 @@
 (use ../src/commands)
 (import ../src/formatting)
 
-(deftest "test-lay-out-help"
+(deftest lay-out-help
   (test
     (formatting/lay-out-help
       "test-doer"

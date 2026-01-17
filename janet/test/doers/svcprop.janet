@@ -2,9 +2,8 @@
 (use ../../src/collector)
 (import ../../src/doers/svcprop)
 
-(deftest "svcprop-resources"
+(deftest svcprop
   (set *collector* (new-collector))
-
   (setdyn :role-dyn "test-role")
 
   (svcprop/ensure "mariadb"
@@ -34,7 +33,7 @@
                                 :properties ["application/thing"]
                                 :role "test-role"}]}}))
 
-(deftest "svcprop-error"
+(deftest svcprop-error
   (test-error
     (svcprop/ensure "mariadb" :wat true)
     "did not find mandatory property :properties. Mandatory properties are :properties"))

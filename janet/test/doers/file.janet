@@ -2,7 +2,7 @@
 (import ../../src/doers/file)
 (use ../../src/collector)
 
-(deftest "file-resource"
+(deftest file
   (setdyn :gurp-config-root "/gurpdir")
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
@@ -26,33 +26,33 @@
   (file/remove "/path/to/file")
 
   (test *collector*
-    @{:ensure @{:file @[{:_id "/test-role/file/_path_to_file"
-                         :from "/gurpdir/files/file-test/does-not-exist"
-                         :group "daemon"
-                         :mode "0755"
-                         :name "/path/to/file"
-                         :owner "root"
-                         :role "test-role"}
-                        {:_id "/test-role/file/_file_path"
-                         :content "lots-of-data"
-                         :group "root"
-                         :mode "0600"
-                         :name "/file/path"
-                         :owner "dataperson"
-                         :role "test-role"}
-                        {:_id "/test-role/file/_file_from_remote_path"
-                         :from-url "https://example.com/files/config"
-                         :group "root"
-                         :mode "0640"
-                         :name "/file/from/remote/path"
-                         :owner "gibbus"
-                         :role "test-role"
-                         :with-checksum "0123456789abcdef"}]}
-      :remove @{:file @[{:_id "/test-role/file/_path_to_file"
-                         :name "/path/to/file"
-                         :role "test-role"}]}}))
+        @{:ensure @{:file @[{:_id "/test-role/file/_path_to_file"
+                             :from "/gurpdir/files/file-test/does-not-exist"
+                             :group "daemon"
+                             :mode "0755"
+                             :name "/path/to/file"
+                             :owner "root"
+                             :role "test-role"}
+                            {:_id "/test-role/file/_file_path"
+                             :content "lots-of-data"
+                             :group "root"
+                             :mode "0600"
+                             :name "/file/path"
+                             :owner "dataperson"
+                             :role "test-role"}
+                            {:_id "/test-role/file/_file_from_remote_path"
+                             :from-url "https://example.com/files/config"
+                             :group "root"
+                             :mode "0640"
+                             :name "/file/from/remote/path"
+                             :owner "gibbus"
+                             :role "test-role"
+                             :with-checksum "0123456789abcdef"}]}
+          :remove @{:file @[{:_id "/test-role/file/_path_to_file"
+                             :name "/path/to/file"
+                             :role "test-role"}]}}))
 
-(deftest "file-error"
+(deftest file-error
   (test-error
     (file/ensure "/octals/only"
                  :owner "merp"
@@ -88,31 +88,31 @@
   (file/remove "/path/to/file")
 
   (test *collector*
-    @{:ensure @{:file @[{:_id "/test-role/file/_path_to_file"
-                         :from-url "http://test-server/file/file-test/does-not-exist"
-                         :group "daemon"
-                         :mode "0755"
-                         :name "/path/to/file"
-                         :owner "root"
-                         :role "test-role"}
-                        {:_id "/test-role/file/_file_path"
-                         :content "lots-of-data"
-                         :group "root"
-                         :mode "0600"
-                         :name "/file/path"
-                         :owner "dataperson"
-                         :role "test-role"}
-                        {:_id "/test-role/file/_file_from_remote_path"
-                         :from-url "https://example.com/files/config"
-                         :group "root"
-                         :mode "0640"
-                         :name "/file/from/remote/path"
-                         :owner "gibbus"
-                         :role "test-role"
-                         :with-checksum "0123456789abcdef"}]}
-      :remove @{:file @[{:_id "/test-role/file/_path_to_file"
-                         :name "/path/to/file"
-                         :role "test-role"}]}}))
+        @{:ensure @{:file @[{:_id "/test-role/file/_path_to_file"
+                             :from-url "http://test-server/file/file-test/does-not-exist"
+                             :group "daemon"
+                             :mode "0755"
+                             :name "/path/to/file"
+                             :owner "root"
+                             :role "test-role"}
+                            {:_id "/test-role/file/_file_path"
+                             :content "lots-of-data"
+                             :group "root"
+                             :mode "0600"
+                             :name "/file/path"
+                             :owner "dataperson"
+                             :role "test-role"}
+                            {:_id "/test-role/file/_file_from_remote_path"
+                             :from-url "https://example.com/files/config"
+                             :group "root"
+                             :mode "0640"
+                             :name "/file/from/remote/path"
+                             :owner "gibbus"
+                             :role "test-role"
+                             :with-checksum "0123456789abcdef"}]}
+          :remove @{:file @[{:_id "/test-role/file/_path_to_file"
+                             :name "/path/to/file"
+                             :role "test-role"}]}}))
 
 (deftest "file-error"
   (test-error
