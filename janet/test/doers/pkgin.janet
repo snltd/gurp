@@ -2,7 +2,7 @@
 (use ../../src/collector)
 (import ../../src/doers/pkgin)
 
-(deftest "pkgin-resources"
+(deftest pkgin
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
@@ -21,7 +21,7 @@
                           :name "python"
                           :role "test-role"}]}}))
 
-(deftest "pkgin-error"
+(deftest pkgin-error
   (test-error
     (pkgin/ensure "gurp"
                 :version "1.1.1")

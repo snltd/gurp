@@ -2,7 +2,7 @@
 (use ../../src/collector)
 (import ../../src/doers/ip-properties)
 
-(deftest "ip-properties"
+(deftest ip-properties
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 

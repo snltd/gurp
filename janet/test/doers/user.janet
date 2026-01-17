@@ -2,10 +2,10 @@
 (use ../../src/collector)
 (import ../../src/doers/user)
 
-(deftest "user-resources"
+(deftest user
   (set *collector* (new-collector))
-
   (setdyn :role-dyn "test-role")
+
   (user/ensure "rob"
                :uid 264
                :primary-group "sysadmin"
@@ -30,7 +30,7 @@
                              :name "lolex"
                              :role "test-role"}]}}))
 
-(deftest "user-errors"
+(deftest user-error
   (test-error
     (user/ensure "wat"
                  :uid 100)

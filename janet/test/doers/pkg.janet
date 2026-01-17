@@ -2,7 +2,7 @@
 (use ../../src/collector)
 (import ../../src/doers/pkg)
 
-(deftest "pkg-resources"
+(deftest pkg
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
@@ -21,9 +21,8 @@
                             :name "ooce/editor/python"
                             :role "test-role"}]}}))
 
-(deftest "pkg-error"
+(deftest pkg-error
   (test-error
     (pkg/ensure "sysdef/tools/gurp"
                 :version "1.1.1")
     "unexpected property :version. Valid properties are :label"))
-

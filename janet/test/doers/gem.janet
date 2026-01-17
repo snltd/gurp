@@ -2,7 +2,7 @@
 (use ../../src/collector)
 (import ../../src/doers/gem)
 
-(deftest "gem-resources"
+(deftest gem
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
@@ -23,7 +23,7 @@
                         :name "webscale"
                         :role "test-role"}]}}))
 
-(deftest "gem-error"
+(deftest gem-error
   (test-error
     (gem/ensure "wavefront-sdk"
                 :merp 11)

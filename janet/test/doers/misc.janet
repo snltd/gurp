@@ -2,7 +2,7 @@
 (use ../../src/collector)
 (import ../../src/doers/misc)
 
-(deftest "misc-resources"
+(deftest misc
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
@@ -16,30 +16,30 @@
     :enable-smb "rob")
 
   (test *collector*
-    @{:ensure @{:misc @[{:_id "/test-role/misc/nfs-domain-lan.id264.net"
-                         :name "nfs-domain-lan.id264.net"
-                         :nfs-domain "lan.id264.net"
-                         :role "test-role"}
-                        {:_id "/test-role/misc/enable-smb-rob"
-                         :enable-smb "rob"
-                         :name "enable-smb-rob"
-                         :role "test-role"}
-                        {:_id "/test-role/misc/enable-smb-klf"
-                         :enable-smb "klf"
-                         :name "enable-smb-klf"
-                         :role "test-role"}
-                        {:_id "/test-role/misc/enable-smb-frances"
-                         :enable-smb "frances"
-                         :name "enable-smb-frances"
-                         :role "test-role"}
-                        {:_id "/test-role/misc/scheduler-FSS-enable-smb-rob"
-                         :enable-smb "rob"
-                         :name "scheduler-FSS-enable-smb-rob"
-                         :role "test-role"
-                         :scheduler "FSS"}]}
-      :remove @{}}))
+        @{:ensure @{:misc @[{:_id "/test-role/misc/nfs-domain-lan.id264.net"
+                             :name "nfs-domain-lan.id264.net"
+                             :nfs-domain "lan.id264.net"
+                             :role "test-role"}
+                            {:_id "/test-role/misc/enable-smb-rob"
+                             :enable-smb "rob"
+                             :name "enable-smb-rob"
+                             :role "test-role"}
+                            {:_id "/test-role/misc/enable-smb-klf"
+                             :enable-smb "klf"
+                             :name "enable-smb-klf"
+                             :role "test-role"}
+                            {:_id "/test-role/misc/enable-smb-frances"
+                             :enable-smb "frances"
+                             :name "enable-smb-frances"
+                             :role "test-role"}
+                            {:_id "/test-role/misc/scheduler-FSS-enable-smb-rob"
+                             :enable-smb "rob"
+                             :name "scheduler-FSS-enable-smb-rob"
+                             :role "test-role"
+                             :scheduler "FSS"}]}
+          :remove @{}}))
 
-(deftest "misc-error"
+(deftest misc-error
   (test-error
     (misc/ensure
       :scheduler-class "FSS"

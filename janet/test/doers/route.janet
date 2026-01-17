@@ -2,7 +2,7 @@
 (use ../../src/collector)
 (import ../../src/doers/route)
 
-(deftest "route-resources"
+(deftest route
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
@@ -53,7 +53,7 @@
                               :name "192.168.1.1"
                               :role "test-role"}]}}))
 
-(deftest "route-error"
+(deftest route-error
   (test-error
     (route/ensure "192.168.1.1")
     "Provide exactly one of :gateway and :interface")

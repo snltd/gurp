@@ -3,9 +3,8 @@
 (use ../../src/user-helpers)
 (import ../../src/doers/symlink)
 
-(deftest "symlink-resources"
+(deftest symlink
   (set *collector* (new-collector))
-
   (setdyn :role-dyn "test-role")
 
   (symlink/ensure (pathcat "link" "is" "here")
@@ -24,7 +23,7 @@
                                 :name "/dont/want/this/link"
                                 :role "test-role"}]}}))
 
-(deftest "symlink-resources"
+(deftest symlink-error
   (test-error
     (symlink/ensure "/where/does/this/point")
     "did not find mandatory property :source. Mandatory properties are :source")

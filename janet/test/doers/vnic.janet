@@ -2,7 +2,7 @@
 (use ../../src/collector)
 (import ../../src/doers/vnic)
 
-(deftest "vnic-resources"
+(deftest vnic
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
@@ -10,16 +10,16 @@
   (vnic/remove "test-vnic1")
 
   (test *collector*
-    @{:ensure @{:vnic @[{:_id "/test-role/vnic/test-vnic0"
-                         :name "test-vnic0"
-                         :over "e1000g"
-                         :role "test-role"
-                         :with-interface false}]}
-      :remove @{:vnic @[{:_id "/test-role/vnic/test-vnic1"
-                         :name "test-vnic1"
-                         :role "test-role"}]}}))
+        @{:ensure @{:vnic @[{:_id "/test-role/vnic/test-vnic0"
+                             :name "test-vnic0"
+                             :over "e1000g"
+                             :role "test-role"
+                             :with-interface false}]}
+          :remove @{:vnic @[{:_id "/test-role/vnic/test-vnic1"
+                             :name "test-vnic1"
+                             :role "test-role"}]}}))
 
-(deftest "vnic-error"
+(deftest vnic-error
   (test-error
     (vnic/ensure "missing_link0")
     "did not find mandatory property :over. Mandatory properties are :over")
