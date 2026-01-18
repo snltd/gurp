@@ -84,3 +84,26 @@ pub fn my_hostname() -> anyhow::Result<String> {
 
     Ok(hostname)
 }
+
+pub fn split_unescaped_colon(s: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut escaped = false;
+
+    for c in s.chars() {
+        if escaped {
+            current.push(c);
+            escaped = false;
+        } else if c == '\\' {
+            escaped = true;
+        } else if c == ':' {
+            parts.push(current);
+            current = String::new();
+        } else {
+            current.push(c);
+        }
+    }
+
+    parts.push(current);
+    parts
+}

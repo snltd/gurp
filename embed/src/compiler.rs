@@ -253,8 +253,6 @@ pub fn local_janet_to_jimage(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyho
     let host_config_dir = host_file.parent().context("cannot get host config dir")?;
     let client = janet_helpers::gurp_client()?;
 
-    let mut janet_instructions = String::new();
-
     let janet_instructions = indoc::formatdoc! { r#"
             (def build-env (make-env (fiber/getenv (fiber/root))))
             (set (build-env *syspath*) "{host_config_dir}")

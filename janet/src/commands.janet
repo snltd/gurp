@@ -11,6 +11,7 @@
   Gurp's 'doers' command"
   []
   (def descriptions [["apk" apk/description]
+                     ["bridge" bridge/description]
                      ["cron" cron/description]
                      ["directory" directory/description]
                      ["etherstub" etherstub/description]

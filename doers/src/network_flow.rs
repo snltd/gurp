@@ -1,3 +1,4 @@
+use common::helpers;
 use common::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -260,29 +261,6 @@ fn u16_field_or_none(bits: &[String], index: usize) -> Option<u16> {
     }
 }
 
-fn split_unescaped_colon(s: &str) -> Vec<String> {
-    let mut parts = Vec::new();
-    let mut current = String::new();
-    let mut escaped = false;
-
-    for c in s.chars() {
-        if escaped {
-            current.push(c);
-            escaped = false;
-        } else if c == '\\' {
-            escaped = true;
-        } else if c == ':' {
-            parts.push(current);
-            current = String::new();
-        } else {
-            current.push(c);
-        }
-    }
-
-    parts.push(current);
-    parts
-}
-
 fn extract_ip(raw: &str) -> String {
     if let Some(addr) = raw.trim().split(':').next_back() {
         addr.to_string()
@@ -294,7 +272,7 @@ fn extract_ip(raw: &str) -> String {
 fn parse_flows(raw: &str) -> ExtantFlows {
     raw.lines()
         .filter_map(|l| {
-            let bits: Vec<_> = split_unescaped_colon(l.trim());
+            let bits: Vec<_> = helpers::split_unescaped_colon(l.trim());
 
             if bits.len() == 7 {
                 let (remote_ip, local_ip) = if bits[2].starts_with("RMT") {

@@ -1,4 +1,5 @@
 use crate::apk::{GurpApkEnsure, GurpApkRemove};
+use crate::bridge::{GurpBridgeEnsure, GurpBridgeRemove};
 use crate::cron::{GurpCronEnsure, GurpCronRemove};
 use crate::directory::{GurpDirectoryEnsure, GurpDirectoryRemove};
 use crate::etherstub::{GurpEtherstubEnsure, GurpEtherstubRemove};
@@ -52,6 +53,8 @@ pub struct HostResources {
 pub struct EnsureResources {
     #[serde(default)]
     pub apk: Vec<GurpApkEnsure>,
+    #[serde(default)]
+    pub bridge: Vec<GurpBridgeEnsure>,
     #[serde(default)]
     pub cron: Vec<GurpCronEnsure>,
     #[serde(default)]
@@ -111,6 +114,8 @@ pub struct EnsureResources {
 pub struct RemoveResources {
     #[serde(default)]
     pub apk: Vec<GurpApkRemove>,
+    #[serde(default)]
+    pub bridge: Vec<GurpBridgeRemove>,
     #[serde(default)]
     pub cron: Vec<GurpCronRemove>,
     #[serde(default)]
