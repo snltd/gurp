@@ -37,6 +37,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<Ap
     apply_resources!(summary_total, changed_ids, &ensure.vlan, opts);
     apply_resources!(summary_total, changed_ids, &ensure.ip_interface, opts);
     apply_resources!(summary_total, changed_ids, &ensure.ip_address, opts);
+    apply_resources!(summary_total, changed_ids, &ensure.bridge, opts);
     apply_resources!(summary_total, changed_ids, &ensure.route, opts);
     apply_resources!(summary_total, changed_ids, &ensure.ip_properties, opts);
     apply_resources!(summary_total, changed_ids, &ensure.network_flow, opts);
@@ -104,6 +105,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<Ap
     apply_resources!(summary_total, changed_ids, &remove.ipnat, opts);
     apply_resources!(summary_total, changed_ids, &remove.zone, opts);
     apply_resources!(summary_total, changed_ids, &remove.zfs, opts);
+    apply_resources!(summary_total, changed_ids, &remove.bridge, opts);
     apply_resources!(summary_total, changed_ids, &remove.network_flow, opts);
     apply_resources!(summary_total, changed_ids, &remove.route, opts);
     apply_resources!(summary_total, changed_ids, &remove.ip_address, opts);

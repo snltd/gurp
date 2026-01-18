@@ -35,6 +35,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(network-flow/ensure)`](#networkflowensure)
 - [`(route/ensure)`](#routeensure)
 - [`(ip-properties/ensure)`](#ippropertiesensure)
+- [`(bridge/ensure)`](#bridgeensure)
 - [`(zfs/ensure)`](#zfsensure)
 - [`(zone/ensure)`](#zoneensure)
 - [`(ipnat/ensure)`](#ipnatensure)
@@ -70,6 +71,7 @@ Doers are executed in the following order. (This also serves as a page index.)
 - [`(ipnat/remove)`](#ipnatremove)
 - [`(zone/remove)`](#zoneremove)
 - [`(zfs/remove)`](#zfsremove)
+- [`(bridge/remove)`](#bridgeremove)
 - [`(route/remove)`](#routeremove)
 - [`(network-flow/remove)`](#networkflowremove)
 - [`(ip-address/remove)`](#ipaddressremove)
@@ -107,6 +109,37 @@ You cannot install or pin specific versions.
 | Key  | Type   | Description  | Default | Mandatory |
 | ---- | ------ | ------------ | ------- | --------- |
 | Name | string | Package name |         | yes       |
+
+## bridge
+
+### `(bridge/ensure)`
+
+```janet
+(bridge/ensure "newbrg"
+               :priority 4096
+               :links ["stub0" "stub1" "e1000g0"])
+```
+
+| Key               | Type   | Description                          | Default | Mandatory |
+| ----------------- | ------ | ------------------------------------ | ------- | --------- |
+| Name              | string | Bridge name                          |         | yes       |
+| `:protect`        | string | Protection method                    | stp     |           |
+| `:links`          | tuple  | List of links attached to bridge     |         |           |
+| `:priority`       | number | bridge priority                      | 32768   |           |
+| `:max-age`        | number | max age for STP config               | 20      |           |
+| `:hello-time`     | number | STP hello time                       | 2       |           |
+| `:forward-delay`  | number | STP forward delay time               | 15      |           |
+| `:force-protocol` | number | force MSTP maximum supported version | 3       |           |
+
+### `(bridge/remove)`
+
+```janet
+(bridge/remove "oldbrg")
+```
+
+| Key  | Type   | Description | Default | Mandatory |
+| ---- | ------ | ----------- | ------- | --------- |
+| Name | string | Bridge name |         | yes       |
 
 ## cron
 
