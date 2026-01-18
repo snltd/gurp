@@ -68,7 +68,6 @@ impl GurpIpInterfaceEnsure {
             // We will ignore any properties ipadm doesn't know about
             for (prop, current_val) in &self.current_ifprops(protocol)? {
                 if let Some(desired_val) = properties.get(prop) {
-                    println!("desired={:?} current={:?}", desired_val, current_val);
                     if desired_val == current_val {
                         tracing::debug!("{}:{} already {}", self.name, prop, current_val);
                     } else {
