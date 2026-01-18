@@ -23,6 +23,7 @@
                            :max-age 20
                            :name "test_a"
                            :priority 32768
+                           :protect "stp"
                            :role "test-role"}
                           {:_id "/test-role/bridge/test_b"
                            :force-protocol 3
@@ -32,6 +33,7 @@
                            :max-age 30
                            :name "test_b"
                            :priority 4096
+                           :protect "stp"
                            :role "test-role"}]}
       :remove @{:bridge @[{:_id "/test-role/bridge/test_c"
                            :name "test_c"
