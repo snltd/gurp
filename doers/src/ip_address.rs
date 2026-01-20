@@ -5,10 +5,9 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::process::Command;
 use util::deserializer::option_property_deserializer;
+use util::ip_protocols::{self, AlignIpPropArg};
 
 // THINGS TO KNOW / THINGS TO DO.
-
-type AddrProps = HashMap<String, String>;
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -20,7 +19,7 @@ pub struct GurpIpAddressEnsure {
     pub address_type: String,
     pub address: Option<String>,
     #[serde(default, deserialize_with = "option_property_deserializer")]
-    pub properties: Option<AddrProps>,
+    pub properties: Option<IpAddressPropMap>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -38,119 +37,85 @@ struct IpAddressObject {
     address: String,
 }
 
-fn describe_address(address_name: &str) -> anyhow::Result<Option<IpAddressObject>> {
-    let ipadm_output = cmd_output!(
-        IPADM_BIN,
-        "show-addr",
-        "-p",
-        "-o",
-        "addrobj,type,state,addr"
-    )?;
-
-    let info = ipadm_output
-        .lines()
-        .filter_map(|l| parse_addr_info(l).ok())
-        .find(|l| l.name == address_name);
-
-    Ok(info)
-}
-
-fn describe_addrprops(address_name: &str) -> anyhow::Result<AddrProps> {
-    let ipadm_output = cmd_output!(
-        IPADM_BIN,
-        "show-addrprop",
-        "-c",
-        "-o",
-        "property,perm,current",
-        address_name,
-    )?;
-
-    Ok(parse_addrprop_info(&ipadm_output))
-}
+type IpAddressPropMap = HashMap<String, String>;
 
 impl GurpIpAddressEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let mut recreate = false;
-        let mut create = false;
-        let mut changed = false;
+        let mut recreate_interface = false;
+        let mut create_interface = false;
+        let mut summary = ApplySummary::default();
 
-        if let Some(now) = describe_address(&self.name)? {
+        // The address
+
+        if let Some(current) = describe_address(&self.name)? {
             tracing::debug!("{} exists", self.name);
 
-            // If the address is wrong, I think the only way to fix it is to remove and re-create
-            // the address.
+            // If the IP address is wrong, I think the only way to fix it is to remove and re-create
+            // the address object.
 
-            if now.address_type == self.address_type {
+            if current.address_type == self.address_type {
                 if &self.address_type == "static"
-                    && let Some(addr) = &self.address
-                    && now.address != *addr
+                    && let Some(desired_address) = &self.address
+                    && current.address != *desired_address
                 {
                     tracing::info!(
                         "Changing {} address: {} -> {} (forces recreate)",
                         self.name,
-                        now.address,
-                        addr,
+                        current.address,
+                        desired_address,
                     );
 
-                    recreate = true;
+                    recreate_interface = true;
                 }
             } else {
                 tracing::info!(
                     "Changing {} address type: {} -> {} (forces recreate)",
                     self.name,
-                    now.address_type,
+                    current.address_type,
                     &self.address_type,
                 );
 
-                recreate = true;
+                recreate_interface = true;
             }
         } else {
-            create = true
+            create_interface = true
         }
 
-        if recreate {
+        if recreate_interface {
             tracing::info!("Deleting address {}", self.name);
-            changed = true;
             self.delete_addr(opts)?;
         }
 
-        if create || recreate {
+        if create_interface || recreate_interface {
             tracing::info!("Creating {}", self.name);
-            changed = true;
+            summary = ONE_RESOURCE_ONE_CHANGE;
             self.create_addr(opts)?;
         }
 
+        // The properties
+
         if let Some(desired_props) = &self.properties {
             tracing::debug!("Examining address properties");
+            let raw = self.current_properties_raw()?;
+            let current_values = parse_address_props(&raw);
 
-            for (prop, current_value) in describe_addrprops(&self.name)? {
-                if let Some(desired_value) = desired_props.get(&prop) {
-                    if *desired_value == current_value {
-                        tracing::debug!("{}/{} already {}", self.name, prop, current_value);
-                    } else {
-                        tracing::info!(
-                            "{}/{} change {} -> {}",
-                            self.name,
-                            prop,
-                            current_value,
-                            desired_value
-                        );
-
-                        changed = true;
-
-                        if !opts.noop {
-                            self.set_addrprop(&prop, desired_value)?;
-                        }
-                    }
+            for (property, desired_value) in desired_props {
+                if ip_protocols::align_property(AlignIpPropArg {
+                    ipadm_cmd: "set-addrprop",
+                    protocol: None,
+                    property,
+                    current_value: current_values.get(property).map(String::as_str),
+                    desired_value,
+                    pass_protocol_to_ipadm: false,
+                    ipadm_final_arg: None,
+                    opts,
+                })? {
+                    summary = ONE_RESOURCE_ONE_CHANGE
                 }
             }
         }
 
-        if changed {
-            Ok(ONE_RESOURCE_ONE_CHANGE)
-        } else {
-            Ok(ONE_RESOURCE_NO_CHANGE)
-        }
+        Ok(summary)
     }
 
     fn delete_addr(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
@@ -196,16 +161,15 @@ impl GurpIpAddressEnsure {
         Ok(())
     }
 
-    fn set_addrprop(&self, property: &str, value: &str) -> anyhow::Result<()> {
+    fn current_properties_raw(&self) -> anyhow::Result<String> {
         cmd_output!(
             IPADM_BIN,
-            "set-addrprop",
-            "-p",
-            format!("{property}={value}"),
-            &self.name
-        )?;
-
-        Ok(())
+            "show-addrprop",
+            "-c",
+            "-o",
+            "property,perm,current",
+            &self.name,
+        )
     }
 }
 
@@ -224,6 +188,23 @@ impl GurpIpAddressRemove {
     }
 }
 
+fn describe_address(address_name: &str) -> anyhow::Result<Option<IpAddressObject>> {
+    let ipadm_output = cmd_output!(
+        IPADM_BIN,
+        "show-addr",
+        "-p",
+        "-o",
+        "addrobj,type,state,addr"
+    )?;
+
+    let info = ipadm_output
+        .lines()
+        .filter_map(|l| parse_addr_info(l).ok())
+        .find(|l| l.name == address_name);
+
+    Ok(info)
+}
+
 fn parse_addr_info(raw: &str) -> anyhow::Result<IpAddressObject> {
     let chunks: Vec<_> = raw.split(':').collect();
 
@@ -240,14 +221,18 @@ fn parse_addr_info(raw: &str) -> anyhow::Result<IpAddressObject> {
     })
 }
 
-fn parse_addrprop_info(raw: &str) -> AddrProps {
-    let mut ret: AddrProps = HashMap::new();
+pub fn parse_address_props(raw: &str) -> IpAddressPropMap {
+    let mut ret = HashMap::new();
 
     for line in raw.lines() {
-        let chunks: Vec<_> = line.split(':').collect();
+        let mut chunks = line.split(':');
 
-        if chunks.len() == 3 && chunks[1] == "rw" {
-            ret.insert(chunks[0].to_owned(), chunks[2].to_owned());
+        if let Some(property) = chunks.next()
+            && let Some(perms) = chunks.next()
+            && let Some(value) = chunks.next()
+            && perms == "rw"
+        {
+            ret.insert(property.to_owned(), value.to_owned());
         }
     }
 
@@ -276,8 +261,8 @@ mod test {
     }
 
     #[test]
-    fn test_parse_addrprop_info() {
-        let expected: AddrProps = HashMap::from([
+    fn test_parse_address_props() {
+        let expected = HashMap::from([
             ("deprecated".to_owned(), "off".to_owned()),
             ("prefixlen".to_owned(), "24".to_owned()),
         ]);
@@ -291,7 +276,7 @@ mod test {
         "
         };
 
-        assert_eq!(expected, parse_addrprop_info(input));
+        assert_eq!(expected, parse_address_props(input));
     }
 
     #[test]
@@ -305,18 +290,16 @@ mod test {
                                            :private false})
           "#});
 
-        let expected_props: AddrProps = HashMap::from([
-            ("prefixlen".to_owned(), "24".to_owned()),
-            ("transmit".to_owned(), "on".to_owned()),
-            ("private".to_owned(), "off".to_owned()),
-        ]);
-
         let expected = GurpIpAddressEnsure {
             id: "/NO-ROLE/ip-address/test0_v4".to_owned(),
             name: "test0/v4".to_owned(),
             address_type: "static".to_owned(),
             address: Some("192.168.1.13/24".to_owned()),
-            properties: Some(expected_props),
+            properties: Some(HashMap::from([
+                ("prefixlen".to_owned(), "24".to_owned()),
+                ("transmit".to_owned(), "on".to_owned()),
+                ("private".to_owned(), "off".to_owned()),
+            ])),
         };
 
         assert_eq!(expected, serde_json::from_str(&json_def).unwrap())

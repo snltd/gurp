@@ -3,11 +3,9 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use util::deserializer;
+use util::ip_protocols::{self, AlignIpPropArg, IpProtocolMap};
 
 // THINGS TO KNOW / THINGS TO DO.
-
-type Protocols = HashMap<String, IfProperties>;
-type IfProperties = HashMap<String, String>;
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -16,7 +14,7 @@ pub struct GurpIpInterfaceEnsure {
     pub id: String,
     pub name: String,
     #[serde(default, deserialize_with = "deserializer::hash_property_deserializer")]
-    pub protocols: Protocols,
+    pub protocols: IpProtocolMap,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -26,32 +24,12 @@ pub struct GurpIpInterfaceRemove {
     pub name: String,
 }
 
-fn interface_exists(interface_name: &str) -> anyhow::Result<bool> {
-    let ipadm_output = cmd_output!(IPADM_BIN, "show-if", "-p", "-o", "ifname")?;
-    Ok(ipadm_output.lines().any(|l| l == interface_name))
-}
-
-fn parse_ifprop(raw: &str) -> IfProperties {
-    let mut ret = HashMap::new();
-
-    for l in raw.lines() {
-        let mut chunks = l.split(':');
-
-        if let Some(key) = chunks.next()
-            && let Some(value) = chunks.next()
-        {
-            ret.insert(key.to_owned(), value.to_owned());
-        }
-    }
-
-    ret
-}
-
 impl GurpIpInterfaceEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let mut changed = false;
+        let mut summary = ONE_RESOURCE_NO_CHANGE;
 
-        // Create if necessary
+        // The interface
+
         if interface_exists(&self.name)? {
             tracing::debug!("{} exists", self.name);
         } else {
@@ -61,67 +39,46 @@ impl GurpIpInterfaceEnsure {
                 cmd_output!(IPADM_BIN, "create-if", &self.name)?;
             }
 
-            changed = true;
+            summary = ONE_RESOURCE_ONE_CHANGE;
         }
 
-        for (protocol, properties) in &self.protocols {
-            // We will ignore any properties ipadm doesn't know about
-            for (prop, current_val) in &self.current_ifprops(protocol)? {
-                if let Some(desired_val) = properties.get(prop) {
-                    if desired_val == current_val {
-                        tracing::debug!("{}:{} already {}", self.name, prop, current_val);
-                    } else {
-                        changed = true;
-                        tracing::info!(
-                            "{}:{}/{} changing {} -> {}",
-                            self.name,
-                            prop,
-                            protocol,
-                            current_val,
-                            desired_val
-                        );
+        // The properties
 
-                        if !opts.noop {
-                            self.set_property(prop, protocol, desired_val)?;
-                        }
-                    }
+        let raw = self.current_properties_raw()?;
+        let current_properties = ip_protocols::parse_ipadm_props(&raw);
+
+        for (protocol, properties) in &self.protocols {
+            let no_values = HashMap::new();
+            let current_values = current_properties.get(protocol).unwrap_or(&no_values);
+
+            for (property, desired_value) in properties {
+                if ip_protocols::align_property(AlignIpPropArg {
+                    ipadm_cmd: "set-prop",
+                    protocol: Some(protocol),
+                    property,
+                    current_value: current_values.get(property.as_str()).map(String::as_str),
+                    desired_value,
+                    pass_protocol_to_ipadm: true,
+                    ipadm_final_arg: Some(&self.name),
+                    opts,
+                })? {
+                    summary = ONE_RESOURCE_ONE_CHANGE
                 }
             }
         }
 
-        if changed {
-            Ok(ONE_RESOURCE_ONE_CHANGE)
-        } else {
-            Ok(ONE_RESOURCE_NO_CHANGE)
-        }
+        Ok(summary)
     }
 
-    fn set_property(&self, property: &str, protocol: &str, value: &str) -> anyhow::Result<()> {
+    fn current_properties_raw(&self) -> anyhow::Result<String> {
         cmd_output!(
-            IPADM_BIN,
-            "set-ifprop",
-            "-p",
-            &format!("{property}={value}"),
-            "-m",
-            protocol,
-            &self.name
-        )?;
-        Ok(())
-    }
-
-    fn current_ifprops(&self, protocol: &str) -> anyhow::Result<IfProperties> {
-        let ipadm_output = cmd_output!(
             IPADM_BIN,
             "show-ifprop",
             "-c",
             "-o",
-            "property,current",
-            "-m",
-            &protocol,
+            "proto,property,current",
             &self.name,
-        )?;
-
-        Ok(parse_ifprop(&ipadm_output))
+        )
     }
 }
 
@@ -140,6 +97,11 @@ impl GurpIpInterfaceRemove {
     }
 }
 
+fn interface_exists(interface_name: &str) -> anyhow::Result<bool> {
+    let ipadm_output = cmd_output!(IPADM_BIN, "show-if", "-p", "-o", "ifname")?;
+    Ok(ipadm_output.lines().any(|l| l == interface_name))
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -150,50 +112,31 @@ mod test {
     fn test_deserialize() {
         let json_def = janet2json(indoc! {r#"
            (ip-interface/ensure "test0"
-                                (ip-interface/protocol "ipv6"
-                                                       :mtu 1500
-                                                       :forwarding false)
-                                (ip-interface/protocol "ipv4"
-                                                       :mtu 1505
-                                                       :forwarding true))
+                                {:ipv6 {:mtu 1500 :forwarding false}
+                                {:ipv4 {:mtu 1505 :forwarding true})
           "#});
-
-        let expected_ipv4: IfProperties = HashMap::from([
-            ("mtu".to_owned(), "1505".to_owned()),
-            ("forwarding".to_owned(), "on".to_owned()),
-        ]);
-
-        let expected_ipv6: IfProperties = HashMap::from([
-            ("mtu".to_owned(), "1500".to_owned()),
-            ("forwarding".to_owned(), "off".to_owned()),
-        ]);
 
         let expected = GurpIpInterfaceEnsure {
             id: "/NO-ROLE/ip-interface/test0".to_owned(),
             name: "test0".to_owned(),
             protocols: HashMap::from([
-                ("ipv4".to_owned(), expected_ipv4),
-                ("ipv6".to_owned(), expected_ipv6),
+                (
+                    "ipv4".to_owned(),
+                    HashMap::from([
+                        ("mtu".to_owned(), "1505".to_owned()),
+                        ("forwarding".to_owned(), "on".to_owned()),
+                    ]),
+                ),
+                (
+                    "ipv6".to_owned(),
+                    HashMap::from([
+                        ("mtu".to_owned(), "1500".to_owned()),
+                        ("forwarding".to_owned(), "off".to_owned()),
+                    ]),
+                ),
             ]),
         };
 
         assert_eq!(expected, serde_json::from_str(&json_def).unwrap())
-    }
-
-    #[test]
-    fn test_parse_ifprop() {
-        let input = indoc! { "
-                    arp:on
-                    metric:0
-                    standby:off"
-        };
-
-        let expected: IfProperties = HashMap::from([
-            ("arp".to_owned(), "on".to_owned()),
-            ("metric".to_owned(), "0".to_owned()),
-            ("standby".to_owned(), "off".to_owned()),
-        ]);
-
-        assert_eq!(expected, parse_ifprop(input));
     }
 }

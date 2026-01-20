@@ -2,7 +2,7 @@ use camino::Utf8PathBuf;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
-use std::ops::Add;
+use std::ops::{Add, AddAssign};
 
 pub type ExitCode = u8;
 
@@ -51,6 +51,13 @@ impl Add for ApplySummary {
             resources: self.resources + other.resources,
             changes: self.changes + other.changes,
         }
+    }
+}
+
+impl AddAssign for ApplySummary {
+    fn add_assign(&mut self, other: ApplySummary) {
+        self.resources += other.resources;
+        self.changes += other.changes;
     }
 }
 
