@@ -45,23 +45,23 @@ fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<Ap
     apply_resources!(summary_total, changed_ids, &ensure.zone, opts);
 
     if !&ensure.ipnat.is_empty() {
-        summary_total = summary_total + crate::ipnat::collect_and_ensure(&ensure.ipnat, opts)?;
+        summary_total += crate::ipnat::collect_and_ensure(&ensure.ipnat, opts)?;
     }
 
     if !&ensure.pkg.is_empty() {
-        summary_total = summary_total + crate::pkg::collect_and_ensure(&ensure.pkg, opts)?;
+        summary_total += crate::pkg::collect_and_ensure(&ensure.pkg, opts)?;
     }
 
     if !&ensure.pkgin.is_empty() {
-        summary_total = summary_total + crate::pkgin::collect_and_ensure(&ensure.pkgin, opts)?;
+        summary_total += crate::pkgin::collect_and_ensure(&ensure.pkgin, opts)?;
     }
 
     if !&ensure.apk.is_empty() {
-        summary_total = summary_total + crate::apk::collect_and_ensure(&ensure.apk, opts)?;
+        summary_total += crate::apk::collect_and_ensure(&ensure.apk, opts)?;
     }
 
     if !&ensure.gem.is_empty() {
-        summary_total = summary_total + crate::gem::collect_and_ensure(&ensure.gem, opts)?;
+        summary_total += crate::gem::collect_and_ensure(&ensure.gem, opts)?;
     }
 
     apply_resources!(summary_total, changed_ids, &ensure.group, opts);
@@ -87,19 +87,19 @@ fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<Ap
     apply_resources!(summary_total, changed_ids, &remove.publisher, opts);
 
     if !&remove.gem.is_empty() {
-        summary_total = summary_total + crate::gem::collect_and_remove(&remove.gem, opts)?;
+        summary_total += crate::gem::collect_and_remove(&remove.gem, opts)?;
     }
 
     if !&remove.pkg.is_empty() {
-        summary_total = summary_total + crate::pkg::collect_and_remove(&remove.pkg, opts)?;
+        summary_total += crate::pkg::collect_and_remove(&remove.pkg, opts)?;
     }
 
     if !&remove.pkgin.is_empty() {
-        summary_total = summary_total + crate::pkgin::collect_and_remove(&remove.pkgin, opts)?;
+        summary_total += crate::pkgin::collect_and_remove(&remove.pkgin, opts)?;
     }
 
     if !&remove.apk.is_empty() {
-        summary_total = summary_total + crate::apk::collect_and_remove(&remove.apk, opts)?;
+        summary_total += crate::apk::collect_and_remove(&remove.apk, opts)?;
     }
 
     apply_resources!(summary_total, changed_ids, &remove.ipnat, opts);
@@ -115,8 +115,7 @@ fn ensure_and_remove(config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<Ap
     apply_resources!(summary_total, changed_ids, &remove.etherstub, opts);
 
     for resource in &ensure.svc {
-        let summary = resource.apply(&changed_ids, opts)?;
-        summary_total = summary_total + summary;
+        summary_total += resource.apply(&changed_ids, opts)?;
     }
 
     Ok(summary_total)

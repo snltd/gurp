@@ -32,27 +32,25 @@ impl GurpMiscEnsure {
         let mut aggr = ApplySummary::default();
 
         if let Some(domain) = &self.desired_state.nfs_domain {
-            aggr = aggr + self.ensure_nfs_domain(domain, opts)?;
+            aggr += self.ensure_nfs_domain(domain, opts)?;
         }
 
         if let Some(user) = &self.desired_state.enable_smb {
-            aggr = aggr
-                + match self.enable_smb_share(user, opts) {
-                    Ok(summary) => summary,
-                    Err(e) => {
-                        bail!("smbadm check: {}", e);
-                    }
-                };
+            aggr += match self.enable_smb_share(user, opts) {
+                Ok(summary) => summary,
+                Err(e) => {
+                    bail!("smbadm check: {}", e);
+                }
+            };
         }
 
         if let Some(class) = &self.desired_state.scheduler {
-            aggr = aggr
-                + match self.set_scheduler_class(class, opts) {
-                    Ok(summary) => summary,
-                    Err(e) => {
-                        bail!("dispadmin error: {}", e);
-                    }
-                };
+            aggr += match self.set_scheduler_class(class, opts) {
+                Ok(summary) => summary,
+                Err(e) => {
+                    bail!("dispadmin error: {}", e);
+                }
+            };
         }
 
         Ok(aggr)
