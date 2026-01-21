@@ -112,8 +112,8 @@ mod test {
     fn test_deserialize() {
         let json_def = janet2json(indoc! {r#"
            (ip-interface/ensure "test0"
-                                {:ipv6 {:mtu 1500 :forwarding false}
-                                {:ipv4 {:mtu 1505 :forwarding true})
+                                :ipv6 {:mtu 1500 :forwarding false}
+                                :ipv4 {:mtu 1505 :forwarding true})
           "#});
 
         let expected = GurpIpInterfaceEnsure {
