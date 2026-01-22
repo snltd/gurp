@@ -1,0 +1,1 @@
+(zone/remove "defunct-zone")

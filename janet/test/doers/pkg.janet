@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/pkg)
 
@@ -6,20 +7,19 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (pkg/ensure "ooce/editor/rust")
-  (pkg/remove "ooce/editor/go")
-  (pkg/remove "ooce/editor/python")
+  (import-tests "pkg" (curenv))
+  (pkg/remove "ooce/developer/python")
 
   (test *collector*
-        @{:ensure @{:pkg @[{:_id "/test-role/pkg/ooce_editor_rust"
-                            :name "ooce/editor/rust"
-                            :role "test-role"}]}
-          :remove @{:pkg @[{:_id "/test-role/pkg/ooce_editor_go"
-                            :name "ooce/editor/go"
-                            :role "test-role"}
-                           {:_id "/test-role/pkg/ooce_editor_python"
-                            :name "ooce/editor/python"
-                            :role "test-role"}]}}))
+    @{:ensure @{:pkg @[{:_id "/test-role/pkg/ooce_developer_rust"
+                        :name "ooce/developer/rust"
+                        :role "test-role"}]}
+      :remove @{:pkg @[{:_id "/test-role/pkg/ooce_developer_go"
+                        :name "ooce/developer/go"
+                        :role "test-role"}
+                       {:_id "/test-role/pkg/ooce_developer_python"
+                        :name "ooce/developer/python"
+                        :role "test-role"}]}}))
 
 (deftest pkg-error
   (test-error

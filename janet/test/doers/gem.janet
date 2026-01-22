@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/gem)
 
@@ -6,9 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (gem/ensure "wavefront-cli" :version "8.0.1")
-  (gem/ensure "my-gem" :source "https://my-gem-repo.com")
-  (gem/remove "webscale")
+  (import-tests "gem" (curenv))
 
   (test *collector*
     @{:ensure @{:gem @[{:_id "/test-role/gem/wavefront-cli"

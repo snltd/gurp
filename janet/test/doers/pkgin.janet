@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/pkgin)
 
@@ -6,8 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (pkgin/ensure "rust")
-  (pkgin/remove "go")
+  (import-tests "pkgin" (curenv))
   (pkgin/remove "python")
 
   (test *collector*

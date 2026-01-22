@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/vnic)
 
@@ -6,8 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (vnic/ensure "test-vnic0" :over "e1000g")
-  (vnic/remove "test-vnic1")
+  (import-tests "vnic" (curenv))
 
   (test *collector*
         @{:ensure @{:vnic @[{:_id "/test-role/vnic/test-vnic0"

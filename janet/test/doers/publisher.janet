@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/publisher)
 
@@ -6,10 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (publisher/ensure "sysdef"
-                    :uri "http://pkg.lan.id264.net")
-
-  (publisher/remove "sysdef")
+  (import-tests "publisher" (curenv))
 
   (test *collector*
         @{:ensure @{:publisher @[{:_id "/test-role/publisher/sysdef"

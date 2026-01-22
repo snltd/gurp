@@ -59,7 +59,6 @@
   [types]
   (string "[" (string/join (map |(string/format "%p" $) types) " ") "]"))
 
-
 (defn type-list
   [types]
   # (pp types)
@@ -173,3 +172,94 @@
         (help-for-doer object)))
     ([_e]
       (eprint "No help for '" object "'"))))
+
+### markdown
+
+(defn title-words [& words]
+  (defn title-word [word]
+    (peg/replace 1 string/ascii-upper word))
+  (string/join (map title-word words) " "))
+
+(defn- h1 [text]
+  (string "# " text "\n"))
+
+(defn- h2 [text]
+  (string "## " text "\n"))
+
+(defn- h3 [text]
+  (string "### " text "\n"))
+
+(defn- code [text]
+  (string "`" text "`"))
+
+(defn- table-header [& cols]
+  (string
+    "|  " (string/join cols "  |  ") "  |\n"
+    "|--" (string/join (map |(string/repeat "-" (length $)) cols) "--|--") "--|\n"))
+
+(defn table-row [& fields]
+  (string "| " (string/join ;fields " | ") " |\n"))
+
+(defn props-to-row [property prop-vals defaults]
+  [property
+   (code (string/join (get prop-vals :types) " "))
+   (get prop-vals :help)
+   (string (get defaults property ""))])
+
+(defmacro property-table
+  [doer importance action]
+  (with-syms [$prop-key $properties $heading $prop $vals]
+    ~(do
+       (let [$prop-key (keyword ,importance "-props-" ,action)
+             $properties (doer-lookup ,doer $prop-key)
+             $heading (h3 (title-words ,importance "properties"))]
+
+         (if (empty? $properties)
+           (string $heading "\n" "None" "\n")
+           (string
+             $heading
+             "\n"
+             (table-header :key :type :description :default)
+             (string/join
+               (sorted
+                 (seq [[$prop $vals] :pairs $properties]
+                   (table-row
+                     (props-to-row $prop $vals (doer-lookup ,doer (keyword "defaults-" ,action)))))))))))))
+
+(use ../test/doers/_helpers)
+
+(defn- code-block
+  [code]
+  (string "```janet\n" (string/trim code) "\n```\n\n"))
+
+(defn code-example
+  [doer action]
+  (string/join
+    (filter truthy?
+            (seq [file :in (os/dir (pathcat example-root doer))]
+              (when (string/has-prefix? action file)
+                (code-block (slurp (pathcat example-root doer file))))))))
+
+(defn markdown-for-doer
+  "Returns a multiline string of markdown for the given doer"
+  [doer]
+  (string
+    (h1 doer)
+    "\n"
+    (doer-lookup doer :description)
+    "\n"
+    "\n"
+    (h2 (string doer "/ensure"))
+    "\n"
+    (code-example doer :ensure)
+    (property-table doer :mandatory :ensure)
+    "\n"
+    (property-table doer :optional :ensure)
+    "\n"
+    (h2 (string doer "/remove"))
+    "\n"
+    (code-example doer :remove)
+    (property-table doer :mandatory :remove)
+    "\n"
+    (property-table doer :optional :remove)
+    "\n"))

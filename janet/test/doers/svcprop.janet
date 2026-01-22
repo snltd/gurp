@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/svcprop)
 
@@ -6,15 +7,8 @@
   (set *collector* (new-collector))
   (setdyn :role-dyn "test-role")
 
-  (svcprop/ensure "mariadb"
-                  :properties {:application/datadir "/data"
-                               :application/active true
-                               :application/timeout 50})
-  (svcprop/ensure "mariadb"
-                  :property-groups {:application "application"}
-                  :properties {:application/datadir "/data"})
+  (import-tests "svcprop" (curenv))
 
-  (svcprop/remove "mariadb" :properties ["application/thing"])
 
   (test *collector*
         @{:ensure @{:svcprop @[{:_id "/test-role/svcprop/mariadb"

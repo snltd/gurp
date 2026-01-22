@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/bridge)
 
@@ -6,14 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (bridge/ensure "test_a")
-
-  (bridge/ensure "test_b"
-                 :links ["stub0" "vnic0" "e1000g0"]
-                 :priority 4096
-                 :max-age 30)
-
-  (bridge/remove "test_c")
+  (import-tests "bridge" (curenv))
   
   (test *collector*
     @{:ensure @{:bridge @[{:_id "/test-role/bridge/test_a"

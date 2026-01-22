@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (use ../../src/user-helpers)
 (import ../../src/doers/symlink)
@@ -7,11 +8,7 @@
   (set *collector* (new-collector))
   (setdyn :role-dyn "test-role")
 
-  (symlink/ensure (pathcat "link" "is" "here")
-                  :label "test-link"
-                  :source "/link/points/here")
-
-  (symlink/remove "/dont/want/this/link")
+  (import-tests "symlink" (curenv))
 
   (test *collector*
         @{:ensure @{:symlink @[{:_id "/test-role/symlink/test-link"

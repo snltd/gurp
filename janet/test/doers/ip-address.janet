@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/ip-address)
 
@@ -6,17 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (ip-address/ensure "test0/v4"
-                     :type "static"
-                     :address "192.168.1.13/24"
-                     :properties {:prefixlen 24
-                                  :transmit true
-                                  :private false})
-
-  (ip-address/ensure "test-vnic1/v4"
-                     :type "dhcp")
-
-  (ip-address/remove "test-vnic2")
+  (import-tests "ip-address" (curenv)) 
 
   (test *collector*
         @{:ensure @{:ip-address @[{:_id "/test-role/ip-address/test0_v4"

@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (use ../../src/user-helpers)
 (import ../../src/doers/zfs)
@@ -7,17 +8,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (zfs/ensure (zfscat "tank" "export" "test")
-              :label "test-zfs"
-              :properties {:compression "gzip9"
-                           :devices "off"})
-
-  (zfs/ensure (zfscat "tank" "export" "test-vol")
-              :size "10G"
-              :label "test-zfs-vol"
-              :properties {:devices "off"})
-
-  (zfs/remove "old/filesystem")
+  (import-tests "zfs" (curenv))
 
   (test *collector*
         @{:ensure @{:zfs @[{:_id "/test-role/zfs/test-zfs"

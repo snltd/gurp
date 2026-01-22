@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/ip-interface)
 
@@ -6,14 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (ip-interface/ensure "test-vnic0")
-  (ip-interface/ensure "test-vnic1"
-                       :label "merp"
-                       :ipv6 {:mtu 1500
-                              :forwarding false}
-                       :ipv4 {:mtu 1500
-                              :forwarding true})
-  (ip-interface/remove "test-vnic3")
+  (import-tests "ip-interface" (curenv))
 
   (test *collector*
     @{:ensure @{:ip-interface @[{:_id "/test-role/ip-interface/test-vnic0"

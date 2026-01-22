@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (import ../../src/doers/etherstub)
 (use ../../src/collector)
 
@@ -6,9 +7,8 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (etherstub/ensure "estub0")
+  (import-tests "etherstub" (curenv))
   (etherstub/ensure "estub1")
-  (etherstub/remove "estub2")
 
   (test *collector*
         @{:ensure @{:etherstub @[{:_id "/test-role/etherstub/estub0"

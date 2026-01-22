@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (use ../../src/user-helpers)
 (import ../../src/doers/cron)
@@ -7,20 +8,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (cron/ensure "loosely-specced"
-               :minute 6
-               :command (argcat "/bin/thing" "arg1" "arg2" "arg3"))
-
-  (cron/ensure "tightly-specced"
-               :minute 6
-               :hour 4
-               :day-of-month "*"
-               :day-of-week 5
-               :label "some-cron-job"
-               :user "test-user"
-               :command (argcat "/bin/thing" "arg1" "arg2" "arg3"))
-
-  (cron/remove "that-old-cron-job")
+  (import-tests "cron" (curenv))
 
   (test *collector*
         @{:ensure @{:cron @[{:_id "/test-role/cron/loosely-specced"
