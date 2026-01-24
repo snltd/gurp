@@ -94,8 +94,11 @@
 
 (defn doer-lookup
   [doer binding]
-  (def lookup (symbol (string doer "/" binding)))
-  (eval lookup))
+  (try
+    (do
+      (def lookup (symbol (string doer "/" binding)))
+      (eval lookup))
+    ([_] nil)))
 
 (defn subresource-lookup
   [doer subresource binding]
@@ -255,11 +258,15 @@
     (property-table doer :mandatory :ensure)
     "\n"
     (property-table doer :optional :ensure)
-    "\n"
-    (h2 (string doer "/remove"))
-    "\n"
-    (code-example doer :remove)
-    (property-table doer :mandatory :remove)
-    "\n"
-    (property-table doer :optional :remove)
-    "\n"))
+
+    (if (doer-lookup doer :remove)
+      (string
+        "\n"
+        (h2 (string doer "/remove"))
+        "\n"
+        (code-example doer :remove)
+        (property-table doer :mandatory :remove)
+        "\n"
+        (property-table doer :optional :remove)
+        "\n"))
+    (string "There is no " doer "/remove.")))
