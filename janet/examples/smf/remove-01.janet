@@ -1,1 +1,1 @@
-(smf/remove "some/unwanted/service")
+(smf/remove "unwanted/service")

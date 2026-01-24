@@ -1,1 +1,1 @@
-  (pkg/remove "ooce/developer/go")
+(pkg/remove "ooce/developer/go")

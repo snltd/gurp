@@ -1,1 +1,2 @@
-(misc/ensure :scheduler "FSS")
+(misc/ensure
+  :scheduler "FSS")

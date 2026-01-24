@@ -16,8 +16,8 @@
                                 {:_id "/test-role/ip-interface/example-interface"
                                  :label "example-interface"
                                  :name "example1"
-                                 :protocols @{"ipv4" {:forwarding true :mtu 1500}
-                                              "ipv6" {:forwarding false :mtu 1500}}
+                                 :protocols {:ipv4 {:forwarding true :mtu 1500}
+                                             :ipv6 {:forwarding false :mtu 1500}}
                                  :role "test-role"}]}
       :remove @{:ip-interface @[{:_id "/test-role/ip-interface/example3"
                                  :name "example3"

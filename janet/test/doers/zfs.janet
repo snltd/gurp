@@ -11,20 +11,23 @@
   (import-tests "zfs" (curenv))
 
   (test *collector*
-        @{:ensure @{:zfs @[{:_id "/test-role/zfs/test-zfs"
-                            :label "test-zfs"
-                            :name "tank/export/test"
-                            :properties {:compression "gzip9" :devices "off"}
-                            :role "test-role"}
-                           {:_id "/test-role/zfs/test-zfs-vol"
-                            :label "test-zfs-vol"
-                            :name "tank/export/test-vol"
-                            :properties {:devices "off"}
-                            :role "test-role"
-                            :size "10G"}]}
-          :remove @{:zfs @[{:_id "/test-role/zfs/old_filesystem"
-                            :name "old/filesystem"
-                            :role "test-role"}]}}))
+    @{:ensure @{:zfs @[{:_id "/test-role/zfs/zfs-example-1"
+                        :label "zfs-example-1"
+                        :name "tank/example/filesystem"
+                        :properties {:compression "gzip9"
+                                     :dedup true
+                                     :devices false
+                                     :mountpoint "/example/mountpoint"}
+                        :role "test-role"}
+                       {:_id "/test-role/zfs/example-zfs-vol"
+                        :label "example-zfs-vol"
+                        :name "tank/example/volume"
+                        :properties {:mountpoint: "none"}
+                        :role "test-role"
+                        :size "10G"}]}
+      :remove @{:zfs @[{:_id "/test-role/zfs/tank_old_filesystem"
+                        :name "tank/old/filesystem"
+                        :role "test-role"}]}}))
 
 (deftest zfs-error
   (test-error

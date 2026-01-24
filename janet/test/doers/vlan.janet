@@ -15,8 +15,8 @@
                          :over "e1000g0"
                          :role "test-role"
                          :vlan-tag 10}]}
-      :remove @{:vlan @[{:_id "/test-role/vlan/old-vlan"
-                         :name "old-vlan"
+      :remove @{:vlan @[{:_id "/test-role/vlan/e1000g020"
+                         :name "e1000g020"
                          :role "test-role"}]}}))
 
 (deftest vlan-error

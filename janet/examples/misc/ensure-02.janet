@@ -1,1 +1,2 @@
-(misc/ensure :enable-smb "rob")
+(misc/ensure
+  :enable-smb "rob")

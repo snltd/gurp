@@ -1,4 +1,4 @@
-(network-flow/ensure "flow-ssh-test"
+(network-flow/ensure "ssh-flow"
                      :link "vnic0"
                      :protocol "tcp"
                      :local-port 22

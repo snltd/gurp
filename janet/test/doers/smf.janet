@@ -9,33 +9,33 @@
   (import-tests "smf" (curenv))
 
   (test *collector*
-    @{:ensure @{:smf @[{:_id "/NO-ROLE/smf/telegraf"
+    @{:ensure @{:smf @[{:_id "/NO-ROLE/smf/example"
                         :default-enabled true
                         :dependencies @[@{:fmri "svc://example/service1:default"
                                           :grouping "require_all"
-                                          :name "svc1"
+                                          :name "dependency1"
                                           :restart-on "none"
                                           :type "service"}
                                         @{:fmri "svc://example/service2:default"
                                           :grouping "optional-all"
-                                          :name "svc2"
+                                          :name "dependency2"
                                           :restart-on "error"
                                           :type "service"}]
-                        :description "Run Telegraf agent"
-                        :fmri "sysdef/telegraf"
-                        :name "telegraf"
+                        :description "Run example program"
+                        :fmri "snltd/example"
+                        :name "example"
                         :properties @{:application/datadir {:type "astring" :value "/data"}}
                         :property-groups {:application "application"}
                         :role "NO-ROLE"
                         :single-instance true
                         :start-method @{:context {:group "daemon"
                                                   :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"
-                                                  :user "telegraf"}
-                                        :exec "/opt/site/lib/smf/method/telegraf.sh"
+                                                  :user "example"}
+                                        :exec "/opt/site/lib/smf/method/example.sh"
                                         :timeout 60}
                         :stop-method {:exec ":kill" :timeout 10}}]}
-      :remove @{:smf @[{:_id "/NO-ROLE/smf/some_unwanted_service"
-                        :name "some/unwanted/service"
+      :remove @{:smf @[{:_id "/NO-ROLE/smf/unwanted_service"
+                        :name "unwanted/service"
                         :role "NO-ROLE"}]}}))
 
 (test-error

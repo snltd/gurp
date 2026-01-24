@@ -1,1 +1,1 @@
-(publisher/remove "sysdef")
+(publisher/remove "old_publisher")

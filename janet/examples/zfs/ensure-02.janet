@@ -1,4 +1,3 @@
-(zfs/ensure "tank/export/test-vol"
+(zfs/ensure "tank/example/volume"
             :size "10G"
-            :label "test-zfs-vol"
-            :properties {:devices "off"})
+            :label "example-zfs-vol")

@@ -1,1 +1,2 @@
-(misc/ensure :nfs-domain "lan.id264.net")
+(misc/ensure
+  :nfs-domain "lan.id264.net")

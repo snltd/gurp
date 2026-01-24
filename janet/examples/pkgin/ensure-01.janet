@@ -1,1 +1,1 @@
-  (pkgin/ensure "rust")
+(pkgin/ensure "rust")

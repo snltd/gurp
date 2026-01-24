@@ -1,4 +1,4 @@
-  (network-flow/ensure "tls_shaper"
+  (network-flow/ensure "tls-throttle"
                        :link "vnic1"
                        :protocol "tcp"
                        :remote-ip "203.0.113.4"

@@ -1,1 +1,1 @@
-(zone/remove "defunct-zone")
+(zone/remove "unwanted-zone")

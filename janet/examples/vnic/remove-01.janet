@@ -1,1 +1,1 @@
-(vnic/remove "test-vnic1")
+(vnic/remove "vnic1")

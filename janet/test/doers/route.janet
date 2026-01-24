@@ -13,9 +13,10 @@
   (route/remove "192.168.1.1" :gateway "default")
 
   (test *collector*
-    @{:ensure @{:route @[{:_id "/test-role/route/192.168.1.1"
+    @{:ensure @{:route @[{:_id "/test-role/route/default-gateway"
                           :force-gateway false
                           :gateway "default"
+                          :label "default-gateway"
                           :name "192.168.1.1"
                           :role "test-role"}
                          {:_id "/test-role/route/10.0.5.0_24"

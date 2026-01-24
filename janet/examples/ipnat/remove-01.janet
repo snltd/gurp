@@ -1,1 +1,1 @@
-(ipnat/remove "empty-test")
+(ipnat/remove "removes-all-rules")

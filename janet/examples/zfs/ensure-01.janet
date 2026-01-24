@@ -1,4 +1,6 @@
-(zfs/ensure (zfscat "tank" "export" "test")
-            :label "test-zfs"
+(zfs/ensure "tank/example/filesystem"
+            :label "zfs-example-1"
             :properties {:compression "gzip9"
-                         :devices "off"})
+                         :mountpoint "/example/mountpoint"
+                         :dedup true
+                         :devices false})

@@ -1,1 +1,1 @@
-(zfs/remove "old/filesystem")
+(zfs/remove "tank/old/filesystem")
