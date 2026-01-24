@@ -1,4 +1,4 @@
-(cron/ensure "tightly-specced"
+(cron/ensure "lots-of-values"
              :minute 6
              :hour 4
              :day-of-month "*"

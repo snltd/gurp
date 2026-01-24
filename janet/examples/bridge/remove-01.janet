@@ -1,1 +1,1 @@
-(bridge/remove "test_c")
+(bridge/remove "unwanted")

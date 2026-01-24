@@ -11,25 +11,25 @@
   (import-tests "file" (curenv))
 
   (test *collector*
-    @{:ensure @{:file @[{:_id "/test-role/file/_path_to_file"
+    @{:ensure @{:file @[{:_id "/test-role/file/_file_from_local_file"
                          :from "/gurpdir/files/file-test/does-not-exist"
                          :group "daemon"
                          :mode "0755"
-                         :name "/path/to/file"
+                         :name "/file/from/local_file"
                          :owner "root"
                          :role "test-role"}
-                        {:_id "/test-role/file/_file_path"
+                        {:_id "/test-role/file/_file_from_content"
                          :content "lots-of-data"
                          :group "root"
                          :mode "0600"
-                         :name "/file/path"
+                         :name "/file/from/content"
                          :owner "dataperson"
                          :role "test-role"}
-                        {:_id "/test-role/file/_file_from_remote_path"
+                        {:_id "/test-role/file/_file_from_arbitrary_server"
                          :from-url "https://example.com/files/config"
                          :group "root"
                          :mode "0640"
-                         :name "/file/from/remote/path"
+                         :name "/file/from/arbitrary/server"
                          :owner "gibbus"
                          :role "test-role"
                          :with-checksum "0123456789abcdef"}]}

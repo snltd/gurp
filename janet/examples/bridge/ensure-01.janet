@@ -1,1 +1,1 @@
-(bridge/ensure "test_a")
+(bridge/ensure "basic")

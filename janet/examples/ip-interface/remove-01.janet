@@ -1,1 +1,1 @@
-(ip-interface/remove "test-vnic3")
+(ip-interface/remove "example3")

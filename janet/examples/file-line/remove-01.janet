@@ -1,4 +1,4 @@
 (file-line/remove "/tmp/.tmpjpqQir/test-file"
-                  :pattern "line_2"
+                  :pattern "i-do-not-want-to-see-this"
                   :match "exact"
                   :apply-to "all")

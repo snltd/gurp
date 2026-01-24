@@ -1,1 +1,1 @@
-  (etherstub/ensure "estub0")
+(etherstub/ensure "newstub0")

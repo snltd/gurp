@@ -1,4 +1,4 @@
-(directory/ensure "/highly/specified/dir"
+(directory/ensure "/path/to/dir_3"
                   :owner "myself"
                   :group "sysadmin"
                   :mode "0700"

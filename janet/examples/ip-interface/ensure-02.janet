@@ -1,5 +1,5 @@
-(ip-interface/ensure "test-vnic1"
-                     :label "merp"
+(ip-interface/ensure "example1"
+                     :label "example-interface"
                      (ip-interface/protocol "ipv6"
                                             :mtu 1500
                                             :forwarding false)

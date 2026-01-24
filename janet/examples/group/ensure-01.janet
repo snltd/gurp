@@ -1,1 +1,2 @@
-(group/ensure "new-group" :gid 264)
+(group/ensure "new-group"
+              :gid 264)

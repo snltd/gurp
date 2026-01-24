@@ -1,1 +1,1 @@
-(ip-address/remove "test-vnic2")
+(ip-address/remove "example3/v4")

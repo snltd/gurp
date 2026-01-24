@@ -1,1 +1,1 @@
-(directory/ensure "/path/to/default/dir")
+(directory/ensure "/path/to/dir_1")

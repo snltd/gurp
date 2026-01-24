@@ -18,19 +18,19 @@
                               :apply-to "all"
                               :match "exact"
                               :name "/tmp/.tmpjpqQir/test-file"
-                              :pattern "line_2"
+                              :pattern "i-do-not-want-to-see-this"
                               :role "test-role"}
                              {:_id "/test-role/file-line/_path_to_file"
                               :apply-to "all"
                               :match "exact"
                               :name "/path/to/file"
-                              :pattern "this-is-an-awful-line"
+                              :pattern "rust_regex"
                               :role "test-role"}
                              {:_id "/test-role/file-line/_path_to_file"
                               :apply-to "last"
                               :match "exact"
                               :name "/path/to/file"
-                              :pattern "this-is-an-awful-line"
+                              :pattern "rust_regex"
                               :role "test-role"}]}}))
 
 (deftest file-line-error

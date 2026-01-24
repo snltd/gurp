@@ -12,12 +12,12 @@
   (test *collector*
     @{:ensure @{:gem @[{:_id "/test-role/gem/wavefront-cli"
                         :name "wavefront-cli"
-                        :role "test-role"
-                        :version "8.0.1"}
+                        :role "test-role"}
                        {:_id "/test-role/gem/my-gem"
                         :name "my-gem"
                         :role "test-role"
-                        :source "https://my-gem-repo.com"}]}
+                        :source "https://my-gem-repo.com"
+                        :version "1.2.3"}]}
       :remove @{:gem @[{:_id "/test-role/gem/webscale"
                         :name "webscale"
                         :role "test-role"}]}}))

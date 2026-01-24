@@ -1,1 +1,1 @@
-  (apk/remove "go")
+(apk/remove "go")

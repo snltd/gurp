@@ -10,24 +10,24 @@
   (import-tests "directory" (curenv))
 
   (test *collector*
-    @{:ensure @{:directory @[{:_id "/test-role/directory/_path_to_default_dir"
+    @{:ensure @{:directory @[{:_id "/test-role/directory/_path_to_dir_1"
                               :group "root"
                               :mode "0755"
-                              :name "/path/to/default/dir"
+                              :name "/path/to/dir_1"
                               :owner "root"
                               :role "test-role"}
                              {:_id "/test-role/directory/my-dir"
                               :group "root"
                               :label "my-dir"
                               :mode "0700"
-                              :name "/path/to/dir"
+                              :name "/path/to/dir_2"
                               :owner "root"
                               :role "test-role"}
                              {:_id "/test-role/directory/all-the-specs"
                               :group "sysadmin"
                               :label "all-the-specs"
                               :mode "0700"
-                              :name "/highly/specified/dir"
+                              :name "/path/to/dir_3"
                               :owner "myself"
                               :role "test-role"}]}
       :remove @{:directory @[{:_id "/test-role/directory/_path_to_dir"

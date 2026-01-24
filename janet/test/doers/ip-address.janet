@@ -10,21 +10,21 @@
   (import-tests "ip-address" (curenv)) 
 
   (test *collector*
-        @{:ensure @{:ip-address @[{:_id "/test-role/ip-address/test0_v4"
-                                   :address "192.168.1.13/24"
-                                   :name "test0/v4"
-                                   :properties {:prefixlen 24
-                                                :private false
-                                                :transmit true}
-                                   :role "test-role"
-                                   :type "static"}
-                                  {:_id "/test-role/ip-address/test-vnic1_v4"
-                                   :name "test-vnic1/v4"
-                                   :role "test-role"
-                                   :type "dhcp"}]}
-          :remove @{:ip-address @[{:_id "/test-role/ip-address/test-vnic2"
-                                   :name "test-vnic2"
-                                   :role "test-role"}]}}))
+    @{:ensure @{:ip-address @[{:_id "/test-role/ip-address/example0_v4"
+                               :address "192.168.1.13/24"
+                               :name "example0/v4"
+                               :properties {:prefixlen 24
+                                            :private false
+                                            :transmit true}
+                               :role "test-role"
+                               :type "static"}
+                              {:_id "/test-role/ip-address/example1_v4"
+                               :name "example1/v4"
+                               :role "test-role"
+                               :type "dhcp"}]}
+      :remove @{:ip-address @[{:_id "/test-role/ip-address/example3_v4"
+                               :name "example3/v4"
+                               :role "test-role"}]}}))
 
 (deftest ip-address-error
   (test-error
