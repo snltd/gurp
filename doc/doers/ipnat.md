@@ -2,6 +2,10 @@
 
 Set or remove NAT rules.
 
+## Resouce Name
+
+Any convenient name: not used internally (`:string`)
+
 ## ipnat/ensure
 
 ```janet
@@ -21,14 +25,14 @@ rdr le0 203.1.2.3/32 port 80 -> 203.1.2.5 port 80 tcp round-robin")
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| priority | `number` | NAT rule resources are ordered by priority, lowest number first |  |
+| `:priority` | `number` | NAT rule resources are ordered by priority, lowest number first |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| content | `string` | Apply these rules. Must have :content xor :from |  |
-| from | `string` | Apply rules in the given file. If relative, looks in ../files |  |
+| `:content` | `string` | Apply these rules. Must have :content xor :from |  |
+| `:from` | `string` | Apply rules in the given file. If relative, looks in ../files |  |
 
 ## ipnat/remove
 
@@ -44,4 +48,3 @@ None
 
 None
 
-There is no ipnat/remove.

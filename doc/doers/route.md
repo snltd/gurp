@@ -2,6 +2,10 @@
 
 Manage routes. Note that default routes for zones should be                 handled by the zone's :defrouter property.
 
+## Resouce Name
+
+The route destination, e.g. 10.10.0.0/16 (`:string`)
+
 ## route/ensure
 
 ```janet
@@ -28,11 +32,11 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| flags | `struct` | Key-value pairs for flags. If the flag does not take a value,                  use true |  |
-| force-gateway | `boolean` | If true, put '-gateway' before the gateway to remove                         ambiguity | false |
-| gateway | `string` | Gateway for given route. For a default route specify                   'default' |  |
-| interface | `string` | Interface for given route. Conflicts with :gateway |  |
-| type | `string` | Type of route: e.g. 'blackhole', 'reject' |  |
+| `:flags` | `struct` | Key-value pairs for flags. If the flag does not take a value,                  use true |  |
+| `:force-gateway` | `boolean` | If true, put '-gateway' before the gateway to remove                         ambiguity |  |
+| `:gateway` | `string` | Gateway for given route. For a default route specify                   'default' |  |
+| `:interface` | `string` | Interface for given route. Conflicts with :gateway |  |
+| `:type` | `string` | Type of route: e.g. 'blackhole', 'reject' |  |
 
 ## route/remove
 
@@ -44,10 +48,9 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| gateway | `string` | Gateway for given route. For a default route specify                   'default' |  |
+| `:gateway` | `string` | Gateway for given route. For a default route specify                   'default' |  |
 
 ### Optional Properties
 
 None
 
-There is no route/remove.

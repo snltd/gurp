@@ -2,6 +2,10 @@
 
 Manages IP addresses via ipadm.
 
+## Resouce Name
+
+Address name, e.g. vnic0/v4 (`:string`)
+
 ## ip-address/ensure
 
 ```janet
@@ -22,14 +26,14 @@ Manages IP addresses via ipadm.
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| type | `string` | Type of connection: 'static', 'dhcp' |  |
+| `:type` | `string` | Type of connection: 'static', 'dhcp' |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| address | `string` | Local IP address with /netmask, if using static address |  |
-| properties | `struct` | Struct of any valid ipadm addrprops |  |
+| `:address` | `string` | Local IP address with /netmask, if using static address |  |
+| `:properties` | `struct` | Struct of any valid ipadm addrprops |  |
 
 ## ip-address/remove
 
@@ -45,4 +49,3 @@ None
 
 None
 
-There is no ip-address/remove.

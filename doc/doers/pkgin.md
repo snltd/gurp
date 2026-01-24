@@ -2,6 +2,10 @@
 
 Install and uninstall pkgin packages. Only valid in a pkgsrc                 zone.
 
+## Resouce Name
+
+Package name (`:string`)
+
 ## pkgin/ensure
 
 ```janet
@@ -30,4 +34,3 @@ None
 
 None
 
-There is no pkgin/remove.

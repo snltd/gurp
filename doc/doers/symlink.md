@@ -2,6 +2,10 @@
 
 Create and remove symbolic links.
 
+## Resouce Name
+
+Qualified path to the link that will be created (`:string`)
+
 ## symlink/ensure
 
 ```janet
@@ -14,7 +18,7 @@ Create and remove symbolic links.
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| source | `string` | The file the symlink points to |  |
+| `:source` | `string` | The file the symlink points to |  |
 
 ### Optional Properties
 
@@ -34,4 +38,3 @@ None
 
 None
 
-There is no symlink/remove.

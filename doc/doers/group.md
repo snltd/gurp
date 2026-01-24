@@ -2,6 +2,10 @@
 
 Create and destroy Unix groups.
 
+## Resouce Name
+
+Group name (`:string`)
+
 ## group/ensure
 
 ```janet
@@ -12,7 +16,7 @@ Create and destroy Unix groups.
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| gid | `number` | The group ID |  |
+| `:gid` | `number` | The group ID |  |
 
 ### Optional Properties
 
@@ -32,4 +36,3 @@ None
 
 None
 
-There is no group/remove.

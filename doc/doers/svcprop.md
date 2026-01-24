@@ -2,6 +2,10 @@
 
 Manage properties of an existing SMF service.
 
+## Resouce Name
+
+Any valid FMRI of the service whose properties you wish to set (`:string`)
+
 ## svcprop/ensure
 
 ```janet
@@ -21,13 +25,13 @@ Manage properties of an existing SMF service.
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| properties | `struct` | Properties to create. (:keyword :string|:boolean|:number) |  |
+| `:properties` | `struct` | Properties to create. (:keyword :string|:boolean|:number) |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| property-groups | `struct` | Property groups to create. Key is name, value is type |  |
+| `:property-groups` | `struct` | Property groups to create. Key is name, value is type |  |
 
 ## svcprop/remove
 
@@ -40,12 +44,11 @@ Manage properties of an existing SMF service.
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| properties | `tuple` | Properties to remove |  |
+| `:properties` | `tuple` | Properties to remove |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| property-groups | `struct` | Property groups to remove |  |
+| `:property-groups` | `struct` | Property groups to remove |  |
 
-There is no svcprop/remove.

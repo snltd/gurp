@@ -2,6 +2,10 @@
 
 Manage VNIC objects
 
+## Resouce Name
+
+VNIC name (`:string`)
+
 ## vnic/ensure
 
 ```janet
@@ -13,14 +17,14 @@ Manage VNIC objects
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| over | `string` | Physical link which will serve the VNIC |  |
+| `:over` | `string` | Physical link which will serve the VNIC |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| vlan-tag | `number` | Enable VLAN tagging with the given tag |  |
-| with-interface | `boolean` | Whether to create an IP interface on the new VNIC | false |
+| `:vlan-tag` | `number` | Enable VLAN tagging with the given tag |  |
+| `:with-interface` | `boolean` | Whether to create an IP interface on the new VNIC |  |
 
 ## vnic/remove
 
@@ -36,4 +40,3 @@ None
 
 None
 
-There is no vnic/remove.

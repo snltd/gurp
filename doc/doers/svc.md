@@ -2,6 +2,10 @@
 
 Manage the state of an existing SMF service.
 
+## Resouce Name
+
+Service FMRI (`:string`)
+
 ## svc/ensure
 
 ```janet
@@ -14,12 +18,15 @@ Manage the state of an existing SMF service.
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| state | `string` | Desired state of service, e.g. 'online' |  |
+| `:state` | `string` | Desired state of service, e.g. 'online' |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| reloaded-by | `array` | Labels of resources whose alteration triggers service reload | <tuple 0x0000024E4BA0> |
-| restarted-by | `array` | Labels of resources whose alteration triggers service restart | <tuple 0x0000024E4BD0> |
+| `:reloaded-by` | `array` | Labels of resources whose alteration triggers service reload | `()` |
+| `:restarted-by` | `array` | Labels of resources whose alteration triggers service restart | `()` |
+
+## svc/remove
+
 There is no svc/remove.

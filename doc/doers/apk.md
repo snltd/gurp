@@ -2,6 +2,10 @@
 
 Install and uninstall APK packages. Only valid in an Alpine LX zone.
 
+## Resouce Name
+
+Package name (`:string`)
+
 ## apk/ensure
 
 ```janet
@@ -30,4 +34,3 @@ None
 
 None
 
-There is no apk/remove.

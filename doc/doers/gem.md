@@ -2,6 +2,10 @@
 
 Install and uninstall Ruby gems.
 
+## Resouce Name
+
+Gem name (`:string`)
+
 ## gem/ensure
 
 ```janet
@@ -20,9 +24,9 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| gem-path | `string` | Path to gem executable other than /opt/ooce/bin/gem |  |
-| source | `string` | Source other than RubyGems. Can contain tokens and usernames |  |
-| version | `string` | Gem version |  |
+| `:gem-path` | `string` | Path to gem executable other than /opt/ooce/bin/gem |  |
+| `:source` | `string` | Source other than RubyGems. Can contain tokens and usernames |  |
+| `:version` | `string` | Gem version |  |
 
 ## gem/remove
 
@@ -38,7 +42,6 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| gem-path: | `string` | Path to gem executable other than /opt/ooce/bin/gem |  |
-| version | `string` | Gem version |  |
+| `:gem-path:` | `string` | Path to gem executable other than /opt/ooce/bin/gem |  |
+| `:version` | `string` | Gem version |  |
 
-There is no gem/remove.

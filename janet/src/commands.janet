@@ -3,6 +3,8 @@
 # 
 (import ./formatting)
 (import ./doers :prefix "")
+(use ../test/doers/_helpers)
+(use ./markdown)
 
 (def term-width 80)
 
@@ -86,7 +88,7 @@
           (seq [[prop-name prop-vals] :pairs props]
             (def leader
               (string/format leader-format-string
-                             (formatting/bold prop-name)
+                             (formatting/bold (code prop-name))
                              (flatten-types (prop-vals :types))))
 
             (formatting/lay-out-help leader (prop-vals :help) (- leader-width 3) term-width)))
@@ -176,38 +178,14 @@
     ([_e]
       (eprint "No help for '" object "'"))))
 
-### markdown
-
-(defn title-words [& words]
-  (defn title-word [word]
-    (peg/replace 1 string/ascii-upper word))
-  (string/join (map title-word words) " "))
-
-(defn- h1 [text]
-  (string "# " text "\n"))
-
-(defn- h2 [text]
-  (string "## " text "\n"))
-
-(defn- h3 [text]
-  (string "### " text "\n"))
-
-(defn- code [text]
-  (string "`" text "`"))
-
-(defn- table-header [& cols]
-  (string
-    "|  " (string/join cols "  |  ") "  |\n"
-    "|--" (string/join (map |(string/repeat "-" (length $)) cols) "--|--") "--|\n"))
-
-(defn table-row [& fields]
-  (string "| " (string/join ;fields " | ") " |\n"))
-
 (defn props-to-row [property prop-vals defaults]
-  [property
+  [(code (string/format "%v" property))
    (code (string/join (get prop-vals :types) " "))
    (get prop-vals :help)
-   (string (get defaults property ""))])
+   (if-let [default-val (get defaults property)]
+     (code (string/format "%m" default-val))
+    ""
+    )])
 
 (defmacro property-table
   [doer importance action]
@@ -229,11 +207,6 @@
                    (table-row
                      (props-to-row $prop $vals (doer-lookup ,doer (keyword "defaults-" ,action)))))))))))))
 
-(use ../test/doers/_helpers)
-
-(defn- code-block
-  [code]
-  (string "```janet\n" (string/trim code) "\n```\n\n"))
 
 (defn code-example
   [doer action]
@@ -252,21 +225,30 @@
     (doer-lookup doer :description)
     "\n"
     "\n"
+    (h2 "Resouce Name")
+    "\n"
+    (if-let [name-is (doer-lookup doer :name-is)]
+      (string name-is " (`:string`)")
+      "This resource does not accept a name")
+    "\n"
+    "\n"
     (h2 (string doer "/ensure"))
     "\n"
     (code-example doer :ensure)
     (property-table doer :mandatory :ensure)
     "\n"
     (property-table doer :optional :ensure)
+    "\n"
 
     (if (doer-lookup doer :remove)
       (string
-        "\n"
         (h2 (string doer "/remove"))
         "\n"
         (code-example doer :remove)
         (property-table doer :mandatory :remove)
         "\n"
         (property-table doer :optional :remove)
-        "\n"))
-    (string "There is no " doer "/remove.")))
+        "\n")
+      (string
+        (h2 (string doer "/remove"))
+        "\nThere is no " doer "/remove."))))

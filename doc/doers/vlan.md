@@ -2,6 +2,10 @@
 
 Manage VLAN objects
 
+## Resouce Name
+
+VLAN name (`:string`)
+
 ## vlan/ensure
 
 ```janet
@@ -14,8 +18,8 @@ Manage VLAN objects
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| over | `string` | Physical link which will serve the VLAN |  |
-| vlan-tag | `number` | The VLAN tag ID |  |
+| `:over` | `string` | Physical link which will serve the VLAN |  |
+| `:vlan-tag` | `number` | The VLAN tag ID |  |
 
 ### Optional Properties
 
@@ -35,4 +39,3 @@ None
 
 None
 
-There is no vlan/remove.

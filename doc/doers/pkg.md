@@ -2,6 +2,10 @@
 
 Install and uninstall pkg(5) packages.
 
+## Resouce Name
+
+Package name, of the form ooce/editor/helix (`:string`)
+
 ## pkg/ensure
 
 ```janet
@@ -30,4 +34,3 @@ None
 
 None
 
-There is no pkg/remove.

@@ -2,6 +2,10 @@
 
 Create and destroy IP interfaces, with optional properties.                 Properties are supplied with 'ip-interface-protocol'.
 
+## Resouce Name
+
+Interface name (`:string`)
+
 ## ip-interface/ensure
 
 ```janet
@@ -27,7 +31,7 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| protocols | `struct table` | See 'ip-interface-protocol' |  |
+| `:protocols` | `struct table` | See 'ip-interface-protocol' |  |
 
 ## ip-interface/remove
 
@@ -43,4 +47,3 @@ None
 
 None
 
-There is no ip-interface/remove.

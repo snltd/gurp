@@ -2,6 +2,10 @@
 
 Create and destroy etherstubs.
 
+## Resouce Name
+
+Name of etherstub (`:string`)
+
 ## etherstub/ensure
 
 ```janet
@@ -30,4 +34,3 @@ None
 
 None
 
-There is no etherstub/remove.

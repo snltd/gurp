@@ -2,6 +2,10 @@
 
 Create, destroy, and modify properties of ZFS filesystems.
 
+## Resouce Name
+
+ZFS dataset name (`:string`)
+
 ## zfs/ensure
 
 ```janet
@@ -26,8 +30,8 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| properties | `struct` | ZFS properties (:keyword) paired with desired value (:string) | <struct 0x000002550038> |
-| size | `string` | If specified, creates a ZFS volume of given size (e.g. '10G') |  |
+| `:properties` | `struct` | ZFS properties (:keyword) paired with desired value (:string) | `{:mountpoint: "none"}` |
+| `:size` | `string` | If specified, creates a ZFS volume of given size (e.g. '10G') |  |
 
 ## zfs/remove
 
@@ -43,4 +47,3 @@ None
 
 None
 
-There is no zfs/remove.

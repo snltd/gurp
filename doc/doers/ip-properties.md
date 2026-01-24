@@ -2,6 +2,10 @@
 
 Sets global IP properties, via 'ipadm set-prop'.
 
+## Resouce Name
+
+Any convenient name: not used internally (`:string`)
+
 ## ip-properties/ensure
 
 ```janet
@@ -20,5 +24,8 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| properties | `struct` | A struct whose keys are protocols (e.g. 'ipv4', 'ipv6'),                      and whose values are structs pairing properties (e.g.                      :hoplimit, :max_buf) with values |  |
+| `:properties` | `struct` | A struct whose keys are protocols (e.g. 'ipv4', 'ipv6'),                      and whose values are structs pairing properties (e.g.                      :hoplimit, :max_buf) with values |  |
+
+## ip-properties/remove
+
 There is no ip-properties/remove.

@@ -2,6 +2,10 @@
 
 A collection of things too small to deserve their own doer.
 
+## Resouce Name
+
+This resource does not accept a name
+
 ## misc/ensure
 
 ```janet
@@ -24,7 +28,10 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| enable-smb | `string` | Enable SMB sharing for this username |  |
-| nfs-domain | `string` | NFS domain name |  |
-| scheduler | `string` | The scheduler class to set via dispamdin |  |
+| `:enable-smb` | `string` | Enable SMB sharing for this username |  |
+| `:nfs-domain` | `string` | NFS domain name |  |
+| `:scheduler` | `string` | The scheduler class to set via dispamdin |  |
+
+## misc/remove
+
 There is no misc/remove.

@@ -2,6 +2,10 @@
 
 Create and remove directories. Parents are created like mkdir -p, but with   the owner/group/mode of the gurp process. Removal always removes directory   contents.
 
+## Resouce Name
+
+Fully qualified path to directory (`:string`)
+
 ## directory/ensure
 
 ```janet
@@ -26,9 +30,9 @@ Create and remove directories. Parents are created like mkdir -p, but with   the
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| group | `string number` | The group name or GID of the for this directory | root |
-| mode | `string` | Permissions, written as a four-digit octal | 0755 |
-| owner | `string number` | The username or UID of the user who owns this directory | root |
+| `:group` | `string number` | The group name or GID of the for this directory | `"root"` |
+| `:mode` | `string` | Permissions, written as a four-digit octal | `"0755"` |
+| `:owner` | `string number` | The username or UID of the user who owns this directory | `"root"` |
 
 ### Optional Properties
 
@@ -48,4 +52,3 @@ None
 
 None
 
-There is no directory/remove.

@@ -2,6 +2,10 @@
 
 Add and remove pkg(5) publisher origins.
 
+## Resouce Name
+
+Publisher name (`:string`)
+
 ## publisher/ensure
 
 ```janet
@@ -13,7 +17,7 @@ Add and remove pkg(5) publisher origins.
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| uri | `string` | Add a pkg publiser with this URI |  |
+| `:uri` | `string` | Add a pkg publiser with this URI |  |
 
 ### Optional Properties
 
@@ -33,4 +37,3 @@ None
 
 None
 
-There is no publisher/remove.

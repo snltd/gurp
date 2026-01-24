@@ -2,6 +2,10 @@
 
 Create and install a manifest for an SMF service.
 
+## Resouce Name
+
+Short name of service. Not used internally (`:string`)
+
 ## smf/ensure
 
 ```janet
@@ -28,24 +32,24 @@ Create and install a manifest for an SMF service.
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| fmri | `string` | Service FMRI |  |
+| `:fmri` | `string` | Service FMRI |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| default-enabled | `boolean` | Start the service when the manifest installs | true |
-| dependencies | `array` | See 'smf-dependency' |  |
-| dependents | `array` | See 'smf-dependent' |  |
-| description | `string` | What the service does |  |
-| duration | `string` | Use this to specify 'transient' or 'wait' services |  |
-| properties | `struct table` | Create/set properties.(:keyword :string|:boolean|:number) |  |
-| property-groups | `struct table` | Create property groups. Key is the name, value is the type |  |
-| refresh-method | `struct table` | See 'smf-method' |  |
-| restart-method | `struct table` | See 'smf-method' |  |
-| single-instance | `boolean` | Is this a single-instance service | true |
-| start-method | `struct table` | See 'smf-method' |  |
-| stop-method | `struct table` | See 'smf-method' | <struct 0x000002482B78> |
+| `:default-enabled` | `boolean` | Start the service when the manifest installs | `true` |
+| `:dependencies` | `array` | See 'smf-dependency' |  |
+| `:dependents` | `array` | See 'smf-dependent' |  |
+| `:description` | `string` | What the service does |  |
+| `:duration` | `string` | Use this to specify 'transient' or 'wait' services |  |
+| `:properties` | `struct table` | Create/set properties.(:keyword :string|:boolean|:number) |  |
+| `:property-groups` | `struct table` | Create property groups. Key is the name, value is the type |  |
+| `:refresh-method` | `struct table` | See 'smf-method' |  |
+| `:restart-method` | `struct table` | See 'smf-method' |  |
+| `:single-instance` | `boolean` | Is this a single-instance service | `true` |
+| `:start-method` | `struct table` | See 'smf-method' |  |
+| `:stop-method` | `struct table` | See 'smf-method' | `{:exec ":kill" :timeout 10}` |
 
 ## smf/remove
 
@@ -61,4 +65,3 @@ None
 
 None
 
-There is no smf/remove.

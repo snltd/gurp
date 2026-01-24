@@ -2,6 +2,10 @@
 
 Create and destroy zones. Existing zones cannot be modified.
 
+## Resouce Name
+
+Zone name (`:string`)
+
 ## zone/ensure
 
 ```janet
@@ -60,35 +64,35 @@ Create and destroy zones. Existing zones cannot be modified.
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| brand | `string` | Zone brand |  |
+| `:brand` | `string` | Zone brand |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| attr | `array` | See zone/attr |  |
-| autoboot | `boolean` | Boot the zone on system boot | true |
-| bhyve | `table` | See zone/bhyve |  |
-| boot-after-install | `string` | Boot the zone once it is installed | true |
-| bootstrap | `table` | See zone/bootstrap |  |
-| bootstrap-from | `table` | Copy gurp into the zone, and apply the given file, relative to zone root |  |
-| capped-memory | `struct` | Set memory cap. Keys must be :physical and :swap, values are strings like '4G' |  |
-| clone-from | `string` | Instead of installing, clone from the given zone, which must exist and be halted |  |
-| copy-in | `struct` | Copy files into the zone. Key (keyword) is src, val is dest, relative to zone root. Unqualified src is assumed to be in ../files/ |  |
-| datasets | `tuple` | ZFS datasets (as strings) to be delegated to zone |  |
-| dns | `struct` | DNS info. :domain is a string; :nameservers a tuple of strings |  |
-| exec-in | `tuple` | Runs the given commands (:string) in the zone after booting |  |
-| final-state | `string` | Put the zone in the given state. Also accepts 'reboot' |  |
-| fs | `array` | See zone/fs |  |
-| hostid | `string` | Force this hostid for the zone |  |
-| ip-type | `string` | IP type: exclusive or shared |  |
-| limitpriv | `tuple` | List of privileges to add to zone |  |
-| lx-image | `string` | Install zone using this image. See docs for pattern rules |  |
-| net | `array` | See zone/network |  |
-| pool | `string` | Resource pool to which zone should belong |  |
-| rctl | `array` | See zone/rctl |  |
-| recreate | `number` | 1-in-n chance the zone will be destroyed and recreated | 0 |
-| zonepath | `string` | Path to zone root |  |
+| `:attr` | `array` | See zone/attr |  |
+| `:autoboot` | `boolean` | Boot the zone on system boot | `true` |
+| `:bhyve` | `table` | See zone/bhyve |  |
+| `:boot-after-install` | `string` | Boot the zone once it is installed | `true` |
+| `:bootstrap-from` | `table` | Copy gurp into the zone, and apply the given file, relative to zone root |  |
+| `:bootstrap` | `table` | See zone/bootstrap |  |
+| `:capped-memory` | `struct` | Set memory cap. Keys must be :physical and :swap, values are strings like '4G' |  |
+| `:clone-from` | `string` | Instead of installing, clone from the given zone, which must exist and be halted |  |
+| `:copy-in` | `struct` | Copy files into the zone. Key (keyword) is src, val is dest, relative to zone root. Unqualified src is assumed to be in ../files/ |  |
+| `:datasets` | `tuple` | ZFS datasets (as strings) to be delegated to zone |  |
+| `:dns` | `struct` | DNS info. :domain is a string; :nameservers a tuple of strings |  |
+| `:exec-in` | `tuple` | Runs the given commands (:string) in the zone after booting |  |
+| `:final-state` | `string` | Put the zone in the given state. Also accepts 'reboot' |  |
+| `:fs` | `array` | See zone/fs |  |
+| `:hostid` | `string` | Force this hostid for the zone |  |
+| `:ip-type` | `string` | IP type: exclusive or shared |  |
+| `:limitpriv` | `tuple` | List of privileges to add to zone |  |
+| `:lx-image` | `string` | Install zone using this image. See docs for pattern rules |  |
+| `:net` | `array` | See zone/network |  |
+| `:pool` | `string` | Resource pool to which zone should belong |  |
+| `:rctl` | `array` | See zone/rctl |  |
+| `:recreate` | `number` | 1-in-n chance the zone will be destroyed and recreated | `0` |
+| `:zonepath` | `string` | Path to zone root |  |
 
 ## zone/remove
 
@@ -104,4 +108,3 @@ None
 
 None
 
-There is no zone/remove.

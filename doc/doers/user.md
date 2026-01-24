@@ -2,6 +2,10 @@
 
 Manage Unix users
 
+## Resouce Name
+
+User's username (`:string`)
+
 ## user/ensure
 
 ```janet
@@ -18,19 +22,19 @@ Manage Unix users
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| gecos | `string` | User's name or description |  |
-| home-dir | `string` | User's home dir |  |
-| primary-group | `string number` | Group name or GID to which user belongs | staff |
-| shell | `string` | User's shell | /bin/zsh |
-| uid | `number` | UID of user |  |
+| `:gecos` | `string` | User's name or description |  |
+| `:home-dir` | `string` | User's home dir |  |
+| `:primary-group` | `string number` | Group name or GID to which user belongs | `"staff"` |
+| `:shell` | `string` | User's shell | `"/bin/zsh"` |
+| `:uid` | `number` | UID of user |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| other-groups | `tuple` | Group names (:string) or GIDs (:number) to which user belongs |  |
-| password-hash | `string` | Hash to insert in /etc/shadow |  |
-| profiles | `tuple` | List of existing profiles (:string) |  |
+| `:other-groups` | `tuple` | Group names (:string) or GIDs (:number) to which user belongs |  |
+| `:password-hash` | `string` | Hash to insert in /etc/shadow |  |
+| `:profiles` | `tuple` | List of existing profiles (:string) |  |
 
 ## user/remove
 
@@ -46,4 +50,3 @@ None
 
 None
 
-There is no user/remove.
