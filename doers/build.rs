@@ -1,12 +1,25 @@
+use camino::Utf8PathBuf;
 use embed::helpers;
-use std::fs;
+use std::{env, fs};
 
 fn main() {
-    let client = helpers::gurp_client().unwrap();
-    let janet_instructions = format!(
-        "(setdyn :running-embedded true)\n(setdyn :repo-root \"/home/rob/work/gurp\")\n(setdyn *syspath* \"/home/rob/work/gurp/janet/src\")\n{}\n(generate-all-docs)",
-        &fs::read_to_string("/home/rob/work/gurp/janet/src/build-docgen.janet").unwrap()
-    );
+    let my_dir =
+        Utf8PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("cannot get CARGO_MANIFEST_DIR"));
+
+    let repo_root = my_dir.parent().expect("cannot get repo_root");
+    let janet_lib_path = repo_root.join("janet/src/build-docgen.janet");
+    let client = helpers::gurp_client().expect("cannot make gurp client");
+
+    let janet_instructions = indoc::formatdoc! { r#"
+        (setdyn :running-embedded true)
+        (setdyn :repo-root "{repo_root}")
+        (setdyn *syspath* "{repo_root}/janet/src")
+        {}
+        (generate-all-docs)
+        "#
+        ,
+        &fs::read_to_string(janet_lib_path).expect("cannot read build-docgen.janet")
+    };
 
     client.run(janet_instructions).unwrap();
 }

@@ -45,7 +45,7 @@ Create and install a manifest for an SMF service.
 | restart-method | `struct table` | See 'smf-method' |  |
 | single-instance | `boolean` | Is this a single-instance service | true |
 | start-method | `struct table` | See 'smf-method' |  |
-| stop-method | `struct table` | See 'smf-method' | <struct 0x000001D76B78> |
+| stop-method | `struct table` | See 'smf-method' | <struct 0x000002482B78> |
 
 ## smf/remove
 

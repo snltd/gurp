@@ -20,6 +20,6 @@ Manage the state of an existing SMF service.
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| reloaded-by | `array` | Labels of resources whose alteration triggers service reload | <tuple 0x000001DD9BD0> |
-| restarted-by | `array` | Labels of resources whose alteration triggers service restart | <tuple 0x000001DD9C00> |
+| reloaded-by | `array` | Labels of resources whose alteration triggers service reload | <tuple 0x0000024E4BA0> |
+| restarted-by | `array` | Labels of resources whose alteration triggers service restart | <tuple 0x0000024E4BD0> |
 There is no svc/remove.
