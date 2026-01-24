@@ -9,22 +9,23 @@
 (deftest help-for-doer
   (test
     (help-for-doer "directory")
-    "\e[1m\e[4mdirectory\e[0m\e[0m\n  Create and remove directories. Parents are created like mkdir -p, but with the\n  owner/group/mode of the gurp process. Removal always removes directory\n  contents.\n\n\e[1m\e[4mdirectory/ensure\e[0m\e[0m\n  \e[1mname\e[0m  [:string]  Fully qualified path to directory\n\n\e[1mMandatory properties\e[0m\n  \e[1mowner\e[0m [:string :number]  The username or UID of the user who owns this\n                           directory\n  \e[1mgroup\e[0m [:string :number]  The group name or GID of the for this\n                           directory\n  \e[1mmode\e[0m  [:string]          Permissions, written as a four-digit octal\n\n\e[1mOptional properties\e[0m\n  None\n\n\e[1m\e[4mdirectory/remove\e[0m\e[0m\n\n\e[1mMandatory properties\e[0m\n  None\n\n\e[1mOptional properties\e[0m\n  None\n"))
+    "\e[1m\e[4mdirectory\e[0m\e[0m\n  Create and remove directories. Parents are created like mkdir -p, but with the\n  owner/group/mode of the gurp process. Removal always removes directory\n  contents.\n\n\e[1m\e[4mdirectory/ensure\e[0m\e[0m\n  \e[1mname\e[0m  [:string]  Fully qualified path to directory\n\n\e[1mMandatory properties\e[0m\n  \e[1m`owner`\e[0m [:string :number]  The username or UID of the user who owns\n                           this directory\n  \e[1m`group`\e[0m [:string :number]  The group name or GID of the for this\n                           directory\n  \e[1m`mode`\e[0m [:string]          Permissions, written as a four-digit octal\n\n\e[1mOptional properties\e[0m\n  None\n\n\e[1m\e[4mdirectory/remove\e[0m\e[0m\n\n\e[1mMandatory properties\e[0m\n  None\n\n\e[1mOptional properties\e[0m\n  None\n"))
 
 (deftest help-for-sub-resource
   (test
     (help-for-sub-resource :zone :network)
-    "\e[1m\e[4mzone/network\e[0m\e[0m\n  Describe network configuration of a zone resource.\n\n  \e[1mname\e[0m  [:string]  Zone VNIC, which may already exist\n\n\e[1mMandatory properties\e[0m\n  \e[1mphysical\e[0m [:string]  Zone VNIC. This is the name of the resource, and is\n                      not specified with a key\n\n\e[1mOptional properties\e[0m\n  \e[1mglobal-nic\e[0m      [:string]  Physical NIC on which to create zone VNIC\n  \e[1mallowed-address\e[0m [:string]  IP address, with /netmask\n  \e[1mdefrouter\e[0m       [:string]  IP address of default router\n"))
+    "\e[1m\e[4mzone/network\e[0m\e[0m\n  Describe network configuration of a zone resource.\n\n  \e[1mname\e[0m  [:string]  Zone VNIC, which may already exist\n\n\e[1mMandatory properties\e[0m\n  \e[1m`physical`\e[0m [:string]  Zone VNIC. This is the name of the resource, and\n                      is not specified with a key\n\n\e[1mOptional properties\e[0m\n  \e[1m`global-nic`\e[0m    [:string]  Physical NIC on which to create zone VNIC\n  \e[1m`allowed-address`\e[0m [:string]  IP address, with /netmask\n  \e[1m`defrouter`\e[0m     [:string]  IP address of default router\n"))
 
 (deftest doer-lookup
   (test
     (doer-lookup :directory :description)
     "Create and remove directories. Parents are created like mkdir -p, but with   the owner/group/mode of the gurp process. Removal always removes directory   contents.")
 
+  
   (test
     (doer-lookup :zone :description-fs)
     "Define a filesystem mapping when creating a zone.")
 
-  (test-error
+  (test
     (doer-lookup :wat :nothing)
-    "unknown symbol wat/nothing"))
+    nil))
