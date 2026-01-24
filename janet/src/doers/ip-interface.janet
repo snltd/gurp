@@ -6,44 +6,22 @@
                  Properties are supplied with 'ip-interface-protocol'.")
 (def name-is "Interface name")
 (def mandatory-props-ensure {})
-(def optional-props-ensure
-  {:protocols
-   {:types [:struct :table]
-    :help "See 'ip-interface-protocol'"}})
+(def optional-props-ensure protocol-opts)
 (def mandatory-props-remove {})
 (def optional-props-remove {})
 (def defaults-ensure {})
 (def defaults-remove {})
 
 (defn ensure
-  [name & temp-spec]
-  (def protocols @{})
-  (def spec @[])
+  "Given an IP interface name and spec, put an ensure struct in the collector"
+  [name & spec]
 
-  (loop [[prop-name prop-value] :in (partition 2 (flatten temp-spec))]
-    (if (= (type prop-value) :struct) # making a big assumption here!
-      (set (protocols prop-name) prop-value)
-      (array/concat spec [prop-name prop-value])))
+  (def spec-table
+    (group-ip-properties mandatory-props-ensure optional-props-ensure ;spec))
 
-  (if-not (empty? protocols)
-    (array/concat spec [:protocols protocols]))
-
-  (collector/push :ensure doer (make-ensure-resource)))
+  (collector/push :ensure doer (spec->resource doer name spec-table)))
 
 (defn remove
   "Given an IP interface spec, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
-
-(def description-protocol "Sets IP interface properties for a given protocol.")
-(def name-protocol "Protocol. e.g. ipv4, ipv6")
-(def mandatory-props-protocol {})
-(def optional-props-protocol
-  {:properties
-   {:types [:struct]
-    :help "Struct of ipadm 'ifprop' properties, e.g. :mtu, :forwarding"}})
-
-(defn protocol
-  "Given specs, return config for an interface protocol."
-  [protocol & params]
-  [protocol (make-spec-struct ;params)])

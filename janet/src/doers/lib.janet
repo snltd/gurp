@@ -1,6 +1,15 @@
 #
-# Functions required by the doer modules in this directory.
+# Functions and bindings required by the doer modules in this directory.
 # 
+(def ip-protocols
+  "Protocols supported by ipadm"
+  [:ip :ipv4 :ipv6 :icmp :tcp :sctp :udp])
+
+(def protocol-opts
+  (tabseq [protocol :in ip-protocols]
+    protocol {:types [:struct :table]
+              :help (string "key-value pairs of valid " protocol " properties")}))
+
 (defn comma-sep
   "Return a comma-separated string of the items in list"
   [list]
@@ -12,7 +21,7 @@
   [prop-name prop-value allowed-types]
   (def prop-type (type prop-value))
 
-    (if-not (or (= prop-type :keyword) (has-value? allowed-types prop-type))
+  (if-not (or (= prop-type :keyword) (has-value? allowed-types prop-type))
     (error
       (string/format "%s is of type %v. Allowed types %s"
                      prop-name
@@ -154,3 +163,25 @@
     :number {:type "integer" :value value}
     :boolean {:type "boolean" :value value}
     _ {:type "astring" :value value}))
+
+(defn group-ip-properties
+  "Move IP protocol properties into a separate :protocol property"
+  [mandatory-props optional-props & spec]
+  
+  (def temp-spec-table
+    (checked-spec (make-spec-struct ;spec) mandatory-props optional-props))
+
+  (def parts (->>
+               temp-spec-table
+               (table->flat-tuple)
+               (partition 2)
+               (partition-by |(has-value? ip-protocols (first $)))
+               (map flatten)))
+
+  (def spec-table (table ;(get parts 1 [])))
+
+  (if-let [protocol-parts (get parts 0)
+           protocol-table (struct ;protocol-parts)]
+    (set (spec-table :protocols) protocol-table))
+
+  spec-table)

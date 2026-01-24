@@ -24,7 +24,7 @@ macro_rules! apply_resources {
                     return Err(err.context(format!("failed to apply resource {}", resource.id)));
                 }
             };
-            $summary_total = $summary_total + summary;
+            $summary_total += summary;
             if summary.changes > 0 {
                 $changed_ids.insert(resource.id.clone());
             }

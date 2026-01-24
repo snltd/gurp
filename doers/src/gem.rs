@@ -160,7 +160,7 @@ pub fn collect_and_ensure(gem_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
 
     for gem in gem_list {
         if gem.version.is_some() || gem.source.is_some() || gem.gem_path.is_some() {
-            summary = summary + install_specific(gem, &installed_gems, opts)?;
+            summary += install_specific(gem, &installed_gems, opts)?;
         } else if let Some(default_list) = default_gem_list
             && default_list.iter().any(|g| g.name == gem.name)
         {
