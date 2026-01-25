@@ -2,7 +2,7 @@
              :brand "lx"
              :lx-image "alpine"
              :final-state "reboot"
-             (zone/network "test_net0"
+             (zone/network "znet0"
                            :global-nic "auto"
                            :allowed-address "192.168.1.103/24"
                            :defrouter "192.168.1.1")
