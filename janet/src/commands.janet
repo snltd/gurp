@@ -8,6 +8,22 @@
 
 (def term-width 80)
 
+(defn repo-root []
+  (if-let [from-gurp (dyn :repo-root)]
+    from-gurp
+    (->> (dyn *current-file*)
+         (os/realpath)
+         (peg/replace '(* "/janet" (some 1)) ""))))
+
+(defn doer-root []
+  (string (repo-root) "/janet/src/doers"))
+
+(defn doers []
+  (seq [doer :in (os/dir (doer-root))]
+    (string/replace ".janet" "" doer)))
+
+(def doc-dir (string (dyn :repo-root) "/doc/doers"))
+
 (defn list-doers
   "Returns a multiline string, pairing doers with their descriptions. Used by
   Gurp's 'doers' command"
@@ -118,7 +134,10 @@
     "\n"
     (formatting/bold-underline (string doer "/ensure"))
     "\n"
-    (string "  " (formatting/bold "name") "  [:string]  " (doer-lookup doer :name-is))
+    (string "  " (formatting/bold "name")
+            (if-let [name-str (doer-lookup doer :name-is)]
+              (string "  [:string]  " name-str)
+              "This resource does not take a name parameter"))
     "\n"
     "\n"
     (formatting/bold "Mandatory properties")
@@ -184,8 +203,7 @@
    (get prop-vals :help)
    (if-let [default-val (get defaults property)]
      (code (string/format "%m" default-val))
-    ""
-    )])
+     "")])
 
 (defmacro property-table
   [doer importance action]
@@ -252,3 +270,34 @@
       (string
         (h2 (string doer "/remove"))
         "\nThere is no " doer "/remove."))))
+
+(defn markdown-for-sub-resource
+  "Returns a multiline string showing keys supported by the given sub-resource"
+  [doer-dir doer sub-resource]
+  (string
+    (h1 (string doer "/" sub-resource))
+    "\n"
+    (doer-lookup doer (keyword :description- sub-resource))
+    "\n"
+    "\n"
+    (h2 "Sub-Resource Name")
+    "\n"
+    (if-let [name-is (doer-lookup doer (keyword :name-is- sub-resource))]
+      (string name-is " (`:string`)")
+      "This sub-resource does not accept a name")
+    "\n"
+    "\n"
+    (code-example doer sub-resource)
+    (property-table doer :mandatory sub-resource)
+    "\n"
+    (property-table doer :optional sub-resource)
+    "\n"))
+
+(defn markdown-for-sub-resources
+  [doer]
+  (def doer-dir (string (doer-root) "/" doer))
+  (if (os/stat doer-dir)
+    (string/join
+      (seq [sub-resource :in (os/dir doer-dir)]
+        (markdown-for-sub-resource doer-dir doer (string/replace ".janet" "" sub-resource)))
+      "\n")))
