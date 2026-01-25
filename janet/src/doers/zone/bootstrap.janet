@@ -1,7 +1,7 @@
 (use ../lib)
 
 (def description-bootstrap "Tells gurp how to bootstrap a newly created zone.")
-(def name-is-bootstrap "This resource type does not accept a name")
+(def name-is-bootstrap nil)
 (def mandatory-props-bootstrap {})
 (def optional-props-bootstrap
   {:server {:types [:string]
