@@ -12,7 +12,7 @@
     :help "Attribute value"}
    :name
    {:types [:string]
-    :helps "Attribute name. Derived from resource name"}})
+    :help "Attribute name. Derived from resource name"}})
 (def defaults-attr {})
 
 (defn attr
