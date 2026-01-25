@@ -9,7 +9,7 @@ Name of etherstub (`:string`)
 ## etherstub/ensure
 
 ```janet
-(etherstub/ensure "estub0")
+(etherstub/ensure "newstub0")
 ```
 
 ### Mandatory Properties
@@ -23,7 +23,7 @@ None
 ## etherstub/remove
 
 ```janet
-(etherstub/remove "estub2")
+(etherstub/remove "oldstub0")
 ```
 
 ### Mandatory Properties

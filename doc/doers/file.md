@@ -9,25 +9,25 @@ Fully qualified path to file (`:string`)
 ## file/ensure
 
 ```janet
-(file/ensure "/path/to/file"
-             :group "daemon"
-             :mode "0755"
-             :from "file-test/does-not-exist")
+(file/ensure "/file/from/arbitrary/server"
+             :owner "gibbus"
+             :mode "0640"
+             :with-checksum "0123456789abcdef"
+             :from-url "https://example.com/files/config")
 ```
 
 ```janet
-(file/ensure "/file/path"
+(file/ensure "/file/from/content"
              :owner "dataperson"
              :mode "0600"
              :content "lots-of-data")
 ```
 
 ```janet
-(file/ensure "/file/from/remote/path"
-             :owner "gibbus"
-             :mode "0640"
-             :with-checksum "0123456789abcdef"
-             :from-url "https://example.com/files/config")
+(file/ensure "/file/from/local_file"
+             :group "daemon"
+             :mode "0755"
+             :from "file-test/does-not-exist")
 ```
 
 ### Mandatory Properties

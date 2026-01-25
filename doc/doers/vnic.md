@@ -9,7 +9,7 @@ VNIC name (`:string`)
 ## vnic/ensure
 
 ```janet
-(vnic/ensure "test-vnic0"
+(vnic/ensure "vnic0"
              :over "e1000g")
 ```
 
@@ -29,7 +29,7 @@ VNIC name (`:string`)
 ## vnic/remove
 
 ```janet
-(vnic/remove "test-vnic1")
+(vnic/remove "vnic1")
 ```
 
 ### Mandatory Properties

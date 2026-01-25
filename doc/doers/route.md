@@ -9,7 +9,9 @@ The route destination, e.g. 10.10.0.0/16 (`:string`)
 ## route/ensure
 
 ```janet
-(route/ensure "192.168.1.1" :gateway "default")
+(route/ensure "10.0.5.0/24"
+              :gateway "10.0.5.150"
+              :flags {:mtu 1500})
 ```
 
 ```janet
@@ -19,9 +21,9 @@ The route destination, e.g. 10.10.0.0/16 (`:string`)
 ```
 
 ```janet
-(route/ensure "10.0.5.0/24"
-              :gateway "10.0.5.150"
-              :flags {:mtu 1500})
+(route/ensure "192.168.1.1"
+              :label "default-gateway"
+              :gateway "default")
 ```
 
 ### Mandatory Properties
@@ -41,7 +43,8 @@ None
 ## route/remove
 
 ```janet
-(route/remove "10.0.5.0/24" :gateway "10.0.5.150")
+(route/remove "10.0.5.0/24"
+              :gateway "10.0.5.150")
 ```
 
 ### Mandatory Properties

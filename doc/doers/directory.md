@@ -9,21 +9,21 @@ Fully qualified path to directory (`:string`)
 ## directory/ensure
 
 ```janet
-(directory/ensure "/path/to/default/dir")
+(directory/ensure "/path/to/dir_1")
 ```
 
 ```janet
-(directory/ensure "/path/to/dir"
-                  :label "my-dir"
-                  :mode "0700")
-```
-
-```janet
-(directory/ensure "/highly/specified/dir"
+(directory/ensure "/path/to/dir_3"
                   :owner "myself"
                   :group "sysadmin"
                   :mode "0700"
                   :label "all-the-specs")
+```
+
+```janet
+(directory/ensure "/path/to/dir_2"
+                  :label "my-dir"
+                  :mode "0700")
 ```
 
 ### Mandatory Properties

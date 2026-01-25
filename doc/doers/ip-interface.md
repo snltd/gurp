@@ -9,18 +9,16 @@ Interface name (`:string`)
 ## ip-interface/ensure
 
 ```janet
-(ip-interface/ensure "test-vnic1"
-                     :label "merp"
-                     (ip-interface/protocol "ipv6"
-                                            :mtu 1500
-                                            :forwarding false)
-                     (ip-interface/protocol "ipv4"
-                                            :mtu 1500
-                                            :forwarding true))
+(ip-interface/ensure "example0")
 ```
 
 ```janet
-(ip-interface/ensure "test-vnic0")
+(ip-interface/ensure "example1"
+                     :label "example-interface"
+                     :ipv6 {:mtu 1500
+                            :forwarding false}
+                     :ipv4 {:mtu 1500
+                            :forwarding true})
 ```
 
 ### Mandatory Properties
@@ -31,12 +29,18 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:protocols` | `struct table` | See 'ip-interface-protocol' |  |
+| `:icmp` | `struct table` | key-value pairs of valid icmp properties |  |
+| `:ip` | `struct table` | key-value pairs of valid ip properties |  |
+| `:ipv4` | `struct table` | key-value pairs of valid ipv4 properties |  |
+| `:ipv6` | `struct table` | key-value pairs of valid ipv6 properties |  |
+| `:sctp` | `struct table` | key-value pairs of valid sctp properties |  |
+| `:tcp` | `struct table` | key-value pairs of valid tcp properties |  |
+| `:udp` | `struct table` | key-value pairs of valid udp properties |  |
 
 ## ip-interface/remove
 
 ```janet
-(ip-interface/remove "test-vnic3")
+(ip-interface/remove "example3")
 ```
 
 ### Mandatory Properties

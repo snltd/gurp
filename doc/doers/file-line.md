@@ -30,22 +30,22 @@ None
 ## file-line/remove
 
 ```janet
-(file-line/remove "/tmp/.tmpjpqQir/test-file"
-                  :pattern "line_2"
-                  :match "exact"
-                  :apply-to "all")
-```
-
-```janet
 (file-line/remove "/path/to/file"
-                  :pattern "this-is-an-awful-line")
+                  :pattern "rust_regex")
 ```
 
 ```janet
 (file-line/remove "/path/to/file"
                   :match "exact"
                   :apply-to "last"
-                  :pattern "this-is-an-awful-line")
+                  :pattern "rust_regex")
+```
+
+```janet
+(file-line/remove "/tmp/.tmpjpqQir/test-file"
+                  :pattern "i-do-not-want-to-see-this"
+                  :match "exact"
+                  :apply-to "all")
 ```
 
 ### Mandatory Properties

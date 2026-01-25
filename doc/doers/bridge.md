@@ -9,11 +9,11 @@ Any valid bridge name (`:string`)
 ## bridge/ensure
 
 ```janet
-(bridge/ensure "test_a")
+(bridge/ensure "basic")
 ```
 
 ```janet
-(bridge/ensure "test_b"
+(bridge/ensure "with_links"
                :links ["stub0" "vnic0" "e1000g0"]
                :priority 4096
                :max-age 30)
@@ -38,7 +38,7 @@ None
 ## bridge/remove
 
 ```janet
-(bridge/remove "test_c")
+(bridge/remove "unwanted")
 ```
 
 ### Mandatory Properties

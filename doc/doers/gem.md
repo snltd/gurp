@@ -9,11 +9,13 @@ Gem name (`:string`)
 ## gem/ensure
 
 ```janet
-(gem/ensure "my-gem" :source "https://my-gem-repo.com")
+(gem/ensure "wavefront-cli")
 ```
 
 ```janet
-(gem/ensure "wavefront-cli" :version "8.0.1")
+(gem/ensure "my-gem"
+            :version "1.2.3"
+            :source "https://my-gem-repo.com")
 ```
 
 ### Mandatory Properties

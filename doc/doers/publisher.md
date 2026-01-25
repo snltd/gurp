@@ -9,7 +9,7 @@ Publisher name (`:string`)
 ## publisher/ensure
 
 ```janet
-(publisher/ensure "sysdef"
+(publisher/ensure "new_publisher"
                   :uri "http://pkg.lan.id264.net")
 ```
 
@@ -26,7 +26,7 @@ None
 ## publisher/remove
 
 ```janet
-(publisher/remove "sysdef")
+(publisher/remove "old_publisher")
 ```
 
 ### Mandatory Properties

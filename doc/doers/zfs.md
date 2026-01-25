@@ -9,17 +9,18 @@ ZFS dataset name (`:string`)
 ## zfs/ensure
 
 ```janet
-(zfs/ensure "tank/export/test-vol"
-            :size "10G"
-            :label "test-zfs-vol"
-            :properties {:devices "off"})
+(zfs/ensure "tank/example/filesystem"
+            :label "zfs-example-1"
+            :properties {:compression "gzip9"
+                         :mountpoint "/example/mountpoint"
+                         :dedup true
+                         :devices false})
 ```
 
 ```janet
-(zfs/ensure (zfscat "tank" "export" "test")
-            :label "test-zfs"
-            :properties {:compression "gzip9"
-                         :devices "off"})
+(zfs/ensure "tank/example/volume"
+            :size "10G"
+            :label "example-zfs-vol")
 ```
 
 ### Mandatory Properties
@@ -36,7 +37,7 @@ None
 ## zfs/remove
 
 ```janet
-(zfs/remove "old/filesystem")
+(zfs/remove "tank/old/filesystem")
 ```
 
 ### Mandatory Properties

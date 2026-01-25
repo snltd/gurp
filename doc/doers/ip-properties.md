@@ -10,10 +10,10 @@ Any convenient name: not used internally (`:string`)
 
 ```janet
 (ip-properties/ensure "general"
-                      :properties {:ipv6 {:hoplimit 123
-                                          :hostmodel "weak"}
-                                   :ipv4 {:hostmodel "weak"}
-                                   :icmp {:max_buf 1234567}})
+                      :ipv6 {:hoplimit 123
+                             :hostmodel "weak"}
+                      :ipv4 {:hostmodel "weak"}
+                      :icmp {:max_buf 1234567})
 ```
 
 ### Mandatory Properties
@@ -24,7 +24,13 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:properties` | `struct` | A struct whose keys are protocols (e.g. 'ipv4', 'ipv6'),                      and whose values are structs pairing properties (e.g.                      :hoplimit, :max_buf) with values |  |
+| `:icmp` | `struct table` | key-value pairs of valid icmp properties |  |
+| `:ip` | `struct table` | key-value pairs of valid ip properties |  |
+| `:ipv4` | `struct table` | key-value pairs of valid ipv4 properties |  |
+| `:ipv6` | `struct table` | key-value pairs of valid ipv6 properties |  |
+| `:sctp` | `struct table` | key-value pairs of valid sctp properties |  |
+| `:tcp` | `struct table` | key-value pairs of valid tcp properties |  |
+| `:udp` | `struct table` | key-value pairs of valid udp properties |  |
 
 ## ip-properties/remove
 

@@ -9,15 +9,18 @@ This resource does not accept a name
 ## misc/ensure
 
 ```janet
-(misc/ensure :nfs-domain "lan.id264.net")
+(misc/ensure
+  :enable-smb "rob")
 ```
 
 ```janet
-(misc/ensure :scheduler "FSS")
+(misc/ensure
+  :scheduler "FSS")
 ```
 
 ```janet
-(misc/ensure :enable-smb "rob")
+(misc/ensure
+  :nfs-domain "lan.id264.net")
 ```
 
 ### Mandatory Properties

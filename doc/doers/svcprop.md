@@ -9,14 +9,14 @@ Any valid FMRI of the service whose properties you wish to set (`:string`)
 ## svcprop/ensure
 
 ```janet
-(svcprop/ensure "mariadb"
+(svcprop/ensure "example/svc_1"
                 :properties {:application/datadir "/data"
                              :application/active true
                              :application/timeout 50})
 ```
 
 ```janet
-(svcprop/ensure "mariadb"
+(svcprop/ensure "example/svc_1"
                 :property-groups {:application "application"}
                 :properties {:application/datadir "/data"})
 ```
@@ -36,7 +36,7 @@ Any valid FMRI of the service whose properties you wish to set (`:string`)
 ## svcprop/remove
 
 ```janet
-(svcprop/remove "mariadb"
+(svcprop/remove "example/svc_3"
                 :properties ["application/thing"])
 ```
 
