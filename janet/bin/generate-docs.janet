@@ -8,6 +8,7 @@
 # 
 (use ../src/doers)
 (use ../src/build-docgen)
+(use ../src/markdown)
 
 (defn main
   [_cmd & args]

@@ -17,3 +17,4 @@ tokio = "1.48.0"
 tracing = "0.1.41"
 util = { path = "../util" }
 tabled = "0.20.0"
+terminal_size = "0.4.3"

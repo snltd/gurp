@@ -3,10 +3,11 @@
 # 
 (import ./formatting)
 (import ./doers :prefix "")
-(use ../test/doers/_helpers)
-(use ./markdown)
 
-(def term-width 80)
+(defn term-width
+  "Gurp sets the width of the user terminal as a dyn"
+  []
+  (dyn :term-width 80))
 
 (defn repo-root []
   (if-let [from-gurp (dyn :repo-root)]
@@ -22,7 +23,7 @@
   (seq [doer :in (os/dir (doer-root))]
     (string/replace ".janet" "" doer)))
 
-(def doc-dir (string (dyn :repo-root) "/doc/doers"))
+(def doc-dir (string (repo-root) "/doc/doers"))
 
 (defn list-doers
   "Returns a multiline string, pairing doers with their descriptions. Used by
@@ -59,16 +60,12 @@
 
   (string/join
     (flatten
-      (map |(formatting/lay-out-help ;$ 25 term-width) descriptions))
+      (map |(formatting/lay-out-help ;$ 25 (term-width)) descriptions))
     "\n"))
 
 (defn- field-width
   "Returns the width of a field which can accomodate the longest value in list"
   [list]
-  # (print "called with " (type list))
-
-  # (pp list)
-  # (pp (max ;(map length list)))
   (if (empty? list)
     0
     (max (splice (map length list)))))
@@ -79,7 +76,6 @@
 
 (defn type-list
   [types]
-  # (pp types)
   (map flatten-types types))
 
 (defn strip-ansi [s]
@@ -87,8 +83,8 @@
   (string/replace-all (peg/compile ~(* "\e[" (any (if-not "m" 1)) "m")) "" s))
 
 (defn format-properties
-  [props]
   "Returns a single string of a block of properties, formatted for output."
+  [props]
   (if (empty? props)
     "  None"
     (do
@@ -104,13 +100,14 @@
           (seq [[prop-name prop-vals] :pairs props]
             (def leader
               (string/format leader-format-string
-                             (formatting/bold (code prop-name))
+                             (formatting/bold prop-name)
                              (flatten-types (prop-vals :types))))
 
-            (formatting/lay-out-help leader (prop-vals :help) (- leader-width 3) term-width)))
+            (formatting/lay-out-help leader (prop-vals :help) (- leader-width 3) (term-width))))
         "\n"))))
 
 (defn doer-lookup
+  "Fetch the given binding from the given doer definition file"
   [doer binding]
   (try
     (do
@@ -119,6 +116,7 @@
     ([_] nil)))
 
 (defn subresource-lookup
+  "As doer-lookup but for subresources"
   [doer subresource binding]
   (def lookup (symbol (string doer "/" binding "-" subresource)))
   (eval lookup))
@@ -129,7 +127,7 @@
   (string
     (formatting/bold-underline doer)
     "\n"
-    (string/join (formatting/lay-out-help "" (doer-lookup doer :description) 2 term-width) "\n")
+    (string/join (formatting/lay-out-help "" (doer-lookup doer :description) 2 (term-width)) "\n")
     "\n"
     "\n"
     (formatting/bold-underline (string doer "/ensure"))
@@ -170,7 +168,7 @@
   (string
     (formatting/bold-underline (string doer "/" subresource))
     "\n"
-    (string/join (formatting/lay-out-help "" (subresource-lookup doer subresource :description) 2 term-width) "\n")
+    (string/join (formatting/lay-out-help "" (subresource-lookup doer subresource :description) 2 (term-width)) "\n")
     "\n"
     "\n"
     (string "  " (formatting/bold "name") "  [:string]  " (subresource-lookup doer subresource :name-is))
@@ -196,108 +194,3 @@
         (help-for-doer object)))
     ([_e]
       (eprint "No help for '" object "'"))))
-
-(defn props-to-row [property prop-vals defaults]
-  [(code (string/format "%v" property))
-   (code (string/join (get prop-vals :types) " "))
-   (get prop-vals :help)
-   (if-let [default-val (get defaults property)]
-     (code (string/format "%m" default-val))
-     "")])
-
-(defmacro property-table
-  [doer importance action]
-  (with-syms [$prop-key $properties $heading $prop $vals]
-    ~(do
-       (let [$prop-key (keyword ,importance "-props-" ,action)
-             $properties (doer-lookup ,doer $prop-key)
-             $heading (h3 (title-words ,importance "properties"))]
-
-         (if (empty? $properties)
-           (string $heading "\n" "None" "\n")
-           (string
-             $heading
-             "\n"
-             (table-header :key :type :description :default)
-             (string/join
-               (sorted
-                 (seq [[$prop $vals] :pairs $properties]
-                   (table-row
-                     (props-to-row $prop $vals (doer-lookup ,doer (keyword "defaults-" ,action)))))))))))))
-
-
-(defn code-example
-  [doer action]
-  (string/join
-    (filter truthy?
-            (seq [file :in (os/dir (pathcat example-root doer))]
-              (when (string/has-prefix? action file)
-                (code-block (slurp (pathcat example-root doer file))))))))
-
-(defn markdown-for-doer
-  "Returns a multiline string of markdown for the given doer"
-  [doer]
-  (string
-    (h1 doer)
-    "\n"
-    (doer-lookup doer :description)
-    "\n"
-    "\n"
-    (h2 "Resouce Name")
-    "\n"
-    (if-let [name-is (doer-lookup doer :name-is)]
-      (string name-is " (`:string`)")
-      "This resource does not accept a name")
-    "\n"
-    "\n"
-    (h2 (string doer "/ensure"))
-    "\n"
-    (code-example doer :ensure)
-    (property-table doer :mandatory :ensure)
-    "\n"
-    (property-table doer :optional :ensure)
-    "\n"
-
-    (if (doer-lookup doer :remove)
-      (string
-        (h2 (string doer "/remove"))
-        "\n"
-        (code-example doer :remove)
-        (property-table doer :mandatory :remove)
-        "\n"
-        (property-table doer :optional :remove)
-        "\n")
-      (string
-        (h2 (string doer "/remove"))
-        "\nThere is no " doer "/remove."))))
-
-(defn markdown-for-sub-resource
-  "Returns a multiline string showing keys supported by the given sub-resource"
-  [doer-dir doer sub-resource]
-  (string
-    (h1 (string doer "/" sub-resource))
-    "\n"
-    (doer-lookup doer (keyword :description- sub-resource))
-    "\n"
-    "\n"
-    (h2 "Sub-Resource Name")
-    "\n"
-    (if-let [name-is (doer-lookup doer (keyword :name-is- sub-resource))]
-      (string name-is " (`:string`)")
-      "This sub-resource does not accept a name")
-    "\n"
-    "\n"
-    (code-example doer sub-resource)
-    (property-table doer :mandatory sub-resource)
-    "\n"
-    (property-table doer :optional sub-resource)
-    "\n"))
-
-(defn markdown-for-sub-resources
-  [doer]
-  (def doer-dir (string (doer-root) "/" doer))
-  (if (os/stat doer-dir)
-    (string/join
-      (seq [sub-resource :in (os/dir doer-dir)]
-        (markdown-for-sub-resource doer-dir doer (string/replace ".janet" "" sub-resource)))
-      "\n")))
