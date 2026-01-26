@@ -3,47 +3,21 @@
 # and code examples which are also uses in tests. Used by doers/build.sh, and
 # not built into the Gurp lib.
 # 
-(use ./user-helpers)
-(use ../test/doers/_helpers)
-
 (if (dyn :running-embedded)
   (do
-    (use doers)
-    (use commands))
+    (use doer-docs/lib)
+    (use doer-docs/markdown-helpers)
+    (use src/doers)
+    # (use src/user-helpers)
+    (use test/doers/_helpers))
   (do
-    (use ./doers)
-    (use ./commands)))
-
-(defn title-words
-  "Capitalise the first letter of each given word"
-  [& words]
-  (defn title-word [word]
-    (peg/replace 1 string/ascii-upper word))
-  (string/join (map title-word words) " "))
-
-(defn h1 [text]
-  (string "# " text "\n"))
-
-(defn h2 [text]
-  (string "## " text "\n"))
-
-(defn h3 [text]
-  (string "### " text "\n"))
-
-(defn code [text]
-  (string "`" text "`"))
-
-(defn table-header [& cols]
-  (string
-    "|  " (string/join cols "  |  ") "  |\n"
-    "|--" (string/join (map |(string/repeat "-" (length $)) cols) "--|--") "--|\n"))
-
-(defn table-row [& fields]
-  (string "| " (string/join ;fields " | ") " |\n"))
-
-(defn code-block
-  [code]
-  (string "```janet\n" (string/trim code) "\n```\n\n"))
+    (use ../../test/doers/_helpers)
+    (use ../doers)
+    # (use ../user-helpers)
+    (use ./lib)
+    (use ./markdown-helpers)))
+      
+(def doc-dir (pathcat (repo-root) "/doc/doers"))
 
 (defn props-to-row [property prop-vals defaults]
   [(code (string/format "%v" property))
@@ -90,7 +64,7 @@
     (doer-lookup doer :description)
     "\n"
     "\n"
-    (h2 "Resouce Name")
+    (h2 "Resource Name")
     "\n"
     (if-let [name-is (doer-lookup doer :name-is)]
       (string name-is " (`:string`)")

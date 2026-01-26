@@ -7,8 +7,7 @@
 # of Gurp.
 # 
 (use ../src/doers)
-(use ../src/build-docgen)
-(use ../src/markdown)
+(use ../src/doer-docs/markdown-docs)
 
 (defn main
   [_cmd & args]
