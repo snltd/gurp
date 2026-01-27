@@ -2,6 +2,7 @@
 resolver = "3"
 
 members = [
+  "build_helper",
   "cli",
   "commands",
   "common",
