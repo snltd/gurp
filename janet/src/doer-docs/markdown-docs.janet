@@ -3,20 +3,11 @@
 # and code examples which are also uses in tests. Used by doers/build.sh, and
 # not built into the Gurp lib.
 # 
-(if (dyn :running-embedded)
-  (do
-    (use doer-docs/lib)
-    (use doer-docs/markdown-helpers)
-    (use src/doers)
-    # (use src/user-helpers)
-    (use test/doers/_helpers))
-  (do
-    (use ../../test/doers/_helpers)
-    (use ../doers)
-    # (use ../user-helpers)
-    (use ./lib)
-    (use ./markdown-helpers)))
-      
+(use ./lib)
+(use ./markdown-helpers)
+(use ../../test/doers/_helpers)
+(import ../user-helpers :prefix "" :only [pathcat])
+
 (def doc-dir (pathcat (repo-root) "/doc/doers"))
 
 (defn props-to-row [property prop-vals defaults]
