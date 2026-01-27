@@ -1,6 +1,11 @@
 #
 # Interfaces called by the Gurp binary.
 # 
+(use ./doer-docs/describe-docs)
+(use ./doer-docs/formatting)
+(use ./doer-docs/lib)
+(use ./doers)
+
 (defn help-for
   "Called by the Rust 'describe' command"
   [object]
@@ -47,5 +52,5 @@
 
   (string/join
     (flatten
-      (map |(formatting/lay-out-help ;$ 25 (term-width)) descriptions))
+      (map |(lay-out-help ;$ 25 (term-width)) descriptions))
     "\n"))
