@@ -87,7 +87,7 @@
                          :net @[@{:allowed-address "192.168.1.103/24"
                                   :defrouter "192.168.1.1"
                                   :global-nic "auto"
-                                  :physical "test_net0"}]
+                                  :physical "znet0"}]
                          :recreate 0
                          :role "test-role"
                          :zonepath "/zones/lx-zone"}

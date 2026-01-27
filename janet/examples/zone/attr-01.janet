@@ -1,2 +1,2 @@
-(zone-attr "kernel-ver"
+(zone/attr "kernel-ver"
   :value "4.4")
