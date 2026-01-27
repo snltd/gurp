@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (import ../../src/doers/etherstub)
 (use ../../src/collector)
 
@@ -6,20 +7,19 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (etherstub/ensure "estub0")
+  (import-tests "etherstub" (curenv))
   (etherstub/ensure "estub1")
-  (etherstub/remove "estub2")
 
   (test *collector*
-        @{:ensure @{:etherstub @[{:_id "/test-role/etherstub/estub0"
-                                  :name "estub0"
-                                  :role "test-role"}
-                                 {:_id "/test-role/etherstub/estub1"
-                                  :name "estub1"
-                                  :role "test-role"}]}
-          :remove @{:etherstub @[{:_id "/test-role/etherstub/estub2"
-                                  :name "estub2"
-                                  :role "test-role"}]}}))
+    @{:ensure @{:etherstub @[{:_id "/test-role/etherstub/newstub0"
+                              :name "newstub0"
+                              :role "test-role"}
+                             {:_id "/test-role/etherstub/estub1"
+                              :name "estub1"
+                              :role "test-role"}]}
+      :remove @{:etherstub @[{:_id "/test-role/etherstub/oldstub0"
+                              :name "oldstub0"
+                              :role "test-role"}]}}))
 
 (deftest etherstub-error
   (test-error

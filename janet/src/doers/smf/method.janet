@@ -1,6 +1,11 @@
 (use ../lib)
 
 (def allowed-methods ["start" "stop" "refresh" "reload"])
+(def context-props [:user :group :privileges :environment])
+
+(def description-method "Defines an SMF method to launch a service state")
+(def name-is-method (string "One of " (comma-sep allowed-methods))) 
+
 (def optional-props-method
   {:user {:types [:string]
           :help "User the method runs as"}
@@ -19,7 +24,6 @@
     :help "Seconds until method times out"}})
 
 (def defaults-method {:timeout 60})
-(def context-props [:user :group :privileges :environment])
 
 (defn method
   "Produce an SMF exec_method, with a context"

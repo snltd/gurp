@@ -1,0 +1,1 @@
+(etherstub/ensure "newstub0")

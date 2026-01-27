@@ -4,7 +4,7 @@
 
 (def doer :misc)
 (def description "A collection of things too small to deserve their own doer.")
-(def name-is "Package name")
+(def name-is nil)
 (def mandatory-props-ensure {})
 (def optional-props-ensure
   {:enable-smb {:types [:string]

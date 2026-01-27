@@ -1,0 +1,1 @@
+(zone/remove "unwanted-zone")

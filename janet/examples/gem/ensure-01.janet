@@ -1,0 +1,1 @@
+(gem/ensure "wavefront-cli")

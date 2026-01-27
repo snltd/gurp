@@ -1,0 +1,54 @@
+# svcprop
+
+Manage properties of an existing SMF service.
+
+## Resource Name
+
+Any valid FMRI of the service whose properties you wish to set (`:string`)
+
+## svcprop/ensure
+
+```janet
+(svcprop/ensure "example/svc_1"
+                :property-groups {:application "application"}
+                :properties {:application/datadir "/data"})
+```
+
+```janet
+(svcprop/ensure "example/svc_1"
+                :properties {:application/datadir "/data"
+                             :application/active true
+                             :application/timeout 50})
+```
+
+### Mandatory Properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:properties` | `struct` | Properties to create. (:keyword :string|:boolean|:number) |  |
+
+### Optional Properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:property-groups` | `struct` | Property groups to create. Key is name, value is type |  |
+
+## svcprop/remove
+
+```janet
+(svcprop/remove "example/svc_3"
+                :properties ["application/thing"])
+```
+
+### Mandatory Properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:properties` | `tuple` | Properties to remove |  |
+
+### Optional Properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:property-groups` | `struct` | Property groups to remove |  |
+

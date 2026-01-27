@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/ip-properties)
 
@@ -6,11 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (ip-properties/ensure "general"
-                        :ipv6 {:hoplimit 123
-                               :hostmodel "weak"}
-                        :ipv4 {:hostmodel "weak"}
-                        :icmp {:max_buf 1234567})
+  (import-tests "ip-properties" (curenv))
 
   (test *collector*
         @{:ensure @{:ip-properties @[{:_id "/test-role/ip-properties/general"

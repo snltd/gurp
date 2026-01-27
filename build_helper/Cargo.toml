@@ -1,0 +1,11 @@
+[package]
+name = "build_helper"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.100"
+blake3 = "1.8.3"
+camino = "1.2.2"
+indoc = "2.0.7"
+janetrs = "0.8.0"

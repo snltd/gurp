@@ -50,7 +50,7 @@ Hosts are described in a thin [Janet](https://janet-lang.org/) DSL.
 If you want to know more:
 
 - [An introductory walkthrough of Gurp and Janet](https://tech.id264.net/post/2025-09-01-lets-gurp).
-- [Documentation for all the "doers"](doc/doers.md) - the things that do the
+- [Documentation for all the "doers"](doc/doers) - the things that do the
   things.
 - [An overview of the built-in Janet helpers](doc/janet_helpers.md) that make
   life easier.

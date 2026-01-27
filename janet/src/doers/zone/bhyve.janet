@@ -1,7 +1,7 @@
 (use ../lib)
 
 (def description-bhyve "Describe a bhyve zone inside a zone resource.")
-(def name-is-bhyve "This resource type does not accept a name")
+(def name-is-bhyve nil)
 (def defaults-bhyve
   {:wait-for-boot true})
 

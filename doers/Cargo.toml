@@ -34,3 +34,6 @@ camino-tempfile-ext = "0.3.3"
 httpmock = "0.8"
 pretty_assertions = "1.4.1"
 tester = { path = "../tester" }
+
+[build-dependencies]
+build_helper = { path = "../build_helper" }

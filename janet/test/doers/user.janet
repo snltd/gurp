@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/user)
 
@@ -6,15 +7,7 @@
   (set *collector* (new-collector))
   (setdyn :role-dyn "test-role")
 
-  (user/ensure "rob"
-               :uid 264
-               :primary-group "sysadmin"
-               :home-dir "/home/rob"
-               :shell "/bin/zsh"
-               :gecos "Test User"
-               :password-hash "w0934cm-4i5c-42u5cn492hrc97h234ui")
-
-  (user/remove "lolex")
+  (import-tests "user" (curenv))
 
   (test *collector*
         @{:ensure @{:user @[{:_id "/test-role/user/rob"

@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/group)
 
@@ -6,8 +7,7 @@
   (set *collector* (new-collector))
   (setdyn :role-dyn "test-role")
 
-  (group/ensure "new-group" :gid 264)
-  (group/remove "old-group")
+  (import-tests "group" (curenv))
 
   (test *collector*
         @{:ensure @{:group @[{:_id "/test-role/group/new-group"

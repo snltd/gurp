@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/vnic)
 
@@ -6,18 +7,17 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (vnic/ensure "test-vnic0" :over "e1000g")
-  (vnic/remove "test-vnic1")
+  (import-tests "vnic" (curenv))
 
   (test *collector*
-        @{:ensure @{:vnic @[{:_id "/test-role/vnic/test-vnic0"
-                             :name "test-vnic0"
-                             :over "e1000g"
-                             :role "test-role"
-                             :with-interface false}]}
-          :remove @{:vnic @[{:_id "/test-role/vnic/test-vnic1"
-                             :name "test-vnic1"
-                             :role "test-role"}]}}))
+    @{:ensure @{:vnic @[{:_id "/test-role/vnic/vnic0"
+                         :name "vnic0"
+                         :over "e1000g"
+                         :role "test-role"
+                         :with-interface false}]}
+      :remove @{:vnic @[{:_id "/test-role/vnic/vnic1"
+                         :name "vnic1"
+                         :role "test-role"}]}}))
 
 (deftest vnic-error
   (test-error

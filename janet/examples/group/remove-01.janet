@@ -1,0 +1,1 @@
+(group/remove "old-group")

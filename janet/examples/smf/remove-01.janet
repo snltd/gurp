@@ -1,0 +1,1 @@
+(smf/remove "unwanted/service")

@@ -1,10 +1,10 @@
 (use judge)
-(use ../src/commands)
-(import ../src/formatting)
+(use ../../src/commands)
+(use ../../src/doer-docs/describe-docs)
 
 (deftest lay-out-help
   (test
-    (formatting/lay-out-help
+    (lay-out-help
       "test-doer"
       "this is a sample test for the description wrapper test that ought to be
       nicely wrapped to 80 columns with a lovely clean indent and no weird
@@ -12,5 +12,5 @@
       20
       80)
     @["         test-doer  this is a sample test for the description wrapper test that"
-      "                    ought to be nicely wrapped to 80 columns with a lovely clean"
-      "                    indent and no weird spacing in the middle of a line."]))
+      "                    ought to be nicely wrapped to 80 columns with a lovely"
+      "                    clean indent and no weird spacing in the middle of a line."]))

@@ -1,13 +1,14 @@
 (use judge)
 (use ../../src/collector)
+(use ./_helpers)
 (import ../../src/doers/apk)
 
 (deftest apk
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (apk/ensure "rust")
-  (apk/remove "go")
+  (import-tests "apk" (curenv))
+
   (apk/remove "python")
 
   (test *collector*

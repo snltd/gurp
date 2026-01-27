@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/vlan)
 
@@ -6,30 +7,17 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (vlan/ensure "e1000g1000"
-               :over "e1000g0"
-               :vlan-tag 10)
-
-  (vlan/ensure "testvlan2"
-               :over "bge0"
-               :vlan-tag 20)
-
-  (vlan/remove "old-vlan")
+  (import-tests "vlan" (curenv))
 
   (test *collector*
-        @{:ensure @{:vlan @[{:_id "/test-role/vlan/e1000g1000"
-                             :name "e1000g1000"
-                             :over "e1000g0"
-                             :role "test-role"
-                             :vlan-tag 10}
-                            {:_id "/test-role/vlan/testvlan2"
-                             :name "testvlan2"
-                             :over "bge0"
-                             :role "test-role"
-                             :vlan-tag 20}]}
-          :remove @{:vlan @[{:_id "/test-role/vlan/old-vlan"
-                             :name "old-vlan"
-                             :role "test-role"}]}}))
+    @{:ensure @{:vlan @[{:_id "/test-role/vlan/e1000g010"
+                         :name "e1000g010"
+                         :over "e1000g0"
+                         :role "test-role"
+                         :vlan-tag 10}]}
+      :remove @{:vlan @[{:_id "/test-role/vlan/e1000g020"
+                         :name "e1000g020"
+                         :role "test-role"}]}}))
 
 (deftest vlan-error
   (test-error

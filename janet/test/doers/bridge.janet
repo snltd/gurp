@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/bridge)
 
@@ -6,37 +7,30 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (bridge/ensure "test_a")
-
-  (bridge/ensure "test_b"
-                 :links ["stub0" "vnic0" "e1000g0"]
-                 :priority 4096
-                 :max-age 30)
-
-  (bridge/remove "test_c")
+  (import-tests "bridge" (curenv))
   
   (test *collector*
-    @{:ensure @{:bridge @[{:_id "/test-role/bridge/test_a"
+    @{:ensure @{:bridge @[{:_id "/test-role/bridge/basic"
                            :force-protocol 3
                            :forward-delay 15
                            :hello-time 2
                            :max-age 20
-                           :name "test_a"
+                           :name "basic"
                            :priority 32768
                            :protect "stp"
                            :role "test-role"}
-                          {:_id "/test-role/bridge/test_b"
+                          {:_id "/test-role/bridge/with_links"
                            :force-protocol 3
                            :forward-delay 15
                            :hello-time 2
                            :links ["stub0" "vnic0" "e1000g0"]
                            :max-age 30
-                           :name "test_b"
+                           :name "with_links"
                            :priority 4096
                            :protect "stp"
                            :role "test-role"}]}
-      :remove @{:bridge @[{:_id "/test-role/bridge/test_c"
-                           :name "test_c"
+      :remove @{:bridge @[{:_id "/test-role/bridge/unwanted"
+                           :name "unwanted"
                            :role "test-role"}]}}))
 
 (deftest bridge-errors

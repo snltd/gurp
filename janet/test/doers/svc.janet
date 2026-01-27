@@ -1,13 +1,12 @@
 (use judge)
+(use ./_helpers)
 (use ../../src/collector)
 (import ../../src/doers/svc)
 
 (deftest svc
   (set *collector* (new-collector))
 
-  (svc/ensure "important/service"
-              :state "enabled"
-              :restarted-by [:/test-role/file/stub])
+  (import-tests "svc" (curenv))
 
   (test *collector*
         @{:ensure @{:svc @[{:_id "/NO-ROLE/svc/important_service"

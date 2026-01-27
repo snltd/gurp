@@ -1,4 +1,5 @@
 (use judge)
+(use ./_helpers)
 (import ../../src/doers/file-line)
 (use ../../src/collector)
 
@@ -6,45 +7,31 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (file-line/remove "/tmp/.tmpjpqQir/test-file"
-                    :pattern "line_2"
-                    :match "exact"
-                    :apply-to "all")
-
-  (file-line/ensure "/path/to/file"
-                    :line "i-want-to-see-this")
-
-  (file-line/remove "/path/to/file"
-                    :pattern "this-is-an-awful-line")
-
-  (file-line/remove "/path/to/file"
-                    :match "exact"
-                    :apply-to "last"
-                    :pattern "this-is-an-awful-line")
+  (import-tests "file-line" (curenv))
 
   (test *collector*
-        @{:ensure @{:file-line @[{:_id "/test-role/file-line/_path_to_file"
-                                  :line "i-want-to-see-this"
-                                  :name "/path/to/file"
-                                  :role "test-role"}]}
-          :remove @{:file-line @[{:_id "/test-role/file-line/_tmp_.tmpjpqQir_test-file"
-                                  :apply-to "all"
-                                  :match "exact"
-                                  :name "/tmp/.tmpjpqQir/test-file"
-                                  :pattern "line_2"
-                                  :role "test-role"}
-                                 {:_id "/test-role/file-line/_path_to_file"
-                                  :apply-to "all"
-                                  :match "exact"
-                                  :name "/path/to/file"
-                                  :pattern "this-is-an-awful-line"
-                                  :role "test-role"}
-                                 {:_id "/test-role/file-line/_path_to_file"
-                                  :apply-to "last"
-                                  :match "exact"
-                                  :name "/path/to/file"
-                                  :pattern "this-is-an-awful-line"
-                                  :role "test-role"}]}}))
+    @{:ensure @{:file-line @[{:_id "/test-role/file-line/_path_to_file"
+                              :line "i-want-to-see-this"
+                              :name "/path/to/file"
+                              :role "test-role"}]}
+      :remove @{:file-line @[{:_id "/test-role/file-line/_tmp_.tmpjpqQir_test-file"
+                              :apply-to "all"
+                              :match "exact"
+                              :name "/tmp/.tmpjpqQir/test-file"
+                              :pattern "i-do-not-want-to-see-this"
+                              :role "test-role"}
+                             {:_id "/test-role/file-line/_path_to_file"
+                              :apply-to "all"
+                              :match "exact"
+                              :name "/path/to/file"
+                              :pattern "rust_regex"
+                              :role "test-role"}
+                             {:_id "/test-role/file-line/_path_to_file"
+                              :apply-to "last"
+                              :match "exact"
+                              :name "/path/to/file"
+                              :pattern "rust_regex"
+                              :role "test-role"}]}}))
 
 (deftest file-line-error
   (test-error

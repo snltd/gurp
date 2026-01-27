@@ -1,0 +1,1 @@
+(vnic/remove "vnic1")
