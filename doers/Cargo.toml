@@ -39,3 +39,4 @@ tester = { path = "../tester" }
 camino = "1.1.9"
 embed = { path = "../embed" }
 indoc = "2.0.6"
+janetrs = "0.8.0"
