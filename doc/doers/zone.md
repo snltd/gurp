@@ -145,7 +145,9 @@ Describe a bhyve zone inside a zone resource.
 This sub-resource does not accept a name
 
 ```janet
-(zone-bhyve
+(use ../../src/user-helpers)
+
+(zone/bhyve
   :vcpus 4
   :ram "8G"
   :image-url "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
@@ -153,7 +155,7 @@ This sub-resource does not accept a name
   :boot-volume "tank/byhve/example-boot"
   :cloudinit-files [(config-file "cloud-init/user-data")]
   :cloudinit-struct
-  {:meta-data (cloudinit-meta-data zone-name)
+  {:meta-data (cloudinit-meta-data "example-zone")
 
    :network-config
    {:network {:version 2
@@ -197,7 +199,8 @@ RCTL name (`:string`)
 ```janet
 (zone/rctl "example"
            :priv "zone.cpu-cap"
-           :value "priv=privileged,limit=300,action=none")
+           :limit 300
+           :action "none")
 ```
 
 ### Mandatory Properties
@@ -284,7 +287,7 @@ Set attributes on a zone being created by the zone doer.
 Attribute name (`:string`)
 
 ```janet
-(zone-attr "kernel-ver"
+(zone/attr "kernel-ver"
   :value "4.4")
 ```
 
