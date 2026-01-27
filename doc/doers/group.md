@@ -2,7 +2,7 @@
 
 Create and destroy Unix groups.
 
-## Resouce Name
+## Resource Name
 
 Group name (`:string`)
 

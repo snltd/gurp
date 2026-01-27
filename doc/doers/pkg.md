@@ -2,7 +2,7 @@
 
 Install and uninstall pkg(5) packages.
 
-## Resouce Name
+## Resource Name
 
 Package name, of the form ooce/editor/helix (`:string`)
 

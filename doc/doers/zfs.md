@@ -2,11 +2,17 @@
 
 Create, destroy, and modify properties of ZFS filesystems.
 
-## Resouce Name
+## Resource Name
 
 ZFS dataset name (`:string`)
 
 ## zfs/ensure
+
+```janet
+(zfs/ensure "tank/example/volume"
+            :size "10G"
+            :label "example-zfs-vol")
+```
 
 ```janet
 (zfs/ensure "tank/example/filesystem"
@@ -15,12 +21,6 @@ ZFS dataset name (`:string`)
                          :mountpoint "/example/mountpoint"
                          :dedup true
                          :devices false})
-```
-
-```janet
-(zfs/ensure "tank/example/volume"
-            :size "10G"
-            :label "example-zfs-vol")
 ```
 
 ### Mandatory Properties

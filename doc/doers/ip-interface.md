@@ -2,15 +2,11 @@
 
 Create and destroy IP interfaces, with optional properties.                 Properties are supplied with 'ip-interface-protocol'.
 
-## Resouce Name
+## Resource Name
 
 Interface name (`:string`)
 
 ## ip-interface/ensure
-
-```janet
-(ip-interface/ensure "example0")
-```
 
 ```janet
 (ip-interface/ensure "example1"
@@ -19,6 +15,10 @@ Interface name (`:string`)
                             :forwarding false}
                      :ipv4 {:mtu 1500
                             :forwarding true})
+```
+
+```janet
+(ip-interface/ensure "example0")
 ```
 
 ### Mandatory Properties

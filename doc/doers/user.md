@@ -2,7 +2,7 @@
 
 Manage Unix users
 
-## Resouce Name
+## Resource Name
 
 User's username (`:string`)
 

@@ -2,7 +2,7 @@
 
 Manage VLAN objects
 
-## Resouce Name
+## Resource Name
 
 VLAN name (`:string`)
 

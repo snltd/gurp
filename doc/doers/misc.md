@@ -2,7 +2,7 @@
 
 A collection of things too small to deserve their own doer.
 
-## Resouce Name
+## Resource Name
 
 This resource does not accept a name
 
@@ -15,12 +15,12 @@ This resource does not accept a name
 
 ```janet
 (misc/ensure
-  :scheduler "FSS")
+  :nfs-domain "lan.id264.net")
 ```
 
 ```janet
 (misc/ensure
-  :nfs-domain "lan.id264.net")
+  :scheduler "FSS")
 ```
 
 ### Mandatory Properties

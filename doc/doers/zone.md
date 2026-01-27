@@ -2,11 +2,29 @@
 
 Create and destroy zones. Existing zones cannot be modified.
 
-## Resouce Name
+## Resource Name
 
 Zone name (`:string`)
 
 ## zone/ensure
+
+```janet
+(zone/ensure "bhyve-zone"
+             :brand "bhyve"
+             :autoboot false
+             (zone/network "bhyve0"
+                           :allowed-address "192.168.1.102/24"
+                           :global-nic "auto")
+             (zone/bhyve
+               :ram "4G"
+               :vcpus 4
+               :image-path "/var/tmp/noble-server-cloudimg-amd64.img.raw"
+               :boot-volume "tank/bhyve/test"
+               :cloudinit-struct {:network {:version 2}})
+             :dns {:domain "lan.id264.net"
+                   :nameservers ["192.168.1.53"
+                                 "192.168.1.1"]})
+```
 
 ```janet
 (zone/ensure "native-zone"
@@ -36,24 +54,6 @@ Zone name (`:string`)
              :exec-in ["/bin/exec1" "/bin/exec2"]
              :copy-in {"lx-test/f1" "/etc/file1"
                        "lx-test/f2" "/bin/exec2"})
-```
-
-```janet
-(zone/ensure "bhyve-zone"
-             :brand "bhyve"
-             :autoboot false
-             (zone/network "bhyve0"
-                           :allowed-address "192.168.1.102/24"
-                           :global-nic "auto")
-             (zone/bhyve
-               :ram "4G"
-               :vcpus 4
-               :image-path "/var/tmp/noble-server-cloudimg-amd64.img.raw"
-               :boot-volume "tank/bhyve/test"
-               :cloudinit-struct {:network {:version 2}})
-             :dns {:domain "lan.id264.net"
-                   :nameservers ["192.168.1.53"
-                                 "192.168.1.1"]})
 ```
 
 ### Mandatory Properties
@@ -104,32 +104,36 @@ None
 
 None
 
-# zone/rctl
+# zone/bootstrap
 
-Define a resource control when creating a zone.
+Tells gurp how to bootstrap a newly created zone.
 
 ## Sub-Resource Name
 
-RCTL name (`:string`)
+This sub-resource does not accept a name
 
 ```janet
-(zone/rctl "example"
-           :priv "zone.cpu-cap"
-           :value "priv=privileged,limit=300,action=none")
+(zone/bootstrap
+  :file "/path/inside/zone")
+```
+
+```janet
+(zone/bootstrap
+  :server "gurp.localnet"
+  :hostname "networked-zone")
 ```
 
 ### Mandatory Properties
 
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:action` | `string` | rctl action | `"deny"` |
-| `:limit` | `number` | rctl limit value |  |
-| `:name` | `string` | private field managed by Gurp |  |
-| `:priv` | `string` | rctl privilege | `"privileged"` |
+None
 
 ### Optional Properties
 
-None
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:file` | `string` | fully qualified path of file in zone which will be used to bootstrap |  |
+| `:hostname` | `string` | hostname of client being bootstrapped |  |
+| `:server` | `string` | hostname/IP address of server to install from |  |
 
 
 # zone/bhyve
@@ -182,93 +186,32 @@ This sub-resource does not accept a name
 | `:wait-for-boot` | `boolean` | Wait for boot, or detach immediately | `true` |
 
 
-# zone/fs
+# zone/rctl
 
-Define a filesystem mapping when creating a zone.
+Define a resource control when creating a zone.
 
 ## Sub-Resource Name
 
-The mountpoint inside the zone (`:string`)
+RCTL name (`:string`)
 
 ```janet
-(zone/fs "/dir/in/zone"
-         :special "/dir/in/global"
-         :type "lofs"
-         :options ["ro"])
+(zone/rctl "example"
+           :priv "zone.cpu-cap"
+           :value "priv=privileged,limit=300,action=none")
 ```
 
 ### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:dir` | `string` | Mountpoint in zone. This is the name of the resource, and is               not specified with a key |  |
-| `:special` | `string` | The directory in the global zone |  |
+| `:action` | `string` | rctl action | `"deny"` |
+| `:limit` | `number` | rctl limit value |  |
+| `:name` | `string` | private field managed by Gurp |  |
+| `:priv` | `string` | rctl privilege | `"privileged"` |
 
 ### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:options` | `tuple` | Options with which to mount fs inside zone |  |
-| `:type` | `string` | The type of fs mount | `"lofs"` |
-
-
-# zone/bootstrap
-
-Tells gurp how to bootstrap a newly created zone.
-
-## Sub-Resource Name
-
-This sub-resource does not accept a name
-
-```janet
-(zone/bootstrap
-  :file "/path/inside/zone")
-```
-
-```janet
-(zone/bootstrap
-  :server "gurp.localnet"
-  :hostname "networked-zone")
-```
-
-### Mandatory Properties
 
 None
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:file` | `string` | fully qualified path of file in zone which will be used to bootstrap |  |
-| `:hostname` | `string` | hostname of client being bootstrapped |  |
-| `:server` | `string` | hostname/IP address of server to install from |  |
-
-
-# zone/attr
-
-Set attributes on a zone being created by the zone doer.
-
-## Sub-Resource Name
-
-Attribute name (`:string`)
-
-```janet
-(zone-attr "kernel-ver"
-  :value "4.4")
-```
-
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:name` | `string` | Attribute name. Derived from resource name |  |
-| `:value` | `string boolean number` | Attribute value |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:type` | `string` | The type of the value. Gurp will take a pretty good guess though |  |
 
 
 # zone/network
@@ -300,4 +243,61 @@ Zone VNIC, which may already exist (`:string`)
 | `:allowed-address` | `string` | IP address, with /netmask |  |
 | `:defrouter` | `string` | IP address of default router |  |
 | `:global-nic` | `string` | Physical NIC on which to create zone VNIC | `"auto"` |
+
+
+# zone/fs
+
+Define a filesystem mapping when creating a zone.
+
+## Sub-Resource Name
+
+The mountpoint inside the zone (`:string`)
+
+```janet
+(zone/fs "/dir/in/zone"
+         :special "/dir/in/global"
+         :type "lofs"
+         :options ["ro"])
+```
+
+### Mandatory Properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:dir` | `string` | Mountpoint in zone. This is the name of the resource, and is               not specified with a key |  |
+| `:special` | `string` | The directory in the global zone |  |
+
+### Optional Properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:options` | `tuple` | Options with which to mount fs inside zone |  |
+| `:type` | `string` | The type of fs mount | `"lofs"` |
+
+
+# zone/attr
+
+Set attributes on a zone being created by the zone doer.
+
+## Sub-Resource Name
+
+Attribute name (`:string`)
+
+```janet
+(zone-attr "kernel-ver"
+  :value "4.4")
+```
+
+### Mandatory Properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:name` | `string` | Attribute name. Derived from resource name |  |
+| `:value` | `string boolean number` | Attribute value |  |
+
+### Optional Properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:type` | `string` | The type of the value. Gurp will take a pretty good guess though |  |
 

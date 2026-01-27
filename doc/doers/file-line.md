@@ -2,7 +2,7 @@
 
 Ensure lines do or do not exist in the given file.
 
-## Resouce Name
+## Resource Name
 
 Fully qualified path to file (`:string`)
 

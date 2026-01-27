@@ -2,7 +2,7 @@
 
 Manage cron jobs. Crontab entries are prefixed with a                  machine-generated string.
 
-## Resouce Name
+## Resource Name
 
 Convenient name for job. (`:string`)
 

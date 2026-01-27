@@ -2,7 +2,7 @@
 
 Manage the state of an existing SMF service.
 
-## Resouce Name
+## Resource Name
 
 Service FMRI (`:string`)
 

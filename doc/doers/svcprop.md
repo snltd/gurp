@@ -2,7 +2,7 @@
 
 Manage properties of an existing SMF service.
 
-## Resouce Name
+## Resource Name
 
 Any valid FMRI of the service whose properties you wish to set (`:string`)
 
@@ -10,15 +10,15 @@ Any valid FMRI of the service whose properties you wish to set (`:string`)
 
 ```janet
 (svcprop/ensure "example/svc_1"
-                :properties {:application/datadir "/data"
-                             :application/active true
-                             :application/timeout 50})
+                :property-groups {:application "application"}
+                :properties {:application/datadir "/data"})
 ```
 
 ```janet
 (svcprop/ensure "example/svc_1"
-                :property-groups {:application "application"}
-                :properties {:application/datadir "/data"})
+                :properties {:application/datadir "/data"
+                             :application/active true
+                             :application/timeout 50})
 ```
 
 ### Mandatory Properties

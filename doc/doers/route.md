@@ -2,7 +2,7 @@
 
 Manage routes. Note that default routes for zones should be                 handled by the zone's :defrouter property.
 
-## Resouce Name
+## Resource Name
 
 The route destination, e.g. 10.10.0.0/16 (`:string`)
 
@@ -15,15 +15,15 @@ The route destination, e.g. 10.10.0.0/16 (`:string`)
 ```
 
 ```janet
-(route/ensure "203.0.113.0/24"
-              :gateway "127.0.0.1"
-              :type "blackhole")
-```
-
-```janet
 (route/ensure "192.168.1.1"
               :label "default-gateway"
               :gateway "default")
+```
+
+```janet
+(route/ensure "203.0.113.0/24"
+              :gateway "127.0.0.1"
+              :type "blackhole")
 ```
 
 ### Mandatory Properties

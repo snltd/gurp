@@ -2,7 +2,7 @@
 
 Create and install a manifest for an SMF service.
 
-## Resouce Name
+## Resource Name
 
 Short name of service. Not used internally (`:string`)
 

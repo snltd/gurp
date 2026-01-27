@@ -2,7 +2,7 @@
 
 Create and remove symbolic links.
 
-## Resouce Name
+## Resource Name
 
 Qualified path to the link that will be created (`:string`)
 

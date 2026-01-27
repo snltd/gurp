@@ -2,7 +2,7 @@
 
 Install and uninstall APK packages. Only valid in an Alpine LX zone.
 
-## Resouce Name
+## Resource Name
 
 Package name (`:string`)
 

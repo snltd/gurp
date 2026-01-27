@@ -2,20 +2,20 @@
 
 Install and uninstall Ruby gems.
 
-## Resouce Name
+## Resource Name
 
 Gem name (`:string`)
 
 ## gem/ensure
 
 ```janet
-(gem/ensure "wavefront-cli")
-```
-
-```janet
 (gem/ensure "my-gem"
             :version "1.2.3"
             :source "https://my-gem-repo.com")
+```
+
+```janet
+(gem/ensure "wavefront-cli")
 ```
 
 ### Mandatory Properties

@@ -2,7 +2,7 @@
 
 Manage VNIC objects
 
-## Resouce Name
+## Resource Name
 
 VNIC name (`:string`)
 

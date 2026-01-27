@@ -2,7 +2,7 @@
 
 Sets global IP properties, via 'ipadm set-prop'.
 
-## Resouce Name
+## Resource Name
 
 Any convenient name: not used internally (`:string`)
 

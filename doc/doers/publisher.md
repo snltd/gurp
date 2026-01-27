@@ -2,7 +2,7 @@
 
 Add and remove pkg(5) publisher origins.
 
-## Resouce Name
+## Resource Name
 
 Publisher name (`:string`)
 

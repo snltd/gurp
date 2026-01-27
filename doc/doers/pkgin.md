@@ -2,7 +2,7 @@
 
 Install and uninstall pkgin packages. Only valid in a pkgsrc                 zone.
 
-## Resouce Name
+## Resource Name
 
 Package name (`:string`)
 

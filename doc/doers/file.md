@@ -2,19 +2,11 @@
 
 Create files from multiple sources, or remove them.
 
-## Resouce Name
+## Resource Name
 
 Fully qualified path to file (`:string`)
 
 ## file/ensure
-
-```janet
-(file/ensure "/file/from/arbitrary/server"
-             :owner "gibbus"
-             :mode "0640"
-             :with-checksum "0123456789abcdef"
-             :from-url "https://example.com/files/config")
-```
 
 ```janet
 (file/ensure "/file/from/content"
@@ -28,6 +20,14 @@ Fully qualified path to file (`:string`)
              :group "daemon"
              :mode "0755"
              :from "file-test/does-not-exist")
+```
+
+```janet
+(file/ensure "/file/from/arbitrary/server"
+             :owner "gibbus"
+             :mode "0640"
+             :with-checksum "0123456789abcdef"
+             :from-url "https://example.com/files/config")
 ```
 
 ### Mandatory Properties

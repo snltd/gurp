@@ -2,7 +2,7 @@
 
 Create and destroy etherstubs.
 
-## Resouce Name
+## Resource Name
 
 Name of etherstub (`:string`)
 

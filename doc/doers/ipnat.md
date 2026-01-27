@@ -2,7 +2,7 @@
 
 Set or remove NAT rules.
 
-## Resouce Name
+## Resource Name
 
 Any convenient name: not used internally (`:string`)
 

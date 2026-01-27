@@ -2,11 +2,16 @@
 
 Manages IP addresses via ipadm.
 
-## Resouce Name
+## Resource Name
 
 Address name, e.g. vnic0/v4 (`:string`)
 
 ## ip-address/ensure
+
+```janet
+(ip-address/ensure "example1/v4"
+                   :type "dhcp")
+```
 
 ```janet
 (ip-address/ensure "example0/v4"
@@ -15,11 +20,6 @@ Address name, e.g. vnic0/v4 (`:string`)
                    :properties {:prefixlen 24
                                 :transmit true
                                 :private false})
-```
-
-```janet
-(ip-address/ensure "example1/v4"
-                   :type "dhcp")
 ```
 
 ### Mandatory Properties
