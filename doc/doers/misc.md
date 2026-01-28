@@ -10,17 +10,17 @@ This resource does not accept a name
 
 ```janet
 (misc/ensure
+  :scheduler "FSS")
+```
+
+```janet
+(misc/ensure
   :enable-smb "rob")
 ```
 
 ```janet
 (misc/ensure
   :nfs-domain "lan.id264.net")
-```
-
-```janet
-(misc/ensure
-  :scheduler "FSS")
 ```
 
 ### Mandatory Properties

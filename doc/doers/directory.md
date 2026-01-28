@@ -1,18 +1,12 @@
 # directory
 
-Create and remove directories. Parents are created like mkdir -p, but with   the owner/group/mode of the gurp process. Removal always removes directory   contents.
+Create and remove directories. Parents are created like mkdir -p, but with the owner/group/mode of the gurp process. Removal always removes directory contents.
 
 ## Resource Name
 
 Fully qualified path to directory (`:string`)
 
 ## directory/ensure
-
-```janet
-(directory/ensure "/path/to/dir_2"
-                  :label "my-dir"
-                  :mode "0700")
-```
 
 ```janet
 (directory/ensure "/path/to/dir_1")
@@ -24,6 +18,12 @@ Fully qualified path to directory (`:string`)
                   :group "sysadmin"
                   :mode "0700"
                   :label "all-the-specs")
+```
+
+```janet
+(directory/ensure "/path/to/dir_2"
+                  :label "my-dir"
+                  :mode "0700")
 ```
 
 ### Mandatory Properties

@@ -1,6 +1,6 @@
 # pkgin
 
-Install and uninstall pkgin packages. Only valid in a pkgsrc                 zone.
+Install and uninstall pkgin packages. Only valid in a pkgsrc zone.
 
 ## Resource Name
 

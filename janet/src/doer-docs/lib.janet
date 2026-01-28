@@ -49,3 +49,8 @@
   [doer subresource binding]
   (def lookup (symbol (string doer "/" binding "-" subresource)))
   (eval lookup))
+
+(defn squeeze
+  "Squash repeated whitespace into a single space"
+  [str]
+  (peg/replace-all '(* (some :s)) " " str))
