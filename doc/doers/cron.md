@@ -1,6 +1,6 @@
 # cron
 
-Manage cron jobs. Crontab entries are prefixed with a                  machine-generated string.
+Manage cron jobs. Crontab entries are prefixed with a machine-generated string.
 
 ## Resource Name
 
@@ -36,7 +36,7 @@ Convenient name for job. (`:string`)
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:day-of-month` | `string number` | Day(s) of month on which job runs | `"*"` |
-| `:day-of-week` | `string number` | Numeric day(s) on  which job runs. 0=Sunday | `"*"` |
+| `:day-of-week` | `string number` | Numeric day(s) on which job runs. 0=Sunday | `"*"` |
 | `:hour` | `string number` | Hour(s) at which job runs | `"*"` |
 | `:minute` | `string number` | Minute(s) job runs at. Accepts divisions and ranges | `"*"` |
 | `:month-of-year` | `string number` | Month(s) in which job runs | `"*"` |

@@ -18,6 +18,8 @@ Items marked [*] are breaking changes.
 - Removed `-L` option from `apply` and `compile` commands. [*]
 - Removed `show` command. [*]
 - Removed option to compile to Janet struct. [*]
+- `describe` command gives more information, and its layout adjusts for the
+  terminal width.
 
 ### Doers
 
@@ -29,14 +31,16 @@ Items marked [*] are breaking changes.
   and `smf/method`. [*]
 - Changed syntax of `ip-address/ensure`, `ip-properties/ensure`, and
   `ip-interface/ensure` to make them all consistent.
+- Doer documentation is machine-generated from definition files.
 
 ### Internals
 
 - Huge refactor of the front-end Janet. The old single library file is now fully
   modular, with improved code clarity, better test coverage, and all knots
   untangled. [*]
-- The front-end checks the types of resource properties, producing helpful error
-  messages.
+- Doer parameters, types, and behaviour are now defined in separate definition
+  files. These are used to check properties are valid and of the correct types,
+  and to generate documentation.
 - The front-end checks sub-resource properties and their types.
 - Various small bugfixes in front-end.
 

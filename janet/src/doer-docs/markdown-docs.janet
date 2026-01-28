@@ -10,10 +10,12 @@
 
 (def doc-dir (pathcat (repo-root) "/doc/doers"))
 
-(defn props-to-row [property prop-vals defaults]
+(defn props-to-row
+  "Make an a array whose elements are cells for a row of a table"
+  [property prop-vals defaults]
   [(code (string/format "%v" property))
    (code (string/join (get prop-vals :types) " "))
-   (get prop-vals :help)
+   (squeeze (get prop-vals :help)) # fail hard if not set
    (if-let [default-val (get defaults property)]
      (code (string/format "%m" default-val))
      "")])
@@ -36,7 +38,11 @@
                (sorted
                  (seq [[$prop $vals] :pairs $properties]
                    (table-row
-                     (props-to-row $prop $vals (doer-lookup ,doer (keyword "defaults-" ,action)))))))))))))
+                     (props-to-row
+                       $prop
+                       $vals
+                       (doer-lookup ,doer
+                                    (keyword "defaults-" ,action)))))))))))))
 
 (defn code-example
   [doer action]
@@ -52,7 +58,7 @@
   (string
     (h1 doer)
     "\n"
-    (doer-lookup doer :description)
+    (squeeze (doer-lookup doer :description))
     "\n"
     "\n"
     (h2 "Resource Name")
