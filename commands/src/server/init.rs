@@ -1,6 +1,5 @@
-use common::types::ExitCode;
-use common::types::ServerOpts;
-use server::http;
+use crate::server;
+use common::types::{ExitCode, ServerOpts};
 
 pub fn run(opts: ServerOpts) -> ExitCode {
     if !opts.config_dir.exists() {
@@ -10,7 +9,7 @@ pub fn run(opts: ServerOpts) -> ExitCode {
 
     tracing::info!("starting Gurp in server mode");
 
-    match run_server(opts) {
+    match server::init::run_server(opts) {
         Ok(_) => 0,
         Err(e) => {
             tracing::error!("server error: {e}");
@@ -21,5 +20,5 @@ pub fn run(opts: ServerOpts) -> ExitCode {
 
 fn run_server(opts: ServerOpts) -> anyhow::Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
-    rt.block_on(async { http::start(opts).await })
+    rt.block_on(async { server::http::start(opts).await })
 }
