@@ -9,16 +9,16 @@ Any convenient name: not used internally (`:string`)
 ## ipnat/ensure
 
 ```janet
+(ipnat/ensure "rules-in-file"
+              :from "test/ipnat-test"
+              :priority 2)
+```
+
+```janet
 (ipnat/ensure "rules-in-config"
               :priority 1
               :content "rdr le0 203.1.2.3/32 port 80 -> 203.1.2.3,203.1.2.4 port 80 tcp round-robin\n
 rdr le0 203.1.2.3/32 port 80 -> 203.1.2.5 port 80 tcp round-robin")
-```
-
-```janet
-(ipnat/ensure "rules-in-file"
-              :from "test/ipnat-test"
-              :priority 2)
 ```
 
 ### Mandatory Properties

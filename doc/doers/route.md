@@ -15,15 +15,15 @@ The route destination, e.g. 10.10.0.0/16 (`:string`)
 ```
 
 ```janet
-(route/ensure "203.0.113.0/24"
-              :gateway "127.0.0.1"
-              :type "blackhole")
-```
-
-```janet
 (route/ensure "10.0.5.0/24"
               :gateway "10.0.5.150"
               :flags {:mtu 1500})
+```
+
+```janet
+(route/ensure "203.0.113.0/24"
+              :gateway "127.0.0.1"
+              :type "blackhole")
 ```
 
 ### Mandatory Properties

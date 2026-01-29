@@ -104,33 +104,31 @@ None
 
 None
 
-# zone/rctl
+# zone/attr
 
-Define a resource control when creating a zone.
+Set attributes on a zone being created by the zone doer.
 
 ## Sub-Resource Name
 
-RCTL name (`:string`)
+Attribute name (`:string`)
 
 ```janet
-(zone/rctl "example"
-           :priv "zone.cpu-cap"
-           :limit 300
-           :action "none")
+(zone/attr "kernel-ver"
+  :value "4.4")
 ```
 
 ### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:action` | `string` | rctl action | `"deny"` |
-| `:limit` | `number` | rctl limit value |  |
-| `:name` | `string` | private field managed by Gurp |  |
-| `:priv` | `string` | rctl privilege | `"privileged"` |
+| `:name` | `string` | Attribute name. Derived from resource name |  |
+| `:value` | `string boolean number` | Attribute value |  |
 
 ### Optional Properties
 
-None
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:type` | `string` | The type of the value. Gurp will take a pretty good guess though |  |
 
 
 # zone/bhyve
@@ -185,6 +183,38 @@ This sub-resource does not accept a name
 | `:wait-for-boot` | `boolean` | Wait for boot, or detach immediately | `true` |
 
 
+# zone/bootstrap
+
+Tells gurp how to bootstrap a newly created zone.
+
+## Sub-Resource Name
+
+This sub-resource does not accept a name
+
+```janet
+(zone/bootstrap
+  :server "gurp.localnet"
+  :hostname "networked-zone")
+```
+
+```janet
+(zone/bootstrap
+  :file "/path/inside/zone")
+```
+
+### Mandatory Properties
+
+None
+
+### Optional Properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:file` | `string` | fully qualified path of file in zone which will be used to bootstrap |  |
+| `:hostname` | `string` | hostname of client being bootstrapped |  |
+| `:server` | `string` | hostname/IP address of server to install from |  |
+
+
 # zone/fs
 
 Define a filesystem mapping when creating a zone.
@@ -213,65 +243,6 @@ The mountpoint inside the zone (`:string`)
 |-------|--------|---------------|-----------|
 | `:options` | `tuple` | Options with which to mount fs inside zone |  |
 | `:type` | `string` | The type of fs mount | `"lofs"` |
-
-
-# zone/bootstrap
-
-Tells gurp how to bootstrap a newly created zone.
-
-## Sub-Resource Name
-
-This sub-resource does not accept a name
-
-```janet
-(zone/bootstrap
-  :file "/path/inside/zone")
-```
-
-```janet
-(zone/bootstrap
-  :server "gurp.localnet"
-  :hostname "networked-zone")
-```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:file` | `string` | fully qualified path of file in zone which will be used to bootstrap |  |
-| `:hostname` | `string` | hostname of client being bootstrapped |  |
-| `:server` | `string` | hostname/IP address of server to install from |  |
-
-
-# zone/attr
-
-Set attributes on a zone being created by the zone doer.
-
-## Sub-Resource Name
-
-Attribute name (`:string`)
-
-```janet
-(zone/attr "kernel-ver"
-  :value "4.4")
-```
-
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:name` | `string` | Attribute name. Derived from resource name |  |
-| `:value` | `string boolean number` | Attribute value |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:type` | `string` | The type of the value. Gurp will take a pretty good guess though |  |
 
 
 # zone/network
@@ -303,4 +274,33 @@ Zone VNIC, which may already exist (`:string`)
 | `:allowed-address` | `string` | IP address, with /netmask |  |
 | `:defrouter` | `string` | IP address of default router |  |
 | `:global-nic` | `string` | Physical NIC on which to create zone VNIC | `"auto"` |
+
+
+# zone/rctl
+
+Define a resource control when creating a zone.
+
+## Sub-Resource Name
+
+RCTL name (`:string`)
+
+```janet
+(zone/rctl "example"
+           :priv "zone.cpu-cap"
+           :limit 300
+           :action "none")
+```
+
+### Mandatory Properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:action` | `string` | rctl action | `"deny"` |
+| `:limit` | `number` | rctl limit value |  |
+| `:name` | `string` | private field managed by Gurp |  |
+| `:priv` | `string` | rctl privilege | `"privileged"` |
+
+### Optional Properties
+
+None
 

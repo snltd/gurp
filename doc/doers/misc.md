@@ -10,7 +10,7 @@ This resource does not accept a name
 
 ```janet
 (misc/ensure
-  :scheduler "FSS")
+  :nfs-domain "lan.id264.net")
 ```
 
 ```janet
@@ -20,7 +20,7 @@ This resource does not accept a name
 
 ```janet
 (misc/ensure
-  :nfs-domain "lan.id264.net")
+  :scheduler "FSS")
 ```
 
 ### Mandatory Properties
