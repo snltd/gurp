@@ -9,6 +9,13 @@ Fully qualified path to file (`:string`)
 ## file/ensure
 
 ```janet
+(file/ensure "/file/from/local_file"
+             :group "daemon"
+             :mode "0755"
+             :from "file-test/does-not-exist")
+```
+
+```janet
 (file/ensure "/file/from/content"
              :owner "dataperson"
              :mode "0600"
@@ -21,13 +28,6 @@ Fully qualified path to file (`:string`)
              :mode "0640"
              :with-checksum "0123456789abcdef"
              :from-url "https://example.com/files/config")
-```
-
-```janet
-(file/ensure "/file/from/local_file"
-             :group "daemon"
-             :mode "0755"
-             :from "file-test/does-not-exist")
 ```
 
 ### Mandatory Properties

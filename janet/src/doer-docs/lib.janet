@@ -32,7 +32,7 @@
 (defn doers
   "Return array of all doer names"
   []
-  (seq [doer :in (os/dir (doer-root))]
+  (seq [doer :in (sorted (os/dir (doer-root)))]
     (string/replace ".janet" "" doer)))
 
 (defn doer-lookup

@@ -9,7 +9,6 @@ camino = "1.1.9"
 clap = { version = "4.3", features = ["derive"] }
 commands = { path = "../commands" }
 common = { path = "../common" }
-server = { path = "../server" }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 

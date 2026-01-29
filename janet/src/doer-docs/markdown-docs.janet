@@ -48,7 +48,7 @@
   [doer action]
   (string/join
     (filter truthy?
-            (seq [file :in (os/dir (pathcat example-root doer))]
+            (seq [file :in (sorted (os/dir (pathcat example-root doer)))]
               (when (string/has-prefix? action file)
                 (code-block (slurp (pathcat example-root doer file))))))))
 
@@ -116,7 +116,7 @@
   (def doer-dir (string (doer-root) "/" doer))
   (if (os/stat doer-dir)
     (string/join
-      (seq [sub-resource :in (os/dir doer-dir)]
+      (seq [sub-resource :in (sorted (os/dir doer-dir))]
         (try
           (markdown-for-sub-resource doer-dir doer (string/replace ".janet" "" sub-resource))
           ([e] (eprint "Error on " sub-resource ": " e))))
