@@ -2,6 +2,7 @@ use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
 use common::types::{ApplyOpts, CompileOpts, ServerOpts};
 use std::io::IsTerminal;
+use std::process::ExitCode;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
@@ -94,7 +95,7 @@ enum Commands {
     },
 }
 
-fn main() -> anyhow::Result<()> {
+fn main() -> ExitCode {
     let use_colour =
         std::io::stdout().is_terminal() && std::env::var_os("GURP_NO_COLOUR").is_none();
 
@@ -107,7 +108,7 @@ fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    let exit_code = match cli.command {
+    match cli.command {
         Commands::Apply {
             host_config_file,
             noop,
@@ -174,8 +175,5 @@ fn main() -> anyhow::Result<()> {
             config_dir,
             metrics_to,
         }),
-    };
-
-    tracing::debug!("exiting {}", exit_code);
-    std::process::exit(exit_code as i32);
+    }
 }

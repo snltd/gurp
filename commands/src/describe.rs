@@ -1,5 +1,5 @@
-use common::types::ExitCode;
 use embed::helpers;
+use std::process::ExitCode;
 use terminal_size::{Width as TermWidth, terminal_size};
 
 pub fn run(resource_type: &str) -> ExitCode {
