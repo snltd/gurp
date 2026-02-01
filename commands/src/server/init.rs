@@ -1,6 +1,5 @@
-use crate::server;
-use common::types::{ExitCode, ServerOpts};
-use server::http;
+use crate::server::http;
+use common::types::ServerOpts;
 use std::process::ExitCode;
 
 pub fn run(opts: ServerOpts) -> ExitCode {
