@@ -1,6 +1,7 @@
 use anyhow::bail;
 use camino::Utf8PathBuf;
-use common::constants::{IPNAT_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::constants::{IPF_SVC, IPNAT_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::info;
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::fs::{self, File};
@@ -90,7 +91,7 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
         if opts.dump_diffs {
             println!(
                 "{}",
-                &helpers::dump_diff(
+                &info::dump_diff(
                     &current_persistent_rules,
                     desired_rules,
                     &format!("IP NAT rules [{nat_file}]"),
@@ -116,7 +117,7 @@ fn ensure_live_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Result<bo
     if opts.dump_diffs {
         println!(
             "{}",
-            &helpers::dump_diff(
+            &info::dump_diff(
                 &current_live_rules,
                 desired_rules,
                 "IP NAT rules [LIVE]",
@@ -160,7 +161,7 @@ pub fn collect_and_ensure(nat_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
     }
 
     if opts.dump_config {
-        helpers::dump_config(&desired_rules, "NAT rules", opts);
+        info::dump_config(&desired_rules, "NAT rules", opts);
     }
 
     let mut check_cmd = build_ipnat_cmd(true);

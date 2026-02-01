@@ -1,6 +1,6 @@
 use anyhow::{bail, ensure};
+use common::cmd;
 use common::constants::{DISPADMIN_BIN, ONE_RESOURCE_NO_CHANGE, SHARECTL_BIN, SMBADM_BIN};
-use common::helpers;
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::process::{Command, Stdio};
@@ -130,7 +130,7 @@ impl GurpMiscEnsure {
         let mut get_cmd = Command::new(DISPADMIN_BIN);
         get_cmd.arg("-d").stderr(Stdio::piped());
 
-        tracing::debug!(command = helpers::command_to_string(&get_cmd));
+        tracing::debug!(command = cmd::to_string(&get_cmd));
 
         let dispadmin_output = get_cmd.output()?;
         let dispadmin_stdout = String::from_utf8_lossy(&dispadmin_output.stdout);

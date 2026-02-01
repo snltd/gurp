@@ -1,6 +1,6 @@
 use anyhow::{Context, bail, ensure};
+use common::cmd;
 use common::constants::{IPADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
-use common::helpers;
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -150,7 +150,7 @@ impl GurpIpAddressEnsure {
 
         cmd.arg(&self.name);
 
-        tracing::debug!(command = helpers::command_to_string(&cmd));
+        tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
             let result = cmd.output()?;

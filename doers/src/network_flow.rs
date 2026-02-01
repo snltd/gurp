@@ -1,4 +1,5 @@
 use anyhow::ensure;
+use common::cmd;
 use common::constants::{FLOWADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
@@ -85,7 +86,7 @@ impl GurpNetworkFlowEnsure {
         tracing::info!("creating flow {}", self.name);
 
         let mut cmd = self.build_command();
-        tracing::debug!(command = common::helpers::command_to_string(&cmd));
+        tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
             let status = cmd.status()?;
@@ -359,7 +360,7 @@ mod test {
 
             assert_eq!(
                 $expected_command,
-                common::helpers::command_to_string(&sut.build_command())
+                common::cmd::to_string(&sut.build_command())
             );
         };
     }

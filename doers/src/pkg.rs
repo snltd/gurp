@@ -1,4 +1,6 @@
-use common::constants::PKG_BIN;
+use anyhow::bail;
+use common::cmd;
+use common::constants::{NO_RESOURCES_TO_CHANGE, PKG_BIN};
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::process::Command;
@@ -79,7 +81,7 @@ pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
         }
 
         cmd.args(&install_list);
-        tracing::debug!(command = helpers::command_to_string(&cmd));
+        tracing::debug!(command = cmd::to_string(&cmd));
         let output = cmd.output()?;
 
         if output.status.success() {
@@ -139,7 +141,7 @@ pub fn collect_and_remove(pkg_list: &RemoveList, opts: &ApplyOpts) -> anyhow::Re
         }
 
         cmd.args(&remove_list);
-        tracing::debug!(command = helpers::command_to_string(&cmd));
+        tracing::debug!(command = cmd::to_string(&cmd));
         let output = cmd.output()?;
 
         if output.status.success() {

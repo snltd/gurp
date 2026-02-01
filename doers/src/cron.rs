@@ -1,7 +1,7 @@
 use anyhow::bail;
 use common::constants::{CRONTAB_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
-use common::{helpers, info};
+use common::{cmd, info};
 use serde::Deserialize;
 use std::fmt;
 use std::io::Write;
@@ -204,7 +204,7 @@ impl GurpCronRemove {
 fn current_crontab(username: &str) -> anyhow::Result<String> {
     let mut cmd = Command::new(CRONTAB_BIN);
     cmd.arg("-u").arg(username).arg("-l");
-    tracing::debug!(command = helpers::command_to_string(&cmd));
+    tracing::debug!(command = cmd::to_string(&cmd));
 
     let result = cmd.output()?;
     Ok(String::from_utf8(result.stdout)?)

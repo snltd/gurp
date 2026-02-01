@@ -1,4 +1,9 @@
-use common::constants::{MANIFEST_DIR, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use anyhow::ensure;
+use camino::Utf8PathBuf;
+use common::constants::{
+    MANIFEST_DIR, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, SVCCFG_BIN,
+};
+use common::info;
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::fs;
@@ -59,10 +64,7 @@ impl GurpSmfEnsure {
         return_if_noop!(opts);
 
         if opts.dump_config {
-            println!(
-                "{}",
-                helpers::dump_config(&new_manifest, "SMF manifest", opts)
-            );
+            println!("{}", info::dump_config(&new_manifest, "SMF manifest", opts));
         }
 
         fs::write(manifest_path, &new_manifest)?;
@@ -141,9 +143,11 @@ impl GurpSmfRemove {
             sleep(STATE_TRANSITION_INTERVAL);
             let elapsed = elapsed + STATE_TRANSITION_INTERVAL;
 
-            if elapsed >= STATE_TRANSITION_TIMEOUT {
-                bail!("Timed out waiting for {} be disabled", self.name)
-            }
+            ensure!(
+                elapsed < STATE_TRANSITION_TIMEOUT,
+                "Timed out waiting for {} be disabled",
+                self.name
+            );
         }
     }
 }

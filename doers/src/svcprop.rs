@@ -1,6 +1,6 @@
-use anyhow::{Context, bail};
-use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, SVCADM_BIN, SVCCFG_BIN};
-use common::helpers;
+use anyhow::{Context, ensure};
+use common::constants::{SVCADM_BIN, SVCCFG_BIN};
+use common::info;
 use common::types::{ApplyOpts, ApplySummary};
 use regex::Regex;
 use serde::Deserialize;
@@ -141,11 +141,12 @@ fn ensure_instance(svc: &str, opts: &ApplyOpts) -> anyhow::Result<()> {
 
         let output = child.wait_with_output()?;
 
-        if output.status.success() {
-            tracing::debug!("created instance {}", svc);
-        } else {
-            bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-        }
+        ensure!(
+            output.status.success(),
+            String::from_utf8_lossy(&output.stderr).into_owned()
+        );
+
+        tracing::debug!("created instance {}", svc);
     }
 
     Ok(())
@@ -222,7 +223,7 @@ impl GurpSvcpropEnsure {
             tracing::debug!("{} svcprop: no change", self.service);
         } else {
             tracing::debug!("{} svcprop: applying change file", self.service);
-            helpers::dump_config(&svccfg_script, "svccfg input", opts);
+            info::dump_config(&svccfg_script, "svccfg input", opts);
 
             let mut cmd = cmd_with_stdin!(SVCCFG_BIN, "-s", &self.service);
 
@@ -241,11 +242,12 @@ impl GurpSvcpropEnsure {
 
             let output = child.wait_with_output()?;
 
-            if output.status.success() {
-                tracing::debug!("{} svcprop: applied successfully", self.service);
-            } else {
-                bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-            }
+            ensure!(
+                output.status.success(),
+                String::from_utf8_lossy(&output.stderr).into_owned()
+            );
+
+            tracing::debug!("{} svcprop: applied successfully", self.service);
 
             sleep(Duration::from_secs(1)); // I hate this, but it appears to make the difference
             tracing::debug!("{}: refreshing svc", self.service);
@@ -292,15 +294,14 @@ impl GurpSvcpropRemove {
 
                 let output = cmd.output()?;
 
-                if output.status.success() {
-                    tracing::debug!("{} svcprop: removed '{}'", self.service, property);
-                    changes += 1;
-                } else {
-                    bail!(
-                        "error from svccfg: {}",
-                        String::from_utf8_lossy(&output.stderr).into_owned()
-                    );
-                }
+                ensure!(
+                    output.status.success(),
+                    "error from svccfg: {}",
+                    String::from_utf8_lossy(&output.stderr).into_owned()
+                );
+
+                tracing::debug!("{} svcprop: removed '{}'", self.service, property);
+                changes += 1;
             }
         }
 
