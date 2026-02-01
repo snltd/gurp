@@ -1,6 +1,8 @@
 use common::types::ServerOpts;
 use server::http;
 use std::process::ExitCode;
+use crate::server;
+use common::types::{ExitCode, ServerOpts};
 
 pub fn run(opts: ServerOpts) -> ExitCode {
     if opts.config_dir.exists() {
@@ -21,5 +23,5 @@ pub fn run(opts: ServerOpts) -> ExitCode {
 
 fn run_server(opts: ServerOpts) -> anyhow::Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
-    rt.block_on(async { http::start(opts).await })
+    rt.block_on(async { server::http::start(opts).await })
 }

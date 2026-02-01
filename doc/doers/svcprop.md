@@ -10,15 +10,15 @@ Any valid FMRI of the service whose properties you wish to set (`:string`)
 
 ```janet
 (svcprop/ensure "example/svc_1"
-                :property-groups {:application "application"}
-                :properties {:application/datadir "/data"})
+                :properties {:application/datadir "/data"
+                             :application/active true
+                             :application/timeout 50})
 ```
 
 ```janet
 (svcprop/ensure "example/svc_1"
-                :properties {:application/datadir "/data"
-                             :application/active true
-                             :application/timeout 50})
+                :property-groups {:application "application"}
+                :properties {:application/datadir "/data"})
 ```
 
 ### Mandatory Properties

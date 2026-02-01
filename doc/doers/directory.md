@@ -13,17 +13,17 @@ Fully qualified path to directory (`:string`)
 ```
 
 ```janet
+(directory/ensure "/path/to/dir_2"
+                  :label "my-dir"
+                  :mode "0700")
+```
+
+```janet
 (directory/ensure "/path/to/dir_3"
                   :owner "myself"
                   :group "sysadmin"
                   :mode "0700"
                   :label "all-the-specs")
-```
-
-```janet
-(directory/ensure "/path/to/dir_2"
-                  :label "my-dir"
-                  :mode "0700")
 ```
 
 ### Mandatory Properties

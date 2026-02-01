@@ -171,7 +171,7 @@ fn main() -> ExitCode {
         Commands::Server {
             config_dir,
             metrics_to,
-        } => commands::server::run(ServerOpts {
+        } => commands::server::init::run(ServerOpts {
             config_dir,
             metrics_to,
         }),

@@ -1,5 +1,8 @@
-use crate::handlers;
-use axum::extract::Extension;
+use crate::server::handlers;
+use axum::Router;
+use axum::extract::{Extension, Request};
+use axum::middleware::Next;
+use axum::response::Response;
 use axum::routing::get;
 use axum::{Router, extract::Request, middleware::Next, response::Response};
 use common::constants::{GURP_VERSION, SERVER_PORT};
