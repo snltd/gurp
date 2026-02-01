@@ -1,5 +1,5 @@
+use crate::unix;
 use common::constants::GURP_VERSION;
-use common::helpers;
 use common::types::ApplySummary;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -18,7 +18,7 @@ pub fn send_as_influx(
         .unwrap()
         .as_nanos();
 
-    let hostname = helpers::my_hostname()?;
+    let hostname = unix::my_hostname()?;
 
     // myMeasurement,tag1=val1,tag2=val2 field1="v1",field2=1i 0000000000000000000
 
