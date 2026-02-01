@@ -3,7 +3,6 @@ extern crate macros;
 
 pub mod apk;
 pub mod bridge;
-pub mod constants;
 pub mod cron;
 pub mod directory;
 pub mod etherstub;
@@ -11,7 +10,6 @@ pub mod file;
 pub mod file_line;
 pub mod gem;
 pub mod group;
-pub mod host;
 pub mod ip_address;
 pub mod ip_interface;
 pub mod ip_properties;

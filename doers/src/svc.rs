@@ -1,5 +1,5 @@
-use crate::types::ChangedIds;
-use common::prelude::*;
+use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::types::{ApplyOpts, ApplySummary, ChangedIds};
 use serde::Deserialize;
 use std::collections::BTreeSet;
 use util::svcs;
@@ -22,7 +22,11 @@ pub struct GurpSvcEnsure {
 }
 
 impl GurpSvcEnsure {
-    pub fn apply(&self, changed_ids: &ChangedIds, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    pub fn apply(
+        &self,
+        changed_ids: &ChangedIds,
+        opts: &ApplyOpts,
+    ) -> anyhow::Result<ApplySummary> {
         let current_state = svcs::current_state(&self.name)?;
 
         if current_state == self.desired_state {

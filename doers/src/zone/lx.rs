@@ -2,7 +2,6 @@ use super::config::GurpZoneDns;
 use crate::zone::constants::*;
 use anyhow::bail;
 use camino::Utf8PathBuf;
-use common::prelude::*;
 use serde_json::Value;
 use std::fs;
 use std::thread::sleep;

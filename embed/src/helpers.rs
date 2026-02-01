@@ -1,11 +1,11 @@
 use crate::constants::GURP_LIB_IMAGE;
 use crate::helpers as janet_helpers;
 use anyhow::bail;
-use common::types::ExitCode;
 use janetrs::client::JanetClient;
 use janetrs::env::CFunOptions;
 use janetrs::{Janet, JanetString, TaggedJanet};
 use serde_json::{Map, Value};
+use std::process::ExitCode;
 
 /// Returns a standard Janet client, with no Gurp library.
 pub fn janet_client() -> JanetClient {
@@ -30,19 +30,17 @@ pub fn gurp_client() -> anyhow::Result<JanetClient> {
 }
 
 pub fn run_command_and_exit(janet_command: &str) -> ExitCode {
-    let client = match gurp_client() {
-        Ok(client) => client,
+    match gurp_client() {
+        Ok(client) => match client.run(janet_command) {
+            Ok(_) => ExitCode::SUCCESS,
+            Err(e) => {
+                tracing::error!("Janet execution error: {}", e);
+                ExitCode::FAILURE
+            }
+        },
         Err(e) => {
             tracing::error!("could not create gurp-specific Janet client: {e}");
-            return 1;
-        }
-    };
-
-    match client.run(janet_command) {
-        Ok(_) => 0,
-        Err(e) => {
-            tracing::error!("Janet execution error: {}", e);
-            1
+            ExitCode::FAILURE
         }
     }
 }

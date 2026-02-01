@@ -1,6 +1,9 @@
-use crate::constants::PROTECTED_USERS;
-use anyhow::{Context, ensure};
-use common::prelude::*;
+use anyhow::{Context, bail, ensure};
+use common::constants::{
+    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_USERS, USERADD_BIN, USERDEL_BIN,
+    USERMOD_BIN,
+};
+use common::types::{ApplyOpts, ApplySummary};
 use nix::unistd::{Group, User};
 use serde::Deserialize;
 use std::fs;

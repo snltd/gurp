@@ -1,10 +1,16 @@
-use anyhow::Context;
-use common::prelude::*;
+use anyhow::{Context, bail};
+use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, SVCADM_BIN, SVCCFG_BIN};
+use common::helpers;
+use common::types::{ApplyOpts, ApplySummary};
 use regex::Regex;
 use serde::Deserialize;
 use std::io::Write;
 use std::thread::sleep;
 use std::time::Duration;
+use util::smf_builder::{
+    PropertyGroupList, PropertyGroupMap, PropertyList, PropertyMap, PropertyStruct, PropertyValue,
+    SvcProps,
+};
 use util::svcs;
 
 // THINGS TO KNOW / THINGS TO DO.

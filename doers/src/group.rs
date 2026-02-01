@@ -1,6 +1,8 @@
-use crate::constants::PROTECTED_GROUPS;
 use anyhow::ensure;
-use common::prelude::*;
+use common::constants::{
+    GROUPADD_BIN, GROUPDEL_BIN, GROUPMOD_BIN, ONE_RESOURCE_NO_CHANGE, PROTECTED_GROUPS,
+};
+use common::types::{ApplyOpts, ApplySummary};
 use nix::unistd::Group;
 use serde::Deserialize;
 
@@ -37,7 +39,6 @@ impl GurpGroupEnsure {
 
     fn group_cmd(&self, command: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut cmd = cmd!(command, "-g", &self.gid.to_string(), &self.name);
-
         return_if_noop!(opts);
 
         one_change_or_stderr!(cmd, format!("group error {}", self.name))

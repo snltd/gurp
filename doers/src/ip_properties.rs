@@ -1,4 +1,5 @@
-use common::prelude::*;
+use common::constants::IPADM_BIN;
+use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
