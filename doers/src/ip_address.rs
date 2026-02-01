@@ -1,5 +1,7 @@
-use anyhow::{Context, ensure};
-use common::prelude::*;
+use anyhow::{Context, bail, ensure};
+use common::constants::{IPADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::helpers;
+use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;

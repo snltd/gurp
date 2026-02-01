@@ -1,7 +1,7 @@
-use crate::constants::PROTECTED_DIRS;
 use anyhow::ensure;
 use camino::Utf8PathBuf;
-use common::prelude::*;
+use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_DIRS};
+use common::types::{ApplyOpts, ApplySummary, FileMetadata};
 use nix::unistd::{Gid, Uid};
 use serde::Deserialize;
 use std::fs;
@@ -91,6 +91,7 @@ impl GurpDirectoryRemove {
 mod test {
     use super::*;
     use camino_tempfile_ext::prelude::*;
+    use common::constants::ONE_RESOURCE_NOOP;
     use indoc::formatdoc;
     use std::os::unix::fs::PermissionsExt;
     use tester::{defopts, defopts_noop, janet2json, my_group, my_user};

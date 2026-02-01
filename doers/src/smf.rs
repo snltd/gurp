@@ -1,11 +1,11 @@
-use crate::constants::MANIFEST_DIR;
-use common::prelude::*;
-use common::types::SmfDefinition;
+use common::constants::{MANIFEST_DIR, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::fs;
 use std::thread::sleep;
 use std::time::Duration;
-use util::{smf_builder, svcs};
+use util::smf_builder::SmfDefinition;
+use util::{smf_builder, svcs, xml};
 
 // THINGS TO KNOW / THINGS TO DO.
 // This writes SMF manifest files to disk, and imports them as needed. As of now, the directory
@@ -39,8 +39,8 @@ impl GurpSmfEnsure {
 
             if manifest_path.exists() {
                 let current_manifest = fs::read_to_string(manifest_path)?;
-                let desired_xml = helpers::parse_xml(&new_manifest)?;
-                let current_xml = helpers::parse_xml(&current_manifest)?;
+                let desired_xml = xml::parse(&new_manifest)?;
+                let current_xml = xml::parse(&current_manifest)?;
                 if desired_xml == current_xml {
                     tracing::debug!("no change: {}", self.desired_state.name);
                     return Ok(ONE_RESOURCE_NO_CHANGE);
@@ -155,14 +155,14 @@ fn manifest_path(svc_name: &str) -> Utf8PathBuf {
 #[cfg(test)]
 mod test {
     use super::*;
-    use common::types::{
-        PropertyGroupMap, PropertyMap, PropertyStruct, PropertyValue, SmfDefinitionExecMethod,
-        SmfDefinitionExecMethodContext,
-    };
     use indoc::indoc;
     use pretty_assertions::assert_eq;
     use std::collections::BTreeMap;
     use tester::janet2json;
+    use util::smf_builder::{
+        PropertyGroupMap, PropertyMap, PropertyStruct, PropertyValue, SmfDefinitionDependencySvc,
+        SmfDefinitionExecMethod, SmfDefinitionExecMethodContext,
+    };
 
     #[test]
     fn test_smf_conversion() {

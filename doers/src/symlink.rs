@@ -1,4 +1,6 @@
-use common::prelude::*;
+use anyhow::{bail, ensure};
+use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::fmt::Debug;
 use std::fs;
@@ -29,9 +31,7 @@ impl GurpSymlinkEnsure {
         let target = &self.path;
         let source = &self.source;
 
-        if !source.exists() {
-            bail!("source not found: {}", source);
-        }
+        ensure!(source.exists(), "source not found: {source}");
 
         if !target.exists() {
             tracing::info!("creating symlink: {} -> {}", target, source);

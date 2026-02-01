@@ -1,5 +1,6 @@
-use common::helpers;
-use common::prelude::*;
+use anyhow::ensure;
+use common::constants::{FLOWADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -88,10 +89,7 @@ impl GurpNetworkFlowEnsure {
 
         if !opts.noop {
             let status = cmd.status()?;
-
-            if !status.success() {
-                bail!("Error running flowadm command");
-            }
+            ensure!(status.success(), "Error running flowadm command");
         }
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
@@ -272,7 +270,7 @@ fn extract_ip(raw: &str) -> String {
 fn parse_flows(raw: &str) -> ExtantFlows {
     raw.lines()
         .filter_map(|l| {
-            let bits: Vec<_> = helpers::split_unescaped_colon(l.trim());
+            let bits: Vec<_> = split_unescaped_colon(l.trim());
 
             if bits.len() == 7 {
                 let (remote_ip, local_ip) = if bits[2].starts_with("RMT") {
@@ -324,6 +322,29 @@ fn parse_flowprops(raw: &str) -> ExtantFlowprops {
     }
 
     ret
+}
+
+fn split_unescaped_colon(s: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut escaped = false;
+
+    for c in s.chars() {
+        if escaped {
+            current.push(c);
+            escaped = false;
+        } else if c == '\\' {
+            escaped = true;
+        } else if c == ':' {
+            parts.push(current);
+            current = String::new();
+        } else {
+            current.push(c);
+        }
+    }
+
+    parts.push(current);
+    parts
 }
 
 #[cfg(test)]

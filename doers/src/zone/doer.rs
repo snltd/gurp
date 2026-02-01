@@ -3,7 +3,7 @@ use crate::zone::config::GurpZoneConfig;
 use crate::zone::control::{self, ZoneadmState};
 use crate::zone::lx;
 use anyhow::{bail, ensure};
-use common::prelude::*;
+use common::types::{ApplyOpts, ApplySummary};
 use fs_extra::dir::CopyOptions;
 use serde::Deserialize;
 use std::collections::HashMap;

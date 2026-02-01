@@ -1,17 +1,15 @@
 use crate::helpers as janet_helpers;
 use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
-use colored::Colorize;
 use common::constants::SERVER_PORT;
-use common::helpers;
-use common::prelude::*;
+use common::info;
+use common::types::{ApplyOpts, JsonConfig};
 use janetrs::env::DefOptions;
 use janetrs::{Janet, JanetString, TaggedJanet};
-use serde_json::Error;
 use std::fs;
 use std::thread;
 use std::time::Duration;
-use util::http;
+use util::{http, json, unix};
 
 // Config comes in various forms. It can be:
 //   1. a local Janet config which is compiled to Janet using Gurp's built-in library.
@@ -57,27 +55,6 @@ pub fn compile_to_json(
     Ok(ret)
 }
 
-pub fn display_error(e: Error, json: &str) -> anyhow::Result<()> {
-    tracing::error!("deserializing error: {}", e);
-    let formatted_json = formatted_json(json)?;
-    let error_line = e.line();
-    let json_lines: Vec<_> = formatted_json.lines().collect();
-    let first_line = error_line.saturating_sub(30);
-    let last_line = (error_line + 15).clamp(0, json_lines.len());
-
-    for l in first_line..=last_line {
-        let output_line = format!(" {:4} | {}", l + 1, json_lines.get(l).unwrap_or(&""));
-
-        if l == error_line {
-            println!("{}", output_line.bold());
-        } else {
-            println!("{output_line}");
-        }
-    }
-
-    Ok(())
-}
-
 // Get a JSON string from a Janet image on disk
 pub fn local_jimage_to_json(path: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<JsonConfig> {
     ensure!(path.exists(), "Cannot find image file at {}", path);
@@ -87,10 +64,7 @@ pub fn local_jimage_to_json(path: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Res
 
 // Get a JSON string from a Janet image from a remote server
 fn remote_jimage_to_json(server: &str, opts: &ApplyOpts) -> anyhow::Result<JsonConfig> {
-    let hostname = opts
-        .hostname
-        .clone()
-        .map_or_else(helpers::my_hostname, Ok)?;
+    let hostname = opts.hostname.clone().map_or_else(unix::my_hostname, Ok)?;
 
     jimage_to_json(
         &fetch_from_server(server, &hostname, "jimage")?,
@@ -107,19 +81,16 @@ fn local_json_to_json(path: &Utf8PathBuf) -> anyhow::Result<JsonConfig> {
 
 // Get a JSON string from a remote server
 fn remote_json_to_json(server: &str, opts: &ApplyOpts) -> anyhow::Result<JsonConfig> {
-    let hostname = opts
-        .hostname
-        .clone()
-        .map_or_else(helpers::my_hostname, Ok)?;
+    let hostname = opts.hostname.clone().map_or_else(unix::my_hostname, Ok)?;
 
     let host_config = String::from_utf8(fetch_from_server(server, &hostname, "json")?)?;
 
     if opts.dump_config {
-        let formatted_json = helpers::pretty_json(&host_config)?;
+        let formatted_json = json::pretty(&host_config)?;
 
         println!(
             "{}",
-            helpers::dump_config(&formatted_json, "Janet config", opts)
+            info::dump_config(&formatted_json, "Janet config", opts)
         );
     }
 
@@ -162,7 +133,7 @@ pub fn local_janet_to_json(
     if opts.dump_config {
         println!(
             "{}",
-            helpers::dump_config(&janet_instructions, "Janet config", opts)
+            info::dump_config(&janet_instructions, "Janet config", opts)
         );
     }
 
@@ -209,17 +180,6 @@ pub fn jimage_to_json(
     Ok(janet_result.unwrap().to_string())
 }
 
-fn formatted_json(raw_json: &str) -> anyhow::Result<String> {
-    match helpers::pretty_json(raw_json) {
-        Ok(json) => Ok(json),
-        Err(e) => {
-            tracing::error!("JSON processing error: {}", e);
-            tracing::error!(raw_json);
-            bail!("END");
-        }
-    }
-}
-
 fn fetch_from_server(server: &str, hostname: &str, format: &str) -> anyhow::Result<Vec<u8>> {
     let mut tries = 1;
 
@@ -264,7 +224,7 @@ pub fn local_janet_to_jimage(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyho
     if opts.dump_config {
         println!(
             "{}",
-            helpers::dump_config(&janet_instructions, "Janet to compile image", opts)
+            info::dump_config(&janet_instructions, "Janet to compile image", opts)
         );
     }
 

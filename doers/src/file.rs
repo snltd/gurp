@@ -1,8 +1,9 @@
-use crate::constants::PROTECTED_FILES;
-use anyhow::ensure;
+use anyhow::{bail, ensure};
 use blake3::Hash;
-use common::helpers;
-use common::prelude::*;
+use camino::Utf8PathBuf;
+use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_FILES};
+use common::info;
+use common::types::{ApplyOpts, ApplySummary, FileMetadata};
 use regex::Regex;
 use serde::Deserialize;
 use serde_json::Value;
@@ -10,6 +11,7 @@ use std::cell::RefCell;
 use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
+use std::time::{SystemTime, UNIX_EPOCH};
 use util::{file, http};
 
 // THINGS TO KNOW
@@ -255,7 +257,7 @@ impl GurpFileEnsure {
 
             println!(
                 "{}",
-                &helpers::dump_diff(
+                &info::dump_diff(
                     &existing_content,
                     new_content,
                     self.path.as_str(),
@@ -296,7 +298,7 @@ impl GurpFileEnsure {
     fn back_up_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
         if let Some(suffix) = &self.desired_state.backup_suffix {
             let suffix = if suffix == "TIMESTAMP" {
-                helpers::epoch_time_as_string()
+                epoch_time_as_string()
             } else {
                 suffix.to_owned()
             };
@@ -431,11 +433,20 @@ impl GurpFileRemove {
     }
 }
 
+fn epoch_time_as_string() -> String {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        .to_string()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use camino::Utf8PathBuf;
     use camino_tempfile_ext::prelude::*;
+    use common::constants::ONE_RESOURCE_NOOP;
     use httpmock::prelude::*;
     use indoc::{formatdoc, indoc};
     use pretty_assertions::assert_eq;

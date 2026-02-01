@@ -1,5 +1,7 @@
+use anyhow::bail;
 use byte_unit::Byte;
-use common::prelude::*;
+use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ZFS_BIN, ZFS_LX_BIN};
+use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
