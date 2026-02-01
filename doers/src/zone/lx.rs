@@ -1,7 +1,10 @@
 use super::config::GurpZoneDns;
-use crate::zone::constants::*;
+use crate::zone::constants::{
+    LX_RELEASES_URL, READINESS_WAIT_INTERVAL, READINESS_WAIT_TIMEOUT_NATIVE,
+};
 use anyhow::bail;
 use camino::Utf8PathBuf;
+use common::constants::{IMG_CACHE_DIR, PS_BIN};
 use serde_json::Value;
 use std::fs;
 use std::thread::sleep;

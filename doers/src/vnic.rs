@@ -1,5 +1,6 @@
-use anyhow::bail;
-use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use anyhow::{bail, ensure};
+use common::cmd;
+use common::constants::{DLADM_BIN, IPADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary, VlanID};
 use serde::Deserialize;
 use std::fmt::Debug;
@@ -101,16 +102,15 @@ impl GurpVnicEnsure {
 
         cmd.arg(&self.name);
 
-        tracing::debug!(command = helpers::command_to_string(&cmd));
+        tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
             let result = cmd.output()?;
-            if !result.status.success() {
-                bail!(format!(
-                    "error creating VNIC: {}",
-                    String::from_utf8_lossy(&result.stderr)
-                ))
-            }
+            ensure!(
+                result.status.success(),
+                "error creating VNIC: {}",
+                String::from_utf8_lossy(&result.stderr)
+            );
         }
 
         if self.with_interface {

@@ -1,5 +1,8 @@
-use anyhow::bail;
-use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ROUTE_BIN};
+use anyhow::{bail, ensure};
+use common::cmd;
+use common::constants::{
+    IPADM_BIN, NETSTAT_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ROUTE_BIN,
+};
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -74,23 +77,18 @@ impl GurpRouteEnsure {
 
         if route_exists(&route, &route_table) {
             tracing::debug!(
-                "{} -> {} {} already exists",
+                "{} -> {route_type} {target} already exists",
                 self.destination,
-                route_type,
-                target
             );
             Ok(ONE_RESOURCE_NO_CHANGE)
         } else {
-            tracing::info!("creating {} -> {} {}", self.destination, route_type, target);
+            tracing::info!("creating {} -> {route_type} {target}", self.destination);
             let mut cmd = self.build_add_route_cmd();
-            tracing::debug!(command = common::helpers::command_to_string(&cmd));
+            tracing::debug!(command = cmd::to_string(&cmd));
 
             if !opts.noop {
                 let status = cmd.status()?;
-
-                if !status.success() {
-                    bail!("Error running route command");
-                }
+                ensure!(status.success(), "Error running route command");
             }
 
             Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -165,19 +163,14 @@ impl GurpRouteRemove {
             if !opts.noop {
                 cmd.stderr(Stdio::piped());
                 let status = cmd.status()?;
-
-                if !status.success() {
-                    bail!("Error running route command");
-                }
+                ensure!(status.success(), "Error running route command");
             }
 
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
             tracing::debug!(
-                "{} -> {} {} does not exist",
+                "{} -> {route_type} {target} does not exist",
                 self.destination,
-                route_type,
-                target
             );
             Ok(ONE_RESOURCE_NO_CHANGE)
         }
@@ -286,7 +279,7 @@ mod test {
 
         assert_eq!(
             "/usr/sbin/route -p add default 192.168.1.1",
-            common::helpers::command_to_string(&sut.build_add_route_cmd())
+            cmd::to_string(&sut.build_add_route_cmd())
         );
 
         // normal route
@@ -295,7 +288,7 @@ mod test {
 
         assert_eq!(
             "/usr/sbin/route -p add 10.0.0.0/16 10.0.0.2",
-            common::helpers::command_to_string(&sut.build_add_route_cmd())
+            cmd::to_string(&sut.build_add_route_cmd())
         );
 
         // interface route
@@ -304,7 +297,7 @@ mod test {
 
         assert_eq!(
             "/usr/sbin/route -p add 10.0.0.0/16 -interface e1000g0",
-            common::helpers::command_to_string(&sut.build_add_route_cmd())
+            cmd::to_string(&sut.build_add_route_cmd())
         );
 
         // reject route
@@ -314,7 +307,7 @@ mod test {
 
         assert_eq!(
             "/usr/sbin/route -p add -reject 203.0.113.0/24 127.0.0.1",
-            common::helpers::command_to_string(&sut.build_add_route_cmd())
+            cmd::to_string(&sut.build_add_route_cmd())
         );
 
         // blackhole route
@@ -324,7 +317,7 @@ mod test {
 
         assert_eq!(
             "/usr/sbin/route -p add -blackhole 203.0.113.0/24 127.0.0.1",
-            common::helpers::command_to_string(&sut.build_add_route_cmd())
+            cmd::to_string(&sut.build_add_route_cmd())
         );
 
         // host route
@@ -334,7 +327,7 @@ mod test {
 
         assert_eq!(
             "/usr/sbin/route -p add -host 10.11.12.13 192.168.1.10",
-            common::helpers::command_to_string(&sut.build_add_route_cmd())
+            cmd::to_string(&sut.build_add_route_cmd())
         );
 
         // gateway route
@@ -344,7 +337,7 @@ mod test {
 
         assert_eq!(
             "/usr/sbin/route -p add 10.11.12.13 -gateway router",
-            common::helpers::command_to_string(&sut.build_add_route_cmd())
+            cmd::to_string(&sut.build_add_route_cmd())
         );
     }
 

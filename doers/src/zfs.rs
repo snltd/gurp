@@ -1,5 +1,7 @@
-use anyhow::bail;
+use anyhow::ensure;
 use byte_unit::Byte;
+use camino::Utf8PathBuf;
+use common::cmd;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ZFS_BIN, ZFS_LX_BIN};
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
@@ -111,16 +113,17 @@ impl GurpZfsEnsure {
 
                 if run_cmd {
                     cmd.arg(&self.name);
-                    tracing::debug!(command = helpers::command_to_string(&cmd));
+                    tracing::debug!(command = cmd::to_string(&cmd));
                     return_if_noop!(opts);
 
                     let output = cmd.output()?;
 
-                    if output.status.success() {
-                        Ok(ONE_RESOURCE_ONE_CHANGE)
-                    } else {
-                        bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-                    }
+                    ensure!(
+                        output.status.success(),
+                        String::from_utf8_lossy(&output.stderr).into_owned()
+                    );
+
+                    Ok(ONE_RESOURCE_ONE_CHANGE)
                 } else {
                     tracing::debug!("no change: {}", self.name);
                     Ok(ONE_RESOURCE_NO_CHANGE)
@@ -156,7 +159,7 @@ impl GurpZfsEnsure {
         }
 
         cmd.arg(&self.name).stderr(Stdio::piped());
-        tracing::debug!(command = helpers::command_to_string(&cmd));
+        tracing::debug!(command = cmd::to_string(&cmd));
 
         return_if_noop!(opts);
 

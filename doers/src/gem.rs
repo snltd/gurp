@@ -1,7 +1,7 @@
 use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
+use common::cmd;
 use common::constants::{GEM_BIN, GEM_BIN_DIR, NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_NO_CHANGE};
-use common::helpers;
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
@@ -139,7 +139,7 @@ fn install_specific(
         cmd.arg(desired_version);
     }
 
-    tracing::debug!(command = helpers::command_to_string(&cmd));
+    tracing::debug!(command = cmd::to_string(&cmd));
 
     return_if_noop!(opts);
 
@@ -191,7 +191,7 @@ pub fn collect_and_ensure(gem_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
         cmd.arg("--no-document");
         cmd.args(&install_list);
 
-        tracing::debug!(command = helpers::command_to_string(&cmd));
+        tracing::debug!(command = cmd::to_string(&cmd));
 
         let output = cmd.output()?;
 
@@ -253,7 +253,7 @@ pub fn collect_and_remove(gem_list: &RemoveList, opts: &ApplyOpts) -> anyhow::Re
         cmd.args(&remove_list);
         cmd.stderr(Stdio::piped());
 
-        tracing::debug!(command = helpers::command_to_string(&cmd));
+        tracing::debug!(command = cmd::to_string(&cmd));
 
         let output = cmd.output()?;
 
