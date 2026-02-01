@@ -3,7 +3,13 @@ use crate::zone::config::GurpZoneConfig;
 use crate::zone::control::{self, ZoneadmState};
 use crate::zone::lx;
 use anyhow::{bail, ensure};
+use camino::Utf8PathBuf;
+use common::constants::{
+    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ZLOGIN_BIN, ZONEADM_BIN,
+    ZONECFG_BIN,
+};
 use common::types::{ApplyOpts, ApplySummary};
+use common::{cmd, info};
 use fs_extra::dir::CopyOptions;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -68,7 +74,7 @@ impl GurpZoneEnsure {
         if opts.dump_config {
             println!(
                 "{}",
-                helpers::dump_config(&config_input, "zonecfg config", opts)
+                info::dump_config(&config_input, "zonecfg config", opts)
             );
         }
 
@@ -88,7 +94,7 @@ impl GurpZoneEnsure {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
-        tracing::debug!(command = helpers::command_to_string(&cmd));
+        tracing::debug!(command = cmd::to_string(&cmd));
 
         let mut child = cmd.spawn()?;
 
@@ -360,20 +366,18 @@ impl GurpZoneRemove {
 fn zone_list() -> anyhow::Result<String> {
     let mut cmd = Command::new(ZONEADM_BIN);
     cmd.arg("list").arg("-cp");
-    tracing::debug!(command = helpers::command_to_string(&cmd));
+    tracing::debug!(command = cmd::to_string(&cmd));
     let result = cmd.output()?;
     Ok(String::from_utf8_lossy(&result.stdout).to_string())
 }
 
 fn parse_zone_list(raw: &str) -> anyhow::Result<ZoneadmZones> {
     fn chunks_to_struct(chunks: &[&str]) -> anyhow::Result<(ZoneName, ZoneadmState)> {
-        if chunks.len() != ZONEADM_FIELDS {
-            bail!(
-                "expected {} zoneadm fields. Got {}",
-                ZONEADM_FIELDS,
-                chunks.len()
-            );
-        }
+        ensure!(
+            chunks.len() == ZONEADM_FIELDS,
+            "expected {ZONEADM_FIELDS} zoneadm fields. Got {}",
+            chunks.len()
+        );
 
         Ok((
             chunks[1].to_owned(),
@@ -399,15 +403,16 @@ fn run_zlogin_cmd(zone: &str, command: &str) -> anyhow::Result<()> {
     cmd.stdout(Stdio::inherit());
     cmd.stderr(Stdio::inherit());
 
-    tracing::debug!(command = helpers::command_to_string(&cmd));
+    tracing::debug!(command = cmd::to_string(&cmd));
 
     let output = cmd.output()?;
 
-    if output.status.success() {
-        Ok(())
-    } else {
-        bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-    }
+    ensure!(
+        output.status.success(),
+        String::from_utf8_lossy(&output.stderr).into_owned()
+    );
+
+    Ok(())
 }
 
 #[cfg(test)]

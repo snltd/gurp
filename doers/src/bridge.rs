@@ -1,6 +1,6 @@
 use anyhow::{bail, ensure};
+use common::cmd;
 use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
-use common::helpers;
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::collections::BTreeSet;
@@ -88,7 +88,7 @@ impl GurpBridgeEnsure {
 
         cmd.arg(&self.name);
 
-        tracing::debug!(command = helpers::command_to_string(&cmd));
+        tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
             run_cmd!(cmd)?;
@@ -135,7 +135,7 @@ impl GurpBridgeEnsure {
 
         cmd.arg(&self.name);
         tracing::info!(message);
-        tracing::debug!(command = helpers::command_to_string(&cmd));
+        tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
             run_cmd!(cmd)?;
@@ -237,7 +237,7 @@ impl GurpBridgeEnsure {
 
         if change {
             cmd.arg(&self.name);
-            tracing::debug!(command = helpers::command_to_string(&cmd));
+            tracing::debug!(command = cmd::to_string(&cmd));
 
             if !opts.noop {
                 run_cmd!(cmd)?;

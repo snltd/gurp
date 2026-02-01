@@ -1,7 +1,9 @@
 use anyhow::{Context, bail, ensure};
+use camino::Utf8PathBuf;
+use common::cmd;
 use common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_USERS, USERADD_BIN, USERDEL_BIN,
-    USERMOD_BIN,
+    GROUPS_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROFILES_BIN, PROTECTED_USERS,
+    USERADD_BIN, USERDEL_BIN, USERMOD_BIN,
 };
 use common::types::{ApplyOpts, ApplySummary};
 use nix::unistd::{Group, User};
@@ -153,13 +155,14 @@ impl GurpUserEnsure {
         cmd.arg(&self.name);
 
         if changes > 0 {
-            tracing::debug!(command = helpers::command_to_string(&cmd));
+            tracing::debug!(command = cmd::to_string(&cmd));
 
             let result = cmd.output()?;
 
-            if !result.status.success() {
-                bail!(String::from_utf8_lossy(&result.stderr).into_owned())
-            }
+            ensure!(
+                result.status.success(),
+                String::from_utf8_lossy(&result.stderr).into_owned()
+            );
         }
 
         if current.password_hash.is_some() && current.password_hash != desired.password_hash {

@@ -1,5 +1,8 @@
 use crate::zone::constants::*;
 use anyhow::bail;
+use camino::Utf8PathBuf;
+use common::constants::{ONE_RESOURCE_ONE_CHANGE, SVCS_BIN, ZONEADM_BIN, ZONECFG_BIN};
+use common::types::ApplySummary;
 use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;

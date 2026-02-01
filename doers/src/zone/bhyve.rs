@@ -3,6 +3,7 @@ use crate::zone::config::{GurpZoneBhyve, GurpZoneConfig, GurpZoneFilesystem};
 use crate::zone::constants::READINESS_WAIT_TIMEOUT_BHYVE;
 use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
+use common::constants::{IMG_CACHE_DIR, QEMU_IMG_BIN, ZLOGIN_BIN};
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 use std::fs::{self, File};
 use std::io::{BufWriter, Read, Write};
