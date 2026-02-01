@@ -1,6 +1,7 @@
 use anyhow::bail;
 use camino::Utf8PathBuf;
-use common::prelude::*;
+use common::constants::{IPNAT_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::fs::{self, File};
 use std::io::Write;

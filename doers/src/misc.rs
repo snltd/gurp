@@ -1,4 +1,7 @@
-use common::prelude::*;
+use anyhow::{bail, ensure};
+use common::constants::{DISPADMIN_BIN, ONE_RESOURCE_NO_CHANGE, SHARECTL_BIN, SMBADM_BIN};
+use common::helpers;
+use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::process::{Command, Stdio};
 
@@ -91,9 +94,7 @@ impl GurpMiscEnsure {
         let status = cmd_output!(SHARECTL_BIN, "get", "-p", "nfsmapid_domain", "nfs")?;
         let chunks: Vec<_> = status.split('=').collect();
 
-        if chunks.len() != 2 {
-            bail!("unexpected sharectl output: {}", status);
-        }
+        ensure!(chunks.len() == 2, "unexpected sharectl output: {}", status);
 
         let current_domain = chunks.last().unwrap().trim();
 

@@ -1,4 +1,5 @@
-use common::prelude::*;
+use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PKG_BIN};
+use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::sync::LazyLock;
 

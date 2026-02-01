@@ -1,63 +1,65 @@
+use anyhow::Context;
 use camino::Utf8PathBuf;
-use common::types::{ApplyOpts, CompileOpts, ExitCode};
+use common::types::{ApplyOpts, CompileOpts};
 use embed::compiler;
 use std::fs;
+use std::process::ExitCode;
 
 pub fn run(host_file: &Utf8PathBuf, c_opts: &CompileOpts, opts: &ApplyOpts) -> ExitCode {
     match c_opts.format.as_str() {
-        "json" => compile_json(host_file, c_opts, opts),
-        "jimage" => compile_jimage(host_file, c_opts, opts),
+        "json" => match compile_json(host_file, c_opts, opts) {
+            Ok(_) => ExitCode::SUCCESS,
+            Err(e) => {
+                tracing::error!("error compiling JSON: {e}");
+                ExitCode::FAILURE
+            }
+        },
+        "jimage" => match compile_jimage(host_file, c_opts, opts) {
+            Ok(_) => ExitCode::SUCCESS,
+            Err(e) => {
+                tracing::error!("error compiling JSON: {e}");
+                ExitCode::FAILURE
+            }
+        },
         _ => {
             tracing::error!("format must be json or jimage");
-            1
+            ExitCode::FAILURE
         }
     }
 }
 
-fn compile_json(host_file: &Utf8PathBuf, c_opts: &CompileOpts, opts: &ApplyOpts) -> ExitCode {
-    let json = match compiler::local_janet_to_json(host_file, opts) {
-        Ok(json) => json,
-        Err(e) => {
-            tracing::error!("error compiling janet->JSON: {e}");
-            return 1;
-        }
-    };
+fn compile_json(
+    host_file: &Utf8PathBuf,
+    c_opts: &CompileOpts,
+    opts: &ApplyOpts,
+) -> anyhow::Result<()> {
+    let json = compiler::local_janet_to_json(host_file, opts)?;
 
     if let Some(out_file) = &c_opts.output_file {
-        if let Err(e) = fs::write(out_file, json) {
-            tracing::error!("error writing JSON to {out_file}: {e}");
-            return 2;
-        }
+        fs::write(out_file, json).context("error writing JSON to {out_file}: {e}")?;
         tracing::info!("wrote JSON to {out_file}");
     } else {
         println!("{json}");
     }
 
-    0
+    Ok(())
 }
 
-fn compile_jimage(host_file: &Utf8PathBuf, c_opts: &CompileOpts, opts: &ApplyOpts) -> ExitCode {
-    let output_path = match &c_opts.output_file {
-        Some(path) => path,
-        None => {
-            tracing::error!("writing an image requires an output path");
-            return 2;
-        }
-    };
+fn compile_jimage(
+    host_file: &Utf8PathBuf,
+    c_opts: &CompileOpts,
+    opts: &ApplyOpts,
+) -> anyhow::Result<()> {
+    let output_path = &c_opts
+        .output_file
+        .as_ref()
+        .context("writing an image requires an output path")?;
 
-    let image_data = match compiler::local_janet_to_jimage(host_file, opts) {
-        Ok(data) => data,
-        Err(e) => {
-            tracing::error!("error compiling image file: {e}");
-            return 5;
-        }
-    };
+    let image_data = compiler::local_janet_to_jimage(host_file, opts)
+        .context("error compiling image file: {e}")?;
 
-    if let Err(e) = fs::write(output_path, image_data) {
-        tracing::error!("error writing image file: {e}");
-        return 4;
-    }
+    fs::write(output_path, image_data).context("error writing image file: {e}")?;
 
     tracing::info!("wrote image file to '{output_path}'");
-    0
+    Ok(())
 }

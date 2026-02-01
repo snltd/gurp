@@ -1,6 +1,9 @@
-use common::helpers;
-use common::prelude::*;
+use anyhow::bail;
+use common::constants::{CRONTAB_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::types::{ApplyOpts, ApplySummary};
+use common::{helpers, info};
 use serde::Deserialize;
+use std::fmt;
 use std::io::Write;
 use std::process::Command;
 
@@ -8,6 +11,22 @@ const TAG_LINE: &str = "# gurp managed ID";
 
 // THINGS TO KNOW / THINGS TO DO.
 // We use crontab(1) to apply changes. That checks values are valid, so we won't bother.
+
+#[derive(Debug, Deserialize, Eq, PartialEq)]
+#[serde(untagged)]
+pub enum StrOrNumber {
+    Str(String),
+    Number(u32),
+}
+
+impl fmt::Display for StrOrNumber {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            StrOrNumber::Str(s) => write!(f, "{s}"),
+            StrOrNumber::Number(n) => write!(f, "{n}"),
+        }
+    }
+}
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -49,13 +68,13 @@ impl GurpCronEnsure {
             Some(new_crontab) => {
                 tracing::info!("changing job '{}'", self.name);
                 if opts.dump_config {
-                    println!("{}", helpers::dump_config(&new_crontab, &description, opts));
+                    println!("{}", info::dump_config(&new_crontab, &description, opts));
                 }
 
                 if opts.dump_diffs {
                     println!(
                         "{}",
-                        &helpers::dump_diff(&content, &new_crontab, &description, opts.colour)
+                        &info::dump_diff(&content, &new_crontab, &description, opts.colour)
                     );
                 }
 
@@ -129,7 +148,7 @@ impl GurpCronRemove {
                     if opts.dump_config {
                         println!(
                             "{}",
-                            helpers::dump_config(
+                            info::dump_config(
                                 &new_crontab,
                                 &format!("{} crontab", self.user),
                                 opts

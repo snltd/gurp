@@ -1,4 +1,6 @@
-use common::prelude::*;
+use anyhow::bail;
+use common::constants::PKGIN_BIN;
+use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::process::Command;
 use std::sync::LazyLock;

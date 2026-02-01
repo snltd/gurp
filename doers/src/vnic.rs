@@ -1,4 +1,6 @@
-use common::prelude::*;
+use anyhow::bail;
+use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::types::{ApplyOpts, ApplySummary, VlanID};
 use serde::Deserialize;
 use std::fmt::Debug;
 use std::process::Command;

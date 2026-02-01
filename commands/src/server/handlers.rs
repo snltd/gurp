@@ -3,7 +3,7 @@ use axum::body::Body;
 use axum::extract::{Extension, Path, Query};
 use axum::http::{Response, StatusCode};
 use axum::response::IntoResponse;
-use common::prelude::GURP_VERSION;
+use common::constants::GURP_VERSION;
 use common::types::{ApplyOpts, ServerOpts};
 use embed::compiler;
 use mime_guess::from_path;

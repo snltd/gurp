@@ -1,6 +1,7 @@
-use anyhow::ensure;
+use anyhow::{bail, ensure};
 use camino::Utf8PathBuf;
-use common::prelude::*;
+use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::types::{ApplyOpts, ApplySummary};
 use regex::Regex;
 use serde::Deserialize;
 use std::fs;
@@ -285,6 +286,7 @@ fn remove_lines(
 mod test {
     use super::*;
     use camino_tempfile_ext::prelude::*;
+    use common::constants::ONE_RESOURCE_NOOP;
     use indoc::{formatdoc, indoc};
     use tester::{defopts, defopts_noop, janet2json};
 

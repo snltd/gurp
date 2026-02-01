@@ -1,39 +1,5 @@
 #[macro_export]
 #[allow(unused_macros)]
-macro_rules! apply_resources {
-    ($summary_total:ident, $changed_ids:ident, $resources:expr, $opts:expr) => {
-        let total_count = $resources.len();
-        for (i, resource) in $resources.iter().enumerate() {
-            let chunks: Vec<_> = resource.id.split("/").collect();
-            if chunks.len() >= 3 {
-                tracing::debug!(
-                    "applying {} {}/{}: {}",
-                    chunks[1],
-                    i + 1,
-                    total_count,
-                    resource.id
-                );
-            } else {
-                tracing::debug!("applying [{}/{}]: {}", i + 1, total_count, resource.id);
-            }
-            let summary = match resource.apply($opts) {
-                Ok(summary) => summary,
-                Err(e) => {
-                    tracing::error!("from {} doer: {}", chunks[2], e);
-                    let err: anyhow::Error = e.into();
-                    return Err(err.context(format!("failed to apply resource {}", resource.id)));
-                }
-            };
-            $summary_total += summary;
-            if summary.changes > 0 {
-                $changed_ids.insert(resource.id.clone());
-            }
-        }
-    };
-}
-
-#[macro_export]
-#[allow(unused_macros)]
 macro_rules! one_change_or_stderr {
     ($cmd:expr, $msg:expr) => {{
         let output = $cmd.output()?;
@@ -76,6 +42,7 @@ macro_rules! return_if_noop {
     };
 }
 
+/// Builds a command from its args, returning a Command. Logs the constructed command
 #[macro_export]
 #[allow(unused_macros)]
 macro_rules! cmd {
@@ -87,12 +54,13 @@ macro_rules! cmd {
         )*
         cmd.stderr(Stdio::piped());
 
-        tracing::debug!(command = common::helpers::command_to_string(&cmd));
+        tracing::debug!(command = common::cmd::to_string(&cmd));
 
         cmd
     }};
 }
 
+/// Receives a Command and runs it, returning a result of the standard out
 #[macro_export]
 #[allow(unused_macros)]
 macro_rules! run_cmd {
@@ -112,6 +80,7 @@ macro_rules! run_cmd {
     }};
 }
 
+/// Builds and returns a Command from its args.
 #[macro_export]
 #[allow(unused_macros)]
 macro_rules! cmd_with_stdin {
@@ -124,12 +93,13 @@ macro_rules! cmd_with_stdin {
         cmd.stdin(Stdio::piped());
         cmd.stderr(Stdio::piped());
 
-        tracing::debug!(command = common::helpers::command_to_string(&cmd));
+        tracing::debug!(command = common::cmd::to_string(&cmd));
 
         cmd
     }};
 }
 
+/// Builds a Command from its args, and executes that command, returning a result of stdout
 #[macro_export]
 #[allow(unused_macros)]
 macro_rules! cmd_output {

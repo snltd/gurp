@@ -1,5 +1,7 @@
 use anyhow::{bail, ensure};
-use common::prelude::*;
+use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::helpers;
+use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::collections::BTreeSet;
 use std::fmt::Debug;

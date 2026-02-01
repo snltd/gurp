@@ -1,4 +1,5 @@
-use common::prelude::*;
+use common::constants::IPADM_BIN;
+use common::types::ApplyOpts;
 use std::collections::HashMap;
 
 pub type IpProtocol = String;

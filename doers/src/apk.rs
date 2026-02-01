@@ -1,4 +1,7 @@
-use common::prelude::*;
+use anyhow::bail;
+use common::cmd;
+use common::constants::{APK_BIN, NO_RESOURCES_TO_CHANGE};
+use common::types::{ApplyOpts, ApplySummary};
 use regex::Regex;
 use serde::Deserialize;
 use std::process::Command;
@@ -64,7 +67,7 @@ pub fn collect_and_ensure(apk_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
 
         cmd.args(&install_list);
 
-        tracing::debug!(command = helpers::command_to_string(&cmd));
+        tracing::debug!(command = cmd::to_string(&cmd));
         let output = cmd.output()?;
 
         if output.status.success() {
@@ -109,7 +112,7 @@ pub fn collect_and_remove(apk_list: &RemoveList, opts: &ApplyOpts) -> anyhow::Re
         }
 
         cmd.args(&remove_list);
-        tracing::debug!(command = helpers::command_to_string(&cmd));
+        tracing::debug!(command = cmd::to_string(&cmd));
         let output = cmd.output()?;
 
         if output.status.success() {
