@@ -1,4 +1,5 @@
 use crate::types::ApplySummary;
+use camino::Utf8PathBuf;
 use std::time::Duration;
 
 pub const GURP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -67,3 +68,42 @@ pub const IMG_CACHE_DIR: &str = "/var/tmp";
 
 pub const SVC_WAIT_INTERVAL: Duration = Duration::from_secs(1);
 pub const SVC_WAIT_TIMEOUT: Duration = Duration::from_secs(20);
+pub const DEFAULT_TERM_WIDTH: usize = 80;
+
+use std::sync::LazyLock;
+
+pub const MANIFEST_DIR: &str = "/opt/site/lib/smf/manifest";
+pub const GEM_BIN_DIR: &str = "/opt/ooce/bin";
+
+// Anything PROTECTED cannot be removed. But it can be changed.
+//
+pub static PROTECTED_DIRS: LazyLock<Vec<Utf8PathBuf>> = LazyLock::new(|| {
+    vec![
+        Utf8PathBuf::from("/"),
+        Utf8PathBuf::from("/bin"),
+        Utf8PathBuf::from("/etc"),
+        Utf8PathBuf::from("/lib"),
+        Utf8PathBuf::from("/sbin"),
+        Utf8PathBuf::from("/usr"),
+        Utf8PathBuf::from("/usr/lib"),
+    ]
+});
+
+pub static PROTECTED_FILES: LazyLock<Vec<Utf8PathBuf>> = LazyLock::new(|| {
+    vec![
+        Utf8PathBuf::from("/bin/ps"),
+        Utf8PathBuf::from("/etc/shadow"),
+        Utf8PathBuf::from("/etc/passwd"),
+        Utf8PathBuf::from("/etc/group"),
+    ]
+});
+
+pub static PROTECTED_USERS: LazyLock<Vec<&str>> = LazyLock::new(|| {
+    vec![
+        "root", "daemon", "bin", "sys", "adm", "lp", "uucp", "nuucp", "dladm", "netadm", "netcfg",
+        "listen", "gdm", "unknown", "nobody", "noaccess", "nobody4", "pkg5srv",
+    ]
+});
+
+pub static PROTECTED_GROUPS: LazyLock<Vec<&str>> =
+    LazyLock::new(|| vec!["root", "other", "bin", "sys", "adm", "tty", "daemon"]);

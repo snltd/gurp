@@ -1,0 +1,42 @@
+use crate::constants::DEFAULT_TERM_WIDTH;
+use crate::types::ApplyOpts;
+use colored::Colorize;
+
+pub fn dump_config(code: &str, description: &str, opts: &ApplyOpts) -> String {
+    let mut ret = banner("BEGIN", description);
+
+    if opts.line_no {
+        code.lines()
+            .enumerate()
+            .for_each(|(i, l)| ret.push_str(&format!("{:>5} | {}\n", i + 1, l)));
+    } else {
+        code.lines().for_each(|l| ret.push_str(&format!("{l}\n")));
+    }
+
+    ret.push_str(&banner("END", description));
+    ret
+}
+
+pub fn dump_diff(existing: &str, desired: &str, description: &str, colour: bool) -> String {
+    let mut ret = banner("BEGIN", &format!("{description} diff"));
+
+    for diff in diff::lines(existing, desired) {
+        match diff {
+            diff::Result::Left(l) if colour => ret.push_str(&format!("-{}\n", l.red())),
+            diff::Result::Left(l) => ret.push_str(&format!("-{l}\n")),
+            diff::Result::Both(_, _) => (),
+            diff::Result::Right(r) if colour => ret.push_str(&format!("+{}\n", r.green())),
+            diff::Result::Right(r) => ret.push_str(&format!("+{r}\n")),
+        }
+    }
+
+    ret.push_str(&banner("END", &format!("{description} diff")));
+    ret
+}
+
+fn banner(marker: &str, description: &str) -> String {
+    let mut ret = format!("--- {marker} {description} ");
+    ret.push_str("-".repeat(DEFAULT_TERM_WIDTH - ret.len()).as_str());
+    ret.push('\n');
+    ret
+}

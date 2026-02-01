@@ -1,10 +1,99 @@
-use common::types::{
-    SmfDefinition, SmfDefinitionDependencySvc, SmfDefinitionDependentSvc, SmfDefinitionExecMethod,
-};
+use serde::Deserialize;
+use std::collections::{BTreeMap, BTreeSet};
+use std::fmt;
 use xmlwriter::{Options, XmlWriter};
 
 pub struct SmfBuilder {
     xml: XmlWriter,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Hash)]
+#[serde(untagged)]
+pub enum PropertyValue {
+    Bool(bool),
+    Int(i64),
+    String(String),
+}
+
+impl fmt::Display for PropertyValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PropertyValue::Bool(b) => write!(f, "{b}"),
+            PropertyValue::Int(i) => write!(f, "{i}"),
+            PropertyValue::String(s) => write!(f, "\"{s}\""),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, PartialEq, Hash)]
+pub struct PropertyStruct {
+    pub value: PropertyValue,
+    #[serde(rename = "type")]
+    pub prop_type: String,
+}
+
+pub type PropertyName = String;
+pub type PropertyGroupName = String;
+pub type PropertyGroupType = String;
+pub type PropertyList = Vec<PropertyName>;
+pub type PropertyMap = BTreeMap<String, PropertyStruct>;
+pub type PropertyGroupMap = BTreeMap<PropertyGroupName, PropertyGroupType>;
+pub type PropertyGroupList = BTreeSet<PropertyGroupName>;
+pub type SvcProps = BTreeMap<PropertyName, PropertyStruct>;
+
+#[derive(Deserialize, Debug, Hash, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+pub struct SmfDefinition {
+    pub name: String,
+    pub duration: Option<String>,
+    pub description: Option<String>,
+    pub fmri: String,
+    pub default_enabled: bool,
+    pub single_instance: bool,
+    pub start_method: Option<SmfDefinitionExecMethod>,
+    pub stop_method: Option<SmfDefinitionExecMethod>,
+    pub refresh_method: Option<SmfDefinitionExecMethod>,
+    pub property_groups: Option<PropertyGroupMap>,
+    pub properties: Option<PropertyMap>,
+    pub dependencies: Option<Vec<SmfDefinitionDependencySvc>>,
+    pub dependents: Option<Vec<SmfDefinitionDependentSvc>>,
+}
+
+#[derive(PartialEq, Debug, Deserialize, Hash)]
+#[serde(rename_all = "kebab-case")]
+pub struct SmfDefinitionDependencySvc {
+    pub name: String,
+    pub restart_on: String,
+    pub fmri: String,
+    pub grouping: String,
+    #[serde(rename = "type")]
+    pub dep_type: String,
+}
+
+#[derive(PartialEq, Debug, Deserialize, Hash)]
+#[serde(rename_all = "kebab-case")]
+pub struct SmfDefinitionDependentSvc {
+    pub name: String,
+    pub restart_on: String,
+    pub fmri: String,
+    pub grouping: String,
+    #[serde(rename = "type")]
+    pub dep_type: String,
+}
+
+#[derive(Deserialize, Debug, Hash, PartialEq)]
+pub struct SmfDefinitionExecMethod {
+    pub exec: String,
+    pub timeout: u32,
+    pub context: Option<SmfDefinitionExecMethodContext>,
+}
+
+#[derive(Deserialize, Debug, Hash, PartialEq)]
+pub struct SmfDefinitionExecMethodContext {
+    pub user: String,
+    pub group: Option<String>,
+    pub privileges: Option<String>,
+    pub environment: Option<BTreeMap<String, String>>,
 }
 
 impl SmfBuilder {
@@ -236,8 +325,7 @@ pub fn make_manifest(def: &SmfDefinition) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
-    use common::helpers;
-    use common::types::SmfDefinitionExecMethodContext;
+    use crate::xml;
     use pretty_assertions::assert_eq;
     use std::collections::BTreeMap;
     use tester::load_fixture;
@@ -290,8 +378,8 @@ mod test {
 
         let result = make_manifest(&test_svc);
         let expected = load_fixture("smf_helper/telegraf.xml");
-        let result_xml = helpers::parse_xml(&result);
-        let expected_xml = helpers::parse_xml(&expected);
+        let result_xml = xml::parse(&result);
+        let expected_xml = xml::parse(&expected);
 
         assert_eq!(&expected_xml, &result_xml);
     }
@@ -328,8 +416,8 @@ mod test {
 
         let result = make_manifest(&test_svc);
         let expected = load_fixture("smf_helper/boot-service.xml");
-        let result_xml = helpers::parse_xml(&result);
-        let expected_xml = helpers::parse_xml(&expected);
+        let result_xml = xml::parse(&result);
+        let expected_xml = xml::parse(&expected);
 
         assert_eq!(&expected_xml, &result_xml);
     }
