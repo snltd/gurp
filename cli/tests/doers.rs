@@ -5,7 +5,7 @@ mod test {
 
     #[test]
     #[ignore]
-    fn test_describe_gem() {
+    fn test_doers_command() {
         cargo_bin_cmd!("gurp")
             .arg("doers")
             .assert()
