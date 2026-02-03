@@ -107,3 +107,5 @@ pub static PROTECTED_USERS: LazyLock<Vec<&str>> = LazyLock::new(|| {
 
 pub static PROTECTED_GROUPS: LazyLock<Vec<&str>> =
     LazyLock::new(|| vec!["root", "other", "bin", "sys", "adm", "tty", "daemon"]);
+
+pub const APPLY_LOCKFILE: &str = "/var/run/gurp.lock";

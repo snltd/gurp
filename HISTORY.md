@@ -7,6 +7,7 @@ Items marked [*] are breaking changes.
   server, but evaluated on the client, so you can write and trust code which
   behaves differently on client and server. The old JSON transfer still exists.
 - Default to jimage in client/server mode. [*]
+- Write a lock file (`/var/run/gurp.lock`) when running in `apply` mode.
 
 ### Commands
 
