@@ -2784,6 +2784,8 @@ dependencies = [
  "embed",
  "janetrs",
  "nix 0.30.1",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -233,6 +233,38 @@ fn write_crontab(username: &str, content: &str) -> anyhow::Result<ApplySummary> 
 mod test {
     use super::*;
     use indoc::indoc;
+    use tester::deserialized_example;
+
+    #[test]
+    fn test_ensure_cron_deserialize() {
+        assert_eq!(
+            GurpCronEnsure {
+                id: "/test-role/cron/test".to_owned(),
+                name: "Test job".to_owned(),
+                user: "rob".to_owned(),
+                desired_state: CronState {
+                    minute: StrOrNumber::Number(4),
+                    hour: StrOrNumber::Str("1,12".to_owned()),
+                    day_of_month: StrOrNumber::Str("*".to_owned()),
+                    month_of_year: StrOrNumber::Str("*".to_owned()),
+                    day_of_week: StrOrNumber::Str("1-5".to_owned()),
+                    command: "/bin/command >/var/log/file".to_owned(),
+                },
+            },
+            deserialized_example::<GurpCronEnsure>("cron/ensure-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_remove_cron_deserialize() {
+        assert_eq!(
+            GurpCronRemove {
+                id: "merp".to_owned(),
+                name: "that-old-cron-job".to_owned(),
+            },
+            deserialized_example::<GurpCronRemove>("cron/remove-01.janet")
+        );
+    }
 
     #[test]
     fn test_ensured_crontab_change() {

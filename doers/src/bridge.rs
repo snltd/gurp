@@ -12,6 +12,7 @@ use std::process::Command;
 type Links = BTreeSet<String>;
 
 #[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpBridgeEnsure {
     #[serde(rename = "_id")]
@@ -26,7 +27,7 @@ struct RawBridgeState {
     links: String,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct BridgeState {
     pub links: Option<Links>,
@@ -38,7 +39,8 @@ pub struct BridgeState {
     pub force_protocol: u8,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq)]
+// #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpBridgeRemove {
     #[serde(rename = "_id")]
     pub id: String,
@@ -313,24 +315,61 @@ fn parse_bridge(raw: &RawBridgeState) -> anyhow::Result<BridgeState> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use pretty_assertions::assert_eq;
+    use tester::deserialized_example;
 
     #[test]
-    fn test_parse_bridge() {
-        let raw = RawBridgeState {
-            state: "stp:32768:2:15:3:20".to_owned(),
-            links: "stub0\nstub1".to_owned(),
-        };
+    fn test_ensure_bridge_deserialize_all_defaults() {
+        assert_eq!(
+            GurpBridgeEnsure {
+                name: "basic".to_owned(),
+                id: "/NO-ROLE/bridge/basic".to_owned(),
+                desired_state: BridgeState {
+                    protect: "stp".to_owned(),
+                    priority: 32768,
+                    hello_time: 2,
+                    forward_delay: 15,
+                    force_protocol: 3,
+                    max_age: 20,
+                    links: None,
+                },
+            },
+            deserialized_example::<GurpBridgeEnsure>("bridge/ensure-01.janet")
+        );
+    }
 
-        let expected = BridgeState {
-            protect: "stp".to_owned(),
-            priority: 32768,
-            hello_time: 2,
-            forward_delay: 15,
-            force_protocol: 3,
-            max_age: 20,
-            links: Some(BTreeSet::from(["stub0".to_owned(), "stub1".to_owned()])),
-        };
+    #[test]
+    fn test_ensure_bridge_deserialize() {
+        assert_eq!(
+            GurpBridgeEnsure {
+                name: "with_links".to_owned(),
+                id: "/NO-ROLE/bridge/with_links".to_owned(),
+                desired_state: BridgeState {
+                    protect: "stp".to_owned(),
+                    priority: 4096,
+                    hello_time: 2,
+                    forward_delay: 15,
+                    force_protocol: 3,
+                    max_age: 30,
+                    links: Some(BTreeSet::from([
+                        "vnic0".to_owned(),
+                        "stub0".to_owned(),
+                        "e1000g0".to_owned()
+                    ])),
+                },
+            },
+            deserialized_example::<GurpBridgeEnsure>("bridge/ensure-02.janet")
+        );
+    }
 
-        assert_eq!(expected, parse_bridge(&raw).unwrap());
+    #[test]
+    fn test_remove_bridge_deserialize() {
+        assert_eq!(
+            GurpBridgeRemove {
+                name: "unwanted".to_owned(),
+                id: "/NO-ROLE/bridge/unwanted".to_owned(),
+            },
+            deserialized_example::<GurpBridgeRemove>("bridge/remove-01.janet")
+        );
     }
 }

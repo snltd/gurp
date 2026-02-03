@@ -23,18 +23,21 @@ static CURRENT_PKG_OUTPUT: LazyLock<String> =
 
 type PkgName = String;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 struct GlobalPkgs {
     available: Vec<PkgName>,
     installed: Vec<PkgName>,
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPkgEnsure {
     pub name: PkgName,
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPkgRemove {
     pub name: PkgName,
 }
@@ -200,12 +203,32 @@ fn parse_pkg_output(output: &str) -> GlobalPkgs {
 #[cfg(test)]
 mod test {
     use super::*;
-    use indoc::indoc;
     use pretty_assertions::assert_eq;
+    use tester::deserialized_example;
+
+    #[test]
+    fn test_ensure_pkg_deserialize() {
+        assert_eq!(
+            GurpPkgEnsure {
+                name: "ooce/developer/rust".to_owned(),
+            },
+            deserialized_example::<GurpPkgEnsure>("pkg/ensure-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_remove_pkg_deserialize() {
+        assert_eq!(
+            GurpPkgRemove {
+                name: "ooce/developer/go".to_owned(),
+            },
+            deserialized_example::<GurpPkgRemove>("pkg/remove-01.janet")
+        );
+    }
 
     #[test]
     fn test_parse_pkg_output() {
-        let sample_output = indoc! { r#"
+        let sample_output = indoc::indoc! { r#"
             ooce/extra-build-tools                          im-
             ooce/file/acltool                               ---
             ooce/file/lsof                                  i--
