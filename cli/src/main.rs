@@ -141,7 +141,7 @@ fn main() -> ExitCode {
                 image,
                 as_json,
             };
-            commands::apply::run(host_config_file.as_ref(), &opts)
+            commands::apply::init::run(host_config_file.as_ref(), &opts)
         }
         Commands::Compile {
             line_no,
