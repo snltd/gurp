@@ -32,7 +32,9 @@
 (defn doers
   "Return array of all doer names"
   []
-  (seq [doer :in (sorted (os/dir (doer-root)))]
+  (seq [doer :in (sorted (os/dir (doer-root)))
+             :when (string/has-suffix? ".janet" doer)
+             :unless (= "lib.janet" doer)]
     (string/replace ".janet" "" doer)))
 
 (defn doer-lookup

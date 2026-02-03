@@ -6,6 +6,10 @@
 (import ../user-helpers :prefix "" :only [compact])
 (import ../doers :prefix "")
 
+(defn strip-ansi
+  [str]
+  (peg/replace-all '(* "\e[" (any (set "0123456789;")) (range "az" "AZ")) "" str))
+
 (defn- field-width
   "Returns the width of a field which can accomodate the longest value in list"
   [list]
@@ -28,9 +32,10 @@
   [leader words pad-width whole-width]
 
   (let [pad (string/repeat " " pad-width)
+        invisible (- (length leader) (length (strip-ansi leader)) 2)
         raw-words (array ;(compact (string/split " " words)) nil)
         lines @[]
-        format-string (string "%" (- pad-width 2) "s ")]
+        format-string (string "%" (+ pad-width invisible) "s ")]
 
     (var line (string/format format-string leader))
 
@@ -41,10 +46,6 @@
           (set line (string pad word)))
         (set line (string line " " word))))
     lines))
-
-(defn strip-ansi [s]
-  "Remove ANSI escape codes from string"
-  (string/replace-all (peg/compile ~(* "\e[" (any (if-not "m" 1)) "m")) "" s))
 
 (defn format-properties
   "Returns a single string of a block of properties, formatted for output."
