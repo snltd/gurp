@@ -2,24 +2,21 @@ use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHAN
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpEtherstubEnsure {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpEtherstubRemove {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
-}
-
-fn etherstub_exists(etherstub_name: &str) -> anyhow::Result<bool> {
-    let dladm_output = cmd_output!(DLADM_BIN, "show-etherstub", "-p", "-o", "link")?;
-    Ok(dladm_output.lines().any(|l| l == etherstub_name))
 }
 
 impl GurpEtherstubEnsure {
@@ -49,5 +46,38 @@ impl GurpEtherstubRemove {
             tracing::debug!("{} does not exist", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
         }
+    }
+}
+
+fn etherstub_exists(etherstub_name: &str) -> anyhow::Result<bool> {
+    let dladm_output = cmd_output!(DLADM_BIN, "show-etherstub", "-p", "-o", "link")?;
+    Ok(dladm_output.lines().any(|l| l == etherstub_name))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use tester::deserialized_example;
+
+    #[test]
+    fn test_ensure_etherstub_deserialize() {
+        assert_eq!(
+            GurpEtherstubEnsure {
+                id: "/NO-ROLE/etherstub/newstub0".to_owned(),
+                name: "newstub0".to_owned(),
+            },
+            deserialized_example::<GurpEtherstubEnsure>("etherstub/ensure-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_remove_etherstub_deserialize() {
+        assert_eq!(
+            GurpEtherstubRemove {
+                id: "/NO-ROLE/etherstub/oldstub0".to_owned(),
+                name: "oldstub0".to_owned(),
+            },
+            deserialized_example::<GurpEtherstubRemove>("etherstub/remove-01.janet")
+        );
     }
 }

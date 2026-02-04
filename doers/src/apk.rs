@@ -159,7 +159,6 @@ fn parse_apk_output(output: &str) -> InstalledApks {
 #[cfg(test)]
 mod test {
     use super::*;
-    use pretty_assertions::assert_eq;
     use tester::deserialized_example;
 
     #[test]

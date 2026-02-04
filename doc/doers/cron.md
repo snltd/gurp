@@ -30,6 +30,7 @@ Convenient name for job. (`:string`)
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:command` | `string` | Command which runs |  |
+| `:user` | `string` | Username which runs job. Must already exist | `"root"` |
 
 ### Optional Properties
 
@@ -40,7 +41,6 @@ Convenient name for job. (`:string`)
 | `:hour` | `string number` | Hour(s) at which job runs | `"*"` |
 | `:minute` | `string number` | Minute(s) job runs at. Accepts divisions and ranges | `"*"` |
 | `:month-of-year` | `string number` | Month(s) in which job runs | `"*"` |
-| `:user` | `string` | Username which runs job. Must already exist | `"root"` |
 
 ## cron/remove
 
@@ -50,7 +50,9 @@ Convenient name for job. (`:string`)
 
 ### Mandatory Properties
 
-None
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:user` | `string` | Username which runs job. Must already exist | `"root"` |
 
 ### Optional Properties
 

@@ -30,6 +30,7 @@ impl fmt::Display for StrOrNumber {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpCronEnsure {
     #[serde(rename = "_id")]
     pub id: String,
@@ -41,6 +42,7 @@ pub struct GurpCronEnsure {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct CronState {
     pub minute: StrOrNumber,
     pub hour: StrOrNumber,
@@ -233,22 +235,23 @@ fn write_crontab(username: &str, content: &str) -> anyhow::Result<ApplySummary> 
 mod test {
     use super::*;
     use indoc::indoc;
+    use pretty_assertions::assert_eq;
     use tester::deserialized_example;
 
     #[test]
     fn test_ensure_cron_deserialize() {
         assert_eq!(
             GurpCronEnsure {
-                id: "/test-role/cron/test".to_owned(),
-                name: "Test job".to_owned(),
-                user: "rob".to_owned(),
+                id: "/NO-ROLE/cron/mostly-default-values".to_owned(),
+                name: "mostly-default-values".to_owned(),
+                user: "root".to_owned(),
                 desired_state: CronState {
-                    minute: StrOrNumber::Number(4),
-                    hour: StrOrNumber::Str("1,12".to_owned()),
+                    minute: StrOrNumber::Number(6),
+                    hour: StrOrNumber::Str("*".to_owned()),
                     day_of_month: StrOrNumber::Str("*".to_owned()),
                     month_of_year: StrOrNumber::Str("*".to_owned()),
-                    day_of_week: StrOrNumber::Str("1-5".to_owned()),
-                    command: "/bin/command >/var/log/file".to_owned(),
+                    day_of_week: StrOrNumber::Str("*".to_owned()),
+                    command: "/bin/thing arg1 arg2 arg3".to_owned(),
                 },
             },
             deserialized_example::<GurpCronEnsure>("cron/ensure-01.janet")
@@ -259,7 +262,8 @@ mod test {
     fn test_remove_cron_deserialize() {
         assert_eq!(
             GurpCronRemove {
-                id: "merp".to_owned(),
+                id: "/NO-ROLE/cron/that-old-cron-job".to_owned(),
+                user: "root".to_owned(),
                 name: "that-old-cron-job".to_owned(),
             },
             deserialized_example::<GurpCronRemove>("cron/remove-01.janet")

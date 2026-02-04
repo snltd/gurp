@@ -34,7 +34,8 @@
                          :user "test-user"}]}
       :remove @{:cron @[{:_id "/test-role/cron/that-old-cron-job"
                          :name "that-old-cron-job"
-                         :role "test-role"}]}}))
+                         :role "test-role"
+                         :user "root"}]}}))
 
 (deftest cron-error
   (test-error
