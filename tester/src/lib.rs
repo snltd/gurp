@@ -60,11 +60,12 @@ pub fn janet2json(janet_defn: &str) -> String {
 
 pub fn deserialized_example<T: serde::de::DeserializeOwned>(relative_path: &str) -> T {
     let example_file = repo_root().join("janet/examples").join(relative_path);
-    let example_code =
-        fs::read_to_string(example_file).expect("cannot find Janet example: {example_file}");
+    let example_code = fs::read_to_string(&example_file)
+        .unwrap_or_else(|_| panic!("cannot find Janet example: {}", example_file));
 
     let example_json = janet2json(&example_code);
-    serde_json::from_str(&example_json).expect("could not deserialize json: {example_json}")
+    serde_json::from_str(&example_json)
+        .unwrap_or_else(|_| panic!("could not deserialize json: {}", example_json))
 }
 
 fn repo_root() -> Utf8PathBuf {
@@ -72,4 +73,22 @@ fn repo_root() -> Utf8PathBuf {
         .parent()
         .expect("cannot get repo_root")
         .into()
+}
+
+#[macro_export]
+macro_rules! propmap {
+    ($($key:expr => $value:expr),* $(,)?) => {{
+        std::collections::HashMap::from([
+            $(($key.to_string(), $value.to_string()),)*
+        ])
+    }};
+}
+
+#[macro_export]
+macro_rules! bpropmap {
+    ($($key:expr => $value:expr),* $(,)?) => {{
+        std::collections::BTreeMap::from([
+            $(($key.to_string(), $value.to_string()),)*
+        ])
+    }};
 }

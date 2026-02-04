@@ -31,7 +31,7 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:properties` | `struct` | ZFS properties (:keyword) paired with desired value (:string) | `{:mountpoint: "none"}` |
+| `:properties` | `struct` | ZFS properties (:keyword) paired with desired value (:string) | `{:mountpoint "none"}` |
 | `:size` | `string` | If specified, creates a ZFS volume of given size (e.g. '10G') |  |
 
 ## zfs/remove

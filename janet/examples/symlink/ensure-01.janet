@@ -1,3 +1,3 @@
 (symlink/ensure "/link/is/here"
-                :label "test-link"
+                :label "example-link"
                 :source "/link/points/here")

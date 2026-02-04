@@ -19,23 +19,25 @@ use util::svcs;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpSvcpropEnsure {
     #[serde(rename = "_id")]
     pub id: String,
     #[serde(rename = "name")]
     pub service: String,
     pub properties: PropertyMap,
-    pub property_groups: PropertyGroupMap,
+    pub property_groups: Option<PropertyGroupMap>,
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpSvcpropRemove {
     #[serde(rename = "_id")]
     pub id: String,
     #[serde(rename = "name")]
     pub service: String,
     pub properties: PropertyList,
-    pub property_groups: PropertyGroupList,
+    pub property_groups: Option<PropertyGroupList>,
 }
 
 #[derive(Debug, Default)]
@@ -157,31 +159,35 @@ impl GurpSvcpropEnsure {
         ensure_instance(&self.service, opts)?;
 
         let all_values = current_svc_props(&self.service)?;
-        let resources = self.properties.len() as u32 + self.property_groups.len() as u32;
+        let mut resources = self.properties.len() as u32;
+
         let mut changes = 0;
         let mut svccfg_script = String::new();
 
-        for (property_group, pgtype) in &self.property_groups {
-            tracing::debug!(
-                "{}: looking for '{}' property group",
-                self.service,
-                property_group
-            );
+        if let Some(property_groups) = &self.property_groups {
+            resources += property_groups.len() as u32;
+            for (property_group, pgtype) in property_groups {
+                tracing::debug!(
+                    "{}: looking for '{}' property group",
+                    self.service,
+                    property_group
+                );
 
-            if all_values.property_groups.contains(property_group) {
-                tracing::debug!(
-                    "{}: property group '{}' exists",
-                    self.service,
-                    property_group
-                );
-            } else {
-                changes += 1;
-                tracing::debug!(
-                    "{}: adding property group '{}'",
-                    self.service,
-                    property_group
-                );
-                svccfg_script.push_str(&format!("addpg {property_group} {pgtype}\n"));
+                if all_values.property_groups.contains(property_group) {
+                    tracing::debug!(
+                        "{}: property group '{}' exists",
+                        self.service,
+                        property_group
+                    );
+                } else {
+                    changes += 1;
+                    tracing::debug!(
+                        "{}: adding property group '{}'",
+                        self.service,
+                        property_group
+                    );
+                    svccfg_script.push_str(&format!("addpg {property_group} {pgtype}\n"));
+                }
             }
         }
 
@@ -314,6 +320,78 @@ mod test {
     use super::*;
     use indoc::indoc;
     use pretty_assertions::assert_eq;
+    use std::collections::BTreeMap;
+    use tester::deserialized_example;
+
+    #[test]
+    fn test_deserialize_svcprop_ensure_01() {
+        assert_eq!(
+            GurpSvcpropEnsure {
+                service: "example/svc_1".to_owned(),
+                id: "/NO-ROLE/svcprop/example_svc_1".to_owned(),
+                property_groups: None,
+                properties: BTreeMap::from([
+                    (
+                        "application/datadir".to_owned(),
+                        PropertyStruct {
+                            value: PropertyValue::String("/data".to_owned()),
+                            prop_type: "astring".to_owned(),
+                        }
+                    ),
+                    (
+                        "application/active".to_owned(),
+                        PropertyStruct {
+                            value: PropertyValue::Bool(true),
+                            prop_type: "boolean".to_owned(),
+                        }
+                    ),
+                    (
+                        "application/timeout".to_owned(),
+                        PropertyStruct {
+                            value: PropertyValue::Int(50),
+                            prop_type: "integer".to_owned(),
+                        }
+                    )
+                ])
+            },
+            deserialized_example("svcprop/ensure-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_deserialize_svcprop_ensure_02() {
+        assert_eq!(
+            GurpSvcpropEnsure {
+                service: "example/svc_1".to_owned(),
+                id: "/NO-ROLE/svcprop/example_svc_1".to_owned(),
+                property_groups: Some(BTreeMap::from([(
+                    "application".to_owned(),
+                    "application".to_owned()
+                ),])),
+                properties: BTreeMap::from([(
+                    "application/datadir".to_owned(),
+                    PropertyStruct {
+                        value: PropertyValue::String("/data".to_owned()),
+                        prop_type: "astring".to_owned(),
+                    }
+                ),])
+            },
+            deserialized_example("svcprop/ensure-02.janet")
+        );
+    }
+
+    #[test]
+    fn test_deserialize_svcprop_remove_01() {
+        assert_eq!(
+            GurpSvcpropRemove {
+                id: "/NO-ROLE/svcprop/example_svc_3".to_owned(),
+                service: "example/svc_3".to_owned(),
+                properties: vec!["application/thing".to_owned()],
+                property_groups: None,
+            },
+            deserialized_example("svcprop/remove-01.janet")
+        );
+    }
 
     #[test]
     fn test_process_property_groups() {

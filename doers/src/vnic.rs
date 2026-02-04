@@ -179,8 +179,8 @@ mod test {
     fn test_deserialize_vnic_remove_01() {
         assert_eq!(
             GurpVnicRemove {
-                id: "/NO-ROLE/vnic/vnic1".to_owned(),
-                name: "vnic1".to_owned(),
+                id: "/NO-ROLE/vnic/vnic2".to_owned(),
+                name: "vnic2".to_owned(),
             },
             deserialized_example("vnic/remove-01.janet")
         );
