@@ -11,14 +11,14 @@
   (import-tests "symlink" (curenv))
 
   (test *collector*
-        @{:ensure @{:symlink @[{:_id "/test-role/symlink/test-link"
-                                :label "test-link"
-                                :name "/link/is/here"
-                                :role "test-role"
-                                :source "/link/points/here"}]}
-          :remove @{:symlink @[{:_id "/test-role/symlink/_dont_want_this_link"
-                                :name "/dont/want/this/link"
-                                :role "test-role"}]}}))
+    @{:ensure @{:symlink @[{:_id "/test-role/symlink/example-link"
+                            :label "example-link"
+                            :name "/link/is/here"
+                            :role "test-role"
+                            :source "/link/points/here"}]}
+      :remove @{:symlink @[{:_id "/test-role/symlink/_dont_want_this_link"
+                            :name "/dont/want/this/link"
+                            :role "test-role"}]}}))
 
 (deftest symlink-error
   (test-error

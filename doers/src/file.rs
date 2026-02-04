@@ -18,7 +18,8 @@ use util::{file, http};
 //
 // remote file hashes are SHA256, even though we use Blake3 internally.
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpFileEnsure {
     #[serde(rename = "_id")]
     pub id: String,
@@ -28,7 +29,8 @@ pub struct GurpFileEnsure {
     pub desired_state: DesiredFileState,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct DesiredFileState {
     pub backup_suffix: Option<String>,
@@ -46,6 +48,7 @@ pub struct DesiredFileState {
 }
 
 #[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpFileRemove {
     #[serde(rename = "_id")]
     pub id: String,
@@ -452,7 +455,71 @@ mod test {
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
-    use tester::{defopts, defopts_noop, fixture, janet2json, load_fixture, my_group, my_user};
+    use tester::{
+        defopts, defopts_noop, deserialized_example, fixture, janet2json, load_fixture, my_group,
+        my_user,
+    };
+
+    #[test]
+    fn test_file_deserialize_ensure_02() {
+        assert_eq!(
+            GurpFileEnsure {
+                id: "/NO-ROLE/file/_file_from_content".to_owned(),
+                path: Utf8PathBuf::from("/file/from/content"),
+                desired_state: DesiredFileState {
+                    backup_suffix: None,
+                    content: Some("lots-of-data".to_owned()),
+                    from_struct: None,
+                    from_url: None,
+                    from: None,
+                    group: "root".to_owned(),
+                    ignore_pattern: None,
+                    mode: "0600".to_owned(),
+                    owner: "dataperson".to_owned(),
+                    to_format: None,
+                    with_checksum: None,
+                    remote_content: RefCell::new(None),
+                }
+            },
+            deserialized_example::<GurpFileEnsure>("file/ensure-02.janet")
+        );
+    }
+
+    #[test]
+    fn test_file_deserialize_ensure_03() {
+        assert_eq!(
+            GurpFileEnsure {
+                id: "/NO-ROLE/file/remote-file".to_owned(),
+                path: Utf8PathBuf::from("/file/from/arbitrary/server"),
+                desired_state: DesiredFileState {
+                    backup_suffix: None,
+                    content: None,
+                    from: None,
+                    from_struct: None,
+                    from_url: Some("https://example.com/files/config".to_owned()),
+                    with_checksum: Some("0123456789abcdef".to_owned()),
+                    group: "root".to_owned(),
+                    ignore_pattern: None,
+                    mode: "0640".to_owned(),
+                    owner: "gibbus".to_owned(),
+                    to_format: None,
+                    remote_content: RefCell::new(None),
+                }
+            },
+            deserialized_example::<GurpFileEnsure>("file/ensure-03.janet")
+        );
+    }
+
+    #[test]
+    fn test_file_deserialize_remove_01() {
+        assert_eq!(
+            GurpFileRemove {
+                id: "/NO-ROLE/file/_path_to_file".to_owned(),
+                path: Utf8PathBuf::from("/path/to/file"),
+            },
+            deserialized_example::<GurpFileRemove>("file/remove-01.janet")
+        );
+    }
 
     #[test]
     fn test_file_create_noop() {

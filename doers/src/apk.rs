@@ -162,7 +162,7 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_ensure_apk_deserialize() {
+    fn test_apk_deserialize_ensure_01() {
         assert_eq!(
             GurpApkEnsure {
                 name: "rust".to_owned(),
@@ -172,7 +172,7 @@ mod test {
     }
 
     #[test]
-    fn test_remove_apk_deserialize() {
+    fn test_apk_deserialize_remove_01() {
         assert_eq!(
             GurpApkRemove {
                 name: "go".to_owned(),

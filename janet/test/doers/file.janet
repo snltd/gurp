@@ -25,9 +25,10 @@
                          :name "/file/from/content"
                          :owner "dataperson"
                          :role "test-role"}
-                        {:_id "/test-role/file/_file_from_arbitrary_server"
+                        {:_id "/test-role/file/remote-file"
                          :from-url "https://example.com/files/config"
                          :group "root"
+                         :label "remote-file"
                          :mode "0640"
                          :name "/file/from/arbitrary/server"
                          :owner "gibbus"

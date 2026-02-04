@@ -11,7 +11,8 @@ use util::file;
 // Creating a directory is `mkdir -p` style.
 // You can only define users and groups by their names. UIDs/GIDs do not work.
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpDirectoryEnsure {
     #[serde(rename = "_id")]
     pub id: String,
@@ -21,14 +22,16 @@ pub struct GurpDirectoryEnsure {
     pub desired_state: DesiredDirectoryState,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct DesiredDirectoryState {
     pub group: String,
     pub mode: String,
     pub owner: String,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct DirectoryState {
     pub gid: Gid,
     pub mode: String,
@@ -36,6 +39,7 @@ pub struct DirectoryState {
 }
 
 #[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpDirectoryRemove {
     #[serde(rename = "_id")]
     pub id: String,
@@ -94,7 +98,67 @@ mod test {
     use common::constants::ONE_RESOURCE_NOOP;
     use indoc::formatdoc;
     use std::os::unix::fs::PermissionsExt;
+    use tester::deserialized_example;
     use tester::{defopts, defopts_noop, janet2json, my_group, my_user};
+
+    #[test]
+    fn test_directory_deserialize_ensure_01() {
+        assert_eq!(
+            GurpDirectoryEnsure {
+                path: Utf8PathBuf::from("/path/to/dir_1"),
+                id: "/NO-ROLE/directory/_path_to_dir_1".to_owned(),
+                desired_state: DesiredDirectoryState {
+                    owner: "root".to_owned(),
+                    group: "root".to_owned(),
+                    mode: "0755".to_owned(),
+                }
+            },
+            deserialized_example::<GurpDirectoryEnsure>("directory/ensure-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_directory_deserialize_ensure_02() {
+        assert_eq!(
+            GurpDirectoryEnsure {
+                path: Utf8PathBuf::from("/path/to/dir_2"),
+                id: "/NO-ROLE/directory/my-dir".to_owned(),
+                desired_state: DesiredDirectoryState {
+                    owner: "root".to_owned(),
+                    group: "root".to_owned(),
+                    mode: "0700".to_owned(),
+                }
+            },
+            deserialized_example::<GurpDirectoryEnsure>("directory/ensure-02.janet")
+        );
+    }
+
+    #[test]
+    fn test_directory_deserialize_ensure_03() {
+        assert_eq!(
+            GurpDirectoryEnsure {
+                path: Utf8PathBuf::from("/path/to/dir_3"),
+                id: "/NO-ROLE/directory/all-the-specs".to_owned(),
+                desired_state: DesiredDirectoryState {
+                    owner: "myself".to_owned(),
+                    group: "sysadmin".to_owned(),
+                    mode: "0700".to_owned(),
+                }
+            },
+            deserialized_example::<GurpDirectoryEnsure>("directory/ensure-03.janet")
+        );
+    }
+
+    #[test]
+    fn test_directory_deserialize_remove_01() {
+        assert_eq!(
+            GurpDirectoryRemove {
+                id: "/NO-ROLE/directory/_path_to_dir".to_owned(),
+                path: Utf8PathBuf::from("/path/to/dir"),
+            },
+            deserialized_example::<GurpDirectoryRemove>("directory/remove-01.janet")
+        );
+    }
 
     #[test]
     fn test_directory_ensure_apply_noop() {

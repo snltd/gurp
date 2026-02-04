@@ -315,11 +315,10 @@ fn parse_bridge(raw: &RawBridgeState) -> anyhow::Result<BridgeState> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use pretty_assertions::assert_eq;
     use tester::deserialized_example;
 
     #[test]
-    fn test_ensure_bridge_deserialize_all_defaults() {
+    fn test_ensure_bridge_deserialize_01() {
         assert_eq!(
             GurpBridgeEnsure {
                 name: "basic".to_owned(),
@@ -339,7 +338,7 @@ mod test {
     }
 
     #[test]
-    fn test_ensure_bridge_deserialize() {
+    fn test_ensure_bridge_deserialize_02() {
         assert_eq!(
             GurpBridgeEnsure {
                 name: "with_links".to_owned(),
