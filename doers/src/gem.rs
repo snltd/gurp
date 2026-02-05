@@ -37,6 +37,7 @@ trait GurpGem {
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpGemEnsure {
     pub name: GemName,
@@ -52,6 +53,7 @@ impl GurpGem for GurpGemEnsure {
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpGemRemove {
     pub name: GemName,
     pub gem_path: Option<Utf8PathBuf>,
@@ -309,6 +311,44 @@ fn parse_gem_output(output: &str) -> Vec<InstalledGem> {
 mod test {
     use super::*;
     use indoc::indoc;
+    use tester::deserialized_example;
+
+    #[test]
+    fn test_gem_deserialize_ensure_01() {
+        assert_eq!(
+            GurpGemEnsure {
+                name: "wavefront-cli".to_owned(),
+                version: None,
+                source: None,
+                gem_path: None,
+            },
+            deserialized_example::<GurpGemEnsure>("gem/ensure-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_gem_deserialize_ensure_02() {
+        assert_eq!(
+            GurpGemEnsure {
+                name: "my-gem".to_owned(),
+                version: Some("1.2.3".to_owned()),
+                source: Some("https://my-gem-repo.com".to_owned()),
+                gem_path: Some(Utf8PathBuf::from("/opt/pkgin/bin/gem")),
+            },
+            deserialized_example::<GurpGemEnsure>("gem/ensure-02.janet")
+        );
+    }
+
+    #[test]
+    fn test_gem_deserialize_remove_01() {
+        assert_eq!(
+            GurpGemRemove {
+                name: "webscale".to_owned(),
+                gem_path: None,
+            },
+            deserialized_example::<GurpGemRemove>("gem/remove-01.janet")
+        );
+    }
 
     #[test]
     fn test_parse_gem_output() {
