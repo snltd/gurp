@@ -64,7 +64,7 @@ enum Commands {
         /// Dump intermediate config files to stdout
         #[arg(short = 'd', long, alias = "dump-configs")]
         dump_config: bool,
-        /// Output in the given format: 'jimage' or 'json'
+        /// Output in the given format: 'jimage', 'janet', or 'json'
         #[arg(short, long, required = true, default_value = "json")]
         format: String,
         /// Output file for compiled config (required for jimage, optional for others)

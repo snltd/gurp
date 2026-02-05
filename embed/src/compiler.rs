@@ -141,6 +141,50 @@ pub fn local_janet_to_json(
     Ok(janet_result.unwrap().to_string())
 }
 
+// Get a JSON string by compiling a local Janet file (and its dependencies)
+pub fn local_janet_to_janet(
+    host_file: &Utf8PathBuf,
+    opts: &ApplyOpts,
+) -> anyhow::Result<JsonConfig> {
+    ensure!(
+        host_file.exists(),
+        "Cannot find host config file at {}",
+        host_file
+    );
+
+    let host_file = host_file.canonicalize_utf8()?;
+
+    let config_dir = host_file
+        .parent()
+        .context("cannot get parent of config file")?;
+
+    let client = janet_helpers::gurp_client()?;
+
+    let destroyer = if opts.destroy {
+        "(setdyn :destroy-everything-you-touch true)"
+    } else {
+        ""
+    };
+
+    let janet_instructions = indoc::formatdoc! { r#"
+            (setdyn *syspath* "{config_dir}")
+            (setdyn :gurp-config-root "{config_dir}")
+            {destroyer}
+            (merge-module (curenv) (dofile "{host_file}" :env (curenv)) "" true)
+            (pp (machine-config))
+        "#};
+
+    if opts.dump_config {
+        println!(
+            "{}",
+            info::dump_config(&janet_instructions, "Janet config", opts)
+        );
+    }
+
+    let janet_result = client.run(janet_instructions)?;
+    Ok(janet_result.unwrap().to_string())
+}
+
 // We tell the server what we think it's called so it can build file resources we can find. This
 // lets us use a raw IP address, DNS name, whatever.
 fn fetch_precompiled_file(server: &str, hostname: &str, format: &str) -> anyhow::Result<Vec<u8>> {

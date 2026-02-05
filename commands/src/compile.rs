@@ -14,6 +14,13 @@ pub fn run(host_file: &Utf8PathBuf, c_opts: &CompileOpts, opts: &ApplyOpts) -> E
                 ExitCode::FAILURE
             }
         },
+        "janet" => match compile_janet(host_file, c_opts, opts) {
+            Ok(_) => ExitCode::SUCCESS,
+            Err(e) => {
+                tracing::error!("error compiling JSON: {e}");
+                ExitCode::FAILURE
+            }
+        },
         "jimage" => match compile_jimage(host_file, c_opts, opts) {
             Ok(_) => ExitCode::SUCCESS,
             Err(e) => {
@@ -22,7 +29,7 @@ pub fn run(host_file: &Utf8PathBuf, c_opts: &CompileOpts, opts: &ApplyOpts) -> E
             }
         },
         _ => {
-            tracing::error!("format must be json or jimage");
+            tracing::error!("format must be janet, json or jimage");
             ExitCode::FAILURE
         }
     }
@@ -34,6 +41,23 @@ fn compile_json(
     opts: &ApplyOpts,
 ) -> anyhow::Result<()> {
     let json = compiler::local_janet_to_json(host_file, opts)?;
+
+    if let Some(out_file) = &c_opts.output_file {
+        fs::write(out_file, json).context("error writing JSON to {out_file}: {e}")?;
+        tracing::info!("wrote JSON to {out_file}");
+    } else {
+        println!("{json}");
+    }
+
+    Ok(())
+}
+
+fn compile_janet(
+    host_file: &Utf8PathBuf,
+    c_opts: &CompileOpts,
+    opts: &ApplyOpts,
+) -> anyhow::Result<()> {
+    let json = compiler::local_janet_to_janet(host_file, opts)?;
 
     if let Some(out_file) = &c_opts.output_file {
         fs::write(out_file, json).context("error writing JSON to {out_file}: {e}")?;
