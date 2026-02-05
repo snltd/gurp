@@ -1,1 +1,1 @@
-(ip-interface/remove "example3")
+(ip-interface/remove "example2")

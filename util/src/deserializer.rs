@@ -61,3 +61,24 @@ where
         .collect();
     Ok(converted)
 }
+
+// Deserializes HashMap properties, converting bools to on and off
+pub fn option_hash_property_deserializer<'de, D>(
+    deserializer: D,
+) -> Result<Option<HashMap<String, HashMap<String, String>>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let raw = HashMap::<String, HashMap<String, serde_json::Value>>::deserialize(deserializer)?;
+    let converted = raw
+        .into_iter()
+        .map(|(proto, props)| {
+            let converted_props = props
+                .into_iter()
+                .map(|(k, v)| (k, value_to_string(v)))
+                .collect();
+            (proto, converted_props)
+        })
+        .collect();
+    Ok(Some(converted))
+}

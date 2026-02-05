@@ -11,7 +11,8 @@ use util::ip_protocols::{self, AlignIpPropArg};
 
 // THINGS TO KNOW / THINGS TO DO.
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpIpAddressEnsure {
     #[serde(rename = "_id")]
@@ -24,7 +25,8 @@ pub struct GurpIpAddressEnsure {
     pub properties: Option<IpAddressPropMap>,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpIpAddressRemove {
     #[serde(rename = "_id")]
     pub id: String,

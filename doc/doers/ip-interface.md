@@ -40,7 +40,7 @@ None
 ## ip-interface/remove
 
 ```janet
-(ip-interface/remove "example3")
+(ip-interface/remove "example2")
 ```
 
 ### Mandatory Properties

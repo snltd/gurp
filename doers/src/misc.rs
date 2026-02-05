@@ -10,7 +10,8 @@ use std::process::{Command, Stdio};
 // There's no misc/remove, only misc/ensure, at least for now.
 // dispadmin only takes the scheduler class.
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpMiscEnsure {
     #[serde(rename = "_id")]
     pub id: String,
@@ -18,7 +19,8 @@ pub struct GurpMiscEnsure {
     pub desired_state: MiscState,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct MiscState {
     pub nfs_domain: Option<NfsDomain>,
@@ -161,5 +163,57 @@ impl GurpMiscEnsure {
         let mut cmd = cmd!(DISPADMIN_BIN, "-d", desired_class);
         return_if_noop!(opts);
         one_change_or_stderr!(cmd, "error setting scheduler class")
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use tester::deserialized_example;
+
+    #[test]
+    fn test_misc_deserialize_ensure_01() {
+        assert_eq!(
+            GurpMiscEnsure {
+                id: "/NO-ROLE/misc/nfs-domain-lan.id264.net".to_owned(),
+                desired_state: MiscState {
+                    nfs_domain: Some("lan.id264.net".to_owned()),
+                    enable_smb: None,
+                    scheduler: None,
+                }
+            },
+            deserialized_example::<GurpMiscEnsure>("misc/ensure-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_misc_deserialize_ensure_02() {
+        assert_eq!(
+            GurpMiscEnsure {
+                id: "/NO-ROLE/misc/enable-smb-rob".to_owned(),
+                desired_state: MiscState {
+                    nfs_domain: None,
+                    enable_smb: Some("rob".to_owned()),
+                    scheduler: None,
+                }
+            },
+            deserialized_example::<GurpMiscEnsure>("misc/ensure-02.janet")
+        );
+    }
+
+    #[test]
+    fn test_misc_deserialize_ensure_03() {
+        assert_eq!(
+            GurpMiscEnsure {
+                id: "/NO-ROLE/misc/scheduler-FSS".to_owned(),
+                desired_state: MiscState {
+                    nfs_domain: None,
+                    enable_smb: None,
+                    scheduler: Some("FSS".to_owned()),
+                }
+            },
+            deserialized_example::<GurpMiscEnsure>("misc/ensure-03.janet")
+        );
     }
 }
