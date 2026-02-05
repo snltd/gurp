@@ -5,7 +5,7 @@
 (def description "Ensure lines do or do not exist in the given file.")
 (def name-is "Fully qualified path to file")
 
-(def match-allowed ["exact" "starts_with" "ends_with" "contains" "matches"])
+(def match-allowed ["exact" "starts-with" "ends-with" "contains" "regex"])
 (def apply-to-allowed ["all" "first" "last"])
 
 (def mandatory-props-ensure {})
@@ -23,13 +23,13 @@
                             (comma-sep apply-to-allowed))}})
 (def mandatory-props-remove
   {:pattern {:types [:string]
-             :help "The line or pattern which must be removed"}})
-(def optional-props-remove
-  {:match {:types [:string]
+             :help "The line or pattern which must be removed"}
+   :match {:types [:string]
            :help (string "How to match the line: " (comma-sep match-allowed))}
    :apply-to {:types [:string]
               :help (string "Which matches to act on: "
                             (comma-sep apply-to-allowed))}})
+(def optional-props-remove {})
 (def defaults-ensure {})
 (def defaults-remove {:match "exact"
                       :apply-to "all"})

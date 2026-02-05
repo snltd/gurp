@@ -1,4 +1,4 @@
 (file-line/remove "/path/to/file"
-                  :match "exact"
-                  :apply-to "last"
-                  :pattern "rust_regex")
+                  :pattern "string-prefix"
+                  :match "starts-with"
+                  :apply-to "last")

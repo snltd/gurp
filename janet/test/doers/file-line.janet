@@ -14,23 +14,23 @@
                               :line "i-want-to-see-this"
                               :name "/path/to/file"
                               :role "test-role"}]}
-      :remove @{:file-line @[{:_id "/test-role/file-line/_tmp_.tmpjpqQir_test-file"
-                              :apply-to "all"
-                              :match "exact"
-                              :name "/tmp/.tmpjpqQir/test-file"
-                              :pattern "i-do-not-want-to-see-this"
-                              :role "test-role"}
-                             {:_id "/test-role/file-line/_path_to_file"
+      :remove @{:file-line @[{:_id "/test-role/file-line/_path_to_file"
                               :apply-to "all"
                               :match "exact"
                               :name "/path/to/file"
-                              :pattern "rust_regex"
+                              :pattern "i-do-not-want-to-see-this-anywhere"
+                              :role "test-role"}
+                             {:_id "/test-role/file-line/_path_to_file"
+                              :apply-to "all"
+                              :match "regex"
+                              :name "/path/to/file"
+                              :pattern "rust-regex"
                               :role "test-role"}
                              {:_id "/test-role/file-line/_path_to_file"
                               :apply-to "last"
-                              :match "exact"
+                              :match "starts-with"
                               :name "/path/to/file"
-                              :pattern "rust_regex"
+                              :pattern "string-prefix"
                               :role "test-role"}]}}))
 
 (deftest file-line-error

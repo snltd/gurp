@@ -288,7 +288,67 @@ mod test {
     use camino_tempfile_ext::prelude::*;
     use common::constants::ONE_RESOURCE_NOOP;
     use indoc::{formatdoc, indoc};
+    use pretty_assertions::assert_eq;
+    use tester::deserialized_example;
     use tester::{defopts, defopts_noop, janet2json};
+
+    #[test]
+    fn test_file_line_deserialize_ensure_01() {
+        assert_eq!(
+            GurpFileLineEnsure {
+                path: Utf8PathBuf::from("/path/to/file"),
+                id: "/NO-ROLE/file-line/_path_to_file".to_owned(),
+                line: Some("i-want-to-see-this".to_owned()),
+                insert_at: None,
+                replace: None,
+                with: None,
+                apply_to: None,
+            },
+            deserialized_example::<GurpFileLineEnsure>("file-line/ensure-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_file_line_deserialize_remove_01() {
+        assert_eq!(
+            GurpFileLineRemove {
+                path: Utf8PathBuf::from("/path/to/file"),
+                id: "/NO-ROLE/file-line/_path_to_file".to_owned(),
+                pattern: "i-do-not-want-to-see-this-anywhere".to_owned(),
+                match_type: "exact".to_owned(),
+                apply_to: "all".to_owned(),
+            },
+            deserialized_example::<GurpFileLineRemove>("file-line/remove-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_file_line_deserialize_remove_02() {
+        assert_eq!(
+            GurpFileLineRemove {
+                path: Utf8PathBuf::from("/path/to/file"),
+                id: "/NO-ROLE/file-line/_path_to_file".to_owned(),
+                pattern: "rust-regex".to_owned(),
+                match_type: "regex".to_owned(),
+                apply_to: "all".to_owned(),
+            },
+            deserialized_example::<GurpFileLineRemove>("file-line/remove-02.janet")
+        );
+    }
+
+    #[test]
+    fn test_file_line_deserialize_remove_03() {
+        assert_eq!(
+            GurpFileLineRemove {
+                path: Utf8PathBuf::from("/path/to/file"),
+                id: "/NO-ROLE/file-line/_path_to_file".to_owned(),
+                pattern: "string-prefix".to_owned(),
+                match_type: "starts-with".to_owned(),
+                apply_to: "last".to_owned(),
+            },
+            deserialized_example::<GurpFileLineRemove>("file-line/remove-03.janet")
+        );
+    }
 
     #[test]
     fn test_file_line_ensure_file_does_not_exist() {
