@@ -12,10 +12,11 @@ use std::io::Write;
 // Reads the entirety of the file into memory.
 // Appended lines have a \n at the beginning and end.
 // Removing a line puts a newline on the end of the file if there wasn't one already.
-// We always read the file. There's no caching or anyhing.
+// We always read the file. There's no caching.
 // Files are not backed up.
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpFileLineEnsure {
     #[serde(rename = "_id")]
@@ -29,7 +30,8 @@ pub struct GurpFileLineEnsure {
     pub path: Utf8PathBuf,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpFileLineRemove {
     #[serde(rename = "_id")]
@@ -40,11 +42,6 @@ pub struct GurpFileLineRemove {
     pub apply_to: String,
     #[serde(rename = "name")]
     pub path: Utf8PathBuf,
-}
-
-fn line_exists(path: &Utf8PathBuf, line: &str) -> anyhow::Result<bool> {
-    let contents = fs::read_to_string(path)?;
-    Ok(contents.lines().any(|l| l == line))
 }
 
 impl GurpFileLineEnsure {
@@ -121,6 +118,11 @@ impl GurpFileLineEnsure {
             Ok(ONE_RESOURCE_NO_CHANGE)
         }
     }
+}
+
+fn line_exists(path: &Utf8PathBuf, line: &str) -> anyhow::Result<bool> {
+    let contents = fs::read_to_string(path)?;
+    Ok(contents.lines().any(|l| l == line))
 }
 
 fn replace_lines(
