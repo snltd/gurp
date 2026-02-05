@@ -6,7 +6,8 @@ use common::types::{ApplyOpts, ApplySummary};
 use nix::unistd::Group;
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpGroupEnsure {
     #[serde(rename = "_id")]
     pub id: String,
@@ -14,7 +15,8 @@ pub struct GurpGroupEnsure {
     pub gid: u32,
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpGroupRemove {
     #[serde(rename = "_id")]
     pub id: String,
@@ -73,7 +75,7 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_ensure_group_deserialize() {
+    fn test_group_deserialize_ensure_01() {
         assert_eq!(
             GurpGroupEnsure {
                 name: "new-group".to_owned(),
@@ -85,7 +87,7 @@ mod test {
     }
 
     #[test]
-    fn test_remove_group_deserialize() {
+    fn test_group_deserialize_remove_01() {
         assert_eq!(
             GurpGroupRemove {
                 name: "old-group".to_owned(),
