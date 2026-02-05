@@ -22,8 +22,8 @@
                                :name "example1/v4"
                                :role "test-role"
                                :type "dhcp"}]}
-      :remove @{:ip-address @[{:_id "/test-role/ip-address/example3_v4"
-                               :name "example3/v4"
+      :remove @{:ip-address @[{:_id "/test-role/ip-address/example2_v4"
+                               :name "example2/v4"
                                :role "test-role"}]}}))
 
 (deftest ip-address-error
