@@ -19,10 +19,16 @@ authentication. The process stays in the foreground.
 There is not likely to be a need to speak to the server directly, but the
 following endpoints are supported:
 
-- `/version` returns the semantic version of the Gurp server as `text/plain`.
-- `/status` returns the state of the Gurp server as `text/plain`.
-- `/file/<path>` sends back a file, if it exists at `<path>` within the Gurp
-  configuration directory. The MIME type is determined by content of the file.
-- `/config/<host>` if the server has a config definition for the given `<host>`
-  it will compile it to a Janet image and send that back as an
+- `/v1/config/<host>` if the server has a config definition for the given
+  `<host>` it will compile it to a Janet image and send that back as an
   `application/octet-stream`.
+- `/v1/file/<path>` sends back a file, if it exists at `<path>` within the Gurp
+  configuration directory. The MIME type is determined by content of the file.
+- `/v1/status` returns the state of the Gurp server as `text/plain`.
+- `/v1/version` returns the semantic version of the Gurp server as `text/plain`.
+
+The `-M` flag lets you send InfluxDB server metrics to an HTTP endpoint of your
+choice. The metrics are:
+
+- `http_request_duration_seconds` (histogram) with labels `method`, and `path`.
+- `http_requests_total` (counter) with labels `method`, `path`, and `status`.
