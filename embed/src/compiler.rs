@@ -6,9 +6,8 @@ use common::info;
 use common::types::{ApplyOpts, JsonConfig};
 use janetrs::env::DefOptions;
 use janetrs::{Janet, JanetString, TaggedJanet};
-use std::fs;
-use std::thread;
 use std::time::Duration;
+use std::{fs, thread};
 use util::{http, json, unix};
 
 // Config comes in various forms. It can be:
@@ -90,61 +89,36 @@ fn remote_json_to_json(server: &str, opts: &ApplyOpts) -> anyhow::Result<JsonCon
 
         println!(
             "{}",
-            info::dump_config(&formatted_json, "Janet config", opts)
+            info::dump_config(&formatted_json, Some("Janet config"), opts)
         );
     }
 
     Ok(host_config)
 }
 
-// Get a JSON string by compiling a local Janet file (and its dependencies)
 pub fn local_janet_to_json(
     host_file: &Utf8PathBuf,
     opts: &ApplyOpts,
 ) -> anyhow::Result<JsonConfig> {
-    ensure!(
-        host_file.exists(),
-        "Cannot find host config file at {}",
-        host_file
-    );
-
-    let host_file = host_file.canonicalize_utf8()?;
-
-    let config_dir = host_file
-        .parent()
-        .context("cannot get parent of config file")?;
-
-    let client = janet_helpers::gurp_client()?;
-
-    let destroyer = if opts.destroy {
-        "(setdyn :destroy-everything-you-touch true)"
-    } else {
-        ""
-    };
-
-    let janet_instructions = indoc::formatdoc! { r#"
-            (setdyn *syspath* "{config_dir}")
-            (setdyn :gurp-config-root "{config_dir}")
-            {destroyer}
-            (merge-module (curenv) (dofile "{host_file}" :env (curenv)) "" true)
-            (to-json (machine-config))
-        "#};
-
-    if opts.dump_config {
-        println!(
-            "{}",
-            info::dump_config(&janet_instructions, "Janet config", opts)
-        );
-    }
-
-    let janet_result = client.run(janet_instructions)?;
-    Ok(janet_result.unwrap().to_string())
+    local_janet(host_file, opts, "(to-json (machine-config))")
 }
 
-// Get a JSON string by compiling a local Janet file (and its dependencies)
-pub fn local_janet_to_janet(
+pub fn local_janet_to_janet(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<String> {
+    let format = if opts.colour { "%M" } else { "%m" };
+    let compiled_janet = local_janet(
+        host_file,
+        opts,
+        &format!(r#"(string/format "{format}" (machine-config))"#),
+    )?;
+
+    Ok(info::dump_config(&compiled_janet, None, opts))
+}
+
+// Get a string by compiling a local Janet file (and its dependencies)
+pub fn local_janet(
     host_file: &Utf8PathBuf,
     opts: &ApplyOpts,
+    final_cmd: &str,
 ) -> anyhow::Result<JsonConfig> {
     ensure!(
         host_file.exists(),
@@ -171,13 +145,13 @@ pub fn local_janet_to_janet(
             (setdyn :gurp-config-root "{config_dir}")
             {destroyer}
             (merge-module (curenv) (dofile "{host_file}" :env (curenv)) "" true)
-            (pp (machine-config))
+            {final_cmd}
         "#};
 
     if opts.dump_config {
         println!(
             "{}",
-            info::dump_config(&janet_instructions, "Janet config", opts)
+            info::dump_config(&janet_instructions, Some("Janet config"), opts)
         );
     }
 
@@ -268,7 +242,7 @@ pub fn local_janet_to_jimage(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyho
     if opts.dump_config {
         println!(
             "{}",
-            info::dump_config(&janet_instructions, "Janet to compile image", opts)
+            info::dump_config(&janet_instructions, Some("Janet to compile image"), opts)
         );
     }
 
