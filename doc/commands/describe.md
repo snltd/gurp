@@ -46,7 +46,7 @@ Mandatory properties
 
 Optional properties
   None
-
 ```
+
 By default `gurp describe` uses ANSI control codes for highlighting. If you
 specify `-C`, or direct output in any way, those codes are removed.
