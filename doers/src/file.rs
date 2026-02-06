@@ -263,7 +263,7 @@ impl GurpFileEnsure {
                 &info::dump_diff(
                     &existing_content,
                     new_content,
-                    self.path.as_str(),
+                    Some(self.path.as_str()),
                     opts.colour
                 )
             );

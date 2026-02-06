@@ -70,13 +70,16 @@ impl GurpCronEnsure {
             Some(new_crontab) => {
                 tracing::info!("changing job '{}'", self.name);
                 if opts.dump_config {
-                    println!("{}", info::dump_config(&new_crontab, &description, opts));
+                    println!(
+                        "{}",
+                        info::dump_config(&new_crontab, Some(&description), opts)
+                    );
                 }
 
                 if opts.dump_diffs {
                     println!(
                         "{}",
-                        &info::dump_diff(&content, &new_crontab, &description, opts.colour)
+                        &info::dump_diff(&content, &new_crontab, Some(&description), opts.colour)
                     );
                 }
 
@@ -152,7 +155,7 @@ impl GurpCronRemove {
                             "{}",
                             info::dump_config(
                                 &new_crontab,
-                                &format!("{} crontab", self.user),
+                                Some(&format!("{} crontab", self.user)),
                                 opts
                             )
                         );

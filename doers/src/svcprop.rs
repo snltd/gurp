@@ -229,7 +229,7 @@ impl GurpSvcpropEnsure {
             tracing::debug!("{} svcprop: no change", self.service);
         } else {
             tracing::debug!("{} svcprop: applying change file", self.service);
-            info::dump_config(&svccfg_script, "svccfg input", opts);
+            info::dump_config(&svccfg_script, Some("svccfg input"), opts);
 
             let mut cmd = cmd_with_stdin!(SVCCFG_BIN, "-s", &self.service);
 

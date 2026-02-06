@@ -96,7 +96,7 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
                 &info::dump_diff(
                     &current_persistent_rules,
                     desired_rules,
-                    &format!("IP NAT rules [{nat_file}]"),
+                    Some(&format!("IP NAT rules [{nat_file}]")),
                     opts.colour
                 )
             );
@@ -122,7 +122,7 @@ fn ensure_live_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Result<bo
             &info::dump_diff(
                 &current_live_rules,
                 desired_rules,
-                "IP NAT rules [LIVE]",
+                Some("IP NAT rules [LIVE]"),
                 opts.colour
             )
         );
@@ -163,7 +163,7 @@ pub fn collect_and_ensure(nat_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
     }
 
     if opts.dump_config {
-        info::dump_config(&desired_rules, "NAT rules", opts);
+        info::dump_config(&desired_rules, Some("NAT rules"), opts);
     }
 
     let mut check_cmd = build_ipnat_cmd(true);
