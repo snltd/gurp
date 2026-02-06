@@ -9,15 +9,15 @@
 (def doers (doers))
 
 (defn help-for
-  "Called by Gurp's 'describe' command"
+  "Returns a multiline string describing a doer or subresource. Called by Gurp's
+  'describe' command"
   [object]
   (try
-    (print
       (if (string/find "/" object)
         (help-for-sub-resource (splice (string/split "/" object 0 2)))
-        (help-for-doer object)))
+        (help-for-doer object))
     ([_e]
-      (eprint "No help for '" object "'"))))
+      (string "No help for '" object "'"))))
 
 (defn list-doers
   "Returns a multiline string, pairing doers with their descriptions."
@@ -25,4 +25,8 @@
   []
   (join-lines
     (catseq [doer :in doers]
-      (lay-out-help (bold doer) (doer-lookup (keyword doer) :description) 28 (term-width)))))
+      (lay-out-help
+        (bold doer)
+        (doer-lookup (keyword doer) :description)
+        28
+        (term-width)))))

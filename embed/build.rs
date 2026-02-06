@@ -2,6 +2,7 @@
 // source.
 
 fn main() {
-    build_helper::ImageHelper::new(vec!["gurp.janet"], "gurp.jimage").compile_to_file();
+    build_helper::ImageHelper::new(vec!["gurp.janet", "command-helpers.janet"], "gurp.jimage")
+        .compile_to_file();
     println!("cargo:rerun-if-changed=janet/lib/gurp.jimage");
 }

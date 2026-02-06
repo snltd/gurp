@@ -1,15 +1,18 @@
 #!/usr/bin/env janet
 #
-# Generate Markdown documentation for all the doers, using the definition file
-# and code examples which are also uses in tests.
+# Use a doer's definition to generate documentation.
 #
 # Useful for testing and developing docs. Not used in the build or execution
 # of Gurp.
+#
+# Pass "-C" to not have ANSI colouring.
 # 
 (use ../src/doers)
+(use ../src/command-helpers)
 (use ../src/doer-docs/describe-docs)
 
 (defn main
   [_cmd & args]
-  (loop [doer :in args]
-    (print (help-for-doer doer))))
+  (print
+    ((comp (if (= (first args) "-C") strip-ansi identity)
+           help-for-doer) (last args))))
