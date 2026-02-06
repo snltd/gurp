@@ -75,12 +75,3 @@ There are options:
 - `--destroy-everything-you-touch` Turns all `ensure` resources into `remove`s.
   Useful for cleaning up during development, but should be used with extreme
   caution.
-
-## `gurp server`
-
-Runs Gurp in server mode. It listens on port 1867, and you connect to it with
-`gurp apply --server`.
-
-Note that configuration is compiled ON THE SERVER, so if your Janet contains any
-conditional logic which refers to system state, that's the host it will be
-looking at.
