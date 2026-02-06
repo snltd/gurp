@@ -1,7 +1,7 @@
 use crate::helpers as janet_helpers;
 use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
-use common::constants::SERVER_PORT;
+use common::constants::{CLIENT_API_VERSION, SERVER_PORT};
 use common::info;
 use common::types::{ApplyOpts, JsonConfig};
 use janetrs::env::DefOptions;
@@ -163,7 +163,7 @@ pub fn local_janet(
 // lets us use a raw IP address, DNS name, whatever.
 fn fetch_precompiled_file(server: &str, hostname: &str, format: &str) -> anyhow::Result<Vec<u8>> {
     let url = format!(
-        "http://{server}:{SERVER_PORT}/config/{hostname}?server_name={server}&format={format}"
+        "http://{server}:{SERVER_PORT}/{CLIENT_API_VERSION}/config/{hostname}?server_name={server}&format={format}"
     );
     tracing::info!("fetching config from {url}");
     http::remote_file_to_memory(&url)

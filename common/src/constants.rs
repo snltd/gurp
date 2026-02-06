@@ -1,5 +1,6 @@
 use crate::types::ApplySummary;
 use camino::Utf8PathBuf;
+use std::sync::LazyLock;
 use std::time::Duration;
 
 pub const GURP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -40,10 +41,22 @@ pub const ZLOGIN_BIN: &str = "/usr/sbin/zlogin";
 pub const ZONEADM_BIN: &str = "/usr/sbin/zoneadm";
 pub const ZONECFG_BIN: &str = "/usr/sbin/zonecfg";
 
+// Filesystem locations
+pub const IMG_CACHE_DIR: &str = "/var/tmp";
+pub const MANIFEST_DIR: &str = "/opt/site/lib/smf/manifest";
+pub const GEM_BIN_DIR: &str = "/opt/ooce/bin";
+pub const APPLY_LOCKFILE: &str = "/var/run/gurp.lock";
+
+// Client/server things
+pub const CLIENT_API_VERSION: &str = "v1";
 pub const SERVER_PORT: u16 = 1867;
 
+// Service-related things
 pub const IPF_SVC: &str = "svc:/network/ipfilter:default";
+pub const SVC_WAIT_INTERVAL: Duration = Duration::from_secs(1);
+pub const SVC_WAIT_TIMEOUT: Duration = Duration::from_secs(20);
 
+// Shorthands for resources changes
 pub const ONE_RESOURCE_ONE_CHANGE: ApplySummary = ApplySummary {
     resources: 1,
     changes: 1,
@@ -64,19 +77,7 @@ pub const NO_RESOURCES_TO_CHANGE: ApplySummary = ApplySummary {
     changes: 0,
 };
 
-pub const IMG_CACHE_DIR: &str = "/var/tmp";
-
-pub const SVC_WAIT_INTERVAL: Duration = Duration::from_secs(1);
-pub const SVC_WAIT_TIMEOUT: Duration = Duration::from_secs(20);
-pub const DEFAULT_TERM_WIDTH: usize = 80;
-
-use std::sync::LazyLock;
-
-pub const MANIFEST_DIR: &str = "/opt/site/lib/smf/manifest";
-pub const GEM_BIN_DIR: &str = "/opt/ooce/bin";
-
 // Anything PROTECTED cannot be removed. But it can be changed.
-//
 pub static PROTECTED_DIRS: LazyLock<Vec<Utf8PathBuf>> = LazyLock::new(|| {
     vec![
         Utf8PathBuf::from("/"),
@@ -108,4 +109,5 @@ pub static PROTECTED_USERS: LazyLock<Vec<&str>> = LazyLock::new(|| {
 pub static PROTECTED_GROUPS: LazyLock<Vec<&str>> =
     LazyLock::new(|| vec!["root", "other", "bin", "sys", "adm", "tty", "daemon"]);
 
-pub const APPLY_LOCKFILE: &str = "/var/run/gurp.lock";
+// Miscellany
+pub const DEFAULT_TERM_WIDTH: usize = 80;
