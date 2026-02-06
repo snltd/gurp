@@ -7,8 +7,9 @@ use std::fmt::Debug;
 // THINGS TO KNOW / THINGS TO DO.
 // You have to specify the VLAN link name; we don't support automatic naming
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpVlanEnsure {
     #[serde(rename = "_id")]
     pub id: String,
@@ -17,7 +18,8 @@ pub struct GurpVlanEnsure {
     pub vlan_tag: VlanID,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpVlanRemove {
     #[serde(rename = "_id")]
     pub id: String,
@@ -67,7 +69,6 @@ impl GurpVlanEnsure {
         return_if_noop!(opts);
 
         run_cmd!(cmd)?;
-
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 }
@@ -87,7 +88,6 @@ impl GurpVlanRemove {
 
 fn delete_vlan(name: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     tracing::info!("removing VLAN {name}");
-
     let mut cmd = cmd!(DLADM_BIN, "delete-vlan", name);
 
     return_if_noop!(opts);
@@ -128,7 +128,31 @@ fn get_vlans() -> anyhow::Result<String> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use pretty_assertions::assert_eq;
+    use tester::deserialized_example;
+
+    #[test]
+    fn test_deserialize_vlan_ensure_01() {
+        assert_eq!(
+            GurpVlanEnsure {
+                id: "/NO-ROLE/vlan/e1000g010".to_owned(),
+                name: "e1000g010".to_owned(),
+                over: "e1000g0".to_owned(),
+                vlan_tag: 10,
+            },
+            deserialized_example("vlan/ensure-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_deserialize_vlan_remove_01() {
+        assert_eq!(
+            GurpVlanRemove {
+                id: "/NO-ROLE/vlan/e1000g020".to_owned(),
+                name: "e1000g020".to_owned(),
+            },
+            deserialized_example("vlan/remove-01.janet")
+        );
+    }
 
     #[test]
     fn test_parse_vlans() {

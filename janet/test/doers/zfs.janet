@@ -22,7 +22,7 @@
                        {:_id "/test-role/zfs/example-zfs-vol"
                         :label "example-zfs-vol"
                         :name "tank/example/volume"
-                        :properties {:mountpoint: "none"}
+                        :properties {:mountpoint "none"}
                         :role "test-role"
                         :size "10G"}]}
       :remove @{:zfs @[{:_id "/test-role/zfs/tank_old_filesystem"

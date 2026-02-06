@@ -64,7 +64,10 @@ impl GurpSmfEnsure {
         return_if_noop!(opts);
 
         if opts.dump_config {
-            println!("{}", info::dump_config(&new_manifest, "SMF manifest", opts));
+            println!(
+                "{}",
+                info::dump_config(&new_manifest, Some("SMF manifest"), opts)
+            );
         }
 
         fs::write(manifest_path, &new_manifest)?;

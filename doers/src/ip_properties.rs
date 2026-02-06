@@ -10,7 +10,8 @@ use util::ip_protocols::{self, AlignIpPropArg, IpProtocolMap};
 // You can't use the ipadm set-prop +/-
 // There is no remove resource.
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpIpPropertiesEnsure {
     #[serde(rename = "_id")]
@@ -54,5 +55,47 @@ impl GurpIpPropertiesEnsure {
 
     fn current_properties_raw(&self) -> anyhow::Result<String> {
         cmd_output!(IPADM_BIN, "show-prop", "-c", "-o", "proto,property,current")
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use tester::{deserialized_example, propmap};
+
+    #[test]
+    fn test_ip_properties_deserialize_ensure_01() {
+        assert_eq!(
+            GurpIpPropertiesEnsure {
+                name: "general".to_owned(),
+                id: "/NO-ROLE/ip-properties/general".to_owned(),
+                protocols: HashMap::from([
+                    (
+                        "ipv4".to_owned(),
+                        propmap! {
+                            "hostmodel" => "weak",
+
+                        }
+                    ),
+                    (
+                        "icmp".to_owned(),
+                        propmap! {
+                            "max_buf" => "1234567",
+
+                        }
+                    ),
+                    (
+                        "ipv6".to_owned(),
+                        propmap! {
+                            "hoplimit" => "123",
+                            "hostmodel" => "weak",
+
+                        }
+                    )
+                ])
+            },
+            deserialized_example::<GurpIpPropertiesEnsure>("ip-properties/ensure-01.janet")
+        );
     }
 }

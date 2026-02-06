@@ -10,7 +10,7 @@ Qualified path to the link that will be created (`:string`)
 
 ```janet
 (symlink/ensure "/link/is/here"
-                :label "test-link"
+                :label "example-link"
                 :source "/link/points/here")
 ```
 

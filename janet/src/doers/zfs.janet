@@ -15,7 +15,8 @@
 (def mandatory-props-remove {})
 (def optional-props-remove {})
 (def defaults-ensure
-  {:properties {:mountpoint: "none"}})
+  {:properties
+   {:mountpoint "none"}})
 (def defaults-remove {})
 
 (defn ensure

@@ -18,7 +18,6 @@ Items marked [*] are breaking changes.
 - Add `--as-json` option to client mode, for old compile-on-server behaviour.
 - Removed `-L` option from `apply` and `compile` commands. [*]
 - Removed `show` command. [*]
-- Removed option to compile to Janet struct. [*]
 - `describe` command gives more information, and its layout adjusts for the
   terminal width.
 

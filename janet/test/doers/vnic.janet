@@ -14,9 +14,15 @@
                          :name "vnic0"
                          :over "e1000g"
                          :role "test-role"
-                         :with-interface false}]}
-      :remove @{:vnic @[{:_id "/test-role/vnic/vnic1"
+                         :with-interface false}
+                        {:_id "/test-role/vnic/vnic1"
                          :name "vnic1"
+                         :over "e1000g"
+                         :role "test-role"
+                         :vlan-tag 10
+                         :with-interface true}]}
+      :remove @{:vnic @[{:_id "/test-role/vnic/vnic2"
+                         :name "vnic2"
                          :role "test-role"}]}}))
 
 (deftest vnic-error

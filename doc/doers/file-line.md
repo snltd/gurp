@@ -30,34 +30,32 @@ None
 ## file-line/remove
 
 ```janet
-(file-line/remove "/tmp/.tmpjpqQir/test-file"
-                  :pattern "i-do-not-want-to-see-this"
-                  :match "exact"
-                  :apply-to "all")
+(file-line/remove "/path/to/file"
+                  :pattern "i-do-not-want-to-see-this-anywhere")
 ```
 
 ```janet
 (file-line/remove "/path/to/file"
-                  :pattern "rust_regex")
+                  :match "regex"
+                  :pattern "rust-regex")
 ```
 
 ```janet
 (file-line/remove "/path/to/file"
-                  :match "exact"
-                  :apply-to "last"
-                  :pattern "rust_regex")
+                  :pattern "string-prefix"
+                  :match "starts-with"
+                  :apply-to "last")
 ```
 
 ### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
+| `:apply-to` | `string` | Which matches to act on: "all", "first", "last" | `"all"` |
+| `:match` | `string` | How to match the line: "exact", "starts-with", "ends-with", "contains", "regex" | `"exact"` |
 | `:pattern` | `string` | The line or pattern which must be removed |  |
 
 ### Optional Properties
 
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:apply-to` | `string` | Which matches to act on: "all", "first", "last" | `"all"` |
-| `:match` | `string` | How to match the line: "exact", "starts_with", "ends_with", "contains", "matches" | `"exact"` |
+None
 

@@ -21,6 +21,7 @@ const NAT_CONF_FILE: &str = "/etc/ipf/ipnat.conf";
 // ipnat/remove removes ALL NAT rules
 
 #[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpIpnatEnsure {
     #[serde(rename = "_id")]
     pub id: String,
@@ -30,14 +31,15 @@ pub struct GurpIpnatEnsure {
     pub priority: usize,
 }
 
-type EnsureList = Vec<GurpIpnatEnsure>;
-
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpIpnatRemove {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
 }
+
+type EnsureList = Vec<GurpIpnatEnsure>;
 
 impl GurpIpnatRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
@@ -94,7 +96,7 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
                 &info::dump_diff(
                     &current_persistent_rules,
                     desired_rules,
-                    &format!("IP NAT rules [{nat_file}]"),
+                    Some(&format!("IP NAT rules [{nat_file}]")),
                     opts.colour
                 )
             );
@@ -120,7 +122,7 @@ fn ensure_live_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Result<bo
             &info::dump_diff(
                 &current_live_rules,
                 desired_rules,
-                "IP NAT rules [LIVE]",
+                Some("IP NAT rules [LIVE]"),
                 opts.colour
             )
         );
@@ -161,7 +163,7 @@ pub fn collect_and_ensure(nat_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
     }
 
     if opts.dump_config {
-        info::dump_config(&desired_rules, "NAT rules", opts);
+        info::dump_config(&desired_rules, Some("NAT rules"), opts);
     }
 
     let mut check_cmd = build_ipnat_cmd(true);
@@ -241,11 +243,38 @@ fn ensure_ipf_is_running() -> anyhow::Result<()> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use indoc::indoc;
+    use pretty_assertions::assert_eq;
+    use tester::deserialized_example;
+
+    #[test]
+    fn test_ipnat_deserialize_ensure_02() {
+        assert_eq!(
+            GurpIpnatEnsure {
+                name: "rules-in-config".to_owned(),
+                id: "/NO-ROLE/ipnat/rules-in-config".to_owned(),
+                priority: 1,
+                from: None,
+                content: Some("rdr le0 203.1.2.3/32 port 80 -> 203.1.2.3,203.1.2.4 port 80 tcp round-robin\nrdr le0 203.1.2.3/32 port 80 -> 203.1.2.5 port 80 tcp round-robin".to_owned())
+            },
+
+            deserialized_example::<GurpIpnatEnsure>("ipnat/ensure-02.janet")
+        );
+    }
+
+    #[test]
+    fn test_ipnat_deserialize_remove_01() {
+        assert_eq!(
+            GurpIpnatRemove {
+                name: "removes-all-rules".to_owned(),
+                id: "/NO-ROLE/ipnat/removes-all-rules".to_owned(),
+            },
+            deserialized_example::<GurpIpnatRemove>("ipnat/remove-01.janet")
+        );
+    }
 
     #[test]
     fn test_nats_exist() {
-        let raw = indoc! { "
+        let raw = indoc::indoc! { "
             List of active MAP/Redirect filters:
             map route10 10.10.1.0/24 -> 192.168.1.0/24
 

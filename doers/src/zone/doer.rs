@@ -74,7 +74,7 @@ impl GurpZoneEnsure {
         if opts.dump_config {
             println!(
                 "{}",
-                info::dump_config(&config_input, "zonecfg config", opts)
+                info::dump_config(&config_input, Some("zonecfg config"), opts)
             );
         }
 

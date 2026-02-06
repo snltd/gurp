@@ -14,6 +14,7 @@
                         :name "wavefront-cli"
                         :role "test-role"}
                        {:_id "/test-role/gem/my-gem"
+                        :gem-path "/opt/pkgin/bin/gem"
                         :name "my-gem"
                         :role "test-role"
                         :source "https://my-gem-repo.com"

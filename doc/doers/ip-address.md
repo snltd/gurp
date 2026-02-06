@@ -38,7 +38,7 @@ Address name, e.g. vnic0/v4 (`:string`)
 ## ip-address/remove
 
 ```janet
-(ip-address/remove "example3/v4")
+(ip-address/remove "example2/v4")
 ```
 
 ### Mandatory Properties

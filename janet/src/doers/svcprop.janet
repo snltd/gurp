@@ -23,22 +23,13 @@
 (def defaults-ensure {})
 (def defaults-remove {})
 
-# (defn old-ensure
-#   "Given a name and state, return a svcprop ensure struct"
-#   [name & specs]
-#   (let [result (make-resource :ensure :svcprop name specs)]
-#     (var resource (struct/to-table (result :svcprop)))
-
-#     (var new-properties
-#       (map expand-svc-property (table->flat-tuple (resource :properties))))
-
-#     (set (resource :properties) (struct ;new-properties))
-#     (collect :ensure :svcprop (struct :svcprop (table/to-struct resource)))))
-
 (defn ensure
   "Given a service property spec, put an ensure struct in the collector"
   [name & spec]
-  (def spec-struct (checked-spec (make-spec-struct ;spec) mandatory-props-ensure optional-props-ensure))
+  (def spec-struct
+    (checked-spec (make-spec-struct ;spec)
+                  mandatory-props-ensure
+                  optional-props-ensure))
   (def spec-table (spec-with-defaults defaults-ensure spec-struct))
 
   # Properties must be expanded

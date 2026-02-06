@@ -61,10 +61,13 @@ enum Commands {
         /// When displaying compiled config, number lines
         #[arg(short = 'N', long)]
         line_no: bool,
+        /// When displaying compile Janet, use syntax colouring
+        #[arg(short = 'C', long)]
+        colour: bool,
         /// Dump intermediate config files to stdout
         #[arg(short = 'd', long, alias = "dump-configs")]
         dump_config: bool,
-        /// Output in the given format: 'jimage' or 'json'
+        /// Output in the given format: 'jimage', 'janet', or 'json'
         #[arg(short, long, required = true, default_value = "json")]
         format: String,
         /// Output file for compiled config (required for jimage, optional for others)
@@ -148,12 +151,14 @@ fn main() -> ExitCode {
             host_config_file,
             format,
             output_file,
+            colour,
             dump_config,
         } => {
             // Compile is the first part of run's code path, so we'll fake the apply options
             let apply_opts = ApplyOpts {
                 line_no,
                 compile_only: true,
+                colour,
                 dump_config,
                 ..Default::default()
             };

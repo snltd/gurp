@@ -1,1 +1,1 @@
-(vnic/remove "vnic1")
+(vnic/remove "vnic2")

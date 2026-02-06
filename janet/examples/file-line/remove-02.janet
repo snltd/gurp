@@ -1,2 +1,3 @@
 (file-line/remove "/path/to/file"
-                  :pattern "rust_regex")
+                  :match "regex"
+                  :pattern "rust-regex")

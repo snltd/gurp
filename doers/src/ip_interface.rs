@@ -8,17 +8,22 @@ use util::ip_protocols::{self, AlignIpPropArg, IpProtocolMap};
 
 // THINGS TO KNOW / THINGS TO DO.
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpIpInterfaceEnsure {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
-    #[serde(default, deserialize_with = "deserializer::hash_property_deserializer")]
-    pub protocols: IpProtocolMap,
+    #[serde(
+        default,
+        deserialize_with = "deserializer::option_hash_property_deserializer"
+    )]
+    pub protocols: Option<IpProtocolMap>,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpIpInterfaceRemove {
     #[serde(rename = "_id")]
     pub id: String,
@@ -48,22 +53,24 @@ impl GurpIpInterfaceEnsure {
         let raw = self.current_properties_raw()?;
         let current_properties = ip_protocols::parse_ipadm_props(&raw);
 
-        for (protocol, properties) in &self.protocols {
-            let no_values = HashMap::new();
-            let current_values = current_properties.get(protocol).unwrap_or(&no_values);
+        if let Some(protocols) = &self.protocols {
+            for (protocol, properties) in protocols {
+                let no_values = HashMap::new();
+                let current_values = current_properties.get(protocol).unwrap_or(&no_values);
 
-            for (property, desired_value) in properties {
-                if ip_protocols::align_property(AlignIpPropArg {
-                    ipadm_cmd: "set-prop",
-                    protocol: Some(protocol),
-                    property,
-                    current_value: current_values.get(property.as_str()).map(String::as_str),
-                    desired_value,
-                    pass_protocol_to_ipadm: true,
-                    ipadm_final_arg: Some(&self.name),
-                    opts,
-                })? {
-                    summary = ONE_RESOURCE_ONE_CHANGE
+                for (property, desired_value) in properties {
+                    if ip_protocols::align_property(AlignIpPropArg {
+                        ipadm_cmd: "set-prop",
+                        protocol: Some(protocol),
+                        property,
+                        current_value: current_values.get(property.as_str()).map(String::as_str),
+                        desired_value,
+                        pass_protocol_to_ipadm: true,
+                        ipadm_final_arg: Some(&self.name),
+                        opts,
+                    })? {
+                        summary = ONE_RESOURCE_ONE_CHANGE
+                    }
                 }
             }
         }
@@ -106,38 +113,57 @@ fn interface_exists(interface_name: &str) -> anyhow::Result<bool> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use indoc::indoc;
-    use tester::janet2json;
+    use tester::{deserialized_example, propmap};
 
     #[test]
-    fn test_deserialize() {
-        let json_def = janet2json(indoc! {r#"
-           (ip-interface/ensure "test0"
-                                :ipv6 {:mtu 1500 :forwarding false}
-                                :ipv4 {:mtu 1505 :forwarding true})
-          "#});
+    fn test_ip_interface_deserialize_ensure_01() {
+        assert_eq!(
+            GurpIpInterfaceEnsure {
+                name: "example0".to_owned(),
+                id: "/NO-ROLE/ip-interface/example0".to_owned(),
+                protocols: None,
+            },
+            deserialized_example::<GurpIpInterfaceEnsure>("ip-interface/ensure-01.janet")
+        );
+    }
 
-        let expected = GurpIpInterfaceEnsure {
-            id: "/NO-ROLE/ip-interface/test0".to_owned(),
-            name: "test0".to_owned(),
-            protocols: HashMap::from([
-                (
-                    "ipv4".to_owned(),
-                    HashMap::from([
-                        ("mtu".to_owned(), "1505".to_owned()),
-                        ("forwarding".to_owned(), "on".to_owned()),
-                    ]),
-                ),
-                (
-                    "ipv6".to_owned(),
-                    HashMap::from([
-                        ("mtu".to_owned(), "1500".to_owned()),
-                        ("forwarding".to_owned(), "off".to_owned()),
-                    ]),
-                ),
-            ]),
-        };
+    #[test]
+    fn test_ip_interface_deserialize_ensure_02() {
+        assert_eq!(
+            GurpIpInterfaceEnsure {
+                name: "example1".to_owned(),
+                id: "/NO-ROLE/ip-interface/example-interface".to_owned(),
+                protocols: Some(HashMap::from([
+                    (
+                        "ipv4".to_owned(),
+                        propmap! {
+                            "mtu" => "1500",
+                            "forwarding" => "on",
 
-        assert_eq!(expected, serde_json::from_str(&json_def).unwrap())
+                        }
+                    ),
+                    (
+                        "ipv6".to_owned(),
+                        propmap! {
+                            "mtu" => "1500",
+                            "forwarding" => "off",
+
+                        }
+                    )
+                ]))
+            },
+            deserialized_example::<GurpIpInterfaceEnsure>("ip-interface/ensure-02.janet")
+        );
+    }
+
+    #[test]
+    fn test_ip_interface_deserialize_remove_01() {
+        assert_eq!(
+            GurpIpInterfaceRemove {
+                name: "example2".to_owned(),
+                id: "/NO-ROLE/ip-interface/example2".to_owned(),
+            },
+            deserialized_example::<GurpIpInterfaceRemove>("ip-interface/remove-01.janet")
+        );
     }
 }

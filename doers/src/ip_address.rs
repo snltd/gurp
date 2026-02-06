@@ -11,7 +11,8 @@ use util::ip_protocols::{self, AlignIpPropArg};
 
 // THINGS TO KNOW / THINGS TO DO.
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpIpAddressEnsure {
     #[serde(rename = "_id")]
@@ -24,7 +25,8 @@ pub struct GurpIpAddressEnsure {
     pub properties: Option<IpAddressPropMap>,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpIpAddressRemove {
     #[serde(rename = "_id")]
     pub id: String,
@@ -244,8 +246,51 @@ pub fn parse_address_props(raw: &str) -> IpAddressPropMap {
 #[cfg(test)]
 mod test {
     use super::*;
-    use indoc::indoc;
-    use tester::janet2json;
+    use pretty_assertions::assert_eq;
+    use tester::{deserialized_example, janet2json, propmap};
+
+    #[test]
+    fn test_ip_address_deserialize_ensure_01() {
+        assert_eq!(
+            GurpIpAddressEnsure {
+                name: "example0/v4".to_owned(),
+                id: "/NO-ROLE/ip-address/example0_v4".to_owned(),
+                address: Some("192.168.1.13/24".to_owned()),
+                address_type: "static".to_owned(),
+                properties: Some(propmap! {
+                    "transmit" => "on",
+                    "private" => "off",
+                    "prefixlen" => "24",
+                })
+            },
+            deserialized_example::<GurpIpAddressEnsure>("ip-address/ensure-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_ip_address_deserialize_ensure_02() {
+        assert_eq!(
+            GurpIpAddressEnsure {
+                name: "example1/v4".to_owned(),
+                id: "/NO-ROLE/ip-address/example1_v4".to_owned(),
+                address: None,
+                address_type: "dhcp".to_owned(),
+                properties: None,
+            },
+            deserialized_example::<GurpIpAddressEnsure>("ip-address/ensure-02.janet")
+        );
+    }
+
+    #[test]
+    fn test_ip_address_deserialize_remove_01() {
+        assert_eq!(
+            GurpIpAddressRemove {
+                name: "example2/v4".to_owned(),
+                id: "/NO-ROLE/ip-address/example2_v4".to_owned(),
+            },
+            deserialized_example::<GurpIpAddressRemove>("ip-address/remove-01.janet")
+        );
+    }
 
     #[test]
     fn test_parse_addr_info() {
@@ -270,7 +315,7 @@ mod test {
         ]);
 
         // read-only properties are ignored
-        let input = indoc! { "
+        let input = indoc::indoc! { "
             broadcast:r-:192.168.1.255
             deprecated:rw:off
             prefixlen:rw:24
@@ -283,7 +328,7 @@ mod test {
 
     #[test]
     fn test_deserialize() {
-        let json_def = janet2json(indoc! {r#"
+        let json_def = janet2json(indoc::indoc! {r#"
            (ip-address/ensure "test0/v4"
                               :type "static"
                               :address "192.168.1.13/24"

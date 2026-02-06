@@ -16,17 +16,20 @@ static CURRENT_PKG_OUTPUT: LazyLock<String> =
 
 type PkginName = String;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 struct GlobalPkgins {
     installed: Vec<PkginName>,
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPkginEnsure {
     pub name: PkginName,
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPkginRemove {
     pub name: PkginName,
 }
@@ -175,11 +178,31 @@ fn parse_pkg_output(output: &str) -> GlobalPkgins {
 #[cfg(test)]
 mod test {
     use super::*;
-    use indoc::indoc;
+    use tester::deserialized_example;
+
+    #[test]
+    fn test_ensure_pkgin_deserialize() {
+        assert_eq!(
+            GurpPkginEnsure {
+                name: "rust".to_owned(),
+            },
+            deserialized_example::<GurpPkginEnsure>("pkgin/ensure-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_remove_pkgin_deserialize() {
+        assert_eq!(
+            GurpPkginRemove {
+                name: "go".to_owned(),
+            },
+            deserialized_example::<GurpPkginRemove>("pkgin/remove-01.janet")
+        );
+    }
 
     #[test]
     fn test_parse_gem_output() {
-        let sample_output = indoc! { r#"
+        let sample_output = indoc::indoc! { r#"
             libxml2-2.12.9nb2    XML parser library from the GNOME project
             ruby33-3.3.6         Ruby 3.3.6 release package
             ruby33-mini_portile2-2.8.7 Simple autoconf builder for developers

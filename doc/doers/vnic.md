@@ -13,6 +13,13 @@ VNIC name (`:string`)
              :over "e1000g")
 ```
 
+```janet
+(vnic/ensure "vnic1"
+  :over "e1000g"
+  :vlan-tag 10
+  :with-interface true)
+```
+
 ### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
@@ -29,7 +36,7 @@ VNIC name (`:string`)
 ## vnic/remove
 
 ```janet
-(vnic/remove "vnic1")
+(vnic/remove "vnic2")
 ```
 
 ### Mandatory Properties

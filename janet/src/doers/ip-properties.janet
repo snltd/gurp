@@ -6,10 +6,7 @@
 (def name-is "Any convenient name: not used internally")
 (def mandatory-props-ensure {})
 (def optional-props-ensure protocol-opts)
-(def mandatory-props-remove {})
-(def optional-props-remove {})
 (def defaults-ensure {})
-(def defaults-remove {})
 
 (defn ensure
   "Given a protocol and spec, put an ensure struct in the collector"

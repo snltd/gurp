@@ -2,8 +2,12 @@ use crate::constants::DEFAULT_TERM_WIDTH;
 use crate::types::ApplyOpts;
 use colored::Colorize;
 
-pub fn dump_config(code: &str, description: &str, opts: &ApplyOpts) -> String {
-    let mut ret = banner("BEGIN", description);
+pub fn dump_config(code: &str, description: Option<&str>, opts: &ApplyOpts) -> String {
+    let mut ret = String::new();
+
+    if let Some(description) = description {
+        ret.push_str(&banner("BEGIN", description));
+    }
 
     if opts.line_no {
         code.lines()
@@ -13,12 +17,18 @@ pub fn dump_config(code: &str, description: &str, opts: &ApplyOpts) -> String {
         code.lines().for_each(|l| ret.push_str(&format!("{l}\n")));
     }
 
-    ret.push_str(&banner("END", description));
+    if let Some(description) = description {
+        ret.push_str(&banner("END", description));
+    }
     ret
 }
 
-pub fn dump_diff(existing: &str, desired: &str, description: &str, colour: bool) -> String {
-    let mut ret = banner("BEGIN", &format!("{description} diff"));
+pub fn dump_diff(existing: &str, desired: &str, description: Option<&str>, colour: bool) -> String {
+    let mut ret = String::new();
+
+    if let Some(description) = description {
+        ret.push_str(&banner("BEGIN", &format!("{description} diff")));
+    }
 
     for diff in diff::lines(existing, desired) {
         match diff {
@@ -30,7 +40,9 @@ pub fn dump_diff(existing: &str, desired: &str, description: &str, colour: bool)
         }
     }
 
-    ret.push_str(&banner("END", &format!("{description} diff")));
+    if let Some(description) = description {
+        ret.push_str(&banner("END", &format!("{description} diff")));
+    }
     ret
 }
 

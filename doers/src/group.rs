@@ -6,7 +6,8 @@ use common::types::{ApplyOpts, ApplySummary};
 use nix::unistd::Group;
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpGroupEnsure {
     #[serde(rename = "_id")]
     pub id: String,
@@ -14,7 +15,8 @@ pub struct GurpGroupEnsure {
     pub gid: u32,
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpGroupRemove {
     #[serde(rename = "_id")]
     pub id: String,
@@ -70,18 +72,28 @@ impl GurpGroupRemove {
 #[cfg(test)]
 mod test {
     use super::*;
-    use tester::janet2json;
+    use tester::deserialized_example;
 
     #[test]
-    fn test_ensure() {
-        let json_def = janet2json(r#"(group/ensure "test-group" :gid 264)"#);
+    fn test_group_deserialize_ensure_01() {
+        assert_eq!(
+            GurpGroupEnsure {
+                name: "new-group".to_owned(),
+                id: "/NO-ROLE/group/new-group".to_owned(),
+                gid: 264,
+            },
+            deserialized_example::<GurpGroupEnsure>("group/ensure-01.janet")
+        );
+    }
 
-        let expected = GurpGroupEnsure {
-            name: "test-group".to_owned(),
-            id: "/NO-ROLE/group/test-group".to_owned(),
-            gid: 264,
-        };
-
-        assert_eq!(expected, serde_json::from_str(&json_def).unwrap());
+    #[test]
+    fn test_group_deserialize_remove_01() {
+        assert_eq!(
+            GurpGroupRemove {
+                name: "old-group".to_owned(),
+                id: "/NO-ROLE/group/old-group".to_owned(),
+            },
+            deserialized_example::<GurpGroupRemove>("group/remove-01.janet")
+        );
     }
 }

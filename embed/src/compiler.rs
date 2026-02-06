@@ -6,9 +6,8 @@ use common::info;
 use common::types::{ApplyOpts, JsonConfig};
 use janetrs::env::DefOptions;
 use janetrs::{Janet, JanetString, TaggedJanet};
-use std::fs;
-use std::thread;
 use std::time::Duration;
+use std::{fs, thread};
 use util::{http, json, unix};
 
 // Config comes in various forms. It can be:
@@ -90,17 +89,36 @@ fn remote_json_to_json(server: &str, opts: &ApplyOpts) -> anyhow::Result<JsonCon
 
         println!(
             "{}",
-            info::dump_config(&formatted_json, "Janet config", opts)
+            info::dump_config(&formatted_json, Some("Janet config"), opts)
         );
     }
 
     Ok(host_config)
 }
 
-// Get a JSON string by compiling a local Janet file (and its dependencies)
 pub fn local_janet_to_json(
     host_file: &Utf8PathBuf,
     opts: &ApplyOpts,
+) -> anyhow::Result<JsonConfig> {
+    local_janet(host_file, opts, "(to-json (machine-config))")
+}
+
+pub fn local_janet_to_janet(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<String> {
+    let format = if opts.colour { "%M" } else { "%m" };
+    let compiled_janet = local_janet(
+        host_file,
+        opts,
+        &format!(r#"(string/format "{format}" (machine-config))"#),
+    )?;
+
+    Ok(info::dump_config(&compiled_janet, None, opts))
+}
+
+// Get a string by compiling a local Janet file (and its dependencies)
+pub fn local_janet(
+    host_file: &Utf8PathBuf,
+    opts: &ApplyOpts,
+    final_cmd: &str,
 ) -> anyhow::Result<JsonConfig> {
     ensure!(
         host_file.exists(),
@@ -127,13 +145,13 @@ pub fn local_janet_to_json(
             (setdyn :gurp-config-root "{config_dir}")
             {destroyer}
             (merge-module (curenv) (dofile "{host_file}" :env (curenv)) "" true)
-            (to-json (machine-config))
+            {final_cmd}
         "#};
 
     if opts.dump_config {
         println!(
             "{}",
-            info::dump_config(&janet_instructions, "Janet config", opts)
+            info::dump_config(&janet_instructions, Some("Janet config"), opts)
         );
     }
 
@@ -224,7 +242,7 @@ pub fn local_janet_to_jimage(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyho
     if opts.dump_config {
         println!(
             "{}",
-            info::dump_config(&janet_instructions, "Janet to compile image", opts)
+            info::dump_config(&janet_instructions, Some("Janet to compile image"), opts)
         );
     }
 

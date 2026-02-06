@@ -17,11 +17,13 @@ type ApkName = String;
 type InstalledApks = Vec<ApkName>;
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpApkEnsure {
     pub name: ApkName,
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpApkRemove {
     pub name: ApkName,
 }
@@ -157,12 +159,31 @@ fn parse_apk_output(output: &str) -> InstalledApks {
 #[cfg(test)]
 mod test {
     use super::*;
-    use indoc::indoc;
-    use pretty_assertions::assert_eq;
+    use tester::deserialized_example;
+
+    #[test]
+    fn test_apk_deserialize_ensure_01() {
+        assert_eq!(
+            GurpApkEnsure {
+                name: "rust".to_owned(),
+            },
+            deserialized_example::<GurpApkEnsure>("apk/ensure-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_apk_deserialize_remove_01() {
+        assert_eq!(
+            GurpApkRemove {
+                name: "go".to_owned(),
+            },
+            deserialized_example::<GurpApkRemove>("apk/remove-01.janet")
+        );
+    }
 
     #[test]
     fn test_parse_apk_output() {
-        let sample_output = indoc! { r#")
+        let sample_output = indoc::indoc! { r#")
             yaml-static-0.2.5-r2 x86_64 {yaml} (MIT))
             yamllint-1.35.1-r1 x86_64 {yamllint} (GPL-3.0-or-later))
             yamllint-pyc-1.35.1-r1 x86_64 {yamllint} (GPL-3.0-or-later))
