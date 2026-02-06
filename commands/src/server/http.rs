@@ -26,11 +26,14 @@ pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
     let conf_dir = opts.config_dir.clone();
     let server_opts = Arc::new(opts);
 
-    let app = Router::new()
+    let v1_routes = Router::new()
         .route("/version", get(handlers::version))
         .route("/status", get(handlers::status))
         .route("/file/{*path}", get(handlers::file))
-        .route("/config/{host}", get(handlers::config))
+        .route("/config/{host}", get(handlers::config));
+
+    let app = Router::new()
+        .nest("/v1", v1_routes)
         .layer(axum::middleware::from_fn(metrics_middleware))
         .layer(Extension(server_opts));
 

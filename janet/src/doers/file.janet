@@ -2,6 +2,7 @@
 (use ../user-helpers)
 (import ../collector)
 
+(def client-api-version "v1")
 (def doer :file)
 (def description "Create files from multiple sources, or remove them.")
 (def name-is "Fully qualified path to file")
@@ -43,7 +44,7 @@
 
 (defn- server-url
   [server-name from-path]
-  (string "http://" server-name "/file/" from-path))
+  (string "http://" server-name "/" client-api-version "/file/" from-path))
 
 (defn ensure
   "Given a file path and spec, put an ensure struct in the collector. If Gurp is
@@ -52,15 +53,15 @@
   (def spec-table (struct/to-table (make-spec-struct ;spec)))
 
   (if-let [from-path (spec-table :from)]
-  (if-let [server-name (dyn :server-name)]
-    (do
-      (set (spec-table :from) nil)
-      (set (spec-table :from-url) (server-url server-name from-path)))
-    (let [url-or-qualified-path
-          (if (string/find "://" from-path)
-            from-path
-            (qualify-from-path from-path))]
-      (set (spec-table :from) url-or-qualified-path))))
+    (if-let [server-name (dyn :server-name)]
+      (do
+        (set (spec-table :from) nil)
+        (set (spec-table :from-url) (server-url server-name from-path)))
+      (let [url-or-qualified-path
+            (if (string/find "://" from-path)
+              from-path
+              (qualify-from-path from-path))]
+        (set (spec-table :from) url-or-qualified-path))))
 
   (def all-specs (spec-with-defaults defaults-ensure spec-table))
   (def safe-specs (checked-spec all-specs
