@@ -40,7 +40,7 @@ pub fn my_group() -> String {
 
 pub fn janet2json(janet_defn: &str) -> String {
     let client = helpers::gurp_client().expect("janet2json failed to create gurp client");
-    let janet_instructions = format!("(to-json (first (values {janet_defn})))");
+    let janet_instructions = format!("(to-json {janet_defn})");
 
     let ret = match client.run(&janet_instructions) {
         Ok(janet) => janet,
@@ -79,15 +79,6 @@ fn repo_root() -> Utf8PathBuf {
 macro_rules! propmap {
     ($($key:expr => $value:expr),* $(,)?) => {{
         std::collections::HashMap::from([
-            $(($key.to_string(), $value.to_string()),)*
-        ])
-    }};
-}
-
-#[macro_export]
-macro_rules! bpropmap {
-    ($($key:expr => $value:expr),* $(,)?) => {{
-        std::collections::BTreeMap::from([
             $(($key.to_string(), $value.to_string()),)*
         ])
     }};
