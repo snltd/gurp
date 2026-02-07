@@ -11,10 +11,10 @@ mod test {
             .assert()
             .success()
             .stdout(predicate::str::contains(
-                "\x1b[1metherstub\x1b[0m  Create and destroy etherstubs.",
+                "etherstub  Create and destroy etherstubs.",
             ))
             .stdout(predicate::str::contains(
-                "\x1b[1mzone\x1b[0m  Create and destroy zones. Existing zones
+                "zone  Create and destroy zones. Existing zones
                             cannot be modified.",
             ));
         // Second one should test the columns are aligned

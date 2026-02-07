@@ -20,6 +20,8 @@ Items marked [*] are breaking changes.
 - Removed `show` command. [*]
 - `describe` command gives more information, and its layout adjusts for the
   terminal width.
+- `describe` and `doers` will not use ANSI colouring if `gurp` is part of a
+  pipeline, or if the user specifies `-C`.
 
 ### Doers
 

@@ -11,7 +11,9 @@
 (var *collector* (new-collector))
 
 (defn push
-  "Push a resource onto the appropriate array inside the collector."
+  "Mutates global state by pushing a resource onto the appropriate array inside
+  the collector. Returns the resource itself, which can be useful when 
+  debugging with the REPL."
   [action resource-type resource]
   (def action-struct (*collector* action))
 
@@ -19,7 +21,8 @@
     (set (action-struct resource-type) @[]))
 
   (def resource-array (action-struct resource-type))
-  (array/concat resource-array resource))
+  (array/concat resource-array resource)
+  resource)
 
 (defn check-unique-ids
   "If the given list contains any duplicate resource IDs, throw an error"

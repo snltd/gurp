@@ -3,12 +3,9 @@
 # 
 (use ./lib)
 (use ./formatting)
+(use ../command-helpers)
 (import ../user-helpers :prefix "" :only [compact])
 (import ../doers :prefix "")
-
-(defn strip-ansi
-  [str]
-  (peg/replace-all '(* "\e[" (any (set "0123456789;")) (range "az" "AZ")) "" str))
 
 (defn- field-width
   "Returns the width of a field which can accomodate the longest value in list"

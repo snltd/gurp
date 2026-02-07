@@ -22,7 +22,7 @@
 (def defaults-remove {})
 
 (defn ensure
-  "Given a gem name and spec , put an ensure struct in the collector"
+  "Given a gem name and spec, put an ensure struct in the collector"
   [name & spec]
   (collector/push :ensure doer (make-ensure-resource)))
 

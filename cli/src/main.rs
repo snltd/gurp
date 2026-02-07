@@ -14,7 +14,7 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Configure the host with the supplied configuration
+    /// Configure this host according to the supplied configuration
     Apply {
         /// Get config from a Gurp server
         #[arg(short = 's', long = "server")]
@@ -56,7 +56,7 @@ enum Commands {
         #[arg(required_unless_present = "server", conflicts_with = "server")]
         host_config_file: Option<Utf8PathBuf>,
     },
-    /// Compile the Janet description, and optionally write it to stdout
+    /// Compile a Janet host description
     Compile {
         /// When displaying compiled config, number lines
         #[arg(short = 'N', long)]
@@ -79,12 +79,19 @@ enum Commands {
     },
     /// Describe a resource type
     Describe {
+        /// Do not use any ANSI colouring
+        #[arg(short = 'C', long, alias = "no-color")]
+        no_colour: bool,
         /// Resource type you wish to see described
         #[arg(required = true)]
         resource: String,
     },
     /// List the doers in this version of Gurp
-    Doers {},
+    Doers {
+        /// Do not use any ANSI colouring
+        #[arg(short = 'C', long, alias = "no-color")]
+        no_colour: bool,
+    },
     /// Open a Janet REPL with the Gurp library already loaded into the root environment
     Repl {},
     /// Run Gurp in Server mode
@@ -170,8 +177,11 @@ fn main() -> ExitCode {
 
             commands::compile::run(&host_config_file, &compile_opts, &apply_opts)
         }
-        Commands::Describe { resource } => commands::describe::run(&resource),
-        Commands::Doers {} => commands::doers::run(),
+        Commands::Describe {
+            resource,
+            no_colour,
+        } => commands::describe::run(&resource, no_colour),
+        Commands::Doers { no_colour } => commands::doers::run(no_colour),
         Commands::Repl {} => commands::repl::run(),
         Commands::Server {
             config_dir,

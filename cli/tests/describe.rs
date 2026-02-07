@@ -34,6 +34,6 @@ mod test {
             .arg("nonsense")
             .assert()
             .success()
-            .stderr("No help for 'nonsense'\n");
+            .stdout("No help for 'nonsense'\n");
     }
 }
