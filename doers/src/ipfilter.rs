@@ -72,7 +72,6 @@ pub fn collect_and_ensure(
             force_reload = true;
         }
     }
-
     if opts.dump_config {
         info::dump_config(&desired_rules, Some("ipfilter rules"), opts);
     }
@@ -83,7 +82,23 @@ pub fn collect_and_ensure(
 
     if persistent_change || force_reload {
         tracing::debug!("forcing reload of ipfilter rules from {IPF_CONF}");
-        cmd_change_or_noop!(opts, IPF_BIN, "-fa", IPF_CONF)
+        let mut reload_cmd = cmd!(IPF_BIN, "-Fa", "-f", IPF_CONF);
+
+        if opts.noop {
+            Ok(ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            let before_change = cmd_output!(IPFSTAT_BIN, "-io")?;
+            run_cmd!(reload_cmd)?;
+            let after_change = cmd_output!(IPFSTAT_BIN, "-io")?;
+
+            if before_change == after_change {
+                tracing::debug!("reloading ipfilter conf did not change live rules");
+                Ok(ONE_RESOURCE_NO_CHANGE)
+            } else {
+                tracing::info!("reloading ipfilter conf produced new live rules");
+                Ok(ONE_RESOURCE_ONE_CHANGE)
+            }
+        }
     } else {
         Ok(ONE_RESOURCE_NO_CHANGE)
     }
@@ -131,7 +146,7 @@ fn there_are_rules() -> anyhow::Result<bool> {
 
 fn check_filter_rules_are_valid(rules: &str) -> anyhow::Result<()> {
     tracing::debug!("checking ipf rules");
-    let mut cmd = cmd_with_stdin!(IPF_BIN, "-r", "-f", "-");
+    let mut cmd = cmd_with_stdin!(IPF_BIN, "-n", "-f", "-");
     let mut child = cmd.spawn()?;
 
     if let Some(stdin) = child.stdin.as_mut() {
