@@ -1,15 +1,15 @@
 use anyhow::ensure;
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_DIRS};
-use common::types::{ApplyOpts, ApplySummary, FileMetadata};
+use common::types::{ApplyOpts, ApplySummary};
 use nix::unistd::{Gid, Uid};
 use serde::Deserialize;
 use std::fs;
 use util::file;
+use util::file::{FileMetadata, UserOrGroup};
 
 // THINGS TO KNOW / THINGS TO DO.
 // Creating a directory is `mkdir -p` style.
-// You can only define users and groups by their names. UIDs/GIDs do not work.
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -25,9 +25,9 @@ pub struct GurpDirectoryEnsure {
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct DesiredDirectoryState {
-    pub group: String,
+    pub group: UserOrGroup,
     pub mode: String,
-    pub owner: String,
+    pub owner: UserOrGroup,
 }
 
 #[derive(Debug)]
@@ -61,10 +61,10 @@ impl GurpDirectoryEnsure {
 
         file::ensure_metadata(
             FileMetadata {
-                group: &self.desired_state.group,
-                mode: &self.desired_state.mode,
-                owner: &self.desired_state.owner,
-                path: &self.path,
+                group: self.desired_state.group.clone(),
+                mode: self.desired_state.mode.clone(),
+                owner: self.desired_state.owner.clone(),
+                path: self.path.clone(),
                 changes,
             },
             opts,
@@ -108,8 +108,8 @@ mod test {
                 path: Utf8PathBuf::from("/path/to/dir_1"),
                 id: "/NO-ROLE/directory/_path_to_dir_1".to_owned(),
                 desired_state: DesiredDirectoryState {
-                    owner: "root".to_owned(),
-                    group: "root".to_owned(),
+                    owner: UserOrGroup::Name("root".to_owned()),
+                    group: UserOrGroup::Name("root".to_owned()),
                     mode: "0755".to_owned(),
                 }
             },
@@ -124,8 +124,8 @@ mod test {
                 path: Utf8PathBuf::from("/path/to/dir_2"),
                 id: "/NO-ROLE/directory/my-dir".to_owned(),
                 desired_state: DesiredDirectoryState {
-                    owner: "root".to_owned(),
-                    group: "root".to_owned(),
+                    owner: UserOrGroup::Id(264),
+                    group: UserOrGroup::Id(14),
                     mode: "0700".to_owned(),
                 }
             },
@@ -140,8 +140,8 @@ mod test {
                 path: Utf8PathBuf::from("/path/to/dir_3"),
                 id: "/NO-ROLE/directory/all-the-specs".to_owned(),
                 desired_state: DesiredDirectoryState {
-                    owner: "myself".to_owned(),
-                    group: "sysadmin".to_owned(),
+                    owner: UserOrGroup::Name("myself".to_owned()),
+                    group: UserOrGroup::Name("sysadmin".to_owned()),
                     mode: "0700".to_owned(),
                 }
             },
@@ -181,12 +181,12 @@ mod test {
 
         assert!(dir.exists());
 
-        let json_def = janet2json(&formatdoc! {"
-            (directory/ensure \"{}\"
-                :mode \"0750\"
-                :owner \"{}\"
-                :group \"{}\")
-            ",
+        let json_def = janet2json(&formatdoc! { r#"
+            (directory/ensure "{}"
+                :mode "0750"
+                :owner "{}"
+                :group "{}")
+            "#,
             dir.as_path(),
             my_user(),
             my_group(),
@@ -207,12 +207,12 @@ mod test {
 
         assert!(dir.exists());
 
-        let json_def = janet2json(&formatdoc! {"
-            (directory/ensure \"{}\"
-                :mode \"0775\"
-                :owner \"{}\"
-                :group \"{}\")
-            ",
+        let json_def = janet2json(&formatdoc! { r#"
+            (directory/ensure "{}"
+                :mode "0775"
+                :owner "{}"
+                :group "{}")
+            "#,
             &dir.as_path(),
             my_user(),
             my_group(),

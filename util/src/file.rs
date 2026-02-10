@@ -1,28 +1,45 @@
 use crate::users_and_groups;
 use anyhow::bail;
 use camino::Utf8PathBuf;
-use common::types::{ApplyOpts, ApplySummary, FileMetadata};
+use common::types::{ApplyOpts, ApplySummary};
 use nix::sys::stat::{self, FileStat};
 use nix::unistd::{Gid, Uid};
+use serde::Deserialize;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 
+#[derive(Debug)]
+pub struct FileMetadata {
+    pub group: UserOrGroup,
+    pub mode: String,
+    pub owner: UserOrGroup,
+    pub path: Utf8PathBuf,
+    pub changes: u32,
+}
+
+#[derive(Deserialize, Clone, Debug, PartialEq)]
+#[serde(untagged)]
+pub enum UserOrGroup {
+    Name(String),
+    Id(u32),
+}
+
 pub fn ensure_metadata(spec: FileMetadata, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    let metadata = metadata(spec.path)?;
-    let new_uid = new_uid(spec.owner, &metadata)?;
-    let new_gid = new_gid(spec.group, &metadata)?;
+    let metadata = metadata(&spec.path)?;
+    let new_uid = new_uid(&spec.owner, &metadata)?;
+    let new_gid = new_gid(&spec.group, &metadata)?;
     let mut changes = spec.changes;
 
     if new_uid.is_some() || new_gid.is_some() {
         changes = 1;
-        set_user(spec.path, new_uid, new_gid, opts)?;
+        set_user(&spec.path, new_uid, new_gid, opts)?;
     }
 
     let current_mode = format!("{:04o}", metadata.st_mode & 0o7777);
 
     if current_mode != spec.mode {
         changes = 1;
-        set_mode(spec.path, &current_mode, spec.mode, opts)?;
+        set_mode(&spec.path, &current_mode, &spec.mode, opts)?;
     }
 
     Ok(ApplySummary {
@@ -36,7 +53,7 @@ fn metadata(path: &Utf8PathBuf) -> anyhow::Result<FileStat> {
     Ok(metadata)
 }
 
-fn new_uid(desired_owner: &str, metadata: &FileStat) -> anyhow::Result<Option<Uid>> {
+fn new_uid(desired_owner: &UserOrGroup, metadata: &FileStat) -> anyhow::Result<Option<Uid>> {
     let current_uid: Uid = metadata.st_uid.into();
     let desired_uid = users_and_groups::owner_from(desired_owner)?;
 
@@ -48,7 +65,7 @@ fn new_uid(desired_owner: &str, metadata: &FileStat) -> anyhow::Result<Option<Ui
     }
 }
 
-fn new_gid(desired_group: &str, metadata: &FileStat) -> anyhow::Result<Option<Gid>> {
+fn new_gid(desired_group: &UserOrGroup, metadata: &FileStat) -> anyhow::Result<Option<Gid>> {
     let current_gid: Gid = metadata.st_gid.into();
     let desired_gid = users_and_groups::group_from(desired_group)?;
 

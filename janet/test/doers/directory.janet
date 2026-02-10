@@ -17,11 +17,11 @@
                               :owner "root"
                               :role "test-role"}
                              {:_id "/test-role/directory/my-dir"
-                              :group "root"
+                              :group 14
                               :label "my-dir"
                               :mode "0700"
                               :name "/path/to/dir_2"
-                              :owner "root"
+                              :owner 264
                               :role "test-role"}
                              {:_id "/test-role/directory/all-the-specs"
                               :group "sysadmin"
