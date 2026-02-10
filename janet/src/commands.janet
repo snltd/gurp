@@ -20,8 +20,8 @@
       (string "No help for '" object "'"))))
 
 (defn list-doers
-  "Returns a multiline string, pairing doers with their descriptions."
-  "Used by Gurp's 'doers' command"
+  "Returns a multiline string, pairing doers with their descriptions. Used by
+  Gurp's 'doers' command"
   []
   (join-lines
     (catseq [doer :in doers]

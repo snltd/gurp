@@ -13,6 +13,7 @@ pub mod group;
 pub mod ip_address;
 pub mod ip_interface;
 pub mod ip_properties;
+pub mod ipfilter;
 pub mod ipnat;
 pub mod misc;
 pub mod network_flow;
