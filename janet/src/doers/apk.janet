@@ -20,3 +20,6 @@
   "Given an apk package name, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
+
+(def limitations
+  ["Only adds and removes packages. You cannot specify or pin package versions."])
