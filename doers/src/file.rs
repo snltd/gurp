@@ -120,10 +120,10 @@ impl GurpFileEnsure {
 
         file::ensure_metadata(
             FileMetadata {
-                group: self.desired_state.group.clone(),
-                mode: self.desired_state.mode.clone(),
-                owner: self.desired_state.owner.clone(),
-                path: self.path.clone(),
+                group: &self.desired_state.group,
+                mode: &self.desired_state.mode,
+                owner: &self.desired_state.owner,
+                path: &self.path,
                 changes,
             },
             opts,
@@ -314,10 +314,10 @@ impl GurpFileEnsure {
                 fs::rename(&self.path, backup_target)?;
                 file::ensure_metadata(
                     FileMetadata {
-                        group: UserOrGroup::Name("root".to_owned()),
-                        owner: UserOrGroup::Name("root".to_owned()),
-                        mode: "0o0400".to_owned(),
-                        path: backup_target.to_owned(),
+                        group: &UserOrGroup::Name("root".to_owned()),
+                        owner: &UserOrGroup::Name("root".to_owned()),
+                        mode: "0o0400",
+                        path: backup_target,
                         changes: 1,
                     },
                     opts,

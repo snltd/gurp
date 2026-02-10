@@ -61,10 +61,10 @@ impl GurpDirectoryEnsure {
 
         file::ensure_metadata(
             FileMetadata {
-                group: self.desired_state.group.clone(),
-                mode: self.desired_state.mode.clone(),
-                owner: self.desired_state.owner.clone(),
-                path: self.path.clone(),
+                group: &self.desired_state.group,
+                mode: &self.desired_state.mode,
+                owner: &self.desired_state.owner,
+                path: &self.path,
                 changes,
             },
             opts,

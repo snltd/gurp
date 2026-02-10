@@ -9,11 +9,11 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 
 #[derive(Debug)]
-pub struct FileMetadata {
-    pub group: UserOrGroup,
-    pub mode: String,
-    pub owner: UserOrGroup,
-    pub path: Utf8PathBuf,
+pub struct FileMetadata<'a> {
+    pub group: &'a UserOrGroup,
+    pub mode: &'a str,
+    pub owner: &'a UserOrGroup,
+    pub path: &'a Utf8PathBuf,
     pub changes: u32,
 }
 
@@ -25,21 +25,21 @@ pub enum UserOrGroup {
 }
 
 pub fn ensure_metadata(spec: FileMetadata, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    let metadata = metadata(&spec.path)?;
-    let new_uid = new_uid(&spec.owner, &metadata)?;
-    let new_gid = new_gid(&spec.group, &metadata)?;
+    let metadata = metadata(spec.path)?;
+    let new_uid = new_uid(spec.owner, &metadata)?;
+    let new_gid = new_gid(spec.group, &metadata)?;
     let mut changes = spec.changes;
 
     if new_uid.is_some() || new_gid.is_some() {
         changes = 1;
-        set_user(&spec.path, new_uid, new_gid, opts)?;
+        set_user(spec.path, new_uid, new_gid, opts)?;
     }
 
     let current_mode = format!("{:04o}", metadata.st_mode & 0o7777);
 
     if current_mode != spec.mode {
         changes = 1;
-        set_mode(&spec.path, &current_mode, &spec.mode, opts)?;
+        set_mode(spec.path, &current_mode, spec.mode, opts)?;
     }
 
     Ok(ApplySummary {
