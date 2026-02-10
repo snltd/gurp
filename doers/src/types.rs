@@ -10,6 +10,7 @@ use crate::group::{GurpGroupEnsure, GurpGroupRemove};
 use crate::ip_address::{GurpIpAddressEnsure, GurpIpAddressRemove};
 use crate::ip_interface::{GurpIpInterfaceEnsure, GurpIpInterfaceRemove};
 use crate::ip_properties::GurpIpPropertiesEnsure;
+use crate::ipfilter::{GurpIpfilterEnsure, GurpIpfilterRemove};
 use crate::ipnat::{GurpIpnatEnsure, GurpIpnatRemove};
 use crate::misc::GurpMiscEnsure;
 use crate::network_flow::{GurpNetworkFlowEnsure, GurpNetworkFlowRemove};
@@ -81,6 +82,8 @@ pub struct EnsureResources {
     #[serde(default)]
     pub ip_properties: Vec<GurpIpPropertiesEnsure>,
     #[serde(default)]
+    pub ipfilter: Vec<GurpIpfilterEnsure>,
+    #[serde(default)]
     pub ipnat: Vec<GurpIpnatEnsure>,
     #[serde(default)]
     pub misc: Vec<GurpMiscEnsure>,
@@ -139,6 +142,8 @@ pub struct RemoveResources {
     pub ip_address: Vec<GurpIpAddressRemove>,
     #[serde(default)]
     pub ip_interface: Vec<GurpIpInterfaceRemove>,
+    #[serde(default)]
+    pub ipfilter: Vec<GurpIpfilterRemove>,
     #[serde(default)]
     pub ipnat: Vec<GurpIpnatRemove>,
     #[serde(default)]
@@ -253,6 +258,10 @@ impl Applicator {
         apply_resources!(summary_total, changed_ids, &ensure.zfs, opts);
         apply_resources!(summary_total, changed_ids, &ensure.zone, opts);
 
+        if !&ensure.ipfilter.is_empty() {
+            summary_total += crate::ipfilter::collect_and_ensure(&ensure.ipfilter, opts)?;
+        }
+
         if !&ensure.ipnat.is_empty() {
             summary_total += crate::ipnat::collect_and_ensure(&ensure.ipnat, opts)?;
         }
@@ -312,6 +321,7 @@ impl Applicator {
         }
 
         apply_resources!(summary_total, changed_ids, &remove.ipnat, opts);
+        apply_resources!(summary_total, changed_ids, &remove.ipfilter, opts);
         apply_resources!(summary_total, changed_ids, &remove.zone, opts);
         apply_resources!(summary_total, changed_ids, &remove.zfs, opts);
         apply_resources!(summary_total, changed_ids, &remove.bridge, opts);

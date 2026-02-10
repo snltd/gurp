@@ -60,6 +60,31 @@ macro_rules! cmd {
     }};
 }
 
+#[macro_export]
+#[allow(unused_macros)]
+macro_rules! cmd_change_or_noop{
+    ( $opts:expr, $bin:expr $(, $arg:expr )* $(,)? ) => {{
+        use std::process::{Command, Stdio};
+        let mut cmd = Command::new($bin);
+        $(
+            cmd.arg($arg);
+        )*
+        cmd.stderr(Stdio::piped());
+
+        tracing::debug!(command = common::cmd::to_string(&cmd));
+
+        if !$opts.noop {
+            let output = cmd.output()?;
+
+            anyhow::ensure!(output.status.success(),
+                "cmd_output error: {}", String::from_utf8_lossy(&output.stderr).into_owned()
+            );
+        }
+
+        Result::<common::types::ApplySummary, anyhow::Error>::Ok(ONE_RESOURCE_ONE_CHANGE)
+    }};
+}
+
 /// Receives a Command and runs it, returning a result of the standard out
 #[macro_export]
 #[allow(unused_macros)]

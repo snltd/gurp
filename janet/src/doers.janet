@@ -12,6 +12,7 @@
 (import ./doers/ip-address :export true)
 (import ./doers/ip-interface :export true)
 (import ./doers/ip-properties :export true)
+(import ./doers/ipfilter :export true)
 (import ./doers/ipnat :export true)
 (import ./doers/lib :export true)
 (import ./doers/misc :export true)

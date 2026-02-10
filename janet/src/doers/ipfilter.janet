@@ -6,7 +6,11 @@
 (def name-is "Any convenient name: not used internally")
 (def mandatory-props-ensure
   {:priority {:types [:number]
-              :help "rule resources are ordered by priority, lowest number first"}})
+              :help "rule resources are ordered by priority, lowest number first"}
+   :always-reload {:types [:boolean]
+              :help "if any ipfilter/ensure resource sets this to true, then the
+                    firewall rules will be reloaded every time Gurp runs,
+                    regardless of whether the aggregated ipf.conf file has changed"}})
 (def optional-props-ensure
   {:from {:types [:string]
           :help "Apply rules in the given file. If relative, looks in ../files"}
@@ -14,7 +18,7 @@
              :help "Apply these rules. Must have :content xor :from"}})
 (def mandatory-props-remove {})
 (def optional-props-remove {})
-(def defaults-ensure {})
+(def defaults-ensure {:always-reload false})
 (def defaults-remove {})
 
 (defn ensure
