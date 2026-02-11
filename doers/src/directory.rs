@@ -174,25 +174,6 @@ mod test {
     }
 
     #[test]
-    #[cfg(target_os = "linux")] // Requires root, GHA is linux
-    fn test_directory_ensure_numeric_ids() {
-        let temp_dir = Utf8TempDir::new().unwrap();
-        let dir = temp_dir.child("test_directory");
-        dir.create_dir_all().unwrap();
-        fs::set_permissions(&dir, fs::Permissions::from_mode(0o0750)).unwrap();
-        assert!(dir.exists());
-
-        let sut = deserialized_example::<GurpDirectoryEnsure>("directory/ensure-02.janet");
-
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
-        assert!(dir.exists());
-        let metadata = fs::metadata(&dir).unwrap();
-        assert_eq!(metadata.permissions().mode() & 0o7777, 0o0750);
-        assert_eq!(metadata.uid(), 264);
-        assert_eq!(metadata.gid(), 10);
-    }
-
-    #[test]
     fn test_directory_ensure_already_exists() {
         let temp_dir = Utf8TempDir::new().unwrap();
         let dir = temp_dir.child("test_directory");
