@@ -9,6 +9,4 @@ fn main() {
     )
     .compile_to_file()
     .call_with_image("(generateall-docs)");
-
-    println!("cargo:rerun-if-changed=janet/src/doer-docs/markdown-docs.jimage");
 }
