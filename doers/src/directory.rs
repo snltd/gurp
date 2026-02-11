@@ -97,6 +97,7 @@ mod test {
     use camino_tempfile_ext::prelude::*;
     use common::constants::ONE_RESOURCE_NOOP;
     use indoc::formatdoc;
+    use std::os::unix::fs::MetadataExt;
     use std::os::unix::fs::PermissionsExt;
     use tester::deserialized_example;
     use tester::{defopts, defopts_noop, janet2json, my_group, my_user};
@@ -170,6 +171,25 @@ mod test {
         assert!(!dir.exists());
         assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
         assert!(!dir.exists());
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")] // Requires root, GHA is linux
+    fn test_directory_ensure_numeric_ids() {
+        let temp_dir = Utf8TempDir::new().unwrap();
+        let dir = temp_dir.child("test_directory");
+        dir.create_dir_all().unwrap();
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o0750)).unwrap();
+        assert!(dir.exists());
+
+        let sut = deserialized_example::<GurpDirectoryEnsure>("directory/ensure-02.janet");
+
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert!(dir.exists());
+        let metadata = fs::metadata(&dir).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o7777, 0o0750);
+        assert_eq!(metadata.uid(), 264);
+        assert_eq!(metadata.gid(), 10);
     }
 
     #[test]
