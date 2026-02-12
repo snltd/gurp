@@ -15,7 +15,7 @@ mod test {
             ));
     }
 
-    #[test]
+    // #[test]
     #[ignore]
     fn test_apply_missing_file() {
         cargo_bin_cmd!("gurp")

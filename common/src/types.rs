@@ -19,6 +19,8 @@ pub struct ApplyOpts {
     pub server_name: Option<String>, // server mode only
     pub client_name: Option<String>, // server mode only
     pub destroy: bool,
+    pub exec: Option<String>,
+    pub no_lock: bool,
 }
 
 #[derive(Debug, Default)]

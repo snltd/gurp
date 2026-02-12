@@ -22,12 +22,17 @@ Items marked [*] are breaking changes.
   terminal width.
 - `describe` and `doers` will not use ANSI colouring if `gurp` is part of a
   pipeline, or if the user specifies `-C`.
+- `apply` has a new `--exec` option which compiles and applies a string of
+  Janet config.
+- `apply` has a new `--no-lock` option which stops Gurp checking, creating, or
+  removing a lock file.
 
 ### Doers
 
 - Add `network-flow` doer.
 - Add `vlan` doer.
 - Add `ipnat` doer.
+- Add `ipfilter` doer.
 - Add `limitpriv`, `hostid`, `ip-type`, `pool` to `zone` doer.
 - Sub-resources like `zone-fs` or `smf-method` are now referred to as `zone/fs`
   and `smf/method`. [*]
