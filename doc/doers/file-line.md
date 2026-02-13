@@ -59,3 +59,10 @@ None
 
 None
 
+## Notes
+
+- The file is not managed here. Use a file resource.
+- The doer reads the whole file into memory, so be mindful of file size.
+- Appended lines have a newline at the beginning and end.
+- Removing a line puts a newline on the end of the file if there wasn't one already.
+- Files are not backed up.

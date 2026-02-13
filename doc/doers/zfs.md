@@ -48,3 +48,8 @@ None
 
 None
 
+## Notes
+
+- Gurp does not check parameters are valid, so if you get them wrong the first you'll know about it is when you get an error from `zfs(8)`.
+- Gurp cannot change the size of an extant volume.
+- zfs/destroy is recursive, and will remove all child filesystems and snapshots without asking or telling.

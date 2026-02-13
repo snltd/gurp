@@ -68,11 +68,15 @@ None
 
 None
 
+## Notes
+
+- Generated manifests are written to `/opt/site/lib/smf/manifest`, and the output of subsequent runs is compared to the existing reference. If the file has changed, the service is re-created. We do it this way because it is not possible to compare a running service with a generated manifest.
+- smf/remove stops the service and deletes it from the SMF registry.
 # smf/dependency
 
 Defines a dependency of an SMF service, inside an                            smf resource.
 
-## Sub-Resource Name
+## Name
 
 This sub-resource does not accept a name
 
@@ -98,12 +102,15 @@ This sub-resource does not accept a name
 | `:restart-on` | `string` | Policy for restarting this service if dependency restarts | `"none"` |
 | `:type` | `string` | Type of dependency | `"service"` |
 
+## Notes
+
+- `network/physical` and `filesystem/local` are hard-coded dependencies.
 
 # smf/dependent
 
 Defines a dependent of an SMF service, inside an                            smf resource.
 
-## Sub-Resource Name
+## Name
 
 This sub-resource does not accept a name
 
@@ -134,7 +141,7 @@ This sub-resource does not accept a name
 
 Defines an SMF method to launch a service state
 
-## Sub-Resource Name
+## Name
 
 One of "start", "stop", "refresh", "reload" (`:string`)
 
@@ -166,3 +173,6 @@ One of "start", "stop", "refresh", "reload" (`:string`)
 | `:privileges` | `tuple` | Privileges the method has. Use ! to remove them |  |
 | `:user` | `string` | User the method runs as |  |
 
+## Notes
+
+- If you don't supply a `:stop-method` you get a standard `:kill` that times out after ten seconds. Start timeouts default to 60 seconds.

@@ -11,12 +11,6 @@ use serde::Deserialize;
 use std::fs;
 use std::process::Command;
 
-// THINGS TO KNOW
-// Removing a group from "other-groups" will not remove the user from that group. This is a
-// limitation of usermod(1m). I may fix it, or I may not.
-// We do not create the user's home dir. Deal with that yourself.
-// We can create non-primary groups for a new user, but not change them for an existing one.
-//
 pub const SHADOW_FIELDS: usize = 9;
 pub const SHADOW_PATH: &str = "/etc/shadow";
 

@@ -12,12 +12,10 @@ use util::svcs;
 
 const IPF_CONF: &str = "/etc/ipf/ipf.conf";
 
-// THINGS TO KNOW
 // We build a single big set of filter rules from multiple sources, check its validity, and ensure
 // its contents align with those of /etc/ipf/ipf.conf. If the file has changed, or if any resource
 // used to build the content has :always-reloaded true, the contents of the file become the current
 // firewall configuration.
-// ipfilter/remove removes ALL filter rules
 
 #[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]

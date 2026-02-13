@@ -22,3 +22,6 @@
   "Given a publisher name, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
+
+(def notes
+  ["Only handles origins."])

@@ -2,7 +2,8 @@
 (import ../collector)
 
 (def doer :svcprop)
-(def description "Manage properties of an existing SMF service.")
+(def description "Set and remove properties and property groups of an existing
+                  SMF service.")
 (def name-is "Any valid FMRI of the service whose properties you wish to set")
 (def mandatory-props-ensure
   {:properties
@@ -45,3 +46,7 @@
   "Given a service property spec, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
+
+(def notes
+  ["If not specified, Gurp will infer the types of property values."
+   "You can't change the type of an existing property group."])

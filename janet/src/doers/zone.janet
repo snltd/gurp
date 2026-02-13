@@ -122,3 +122,12 @@
   "Given a zone name, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
+
+(def notes
+  ["`kvm` and `illumos` zones are not supported."
+   "You cannot modify an existing zone in-place."
+   "`recreate` must be an integer, and it is the n:1 odds of a zone being
+    destroyed and recreated. So, `0` means \"never recreate this zone\", and `1`
+    means \"recreate this zone on every run\". You can set the number as high
+    as you like, so if you run Gurp every 15 minutes and want your zone rebuilt
+    from scratch about once a week, you'd use `:recreate 672`."])

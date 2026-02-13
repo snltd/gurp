@@ -10,6 +10,10 @@
 
 (def doc-dir (pathcat (repo-root) "/doc/doers"))
 
+(defn markdown-note
+  [note]
+  (string "- " (squeeze note) "\n"))
+
 (defn props-to-row
   "Make an a array whose elements are cells for a row of a table"
   [property prop-vals defaults]
@@ -87,7 +91,11 @@
         "\n")
       (string
         (h2 (string doer "/remove"))
-        "\nThere is no " doer "/remove."))))
+        "\nThere is no " doer "/remove."))
+
+    (if-let [notes (doer-lookup doer :notes)]
+      (string (h2 "Notes") "\n" (splice (map markdown-note notes))))))
+
 
 (defn markdown-for-sub-resource
   "Returns a multiline string showing keys supported by the given sub-resource"
@@ -98,7 +106,7 @@
     (doer-lookup doer (keyword :description- sub-resource))
     "\n"
     "\n"
-    (h2 "Sub-Resource Name")
+    (h2 "Name")
     "\n"
     (if-let [name-is (doer-lookup doer (keyword :name-is- sub-resource))]
       (string name-is " (`:string`)")
@@ -109,7 +117,9 @@
     (property-table doer :mandatory sub-resource)
     "\n"
     (property-table doer :optional sub-resource)
-    "\n"))
+    "\n"
+    (if-let [notes (subresource-lookup doer sub-resource :notes)]
+      (string (h2 "Notes") "\n" (splice (map markdown-note notes))))))
 
 (defn markdown-for-sub-resources
   [doer]

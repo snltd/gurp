@@ -15,10 +15,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use util::file::{self, FileMetadata, NameOrId};
 use util::http;
 
-// THINGS TO KNOW
-//
-// remote file hashes are SHA256, even though we use Blake3 internally.
-
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpFileEnsure {

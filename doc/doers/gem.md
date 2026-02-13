@@ -48,3 +48,8 @@ None
 | `:gem-path:` | `string` | Path to gem executable other than /opt/ooce/bin/gem |  |
 | `:version` | `string` | Gem version |  |
 
+## Notes
+
+- Tries to minimise the calls to `gem install` by grouping together installs with similar parameters
+- Only version numbers are supported, so `latest` won't work.
+- `gem/remove` takes no options, so removes all versions of the given gem.

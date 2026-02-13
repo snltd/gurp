@@ -20,3 +20,6 @@
                                 mandatory-props-bootstrap
                                 optional-props-bootstrap))
   (struct :bootstrap spec-table))
+
+(def notes-bootstrap
+  ["You must supply exactly one of `:file` and `:server`."])

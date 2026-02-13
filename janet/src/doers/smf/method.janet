@@ -52,3 +52,7 @@
     (set (spec-table :context) (table/to-struct context-table)))
 
   (struct (keyword (string name "-method")) spec-table))
+
+(def notes-method
+  ["If you don't supply a `:stop-method` you get a standard `:kill` that times
+    out after ten seconds. Start timeouts default to 60 seconds."])

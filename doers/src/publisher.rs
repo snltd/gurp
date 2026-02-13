@@ -3,9 +3,6 @@ use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::sync::LazyLock;
 
-// THINGS TO KNOW / THINGS TO DO.
-// Only handles origins. I use it to add my own repo. Not tested beyond that.
-
 static CURRENT_PKG_OUTPUT: LazyLock<Vec<Publisher>> =
     LazyLock::new(|| parse_pkg_output(&pkg_output().expect("Could not get publisher list")));
 

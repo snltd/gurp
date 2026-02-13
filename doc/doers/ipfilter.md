@@ -49,3 +49,10 @@ None
 
 None
 
+## Notes
+
+- We build a single big set of filter rules from multiple sources, check its validity, and ensure its contents align with those of `/etc/ipf/ipf.conf`. If the file has changed, or if any resource used to build the content has `:always-reloaded true`, the contents of the file become the current firewall configuration.
+- The doer automatically enables the ipfilter service.
+- We do not (currently) support any additional `ipf` options.
+- Per-zone rules are not supported.
+- ipfilter/remove removes ALL filter rules

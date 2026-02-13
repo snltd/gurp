@@ -9,9 +9,6 @@ use std::process::Command;
 
 const TAG_LINE: &str = "# gurp managed ID";
 
-// THINGS TO KNOW / THINGS TO DO.
-// We use crontab(1) to apply changes. That checks values are valid, so we won't bother.
-
 #[derive(Debug, Deserialize, Eq, PartialEq)]
 #[serde(untagged)]
 pub enum StrOrNumber {

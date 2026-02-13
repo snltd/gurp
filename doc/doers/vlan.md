@@ -39,3 +39,6 @@ None
 
 None
 
+## Notes
+
+- You must specify the VLAN link name. Gurp does not support automatic naming, as it goes against its policy of assuming nothing.

@@ -13,10 +13,6 @@ use util::smf_builder::{
 };
 use util::svcs;
 
-// THINGS TO KNOW / THINGS TO DO.
-// As always, limited. Sets and removes service properties and property groups. You can't change
-// the type of an existing property group.
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]

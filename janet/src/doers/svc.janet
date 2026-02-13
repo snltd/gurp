@@ -37,3 +37,7 @@
                                 optional-props-ensure))
 
   (collector/push :ensure doer (spec->resource doer name safe-specs)))
+
+(def notes
+  ["Because Gurp ends up shelling out to `svcs` and `svcadm`, the service
+    name can be any valid FMRI"])

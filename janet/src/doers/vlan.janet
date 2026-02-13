@@ -24,3 +24,7 @@
   "Given a VNIC name ans spec, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
+
+(def notes
+  ["You must specify the VLAN link name. Gurp does not support automatic naming,
+    as it goes against its policy of assuming nothing."])

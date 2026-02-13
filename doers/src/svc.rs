@@ -4,9 +4,6 @@ use serde::Deserialize;
 use std::collections::BTreeSet;
 use util::svcs;
 
-// THINGS TO KNOW / THINGS TO DO.
-// There's no svc/remove, only svc/ensure
-
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpSvcEnsure {

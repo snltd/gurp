@@ -42,3 +42,12 @@
   "Given a route gateway, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
+
+
+(def notes
+  ["The `route` command is messy legacy, and it takes all manner of commands.
+    This is a best-guess attempt to provide something useful."
+   "We only add persistent routes."
+   "We only support IPv4."
+   "Flags only get set when a route is created. We can't change them on an
+    existing route."])

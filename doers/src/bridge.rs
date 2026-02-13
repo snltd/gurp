@@ -7,8 +7,6 @@ use std::collections::BTreeSet;
 use std::fmt::Debug;
 use std::process::Command;
 
-// THINGS TO KNOW / THINGS TO DO.
-
 type Links = BTreeSet<String>;
 
 #[derive(Deserialize, Debug)]

@@ -20,3 +20,7 @@
   [& spec]
   (def name (labelise spec))
   (collector/push :ensure doer (make-ensure-resource)))
+
+(def notes
+  ["The misc doer is a placeholder for what Gurp considers \"OS primitives\"
+    but which are not big or complex enough to warrant their own doer"])

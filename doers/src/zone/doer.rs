@@ -17,9 +17,6 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 use std::{env, fs};
 
-// THINGS TO KNOW / THINGS TO DO.
-// Creates and removes zones. Doesn't modify existing ones. Only supports some resources.
-
 const ZONEADM_FIELDS: usize = 8;
 
 fn current_zone_list() -> anyhow::Result<ZoneadmZones> {

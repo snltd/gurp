@@ -32,3 +32,12 @@
   "Given a directory path, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
+
+(def notes
+  ["Directories are created/removed in the order of a natural sort."
+   "Directories are created 'mkdir -p' style, but only the mode and owner of
+    the specified directory are managed by Gurp. Any directories 'filled in'
+    to get to the target path will have their ownership and mode dictated by the
+    Gurp process and its umask."
+   "Removing a directory removes all its contents, but does not remove any
+    empty ancestors."])

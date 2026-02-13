@@ -22,3 +22,9 @@
   "Given a symlink path, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
+
+(def notes
+  ["If the :source doesn't exist, you get an error."
+   "Files are ensured before links, so you can make a file and link to it."
+   "If the link exists and points to the wrong file, it will be removed and
+    re-created, and if it exists but is not a link, that's an error."])

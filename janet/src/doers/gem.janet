@@ -30,3 +30,9 @@
   "Given a gem name and spec, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
+
+(def notes
+  ["Tries to minimise the calls to `gem install` by grouping together installs
+    with similar parameters"
+   "Only version numbers are supported, so `latest` won't work."
+   "`gem/remove` takes no options, so removes all versions of the given gem."])

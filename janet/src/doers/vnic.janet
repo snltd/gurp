@@ -27,3 +27,8 @@
   "Given a VNIC name ans spec, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
+
+(def notes
+  ["VNICs get a random MAC address."
+   "If a VNIC exists but has a different VLAN tag or underlying physical NIC to
+    the specification, Gurp will try to recreate it."])
