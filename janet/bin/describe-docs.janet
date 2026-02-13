@@ -8,6 +8,7 @@
 # Pass "-C" to not have ANSI colouring.
 # 
 (use ../src/doers)
+(use ../src/commands)
 (use ../src/command-helpers)
 (use ../src/doer-docs/describe-docs)
 
@@ -15,4 +16,4 @@
   [_cmd & args]
   (print
     ((comp (if (= (first args) "-C") strip-ansi identity)
-           help-for-doer) (last args))))
+           help-for) (last args))))
