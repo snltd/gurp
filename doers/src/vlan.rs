@@ -4,9 +4,6 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-// THINGS TO KNOW / THINGS TO DO.
-// You have to specify the VLAN link name; we don't support automatic naming
-
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]

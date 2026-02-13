@@ -11,14 +11,9 @@ use util::svcs;
 
 const NAT_CONF_FILE: &str = "/etc/ipf/ipnat.conf";
 
-// THINGS TO KNOW
 // We build a single big set of NAT rules from multiple sources, and apply it, clearing out whatever
 // was already there. We also write the same rules to /etc/ipf/ipnat.conf. I don't see another
 // way to assert persistent state.
-// Every run asserts the live and persistent state of the NAT table.
-// We don't support any flags (-R, -r etc) to ipnat.
-// It's too tricky to support local-zone-from-global-zone NAT rules, so we don't.
-// ipnat/remove removes ALL NAT rules
 
 #[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]

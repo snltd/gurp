@@ -74,3 +74,22 @@
   "Given a file path, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
+
+(def notes
+  ["You must supply exactly one of `:content`, `:from`, `:from-url`, or
+    `:from-struct`. If you use `:from-struct` you must also supply
+    `:to-format`."
+   "The `template-out` and `indoc` macros are useful when specifying :content."
+   "`:from` takes a fully-qualified or relative path. If you use the latter,
+    Gurp assumes the file is in a ``files/` directory at the same level as the
+    directory holding the file being parsed."
+   "`:from-struct` and `:to-format` let you turn Janet values into a config
+    file. Fully supported file formats are `json`, `toml`, and `yaml`: these
+    formats can represent any valid struct. You can create INI files
+    (`:to-format \"ini\"`), but the limits of that format mean your struct
+    must be a struct of structs, each representing a section. An invalid struct
+    will cause an error."
+   "Gurp can also create key-value pairs (`:to-format \"kvp\"`). It can do this
+    from a single-level struct, or from an array. In the latter case, entries
+    are alternately keys and values. Using an array lets you create files with
+    duplicate keys, which is sometimes necessary."])

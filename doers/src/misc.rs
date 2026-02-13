@@ -5,11 +5,6 @@ use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::process::{Command, Stdio};
 
-// THINGS TO KNOW / THINGS TO DO.
-// This might be a bad idea. Hardcoded ways to do a bunch of certain things that I want to do.
-// There's no misc/remove, only misc/ensure, at least for now.
-// dispadmin only takes the scheduler class.
-
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpMiscEnsure {

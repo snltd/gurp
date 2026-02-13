@@ -21,3 +21,8 @@
   "Given a package name, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
+
+(def notes
+  ["You specify pkgs by name, so `openssl` rather than `openssl-3.3.2`. This
+    means you can't request specific versions."])
+  

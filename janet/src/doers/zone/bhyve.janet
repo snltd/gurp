@@ -45,3 +45,7 @@
                                 mandatory-props-bhyve
                                 optional-props-bhyve))
   (struct :bhyve spec-table))
+
+(def notes-bhyve
+  ["The `:boot-volume` must already exist. It is not created by this doer."
+   "You must supply exactly one of `:image-url` and `:image-path`"])

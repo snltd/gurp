@@ -37,4 +37,6 @@ None
 
 ## misc/remove
 
-There is no misc/remove.
+There is no misc/remove.## Notes
+
+- The misc doer is a placeholder for what Gurp considers "OS primitives" but which are not big or complex enough to warrant their own doer

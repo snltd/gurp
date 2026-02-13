@@ -1,6 +1,6 @@
 # svcprop
 
-Manage properties of an existing SMF service.
+Set and remove properties and property groups of an existing SMF service.
 
 ## Resource Name
 
@@ -52,3 +52,7 @@ Any valid FMRI of the service whose properties you wish to set (`:string`)
 |-------|--------|---------------|-----------|
 | `:property-groups` | `struct` | Property groups to remove |  |
 
+## Notes
+
+- If not specified, Gurp will infer the types of property values.
+- You can't change the type of an existing property group.

@@ -29,4 +29,6 @@ Service FMRI (`:string`)
 
 ## svc/remove
 
-There is no svc/remove.
+There is no svc/remove.## Notes
+
+- Because Gurp ends up shelling out to `svcs` and `svcadm`, the service name can be any valid FMRI

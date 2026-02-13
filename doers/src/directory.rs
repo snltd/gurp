@@ -8,9 +8,6 @@ use std::fs;
 use util::file;
 use util::file::{FileMetadata, NameOrId};
 
-// THINGS TO KNOW / THINGS TO DO.
-// Creating a directory is `mkdir -p` style.
-
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpDirectoryEnsure {

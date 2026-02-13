@@ -6,10 +6,6 @@ use std::fmt::Debug;
 use util::deserializer;
 use util::ip_protocols::{self, AlignIpPropArg, IpProtocolMap};
 
-// THINGS TO KNOW / THINGS TO DO.
-// You can't use the ipadm set-prop +/-
-// There is no remove resource.
-
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]

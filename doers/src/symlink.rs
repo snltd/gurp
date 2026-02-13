@@ -7,9 +7,6 @@ use std::fmt::Debug;
 use std::fs;
 use std::os::unix;
 
-// THINGS TO KNOW / THINGS TO DO.
-// Only does symbolic links.
-
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct GurpSymlinkEnsure {
     #[serde(rename = "_id")]

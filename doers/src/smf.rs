@@ -12,10 +12,6 @@ use std::time::Duration;
 use util::smf_builder::SmfDefinition;
 use util::{smf_builder, svcs, xml};
 
-// THINGS TO KNOW / THINGS TO DO.
-// This writes SMF manifest files to disk, and imports them as needed. As of now, the directory
-// is hardcoded.
-
 const STATE_TRANSITION_INTERVAL: Duration = Duration::from_secs(1);
 const STATE_TRANSITION_TIMEOUT: Duration = Duration::from_secs(60);
 

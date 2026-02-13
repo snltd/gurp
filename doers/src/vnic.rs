@@ -6,8 +6,6 @@ use serde::Deserialize;
 use std::fmt::Debug;
 use std::process::Command;
 
-// THINGS TO KNOW / THINGS TO DO.
-
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpVnicEnsure {

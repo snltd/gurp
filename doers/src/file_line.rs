@@ -7,14 +7,6 @@ use serde::Deserialize;
 use std::fs;
 use std::io::Write;
 
-// THINGS TO KNOW / THINGS TO DO.
-// File is not managed here. Use a file resource.
-// Reads the entirety of the file into memory.
-// Appended lines have a \n at the beginning and end.
-// Removing a line puts a newline on the end of the file if there wasn't one already.
-// We always read the file. There's no caching.
-// Files are not backed up.
-
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]

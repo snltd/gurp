@@ -75,7 +75,6 @@
   [note]
   (string (join-lines (lay-out-help "" note 2 (term-width))) "\n\n"))
 
-
 (defn help-for-doer
   "Returns a multiline string showing keys supported by the given doer"
   [doer]

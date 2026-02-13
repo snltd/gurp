@@ -7,14 +7,6 @@ use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::process::{Command, Stdio};
 
-// THINGS TO KNOW / THINGS TO DO.
-// Tries to minimise the calls to `gem install`. The only options the user can pass are `version`
-// and `source`. All gems with both of these unset are installed in a single shot. Gems with either
-// of these values are handled individually. Only version numbers are supported, so `latest` won't
-// work.
-//
-// `gem/remove` takes no options, so removes all versions of the given gem.
-
 type GemName = String;
 type InstalledGems = HashMap<Utf8PathBuf, Vec<InstalledGem>>;
 type EnsureList = Vec<GurpGemEnsure>;

@@ -6,11 +6,6 @@ use serde::Deserialize;
 use std::process::Command;
 use std::sync::LazyLock;
 
-// THINGS TO KNOW / THINGS TO DO.
-// You specify pkgs by name, so `openssl` rather than `openssl-3.3.2`. This means you
-// can't request specific versions. I might change this, but I never pin to
-// version, and I'm immediately only solving the problems I actually have.
-
 static CURRENT_PKG_OUTPUT: LazyLock<String> =
     LazyLock::new(|| pkgin_output().expect("Could not get pkgin list"));
 

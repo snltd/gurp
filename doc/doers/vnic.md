@@ -47,3 +47,7 @@ None
 
 None
 
+## Notes
+
+- VNICs get a random MAC address.
+- If a VNIC exists but has a different VLAN tag or underlying physical NIC to the specification, Gurp will try to recreate it.

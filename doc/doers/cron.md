@@ -58,3 +58,8 @@ Convenient name for job. (`:string`)
 
 None
 
+## Notes
+
+- Like other config management tools, Gurp precedes managed lines in the crontab with an identifying string. That string contains the resource ID which, includes the role, resource-type and identifying-name.
+- As illumos doesn't have the kind of cron.d support that some other OSes have, Gurp has to use the user's proper crontab, which it does by shelling out to `/bin/crontab`. This gives you crontab's standard value checking: Gurp doesn't check any values itself.
+- The doer does not include any kind of user or `cron.allow` management, so you'll have to use other methods to make sure your users are allowed to run the jobs you define.

@@ -27,3 +27,6 @@
   (def spec-struct (checked-spec (make-spec-struct :name name ;spec) mandatory-props-dependency optional-props-dependency))
   (def all-specs (spec-with-defaults defaults-dependency spec-struct))
   (struct :dependencies all-specs))
+
+(def notes-dependency
+  ["`network/physical` and `filesystem/local` are hard-coded dependencies."])

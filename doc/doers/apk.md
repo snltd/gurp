@@ -34,3 +34,7 @@ None
 
 None
 
+## Notes
+
+- Only adds and removes packages. You cannot specify or pin package versions.
+- The package database is refreshed prior to an install

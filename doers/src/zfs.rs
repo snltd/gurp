@@ -10,9 +10,6 @@ use std::process::{Command, Stdio};
 use std::sync::LazyLock;
 use util::deserializer::property_deserializer;
 
-// THINGS TO KNOW / THINGS TO DO.
-// Destroy is recursive!
-
 static ZFS_BIN_PATH: LazyLock<&'static str> = LazyLock::new(zfs_bin);
 
 // We used to cache the ZFS output. Don't do that!

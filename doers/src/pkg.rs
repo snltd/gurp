@@ -6,18 +6,6 @@ use serde::Deserialize;
 use std::process::Command;
 use std::sync::LazyLock;
 
-// THINGS TO KNOW / THINGS TO DO.
-// You specify pkgs by name, so `ooce/editor/helix` rather than
-// `pkg://sysdef/ooce/editor/helix@25.1-151052.0:20250108t110907Z`. This means you
-// can't request specific versions. I might change this, but I never pin to
-// version, and I'm immediately only solving the problems I actually have.
-// You need the full path as well: it isn't remotely smart and can't understand that "helix"
-// is "ooce/editor/helix".
-
-// Operating only on name makes the doer run faster, because it knows exactly
-// what can and cannot be done, so runs `pkg(1)` in the most efficient way
-// possible. `pkg(1)` is rather a slow tool.
-
 static CURRENT_PKG_OUTPUT: LazyLock<String> =
     LazyLock::new(|| pkg_output().expect("Could not get pkg list"));
 

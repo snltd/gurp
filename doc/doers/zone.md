@@ -104,11 +104,16 @@ None
 
 None
 
+## Notes
+
+- `kvm` and `illumos` zones are not supported.
+- You cannot modify an existing zone in-place.
+- `recreate` must be an integer, and it is the n:1 odds of a zone being destroyed and recreated. So, `0` means "never recreate this zone", and `1` means "recreate this zone on every run". You can set the number as high as you like, so if you run Gurp every 15 minutes and want your zone rebuilt from scratch about once a week, you'd use `:recreate 672`.
 # zone/attr
 
 Set attributes on a zone being created by the zone doer.
 
-## Sub-Resource Name
+## Name
 
 Attribute name (`:string`)
 
@@ -135,7 +140,7 @@ Attribute name (`:string`)
 
 Describe a bhyve zone inside a zone resource.
 
-## Sub-Resource Name
+## Name
 
 This sub-resource does not accept a name
 
@@ -182,12 +187,16 @@ This sub-resource does not accept a name
 | `:image-url` | `string` | URL of remote install image |  |
 | `:wait-for-boot` | `boolean` | Wait for boot, or detach immediately | `true` |
 
+## Notes
+
+- The `:boot-volume` must already exist. It is not created by this doer.
+- You must supply exactly one of `:image-url` and `:image-path`
 
 # zone/bootstrap
 
 Tells gurp how to bootstrap a newly created zone.
 
-## Sub-Resource Name
+## Name
 
 This sub-resource does not accept a name
 
@@ -214,12 +223,15 @@ None
 | `:hostname` | `string` | hostname of client being bootstrapped |  |
 | `:server` | `string` | hostname/IP address of server to install from |  |
 
+## Notes
+
+- You must supply exactly one of `:file` and `:server`.
 
 # zone/fs
 
 Define a filesystem mapping when creating a zone.
 
-## Sub-Resource Name
+## Name
 
 The mountpoint inside the zone (`:string`)
 
@@ -249,7 +261,7 @@ The mountpoint inside the zone (`:string`)
 
 Describe network configuration of a zone resource.
 
-## Sub-Resource Name
+## Name
 
 Zone VNIC, which may already exist (`:string`)
 
@@ -280,7 +292,7 @@ Zone VNIC, which may already exist (`:string`)
 
 Define a resource control when creating a zone.
 
-## Sub-Resource Name
+## Name
 
 RCTL name (`:string`)
 

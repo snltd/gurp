@@ -7,9 +7,6 @@ use serde::Deserialize;
 use std::process::Command;
 use std::sync::LazyLock;
 
-// THINGS TO KNOW / THINGS TO DO.
-// As simple a possible. Adds and remove APK packages in LX zones
-
 static CURRENT_APK_OUTPUT: LazyLock<String> =
     LazyLock::new(|| apk_output().expect("Could not get apk list"));
 

@@ -9,8 +9,6 @@ use std::process::Command;
 use util::deserializer::option_property_deserializer;
 use util::ip_protocols::{self, AlignIpPropArg};
 
-// THINGS TO KNOW / THINGS TO DO.
-
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
