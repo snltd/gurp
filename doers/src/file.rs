@@ -3,7 +3,7 @@ use blake3::Hash;
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_FILES};
 use common::info;
-use common::types::{ApplyOpts, ApplySummary, FileMetadata};
+use common::types::{ApplyOpts, ApplySummary};
 use regex::Regex;
 use serde::Deserialize;
 use serde_json::Value;
@@ -12,7 +12,8 @@ use std::fmt::Debug;
 use std::fs;
 use std::io::Write;
 use std::time::{SystemTime, UNIX_EPOCH};
-use util::{file, http};
+use util::file::{self, FileMetadata, UserOrGroup};
+use util::http;
 
 // THINGS TO KNOW
 //
@@ -38,10 +39,10 @@ pub struct DesiredFileState {
     pub from_struct: Option<Value>,
     pub from_url: Option<String>,
     pub from: Option<Utf8PathBuf>,
-    pub group: String,
+    pub group: UserOrGroup,
     pub ignore_pattern: Option<String>,
     pub mode: String,
-    pub owner: String,
+    pub owner: UserOrGroup,
     pub to_format: Option<String>,
     pub with_checksum: Option<String>,
     pub remote_content: RefCell<Option<Vec<u8>>>,
@@ -313,8 +314,8 @@ impl GurpFileEnsure {
                 fs::rename(&self.path, backup_target)?;
                 file::ensure_metadata(
                     FileMetadata {
-                        group: "root",
-                        owner: "root",
+                        group: &UserOrGroup::Name("root".to_owned()),
+                        owner: &UserOrGroup::Name("root".to_owned()),
                         mode: "0o0400",
                         path: backup_target,
                         changes: 1,
@@ -472,10 +473,10 @@ mod test {
                     from_struct: None,
                     from_url: None,
                     from: None,
-                    group: "root".to_owned(),
                     ignore_pattern: None,
                     mode: "0600".to_owned(),
-                    owner: "dataperson".to_owned(),
+                    group: UserOrGroup::Name("root".to_owned()),
+                    owner: UserOrGroup::Name("dataperson".to_owned()),
                     to_format: None,
                     with_checksum: None,
                     remote_content: RefCell::new(None),
@@ -498,10 +499,10 @@ mod test {
                     from_struct: None,
                     from_url: Some("https://example.com/files/config".to_owned()),
                     with_checksum: Some("0123456789abcdef".to_owned()),
-                    group: "root".to_owned(),
                     ignore_pattern: None,
                     mode: "0640".to_owned(),
-                    owner: "gibbus".to_owned(),
+                    owner: UserOrGroup::Name("gibbus".to_owned()),
+                    group: UserOrGroup::Name("root".to_owned()),
                     to_format: None,
                     remote_content: RefCell::new(None),
                 }
@@ -691,9 +692,9 @@ mod test {
             id: "IRRELEVANT".to_owned(),
             path: temp_file.clone(),
             desired_state: DesiredFileState {
-                group: my_group(),
                 mode: "0755".to_owned(),
-                owner: my_user(),
+                group: UserOrGroup::Name(my_group()),
+                owner: UserOrGroup::Name(my_user()),
                 content: None,
                 ignore_pattern: None,
                 from: Some(fixture("file/binary-file")),
@@ -716,9 +717,9 @@ mod test {
             id: "IRRELEVANT".to_owned(),
             path: Utf8PathBuf::from("/does/not/matter"),
             desired_state: DesiredFileState {
-                group: my_group(),
+                group: UserOrGroup::Name(my_group()),
+                owner: UserOrGroup::Name(my_user()),
                 mode: "2755".to_owned(),
-                owner: my_user(),
                 content: None,
                 ignore_pattern: None,
                 from: Some(fixture("file/binary-file")),
@@ -737,9 +738,9 @@ mod test {
             id: "IRRELEVANT".to_owned(),
             path: Utf8PathBuf::from("/does/not/matter"),
             desired_state: DesiredFileState {
-                group: my_group(),
+                group: UserOrGroup::Name(my_group()),
+                owner: UserOrGroup::Name(my_user()),
                 mode: "2755".to_owned(),
-                owner: my_user(),
                 content: Some("content".to_owned()),
                 ignore_pattern: None,
                 from: Some(fixture("file/binary-file")),
@@ -758,9 +759,9 @@ mod test {
             id: "IRRELEVANT".to_owned(),
             path: Utf8PathBuf::from("/does/not/matter"),
             desired_state: DesiredFileState {
-                group: my_group(),
+                group: UserOrGroup::Name(my_group()),
+                owner: UserOrGroup::Name(my_user()),
                 mode: "2755".to_owned(),
-                owner: my_user(),
                 content: None,
                 ignore_pattern: None,
                 from: None,
@@ -787,9 +788,9 @@ mod test {
             id: "IRRELEVANT".to_owned(),
             path: temp_file.clone(),
             desired_state: DesiredFileState {
-                group: my_group(),
+                group: UserOrGroup::Name(my_group()),
+                owner: UserOrGroup::Name(my_user()),
                 mode: "2755".to_owned(),
-                owner: my_user(),
                 content: None,
                 ignore_pattern: None,
                 from: Some(fixture("file/binary-file")),

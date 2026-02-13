@@ -65,7 +65,7 @@ pub fn deserialized_example<T: serde::de::DeserializeOwned>(relative_path: &str)
 
     let example_json = janet2json(&example_code);
     serde_json::from_str(&example_json)
-        .unwrap_or_else(|_| panic!("could not deserialize json: {}", example_json))
+        .unwrap_or_else(|e| panic!("could not deserialize json: {}\nError: {}", example_json, e))
 }
 
 fn repo_root() -> Utf8PathBuf {

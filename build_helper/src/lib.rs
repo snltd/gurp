@@ -17,6 +17,11 @@ impl ImageHelper {
     pub fn new(src_files: Vec<&str>, img_name: &str) -> Self {
         let repo_root = ImageHelper::repo_root();
 
+        // Emit rerun directives for all source files
+        for src_file in &src_files {
+            println!("cargo:rerun-if-changed=../janet/src/{}", src_file);
+        }
+
         Self {
             client: ImageHelper::client(),
             src_files: src_files
@@ -29,6 +34,25 @@ impl ImageHelper {
     }
 
     pub fn compile_to_file(&self) -> &Self {
+        // Check if we need to rebuild
+        if self.img_file.exists() {
+            // let current_hash = self.image_hash();
+            let source_hash = self.source_hash();
+
+            // Store the source hash we built from
+            let hash_file = self.img_file.with_extension("jimage.hash");
+            if hash_file.exists() {
+                let stored_hash: Hash = fs::read_to_string(&hash_file)
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or_else(|| Hash::from([0u8; 32]));
+
+                if stored_hash == source_hash {
+                    return self;
+                }
+            }
+        }
+
         let mut janet_instructions =
             "(def build-env (make-env (fiber/getenv (fiber/root))))\n".to_owned();
 
@@ -63,6 +87,9 @@ impl ImageHelper {
                 .unwrap_or_else(|_| panic!("Failed to write jimage file {}", self.img_file));
         }
 
+        let hash_file = self.img_file.with_extension("jimage.hash");
+        fs::write(&hash_file, self.source_hash().to_string()).ok();
+
         self
     }
 
@@ -94,6 +121,16 @@ impl ImageHelper {
         let mut hasher = blake3::Hasher::new();
         let mut fh = fs::File::open(&self.img_file).expect("cannot read existing lib file");
         std::io::copy(&mut fh, &mut hasher).expect("cannot read existing lib file into buffer");
+        hasher.finalize()
+    }
+
+    fn source_hash(&self) -> Hash {
+        let mut hasher = blake3::Hasher::new();
+        for src_file in &self.src_files {
+            let mut fh =
+                fs::File::open(src_file).expect(&format!("cannot read source file {}", src_file));
+            std::io::copy(&mut fh, &mut hasher).expect("cannot hash source file");
+        }
         hasher.finalize()
     }
 }

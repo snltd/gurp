@@ -59,14 +59,5 @@ impl AddAssign for ApplySummary {
 
 pub type JsonConfig = String;
 
-#[derive(Debug)]
-pub struct FileMetadata<'a> {
-    pub group: &'a str,
-    pub mode: &'a str,
-    pub owner: &'a str,
-    pub path: &'a Utf8PathBuf,
-    pub changes: u32,
-}
-
 pub type VlanID = u16;
 pub type ChangedIds = BTreeSet<String>;

@@ -1,11 +1,28 @@
 use crate::users_and_groups;
 use anyhow::bail;
 use camino::Utf8PathBuf;
-use common::types::{ApplyOpts, ApplySummary, FileMetadata};
+use common::types::{ApplyOpts, ApplySummary};
 use nix::sys::stat::{self, FileStat};
 use nix::unistd::{Gid, Uid};
+use serde::Deserialize;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
+
+#[derive(Debug)]
+pub struct FileMetadata<'a> {
+    pub group: &'a UserOrGroup,
+    pub mode: &'a str,
+    pub owner: &'a UserOrGroup,
+    pub path: &'a Utf8PathBuf,
+    pub changes: u32,
+}
+
+#[derive(Deserialize, Clone, Debug, PartialEq)]
+#[serde(untagged)]
+pub enum UserOrGroup {
+    Name(String),
+    Id(u32),
+}
 
 pub fn ensure_metadata(spec: FileMetadata, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     let metadata = metadata(spec.path)?;
@@ -36,7 +53,7 @@ fn metadata(path: &Utf8PathBuf) -> anyhow::Result<FileStat> {
     Ok(metadata)
 }
 
-fn new_uid(desired_owner: &str, metadata: &FileStat) -> anyhow::Result<Option<Uid>> {
+fn new_uid(desired_owner: &UserOrGroup, metadata: &FileStat) -> anyhow::Result<Option<Uid>> {
     let current_uid: Uid = metadata.st_uid.into();
     let desired_uid = users_and_groups::owner_from(desired_owner)?;
 
@@ -48,7 +65,7 @@ fn new_uid(desired_owner: &str, metadata: &FileStat) -> anyhow::Result<Option<Ui
     }
 }
 
-fn new_gid(desired_group: &str, metadata: &FileStat) -> anyhow::Result<Option<Gid>> {
+fn new_gid(desired_group: &UserOrGroup, metadata: &FileStat) -> anyhow::Result<Option<Gid>> {
     let current_gid: Gid = metadata.st_gid.into();
     let desired_gid = users_and_groups::group_from(desired_group)?;
 
