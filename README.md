@@ -52,7 +52,7 @@ If you want to know more:
 - [An introductory walkthrough of Gurp and Janet](https://tech.id264.net/post/2025-09-01-lets-gurp).
 - [Documentation for all the "doers"](doc/doers) - the things that do the
   things.
-- [An overview of the built-in Janet helpers](doc/janet_helpers.md) that make
+- [An overview of the built-in Janet DSL](doc/dsl.md) that make
   life easier.
 - [Examples of real configurations](https://github.com/snltd/merp/tree/main/tests/config/roles)
   taken from my own systems and used in acceptance tests.

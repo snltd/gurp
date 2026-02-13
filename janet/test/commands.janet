@@ -1,6 +1,6 @@
 (use judge)
 (use ../src/gurp)
-(use ../src/command-helpers)
+(use ../src/command-lib)
 
 (deftest list-doers
   (test

@@ -9,7 +9,7 @@
 # 
 (use ../src/doers)
 (use ../src/commands)
-(use ../src/command-helpers)
+(use ../src/command-lib)
 (use ../src/doer-docs/describe-docs)
 
 (defn main

@@ -145,7 +145,7 @@ Describe a bhyve zone inside a zone resource.
 This sub-resource does not accept a name
 
 ```janet
-(use ../../src/user-helpers)
+(use ../../src/dsl)
 
 (zone/bhyve
   :vcpus 4

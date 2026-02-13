@@ -1,4 +1,4 @@
-(use ../user-helpers)
+(use ../dsl)
 
 (defn a/b
   "Join the given words with slashes"

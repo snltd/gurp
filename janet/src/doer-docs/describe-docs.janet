@@ -3,8 +3,8 @@
 # 
 (use ./lib)
 (use ./formatting)
-(use ../command-helpers)
-(import ../user-helpers :prefix "" :only [compact])
+(use ../command-lib)
+(import ../dsl :prefix "" :only [compact])
 (import ../doers :prefix "")
 
 (defn- field-width

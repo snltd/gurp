@@ -4,9 +4,9 @@
 # not built into the Gurp lib.
 # 
 (use ./lib)
-(use ./markdown-helpers)
-(use ../../test/doers/_helpers)
-(import ../user-helpers :prefix "" :only [pathcat])
+(use ./markdown-dsl)
+(use ../../test/doers/test-lib)
+(import ../dsl :prefix "" :only [pathcat])
 
 (def doc-dir (pathcat (repo-root) "/doc/doers"))
 
@@ -141,8 +141,8 @@
       (markdown-for-sub-resources arg))))
 
 (defn generate-all-docs
-  "For each doer, create a doer.md file under /doc/doers. Each markdown file"
-  "documents the core doer and any sub-resource helpers"
+  "For each doer, create a doer.md file under /doc/doers. Each markdown file
+  documents the core doer and any sub-resources"
   []
   (if-not (os/stat doc-dir)
     (os/mkdir doc-dir))

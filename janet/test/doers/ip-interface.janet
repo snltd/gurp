@@ -1,5 +1,5 @@
 (use judge)
-(use ./_helpers)
+(use ./test-lib)
 (use ../../src/collector)
 (import ../../src/doers/ip-interface)
 

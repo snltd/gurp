@@ -1,5 +1,5 @@
 (use judge)
-(use ../src/user-helpers)
+(use ../src/dsl)
 
 (deftest labelise
   (test (labelise "/some/file" 1 2 3) "_some_file-1-2-3")

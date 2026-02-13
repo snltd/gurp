@@ -5,7 +5,7 @@
 # 
 (use ../src/doers)
 (use ../src/commands)
-(use ../src/command-helpers)
+(use ../src/command-lib)
 
 (defn main [_cmd & args]
   (print

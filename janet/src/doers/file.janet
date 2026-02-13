@@ -1,5 +1,5 @@
 (use ./lib)
-(use ../user-helpers)
+(use ../dsl)
 (import ../collector)
 
 (def client-api-version "v1")
