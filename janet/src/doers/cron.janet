@@ -46,3 +46,8 @@
   "Given a cron job name, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
+
+(def notes
+  ["Jobs are added and removed via `crontab(1)`, so no invalid entries should
+  end up being applied. Gurp-managed cron jobs are prefixed with a comment
+  line"])

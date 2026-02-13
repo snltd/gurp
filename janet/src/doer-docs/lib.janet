@@ -33,8 +33,8 @@
   "Return array of all doer names"
   []
   (seq [doer :in (sorted (os/dir (doer-root)))
-             :when (string/has-suffix? ".janet" doer)
-             :unless (= "lib.janet" doer)]
+        :when (string/has-suffix? ".janet" doer)
+        :unless (= "lib.janet" doer)]
     (string/replace ".janet" "" doer)))
 
 (defn doer-lookup
@@ -49,8 +49,11 @@
 (defn subresource-lookup
   "As doer-lookup but for subresources"
   [doer subresource binding]
-  (def lookup (symbol (string doer "/" binding "-" subresource)))
-  (eval lookup))
+  (try
+    (do
+      (def lookup (symbol (string doer "/" binding "-" subresource)))
+      (eval lookup))
+    ([_] nil)))
 
 (defn squeeze
   "Squash repeated whitespace into a single space"

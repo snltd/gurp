@@ -21,5 +21,5 @@
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
 
-(def limitations
+(def notes
   ["Only adds and removes packages. You cannot specify or pin package versions."])

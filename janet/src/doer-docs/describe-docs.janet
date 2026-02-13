@@ -71,6 +71,10 @@
               (- leader-width 3)
               (term-width))))))))
 
+(defn note
+  [note]
+  (string (join-lines (lay-out-help "" note 2 (term-width))) "\n\n"))
+
 
 (defn help-for-doer
   "Returns a multiline string showing keys supported by the given doer"
@@ -111,7 +115,9 @@
     (bold "Optional properties")
     "\n"
     (format-properties (doer-lookup doer :optional-props-remove))
-    "\n"))
+    "\n"
+    (if-let [notes (doer-lookup doer :notes)]
+      (string "\n" (bold "Notes") "\n" (splice (map note notes))))))
 
 (defn help-for-sub-resource
   "Returns a multiline string showing keys supported by the given sub-resource"
@@ -141,4 +147,6 @@
     (bold "Optional properties")
     "\n"
     (format-properties (subresource-lookup doer subresource :optional-props))
-    "\n"))
+    "\n"
+    (if-let [notes (subresource-lookup doer subresource :notes)]
+      (string "\n" (bold "Notes") "\n" (splice (map note notes))))))

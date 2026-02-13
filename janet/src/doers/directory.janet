@@ -33,11 +33,12 @@
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
 
-(def limitations
-  ["Directories are managed in the order of a natural sort."
+(def notes
+  ["Directories are created/removed in the order of a natural sort."
 
    "Directories are created 'mkdir -p' style, but only the mode and owner of
-   the specified directory are managed by Gurp. And directories 'filled in'
-   will have their ownership and mode dictated by the Gurp process and its umask."
+   the specified directory are managed by Gurp. Any directories 'filled in'
+   to get to the target path will have their ownership and mode dictated by the
+  Gurp process and its umask."
 
    "Removing a directory also removes all its contents."])
