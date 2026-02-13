@@ -9,12 +9,12 @@
 (def doers (doers))
 
 (defn help-for
-  "Returns a multiline string describing a doer or subresource. Called by Gurp's
+  "Returns a multiline string describing a doer or helpers. Called by Gurp's
   'describe' command"
   [object]
   (try
       (if (string/find "/" object)
-        (help-for-sub-resource (splice (string/split "/" object 0 2)))
+        (help-for-helpers (splice (string/split "/" object 0 2)))
         (help-for-doer object))
     ([_e]
       (string "No help for '" object "'"))))

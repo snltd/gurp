@@ -16,7 +16,7 @@ Options:
 The `describe` command is Gurp's online documentation. Its output is generated
 from the doer definition files, so it is always up-to-date and correct.
 
-You can `describe` any doer (e.g. `zone`) or sub-resource (e.g. `zone/bhyve`)
+You can `describe` any doer (e.g. `zone`) or helper (e.g. `zone/bhyve`)
 
 ```
 $ gurp describe -C zone

@@ -118,16 +118,16 @@
     (if-let [notes (doer-lookup doer :notes)]
       (string "\n" (bold "Notes") "\n" (splice (map note notes))))))
 
-(defn help-for-sub-resource
-  "Returns a multiline string showing keys supported by the given sub-resource"
-  [doer subresource]
+(defn help-for-helpers
+  "Returns a multiline string showing keys supported by the given helpers"
+  [doer helpers]
 
   (string
-    (bold-underline (a/b doer subresource))
+    (bold-underline (a/b doer helpers))
     "\n"
     (join-lines (lay-out-help
                   ""
-                  (subresource-lookup doer subresource :description)
+                  (helpers-lookup doer helpers :description)
                   2
                   (term-width)))
     "\n"
@@ -135,17 +135,17 @@
     (string "  "
             (bold "name")
             "  [:string]  "
-            (subresource-lookup doer subresource :name-is))
+            (helpers-lookup doer helpers :name-is))
     "\n"
     "\n"
     (bold "Mandatory properties")
     "\n"
-    (format-properties (subresource-lookup doer subresource :mandatory-props))
+    (format-properties (helpers-lookup doer helpers :mandatory-props))
     "\n"
     "\n"
     (bold "Optional properties")
     "\n"
-    (format-properties (subresource-lookup doer subresource :optional-props))
+    (format-properties (helpers-lookup doer helpers :optional-props))
     "\n"
-    (if-let [notes (subresource-lookup doer subresource :notes)]
+    (if-let [notes (helpers-lookup doer helpers :notes)]
       (string "\n" (bold "Notes") "\n" (splice (map note notes))))))

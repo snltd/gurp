@@ -12,7 +12,7 @@
     (strip-ansi (help-for "directory"))
     @"directory\n  Create and remove directories. Parents are created like mkdir -p, but with\n  the owner/group/mode of the gurp process. Removal always removes directory\n  contents.\n\ndirectory/ensure\n  name  [:string]  Fully qualified path to directory\n\nMandatory properties\n  owner [:string :number]  The username or UID of the user who owns\n                           this directory\n  group [:string :number]  The group name or GID of the for this\n                           directory\n  mode  [:string]          Permissions, written as a four-digit octal\n\nOptional properties\n  None\n\ndirectory/remove\n\nMandatory properties\n  None\n\nOptional properties\n  None\n\nNotes\n  Directories are created/removed in the order of a natural sort.\n\n  Directories are created 'mkdir -p' style, but only the mode and owner of the\n  specified directory are managed by Gurp. Any directories 'filled in' to get\n  to the target path will have their ownership and mode dictated by the Gurp\n  process and its umask.\n\n  Removing a directory removes all its contents, but does not remove any empty\n  ancestors.\n\n"))
 
-(deftest help-for-sub-resource
+(deftest help-for-helpers
   (test
     (strip-ansi (help-for "zone/network"))
     @"zone/network\n  Describe network configuration of a zone resource.\n\n  name  [:string]  Zone VNIC, which may already exist\n\nMandatory properties\n  physical [:string]  Zone VNIC. This is the name of the resource, and\n                      is not specified with a key\n\nOptional properties\n  global-nic      [:string]  Physical NIC on which to create zone VNIC\n  allowed-address [:string]  IP address, with /netmask\n  defrouter       [:string]  IP address of default router\n"))

@@ -46,12 +46,12 @@
       (eval lookup))
     ([_] nil)))
 
-(defn subresource-lookup
-  "As doer-lookup but for subresources"
-  [doer subresource binding]
+(defn helpers-lookup
+  "As doer-lookup but for helperss"
+  [doer helpers binding]
   (try
     (do
-      (def lookup (symbol (string doer "/" binding "-" subresource)))
+      (def lookup (symbol (string doer "/" binding "-" helpers)))
       (eval lookup))
     ([_] nil)))
 
