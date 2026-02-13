@@ -1,6 +1,6 @@
 use camino::Utf8PathBuf;
 use common::types::ApplyOpts;
-use embed::helpers;
+use embed::client;
 use janetrs::TaggedJanet;
 use nix::unistd::{Group, User, getgid, getuid};
 use std::env;
@@ -39,7 +39,7 @@ pub fn my_group() -> String {
 }
 
 pub fn janet2json(janet_defn: &str) -> String {
-    let client = helpers::gurp_client().expect("janet2json failed to create gurp client");
+    let client = client::gurp().expect("janet2json failed to create gurp client");
     let janet_instructions = format!("(to-json {janet_defn})");
 
     let ret = match client.run(&janet_instructions) {

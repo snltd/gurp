@@ -1,6 +1,6 @@
-use embed::helpers;
+use embed::runner;
 use std::process::ExitCode;
 
 pub fn run() -> ExitCode {
-    helpers::run_command_and_exit("(repl)")
+    runner::run_command_and_exit("(repl)")
 }
