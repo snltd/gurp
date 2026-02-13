@@ -1,4 +1,4 @@
-use crate::helpers;
+use crate::client;
 use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{CLIENT_API_VERSION, SERVER_PORT};
@@ -116,7 +116,7 @@ pub fn local_janet_to_janet(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow
 
 // Get a string by compiling a snippet of Janet
 pub fn raw_janet_to_json(janet_snippet: &str, opts: &ApplyOpts) -> anyhow::Result<JsonConfig> {
-    let client = helpers::gurp_client()?;
+    let client = client::gurp()?;
     let cwd = env::current_dir()?.to_string_lossy().to_string();
 
     let destroyer = if opts.destroy {
@@ -163,7 +163,7 @@ pub fn local_janet(
         .parent()
         .context("cannot get parent of config file")?;
 
-    let client = helpers::gurp_client()?;
+    let client = client::gurp()?;
 
     let destroyer = if opts.destroy {
         "(setdyn :destroy-everything-you-touch true)"
@@ -205,7 +205,7 @@ pub fn jimage_to_json(
     server: Option<&str>,
     opts: &ApplyOpts,
 ) -> anyhow::Result<JsonConfig> {
-    let mut client = helpers::gurp_client()?;
+    let mut client = client::gurp()?;
     let jstr = JanetString::new(raw_image);
     let janet_val = Janet::string(jstr);
     client.add_def(DefOptions::new("*user-image*", janet_val));
@@ -260,7 +260,7 @@ pub fn local_janet_to_jimage(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyho
 
     let host_file = host_file.canonicalize_utf8()?;
     let host_config_dir = host_file.parent().context("cannot get host config dir")?;
-    let client = helpers::gurp_client()?;
+    let client = client::gurp()?;
 
     let janet_instructions = indoc::formatdoc! { r#"
             (def build-env (make-env (fiber/getenv (fiber/root))))
