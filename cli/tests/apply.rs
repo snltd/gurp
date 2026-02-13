@@ -15,7 +15,7 @@ mod test {
             ));
     }
 
-    // #[test]
+    #[test]
     #[ignore]
     fn test_apply_missing_file() {
         cargo_bin_cmd!("gurp")
@@ -24,8 +24,8 @@ mod test {
             .arg("/no/such/file.janet")
             .assert()
             .failure()
-            .stdout(predicate::str::ends_with(
-                "Cannot find host config file at /no/such/file.janet\n",
+            .stdout(predicate::str::contains(
+                "commands::apply::init: config file not found: /no/such/file.janet",
             ));
     }
 
