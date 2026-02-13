@@ -39,6 +39,7 @@ Items marked [*] are breaking changes.
 - Changed syntax of `ip-address/ensure`, `ip-properties/ensure`, and
   `ip-interface/ensure` to make them all consistent.
 - Doer documentation is machine-generated from definition files.
+- `file` and `directory` doers now accept numeric IDs for `:owner` and `:group`.
 
 ### Internals
 
