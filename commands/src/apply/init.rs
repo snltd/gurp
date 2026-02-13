@@ -9,31 +9,54 @@ use std::process::ExitCode;
 use std::time::Instant;
 
 pub fn run(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> ExitCode {
-    let lock = ApplyLock::from(APPLY_LOCKFILE);
-
-    match lock.is_locked() {
-        Ok(false) => (),
-        Ok(true) => {
-            tracing::info!("execution blocked by lockfile");
-            return ExitCode::FAILURE; // is that a fail?
-        }
-        Err(e) => {
-            tracing::error!("error checking lockfile: {e}");
-            return ExitCode::FAILURE;
-        }
+    if let Some(file) = host_file
+        && !file.exists()
+    {
+        tracing::error!("config file not found: {file}");
+        return ExitCode::FAILURE;
     }
 
-    if let Err(e) = lock.create() {
-        tracing::warn!("could not create lock file at {}: {e}", lock.path);
+    let lock = if opts.no_lock || opts.exec.is_some() {
+        None
+    } else {
+        Some(ApplyLock::from(APPLY_LOCKFILE))
+    };
+
+    if let Some(lock) = &lock {
+        match lock.is_locked() {
+            Ok(false) => (),
+            Ok(true) => {
+                tracing::info!("execution blocked by lockfile");
+                return ExitCode::FAILURE; // is that a fail?
+            }
+            Err(e) => {
+                tracing::error!("error checking lockfile: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+
+        if let Err(e) = lock.create() {
+            tracing::warn!("could not create lock file at {}: {e}", lock.path);
+        }
     }
 
     let start_time = Instant::now();
 
-    let json_config = match compiler::compile_to_json(host_file, opts) {
-        Ok(config) => config,
-        Err(e) => {
-            tracing::error!("error compiling config: {e}");
-            return ExitCode::FAILURE;
+    let json_config = if let Some(janet_snippet) = &opts.exec {
+        match compiler::raw_janet_to_json(janet_snippet, opts) {
+            Ok(config) => config,
+            Err(e) => {
+                tracing::error!("error compiling snippet: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    } else {
+        match compiler::compile_to_json(host_file, opts) {
+            Ok(config) => config,
+            Err(e) => {
+                tracing::error!("error compiling config: {e}");
+                return ExitCode::FAILURE;
+            }
         }
     };
 
@@ -58,7 +81,9 @@ pub fn run(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> ExitCode {
         }
     }
 
-    if let Err(e) = lock.remove() {
+    if let Some(lock) = lock
+        && let Err(e) = lock.remove()
+    {
         tracing::warn!("could not remove lock file at {}: {e}", lock.path);
     }
 

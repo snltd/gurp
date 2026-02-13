@@ -52,8 +52,19 @@ enum Commands {
         /// Turn all ensures into removes. Use with extreme caution
         #[arg(long)]
         destroy_everything_you_touch: bool,
+        /// Execute a literal snippet of Janet config
+        #[arg(short = 'e', long, alias = "execute")]
+        exec: Option<String>,
+        /// Do not check for or use a lockfile
+        #[arg(long = "no-lock")]
+        no_lock: bool,
         /// Host configuration file
-        #[arg(required_unless_present = "server", conflicts_with = "server")]
+        #[arg(
+            required_unless_present = "server",
+            conflicts_with = "server",
+            required_unless_present = "exec",
+            conflicts_with = "exec"
+        )]
         host_config_file: Option<Utf8PathBuf>,
     },
     /// Compile a Janet host description
@@ -130,9 +141,11 @@ fn main() -> ExitCode {
             precompiled,
             server,
             hostname,
+            exec,
             destroy_everything_you_touch,
             image,
             as_json,
+            no_lock,
         } => {
             let opts = ApplyOpts {
                 noop,
@@ -144,12 +157,14 @@ fn main() -> ExitCode {
                 precompiled,
                 server,
                 hostname,
+                exec,
                 compile_only: false,
                 server_name: None,
                 client_name: None,
                 destroy: destroy_everything_you_touch,
                 image,
                 as_json,
+                no_lock,
             };
             commands::apply::init::run(host_config_file.as_ref(), &opts)
         }

@@ -6,7 +6,7 @@ use nix::unistd::{Gid, Uid};
 use serde::Deserialize;
 use std::fs;
 use util::file;
-use util::file::{FileMetadata, UserOrGroup};
+use util::file::{FileMetadata, NameOrId};
 
 // THINGS TO KNOW / THINGS TO DO.
 // Creating a directory is `mkdir -p` style.
@@ -25,9 +25,9 @@ pub struct GurpDirectoryEnsure {
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct DesiredDirectoryState {
-    pub group: UserOrGroup,
+    pub group: NameOrId,
     pub mode: String,
-    pub owner: UserOrGroup,
+    pub owner: NameOrId,
 }
 
 #[derive(Debug)]
@@ -109,8 +109,8 @@ mod test {
                 path: Utf8PathBuf::from("/path/to/dir_1"),
                 id: "/NO-ROLE/directory/_path_to_dir_1".to_owned(),
                 desired_state: DesiredDirectoryState {
-                    owner: UserOrGroup::Name("root".to_owned()),
-                    group: UserOrGroup::Name("root".to_owned()),
+                    owner: NameOrId::Name("root".to_owned()),
+                    group: NameOrId::Name("root".to_owned()),
                     mode: "0755".to_owned(),
                 }
             },
@@ -125,8 +125,8 @@ mod test {
                 path: Utf8PathBuf::from("/path/to/dir_2"),
                 id: "/NO-ROLE/directory/my-dir".to_owned(),
                 desired_state: DesiredDirectoryState {
-                    owner: UserOrGroup::Id(264),
-                    group: UserOrGroup::Id(14),
+                    owner: NameOrId::Id(264),
+                    group: NameOrId::Id(14),
                     mode: "0700".to_owned(),
                 }
             },
@@ -141,8 +141,8 @@ mod test {
                 path: Utf8PathBuf::from("/path/to/dir_3"),
                 id: "/NO-ROLE/directory/all-the-specs".to_owned(),
                 desired_state: DesiredDirectoryState {
-                    owner: UserOrGroup::Name("myself".to_owned()),
-                    group: UserOrGroup::Name("sysadmin".to_owned()),
+                    owner: NameOrId::Name("myself".to_owned()),
+                    group: NameOrId::Name("sysadmin".to_owned()),
                     mode: "0700".to_owned(),
                 }
             },

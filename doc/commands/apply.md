@@ -21,7 +21,9 @@ Options:
   -N, --line-no                       When dumping configs, number lines
   -M, --metrics-to <METRICS_TO>       HTTP POST InfluxDB metrics to this host
       --destroy-everything-you-touch  Turn all ensures into removes. Use with extreme caution
-  -h, --help                          Print help
+  -e, --exec <EXEC>                   Execute a literal snippet of Janet config
+      --no-lock                       Do not check for or use a lockfile
+  -h, --help
 ```
 
 `apply` aligns the state of a host with that defined host configuration. That
@@ -67,6 +69,9 @@ There are options:
 - `--destroy-everything-you-touch` Turns all `ensure` resources into `remove`s.
   Useful for cleaning up during development, but should be used with extreme
   caution. It has no short value, so you can't type it by accident.
+- `--no-lock` makes Gurp not check for, create, or remove its runtime lock file.
+- `--exec` lets you apply a literal string of Janet config to the local host.
+  (Assuming you have permission to do so!)
 
 Gurp uses the [Tracing framework](https://crates.io/crates/tracing) for logging.
 This means you can control the log level through the `RUST_LOG` environment
