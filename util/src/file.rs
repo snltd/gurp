@@ -10,16 +10,16 @@ use std::os::unix::fs::PermissionsExt;
 
 #[derive(Debug)]
 pub struct FileMetadata<'a> {
-    pub group: &'a UserOrGroup,
+    pub group: &'a NameOrId,
     pub mode: &'a str,
-    pub owner: &'a UserOrGroup,
+    pub owner: &'a NameOrId,
     pub path: &'a Utf8PathBuf,
     pub changes: u32,
 }
 
 #[derive(Deserialize, Clone, Debug, PartialEq)]
 #[serde(untagged)]
-pub enum UserOrGroup {
+pub enum NameOrId {
     Name(String),
     Id(u32),
 }
@@ -53,7 +53,7 @@ fn metadata(path: &Utf8PathBuf) -> anyhow::Result<FileStat> {
     Ok(metadata)
 }
 
-fn new_uid(desired_owner: &UserOrGroup, metadata: &FileStat) -> anyhow::Result<Option<Uid>> {
+fn new_uid(desired_owner: &NameOrId, metadata: &FileStat) -> anyhow::Result<Option<Uid>> {
     let current_uid: Uid = metadata.st_uid.into();
     let desired_uid = users_and_groups::owner_from(desired_owner)?;
 
@@ -65,7 +65,7 @@ fn new_uid(desired_owner: &UserOrGroup, metadata: &FileStat) -> anyhow::Result<O
     }
 }
 
-fn new_gid(desired_group: &UserOrGroup, metadata: &FileStat) -> anyhow::Result<Option<Gid>> {
+fn new_gid(desired_group: &NameOrId, metadata: &FileStat) -> anyhow::Result<Option<Gid>> {
     let current_gid: Gid = metadata.st_gid.into();
     let desired_gid = users_and_groups::group_from(desired_group)?;
 
