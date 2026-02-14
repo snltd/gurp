@@ -56,7 +56,7 @@
                (symlink/ensure "/etc/runlevels/boot/zfs-mount"
                                :source zfs-mounter))
 
-      (section configue-grafana
+      (section configure-grafana
                (def grafana-config
                  {:paths {:data data-dir
                           :logs "/var/log/grafana"

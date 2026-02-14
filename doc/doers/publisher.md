@@ -17,7 +17,7 @@ Publisher name (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:uri` | `string` | Add a pkg publiser with this URI |  |
+| `:uri` | `string` | Add a pkg publisher with this URI |  |
 
 ### Optional Properties
 

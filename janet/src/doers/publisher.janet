@@ -6,7 +6,7 @@
 (def name-is "Publisher name")
 (def mandatory-props-ensure
   {:uri {:types [:string]
-         :help "Add a pkg publiser with this URI"}})
+         :help "Add a pkg publisher with this URI"}})
 (def optional-props-ensure {})
 (def mandatory-props-remove {})
 (def optional-props-remove {})

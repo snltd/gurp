@@ -57,7 +57,7 @@ impl GurpBridgeEnsure {
             let current_state = parse_bridge(&self.describe_bridge()?)?;
 
             if current_state == self.desired_state {
-                tracing::debug!("state of brige {} is correct", self.name);
+                tracing::debug!("state of bridge {} is correct", self.name);
                 Ok(ONE_RESOURCE_NO_CHANGE)
             } else {
                 self.align_state(&current_state, opts)

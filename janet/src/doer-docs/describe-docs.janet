@@ -8,7 +8,7 @@
 (import ../doers :prefix "")
 
 (defn- field-width
-  "Returns the width of a field which can accomodate the longest value in list"
+  "Returns the width of a field which can accommodate the longest value in list"
   [list]
   (if (empty? list)
     0

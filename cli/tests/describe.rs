@@ -5,7 +5,7 @@ mod test {
 
     #[test]
     #[ignore]
-    fn test_descibe_no_args() {
+    fn test_describe_no_args() {
         cargo_bin_cmd!("gurp")
             .arg("compile")
             .assert()

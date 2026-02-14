@@ -208,7 +208,7 @@
   result)
 
 (defn run-cmd
-  "Returns stdout of the given command, or an error containting stderr"
+  "Returns stdout of the given command, or an error containing stderr"
   [cmd]
   (def proc (os/spawn (fields cmd) :p {:out :pipe :err :pipe}))
   (:wait proc)
