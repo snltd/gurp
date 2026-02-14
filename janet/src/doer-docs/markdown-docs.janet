@@ -69,7 +69,7 @@
     "\n"
     (if-let [name-is (doer-lookup doer :name-is)]
       (string name-is " (`:string`)")
-      "This resource does not accept a name")
+      "This doer does not accept a name")
     "\n"
     "\n"
     (h2 (string doer "/ensure"))

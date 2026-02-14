@@ -90,7 +90,7 @@
     (string "  " (bold "name")
             (if-let [name-str (doer-lookup doer :name-is)]
               (string "  [:string]  " name-str)
-              "This resource does not take a name parameter"))
+              "This doer does not take a name parameter"))
     "\n"
     "\n"
     (bold "Mandatory properties")

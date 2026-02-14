@@ -4,7 +4,7 @@ A collection of things too small to deserve their own doer.
 
 ## Resource Name
 
-This resource does not accept a name
+This doer does not accept a name
 
 ## misc/ensure
 
