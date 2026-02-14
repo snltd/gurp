@@ -1,7 +1,7 @@
 (use judge)
-(use ./_helpers)
+(use ./test-lib)
 (use ../../src/collector)
-(use ../../src/user-helpers)
+(use ../../src/dsl)
 (import ../../src/doers/zfs)
 
 (deftest zfs

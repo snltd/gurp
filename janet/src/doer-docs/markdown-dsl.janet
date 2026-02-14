@@ -1,5 +1,5 @@
 #
-# Markdown helpers
+# A very basic and incomplete Markdown DSL
 #
 (defn title-words
   "Capitalise the first letter of each given word"

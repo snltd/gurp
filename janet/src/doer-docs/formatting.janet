@@ -1,4 +1,4 @@
-(import ../user-helpers :as lib :only [compact])
+(import ../dsl :as lib :only [compact])
 
 (defn underline
   "Underline the given string"

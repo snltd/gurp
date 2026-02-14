@@ -34,7 +34,7 @@ Items marked [*] are breaking changes.
 - Add `ipnat` doer.
 - Add `ipfilter` doer.
 - Add `limitpriv`, `hostid`, `ip-type`, `pool` to `zone` doer.
-- Sub-resources like `zone-fs` or `smf-method` are now referred to as `zone/fs`
+- Helpers like `zone-fs` or `smf-method` are now referred to as `zone/fs`
   and `smf/method`. [*]
 - Changed syntax of `ip-address/ensure`, `ip-properties/ensure`, and
   `ip-interface/ensure` to make them all consistent.
@@ -49,7 +49,7 @@ Items marked [*] are breaking changes.
 - Doer parameters, types, and behaviour are now defined in separate definition
   files. These are used to check properties are valid and of the correct types,
   and to generate documentation.
-- The front-end checks sub-resource properties and their types.
+- The front-end checks helper properties and their types.
 - Various small bugfixes in front-end.
 
 ## v 1.4.0 (2025-11-22)

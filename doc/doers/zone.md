@@ -142,10 +142,10 @@ Describe a bhyve zone inside a zone resource.
 
 ## Name
 
-This sub-resource does not accept a name
+This helpers does not accept a name
 
 ```janet
-(use ../../src/user-helpers)
+(use ../../src/dsl)
 
 (zone/bhyve
   :vcpus 4
@@ -198,7 +198,7 @@ Tells gurp how to bootstrap a newly created zone.
 
 ## Name
 
-This sub-resource does not accept a name
+This helpers does not accept a name
 
 ```janet
 (zone/bootstrap

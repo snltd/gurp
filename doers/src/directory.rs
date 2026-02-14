@@ -94,7 +94,6 @@ mod test {
     use camino_tempfile_ext::prelude::*;
     use common::constants::ONE_RESOURCE_NOOP;
     use indoc::formatdoc;
-    use std::os::unix::fs::MetadataExt;
     use std::os::unix::fs::PermissionsExt;
     use tester::deserialized_example;
     use tester::{defopts, defopts_noop, janet2json, my_group, my_user};

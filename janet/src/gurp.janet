@@ -4,4 +4,4 @@
 (import ./collector :prefix "" :export true)
 (import ./commands :prefix "" :export true)
 (import ./doers :prefix "" :export true)
-(import ./user-helpers :prefix "" :export true)
+(import ./dsl :prefix "" :export true)

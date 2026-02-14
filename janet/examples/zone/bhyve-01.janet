@@ -1,4 +1,4 @@
-(use ../../src/user-helpers)
+(use ../../src/dsl)
 
 (zone/bhyve
   :vcpus 4

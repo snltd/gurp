@@ -4,9 +4,9 @@
 # not built into the Gurp lib.
 # 
 (use ./lib)
-(use ./markdown-helpers)
-(use ../../test/doers/_helpers)
-(import ../user-helpers :prefix "" :only [pathcat])
+(use ./markdown-dsl)
+(use ../../test/doers/test-lib)
+(import ../dsl :prefix "" :only [pathcat])
 
 (def doc-dir (pathcat (repo-root) "/doc/doers"))
 
@@ -97,39 +97,39 @@
       (string (h2 "Notes") "\n" (splice (map markdown-note notes))))))
 
 
-(defn markdown-for-sub-resource
-  "Returns a multiline string showing keys supported by the given sub-resource"
-  [doer-dir doer sub-resource]
+(defn markdown-for-helpers
+  "Returns a multiline string showing keys supported by the given helpers"
+  [doer-dir doer helpers]
   (string
-    (h1 (string doer "/" sub-resource))
+    (h1 (string doer "/" helpers))
     "\n"
-    (doer-lookup doer (keyword :description- sub-resource))
+    (doer-lookup doer (keyword :description- helpers))
     "\n"
     "\n"
     (h2 "Name")
     "\n"
-    (if-let [name-is (doer-lookup doer (keyword :name-is- sub-resource))]
+    (if-let [name-is (doer-lookup doer (keyword :name-is- helpers))]
       (string name-is " (`:string`)")
-      "This sub-resource does not accept a name")
+      "This helpers does not accept a name")
     "\n"
     "\n"
-    (code-example doer sub-resource)
-    (property-table doer :mandatory sub-resource)
+    (code-example doer helpers)
+    (property-table doer :mandatory helpers)
     "\n"
-    (property-table doer :optional sub-resource)
+    (property-table doer :optional helpers)
     "\n"
-    (if-let [notes (subresource-lookup doer sub-resource :notes)]
+    (if-let [notes (helpers-lookup doer helpers :notes)]
       (string (h2 "Notes") "\n" (splice (map markdown-note notes))))))
 
-(defn markdown-for-sub-resources
+(defn markdown-for-helperss
   [doer]
   (def doer-dir (string (doer-root) "/" doer))
   (if (os/stat doer-dir)
     (string/join
-      (seq [sub-resource :in (sorted (os/dir doer-dir))]
+      (seq [helpers :in (sorted (os/dir doer-dir))]
         (try
-          (markdown-for-sub-resource doer-dir doer (string/replace ".janet" "" sub-resource))
-          ([e] (eprint "Error on " sub-resource ": " e))))
+          (markdown-for-helpers doer-dir doer (string/replace ".janet" "" helpers))
+          ([e] (eprint "Error on " helpers ": " e))))
       "\n")))
 
 (defn generate-docs-to-stdout
@@ -138,11 +138,11 @@
   (loop [arg :in doers]
     (print
       (markdown-for-doer arg)
-      (markdown-for-sub-resources arg))))
+      (markdown-for-helperss arg))))
 
 (defn generate-all-docs
-  "For each doer, create a doer.md file under /doc/doers. Each markdown file"
-  "documents the core doer and any sub-resource helpers"
+  "For each doer, create a doer.md file under /doc/doers. Each markdown file
+  documents the core doer and any helperss"
   []
   (if-not (os/stat doc-dir)
     (os/mkdir doc-dir))
@@ -154,4 +154,4 @@
     (file/write fh
                 (string
                   (markdown-for-doer (symbol doer))
-                  (markdown-for-sub-resources (symbol doer))))))
+                  (markdown-for-helperss (symbol doer))))))

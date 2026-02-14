@@ -1,5 +1,5 @@
 (use ./lib)
-(use ../user-helpers)
+(use ../dsl)
 (import ./zone/attr :prefix "" :export true)
 (import ./zone/bhyve :prefix "" :export true)
 (import ./zone/bootstrap :prefix "" :export true)

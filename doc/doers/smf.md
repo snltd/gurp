@@ -78,7 +78,7 @@ Defines a dependency of an SMF service, inside an                            smf
 
 ## Name
 
-This sub-resource does not accept a name
+This helpers does not accept a name
 
 ```janet
 (smf/dependency "example-1"
@@ -112,7 +112,7 @@ Defines a dependent of an SMF service, inside an                            smf 
 
 ## Name
 
-This sub-resource does not accept a name
+This helpers does not accept a name
 
 ```janet
 (smf/dependent "example-1"
