@@ -12,6 +12,7 @@ use crate::ip_interface::{GurpIpInterfaceEnsure, GurpIpInterfaceRemove};
 use crate::ip_properties::GurpIpPropertiesEnsure;
 use crate::ipfilter::{GurpIpfilterEnsure, GurpIpfilterRemove};
 use crate::ipnat::{GurpIpnatEnsure, GurpIpnatRemove};
+use crate::link::{GurpLinkEnsure, GurpLinkRemove};
 use crate::misc::GurpMiscEnsure;
 use crate::network_flow::{GurpNetworkFlowEnsure, GurpNetworkFlowRemove};
 use crate::pkg::{GurpPkgEnsure, GurpPkgRemove};
@@ -21,7 +22,6 @@ use crate::route::{GurpRouteEnsure, GurpRouteRemove};
 use crate::smf::{GurpSmfEnsure, GurpSmfRemove};
 use crate::svc::GurpSvcEnsure;
 use crate::svcprop::{GurpSvcpropEnsure, GurpSvcpropRemove};
-use crate::symlink::{GurpSymlinkEnsure, GurpSymlinkRemove};
 use crate::user::{GurpUserEnsure, GurpUserRemove};
 use crate::vlan::{GurpVlanEnsure, GurpVlanRemove};
 use crate::vnic::{GurpVnicEnsure, GurpVnicRemove};
@@ -86,6 +86,8 @@ pub struct EnsureResources {
     #[serde(default)]
     pub ipnat: Vec<GurpIpnatEnsure>,
     #[serde(default)]
+    pub link: Vec<GurpLinkEnsure>,
+    #[serde(default)]
     pub misc: Vec<GurpMiscEnsure>,
     #[serde(default)]
     pub network_flow: Vec<GurpNetworkFlowEnsure>,
@@ -103,8 +105,6 @@ pub struct EnsureResources {
     pub smf: Vec<GurpSmfEnsure>,
     #[serde(default)]
     pub svc: Vec<GurpSvcEnsure>,
-    #[serde(default)]
-    pub symlink: Vec<GurpSymlinkEnsure>,
     #[serde(default)]
     pub user: Vec<GurpUserEnsure>,
     #[serde(default)]
@@ -147,6 +147,8 @@ pub struct RemoveResources {
     #[serde(default)]
     pub ipnat: Vec<GurpIpnatRemove>,
     #[serde(default)]
+    pub link: Vec<GurpLinkRemove>,
+    #[serde(default)]
     pub network_flow: Vec<GurpNetworkFlowRemove>,
     #[serde(default)]
     pub pkg: Vec<GurpPkgRemove>,
@@ -160,8 +162,6 @@ pub struct RemoveResources {
     pub smf: Vec<GurpSmfRemove>,
     #[serde(default)]
     pub svcprop: Vec<GurpSvcpropRemove>,
-    #[serde(default)]
-    pub symlink: Vec<GurpSymlinkRemove>,
     #[serde(default)]
     pub user: Vec<GurpUserRemove>,
     #[serde(default)]
@@ -288,12 +288,12 @@ impl Applicator {
         apply_resources!(summary_total, changed_ids, &ensure.directory, opts);
         apply_resources!(summary_total, changed_ids, &ensure.file, opts);
         apply_resources!(summary_total, changed_ids, &ensure.file_line, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.symlink, opts);
+        apply_resources!(summary_total, changed_ids, &ensure.link, opts);
         apply_resources!(summary_total, changed_ids, &ensure.svcprop, opts);
         apply_resources!(summary_total, changed_ids, &ensure.smf, opts);
         apply_resources!(summary_total, changed_ids, &ensure.misc, opts);
 
-        apply_resources!(summary_total, changed_ids, &remove.symlink, opts);
+        apply_resources!(summary_total, changed_ids, &remove.link, opts);
         apply_resources!(summary_total, changed_ids, &remove.file_line, opts);
         apply_resources!(summary_total, changed_ids, &remove.file, opts);
         apply_resources!(summary_total, changed_ids, &remove.directory, opts);

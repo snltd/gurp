@@ -11,13 +11,13 @@ Items marked [*] are breaking changes.
 
 ### Commands
 
+- Remove `show` command. [*]
+- Remove `-L` option from `apply` and `compile` commands. [*]
 - Add `doers` command, which dumps a list of doers to stdout.
 - Add `repl` command, which opens a Janet REPL with the Gurp library loaded into
   the root environment.
 - Add `--destroy-everything-you-touch` to `apply` command.
 - Add `--as-json` option to client mode, for old compile-on-server behaviour.
-- Removed `-L` option from `apply` and `compile` commands. [*]
-- Removed `show` command. [*]
 - `describe` command gives more information, and its layout adjusts for the
   terminal width.
 - `describe` and `doers` will not use ANSI colouring if `gurp` is part of a
@@ -29,13 +29,14 @@ Items marked [*] are breaking changes.
 
 ### Doers
 
+- Replace `symlink` doer with `link`, which also handles hard links. [*]
+- Helpers like `zone-fs` or `smf-method` are now referred to as `zone/fs`
+  and `smf/method`. [*]
 - Add `network-flow` doer.
 - Add `vlan` doer.
 - Add `ipnat` doer.
 - Add `ipfilter` doer.
 - Add `limitpriv`, `hostid`, `ip-type`, `pool` to `zone` doer.
-- Helpers like `zone-fs` or `smf-method` are now referred to as `zone/fs`
-  and `smf/method`. [*]
 - Changed syntax of `ip-address/ensure`, `ip-properties/ensure`, and
   `ip-interface/ensure` to make them all consistent.
 - Doer documentation is machine-generated from definition files.
