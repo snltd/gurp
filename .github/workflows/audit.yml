@@ -1,0 +1,16 @@
+name: "Audit Rust Dependencies"
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+      - name: Audit Rust Dependencies
+        uses: actions-rust-lang/audit@72c09e02f132669d52284a3323acdb503cfc1a24 # 1.2.7

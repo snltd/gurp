@@ -21,6 +21,5 @@ jobs:
       - name: Check spelling
         uses: crate-ci/typos@78bc6fb2c0d734235d57a2d6b9de923cc325ebdd # 1.43.4
       - name: Audit Rust Dependencies
-        uses: actions-rust-lang/audit@72c09e02f132669d52284a3323acdb503cfc1a24 # 1.2.7:
       - name: Run Rust Tests
         run: cargo test -- --include-ignored
