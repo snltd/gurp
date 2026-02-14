@@ -8,7 +8,7 @@ pub fn vanilla() -> JanetClient {
     JanetClient::init_with_default_env().expect("Failed to create Janet client")
 }
 
-/// Returns a Janet client with the Gurp library in the root environemnt. Also includes
+/// Returns a Janet client with the Gurp library in the root environment. Also includes
 /// (to-json) which turns any suitable Janet object into Json.
 pub fn gurp() -> anyhow::Result<JanetClient> {
     let mut client = vanilla();

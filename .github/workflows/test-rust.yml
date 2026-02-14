@@ -13,14 +13,13 @@ jobs:
       matrix:
         rust: [stable, nightly]
     steps:
-      - uses: hecrj/setup-rust-action@110f36749599534ca96628b82f52ae67e5d95a3c
+      - uses: hecrj/setup-rust-action@110f36749599534ca96628b82f52ae67e5d95a3c # 2.0.1
         with:
           rust-version: ${{ matrix.rust }}
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Audit Rust deps
-        run: |
-          cargo install cargo-audit --locked
-          cargo audit 
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+      - name: Check spelling
+        uses: crate-ci/typos@78bc6fb2c0d734235d57a2d6b9de923cc325ebdd # 1.43.4
+      - name: Audit Rust Dependencies
       - name: Run Rust Tests
         run: cargo test -- --include-ignored

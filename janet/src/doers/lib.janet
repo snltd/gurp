@@ -39,7 +39,7 @@
         (string/format "unable to create struct from %d arg(s):  %p: %s" (length spec) spec e)))))
 
 (defn checked-spec
-  "Compares a user's spec against what a resource definiton expects. Raises
+  "Compares a user's spec against what a resource definition expects. Raises
   an error if anything is not as it should be, otherwise the given spec as a
   struct."
   [spec-struct mandatory-props optional-props]

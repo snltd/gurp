@@ -17,7 +17,7 @@ mod test {
 
     #[test]
     #[ignore]
-    fn test_server_mising_dir() {
+    fn test_server_missing_dir() {
         cargo_bin_cmd!("gurp")
             .arg("server")
             .arg("--config-dir=/nodir")
