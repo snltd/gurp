@@ -9,8 +9,8 @@ Qualified path to the link that will be created (`:string`)
 ## link/ensure
 
 ```janet
-(link/ensure "/link/is/here"
-             :label "example-link"
+(link/ensure "/symlink/is/here"
+             :label "example-symlink"
              :source "/link/points/here")
 ```
 
@@ -34,7 +34,7 @@ None
 ## link/remove
 
 ```janet
-(ink/remove "/dont/want/this/link")
+(link/remove "/dont/want/this/link")
 ```
 
 ### Mandatory Properties
@@ -47,6 +47,6 @@ None
 
 ## Notes
 
-- If the :source doesn't exist, you get an error.
+- If the source doesn't exist, you get an error.
 - Files and directories are ensured before links, so you can link Gurp-managed resources.
 - If the link exists and points to the wrong file, it will be removed and re-created, and if it exists but is not a link, that's an error.
