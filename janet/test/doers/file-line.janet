@@ -31,18 +31,17 @@
                               :match "starts-with"
                               :name "/path/to/file"
                               :pattern "string-prefix"
-                              :role "test-role"}]}}))
+                              :role "test-role"}]}})
 
-(deftest file-line-error
   (test-error
     (file-line/ensure "/missing/line"
                       :line "and"
                       :after "gibbus"
                       :before "chubb")
-    "unexpected property :before. Valid properties are :with, :apply-to, :replace, :label, :insert-at, :line")
+    "In file-line/ensure /missing/line: unexpected property :before. Valid properties are :with, :apply-to, :replace, :label, :insert-at, :line")
 
   (test-error
     (file-line/remove "/my/file"
                       :pattern "merp"
                       :match "end")
-    "match must be one of \"exact\", \"starts_with\", \"ends_with\", \"contains\", \"matches\" [Got 'end']"))
+    "In file-line/remove /my/file: match must be one of \"exact\", \"starts-with\", \"ends-with\", \"contains\", \"regex\" [Got 'end']"))

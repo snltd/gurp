@@ -17,7 +17,7 @@
 
   (test-error
     (zone/bhyve)
-    "did not find mandatory property :ram. Mandatory properties are :ram, :boot-volume, :vcpus")
+    "In zone/bhyve NO-NAME: did not find mandatory property :ram. Mandatory properties are :ram, :boot-volume, :vcpus")
 
   (test-error
     (zone/bhyve :ram "3G"
@@ -25,4 +25,4 @@
                 :image-path "/var/tmp/noble-server-cloudimg-amd64.img.raw"
                 :boot-volume "tank/bhyve/test"
                 :oops "wat?")
-    "unexpected property :oops. Valid properties are :ram, :boot-volume, :vcpus, :cloudinit-files, :image-path, :label, :image-url, :image-format, :wait-for-boot, :cloudinit-struct"))
+    "In zone/bhyve NO-NAME: unexpected property :oops. Valid properties are :ram, :boot-volume, :vcpus, :cloudinit-files, :image-path, :label, :image-url, :image-format, :wait-for-boot, :cloudinit-struct"))

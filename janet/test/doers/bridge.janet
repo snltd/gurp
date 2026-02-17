@@ -31,12 +31,11 @@
                            :role "test-role"}]}
       :remove @{:bridge @[{:_id "/test-role/bridge/unwanted"
                            :name "unwanted"
-                           :role "test-role"}]}}))
+                           :role "test-role"}]}})
 
-(deftest bridge-errors
   (test-error
     (bridge/ensure "test_d" :oops "wat?")
-    "unexpected property :oops. Valid properties are :priority, :links, :label, :max-age, :force-protocol, :protect, :forward-delay, :hello-time")
+    "In bridge/ensure test_d: unexpected property :oops. Valid properties are :priority, :links, :label, :max-age, :force-protocol, :protect, :forward-delay, :hello-time")
   (test-error
     (bridge/ensure "test_e" :priority "high!")
-    "priority is of type :string. Allowed types :number"))
+    "In bridge/ensure test_e: priority is of type :string. Allowed types :number"))

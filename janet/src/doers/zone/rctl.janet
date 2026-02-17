@@ -1,5 +1,6 @@
 (use ../lib)
 
+(def doer :zone)
 (def description-rctl "Define a resource control when creating a zone.")
 (def name-is-rctl "RCTL name")
 (def mandatory-props-rctl
@@ -20,7 +21,9 @@
   "Given a spec, return a zone rctl struct."
   [name & spec]
   (def spec-struct (make-spec-struct :name name ;spec))
-  (def spec-table (checked-spec (spec-with-defaults defaults-rctl spec-struct)
-                                mandatory-props-rctl
-                                optional-props-rctl))
+  (def expanded-spec (spec-with-defaults defaults-rctl spec-struct))
+  (def spec-table
+    (pinpoint-error
+      :rctl
+      (checked-spec expanded-spec mandatory-props-rctl optional-props-rctl)))
   (struct :rctl spec-table))

@@ -32,12 +32,11 @@
                               :role "test-role"}]}
       :remove @{:directory @[{:_id "/test-role/directory/_path_to_dir"
                               :name "/path/to/dir"
-                              :role "test-role"}]}}))
+                              :role "test-role"}]}})
 
-(deftest directory-error
   (test-error
     (directory/ensure "/extra/keys"
                       :owner "me"
                       :gid 234
                       :recursive true)
-    "unexpected property :recursive. Valid properties are :owner, :group, :mode, :label"))
+    "In directory/ensure /extra/keys: unexpected property :recursive. Valid properties are :owner, :group, :mode, :label"))

@@ -1,5 +1,6 @@
 (use ../lib)
 
+(def doer :zone)
 (def description-network "Describe network configuration of a zone resource.")
 (def name-is-network "Zone VNIC, which may already exist")
 (def mandatory-props-network
@@ -16,13 +17,19 @@
    :defrouter
    {:types [:string]
     :help "IP address of default router"}})
-(def defaults-network {:global-nic "auto"})
+(def defaults-network
+  {:global-nic "auto"})
 
 (defn network
   "Given a spec, return a zone network struct."
   [physical & spec]
+  (def name "NO-NAME")
   (def spec-struct (make-spec-struct :physical physical ;spec))
-  (def spec-table (checked-spec (spec-with-defaults defaults-network spec-struct)
-                                mandatory-props-network
-                                optional-props-network))
+  (def expanded-spec (spec-with-defaults defaults-network spec-struct))
+  (def spec-table
+    (pinpoint-error :network
+                    (checked-spec
+                      expanded-spec
+                      mandatory-props-network
+                      optional-props-network)))
   (struct :net spec-table))

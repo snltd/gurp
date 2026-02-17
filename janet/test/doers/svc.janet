@@ -15,16 +15,15 @@
                             :restarted-by @["/test-role/file/stub"]
                             :role "NO-ROLE"
                             :state "enabled"}]}
-          :remove @{}}))
+          :remove @{}})
 
-(deftest svc-error
   (test-error
     (svc/ensure "too/many/keys"
                 :state "enabled"
                 :volume 11
                 :strings: 12)
-    "unexpected property :strings:. Valid properties are :state, :restarted-by, :reloaded-by, :label")
+    "In svc/ensure too/many/keys: unexpected property :strings:. Valid properties are :state, :restarted-by, :reloaded-by, :label")
 
   (test-error
     (svc/ensure "what/should/i/do")
-    "did not find mandatory property :state. Mandatory properties are :state"))
+    "In svc/ensure what/should/i/do: did not find mandatory property :state. Mandatory properties are :state"))

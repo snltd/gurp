@@ -21,13 +21,12 @@
                              :uid 264}]}
           :remove @{:user @[{:_id "/test-role/user/lolex"
                              :name "lolex"
-                             :role "test-role"}]}}))
+                             :role "test-role"}]}})
 
-(deftest user-error
   (test-error
     (user/ensure "wat"
                  :uid 100)
-    "did not find mandatory property :home-dir. Mandatory properties are :home-dir, :primary-group, :uid, :gecos, :shell")
+    "In user/ensure wat: did not find mandatory property :home-dir. Mandatory properties are :home-dir, :primary-group, :uid, :gecos, :shell")
 
   (test-error
     (user/ensure "rob"
@@ -39,4 +38,4 @@
                  :shell "/bin/zsh"
                  :gecos "Test User"
                  :password-hash "w0934cm-4i5c-42u5cn492hrc97h234ui")
-    "unexpected property :height. Valid properties are :home-dir, :primary-group, :uid, :gecos, :shell, :other-groups, :password-hash, :profiles, :label"))
+    "In user/ensure rob: unexpected property :height. Valid properties are :home-dir, :primary-group, :uid, :gecos, :shell, :other-groups, :password-hash, :profiles, :label"))

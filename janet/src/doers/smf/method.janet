@@ -4,7 +4,7 @@
 (def context-props [:user :group :privileges :environment])
 
 (def description-method "Defines an SMF method to launch a service state")
-(def name-is-method (string "One of " (comma-sep allowed-methods))) 
+(def name-is-method (string "One of " (comma-sep allowed-methods)))
 
 (def optional-props-method
   {:user {:types [:string]
@@ -28,30 +28,39 @@
 (defn method
   "Produce an SMF exec_method, with a context"
   [name & spec]
-  (if-not (has-value? allowed-methods name)
-    (error
-      (string "smf/method name must be one of " (comma-sep allowed-methods))))
 
-  (def spec-table (spec-with-defaults defaults-method (make-spec-struct ;spec)))
+  (let [doer "smf"]
+    (pinpoint-error
+      :method
 
-  # We have to move context related properties (context-props) into a
-  # :context struct
+      (if-not (has-value? allowed-methods name)
+        (error
+          (string "smf/method name must be one of " (comma-sep allowed-methods))))
 
-  (var context-table @{})
+      (def spec-table
+        (checked-spec
+          (spec-with-defaults defaults-method (make-spec-struct ;spec))
+          mandatory-props-method
+          optional-props-method))
 
-  (loop [prop :in context-props]
-    (when-let [spec-value (get spec-table prop)]
-    (def value-to-move (if (= prop :privileges)
-                         (string/join spec-value ",")
-                         spec-value))
+      # We have to move context related properties (context-props) into a
+      # :context struct
 
-    (set (context-table prop) value-to-move)
-    (set (spec-table prop) nil)))
+      (var context-table @{})
 
-  (if-not (empty? context-table)
-    (set (spec-table :context) (table/to-struct context-table)))
+      (loop [prop :in context-props]
+        (when-let [spec-value (get spec-table prop)]
+          (def value-to-move (if (= prop :privileges)
+                               (string/join spec-value ",")
+                               spec-value))
 
-  (struct (keyword (string name "-method")) spec-table))
+          (set (context-table prop) value-to-move)
+          (set (spec-table prop) nil)))
+
+      (if-not (empty? context-table)
+        (set (spec-table :context) (table/to-struct context-table)))
+
+      (struct (keyword (string name "-method")) spec-table))))
 
 (def notes-method
   ["If you don't supply a `:stop-method` you get a standard `:kill` that times

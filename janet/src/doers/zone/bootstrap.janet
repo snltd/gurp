@@ -1,5 +1,6 @@
 (use ../lib)
 
+(def doer :zone)
 (def description-bootstrap "Tells gurp how to bootstrap a newly created zone.")
 (def name-is-bootstrap nil)
 (def mandatory-props-bootstrap {})
@@ -15,10 +16,17 @@
 (defn bootstrap
   "Given a spec, return config to bootstrap a zone"
   [& spec]
+  (def name "NO-NAME")
   (def spec-struct (make-spec-struct ;spec))
-  (def spec-table (checked-spec (spec-with-defaults defaults-bootstrap spec-struct)
-                                mandatory-props-bootstrap
-                                optional-props-bootstrap))
+  (def expanded-spec (spec-with-defaults defaults-bootstrap spec-struct))
+
+  (def spec-table
+    (pinpoint-error :bootstrap
+                    (checked-spec
+                      expanded-spec
+                      mandatory-props-bootstrap
+                      optional-props-bootstrap)))
+
   (struct :bootstrap spec-table))
 
 (def notes-bootstrap

@@ -28,9 +28,11 @@
   "Given a service property spec, put an ensure struct in the collector"
   [name & spec]
   (def spec-struct
-    (checked-spec (make-spec-struct ;spec)
-                  mandatory-props-ensure
-                  optional-props-ensure))
+    (pinpoint-error
+      :ensure
+      (checked-spec (make-spec-struct ;spec)
+                    mandatory-props-ensure
+                    optional-props-ensure)))
   (def spec-table (spec-with-defaults defaults-ensure spec-struct))
 
   # Properties must be expanded

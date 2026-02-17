@@ -16,9 +16,12 @@
                               :uri "http://pkg.lan.id264.net"}]}
       :remove @{:publisher @[{:_id "/test-role/publisher/old_publisher"
                               :name "old_publisher"
-                              :role "test-role"}]}}))
+                              :role "test-role"}]}})
 
-(deftest publisher-error
+  (test-error
+    (publisher/remove "sysdef" :url "abc")
+    "In publisher/remove sysdef: unexpected property :url. Valid properties are :label")
+    
   (test-error
     (publisher/ensure "sysdef")
-    "did not find mandatory property :uri. Mandatory properties are :uri"))
+    "In publisher/ensure sysdef: did not find mandatory property :uri. Mandatory properties are :uri"))

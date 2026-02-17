@@ -1,5 +1,6 @@
 (use ../lib)
 
+(def doer :zone)
 (def description-fs "Define a filesystem mapping when creating a zone.")
 (def name-is-fs "The mountpoint inside the zone")
 (def optional-props-fs
@@ -20,7 +21,9 @@
   "Given a spec, return a zone fs struct."
   [name & spec]
   (def spec-struct (make-spec-struct :dir name ;spec))
-  (def spec-table (checked-spec (spec-with-defaults defaults-fs spec-struct)
-                                mandatory-props-fs
-                                optional-props-fs))
+  (def expanded-spec (spec-with-defaults defaults-fs spec-struct))
+  (def spec-table
+    (pinpoint-error
+      :fs
+      (checked-spec expanded-spec mandatory-props-fs optional-props-fs)))
   (struct :fs spec-table))

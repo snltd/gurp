@@ -21,10 +21,9 @@
                         :version "1.2.3"}]}
       :remove @{:gem @[{:_id "/test-role/gem/webscale"
                         :name "webscale"
-                        :role "test-role"}]}}))
+                        :role "test-role"}]}})
 
-(deftest gem-error
   (test-error
     (gem/ensure "wavefront-sdk"
                 :merp 11)
-    "unexpected property :merp. Valid properties are :gem-path, :version, :source, :label"))
+    "In gem/ensure wavefront-sdk: unexpected property :merp. Valid properties are :gem-path, :version, :source, :label"))

@@ -104,7 +104,15 @@
   (expand-resource :bootstrap :as-struct true)
 
   (def modified-spec-struct (make-spec-struct ;modified-spec))
-  (def spec-struct (checked-spec modified-spec-struct mandatory-props-ensure optional-props-ensure))
+
+  (def spec-struct
+    (pinpoint-error
+      :ensure
+      (checked-spec
+        modified-spec-struct
+        mandatory-props-ensure
+        optional-props-ensure)))
+
   (def spec-table (spec-with-defaults defaults-ensure spec-struct))
 
   (if-let [copy-resource (get spec-table :copy-in)]

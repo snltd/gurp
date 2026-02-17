@@ -19,11 +19,14 @@
                           :role "test-role"}
                          {:_id "/test-role/pkgin/python"
                           :name "python"
-                          :role "test-role"}]}}))
+                          :role "test-role"}]}})
 
-(deftest pkgin-error
+  (test-error
+    (pkgin/remove "go" :version "1.20.1")
+    "In pkgin/remove go: unexpected property :version. Valid properties are :label")
+    
   (test-error
     (pkgin/ensure "gurp"
                 :version "1.1.1")
-    "unexpected property :version. Valid properties are :label"))
+    "In pkgin/ensure gurp: unexpected property :version. Valid properties are :label"))
 

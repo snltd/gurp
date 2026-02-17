@@ -16,15 +16,14 @@
                                                   :ipv6 {:hoplimit 123 :hostmodel "weak"}}
                                       :name "general"
                                       :role "test-role"}]}
-          :remove @{}}))
+          :remove @{}})
 
-(deftest ip-properties-error
   (test-error
     (ip-properties/ensure "general"
                           :ipv6 [1234567])
-    "ipv6 is of type :tuple. Allowed types :struct, :table")
+    "In ip-properties/ensure general: ipv6 is of type :tuple. Allowed types :struct, :table")
 
   (test-error
     (ip-properties/ensure "general"
                           :max-buf 1234567)
-    "unexpected property :max-buf. Valid properties are :ipv6, :ipv4, :ip, :label, :udp, :icmp, :tcp, :sctp"))
+    "In ip-properties/ensure general: unexpected property :max-buf. Valid properties are :ipv6, :ipv4, :ip, :label, :udp, :icmp, :tcp, :sctp"))
