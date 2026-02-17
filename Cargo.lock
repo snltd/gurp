@@ -350,6 +350,7 @@ dependencies = [
  "camino",
  "indoc",
  "janetrs",
+ "walkdir",
 ]
 
 [[package]]
@@ -795,6 +796,7 @@ dependencies = [
  "serde_json",
  "tracing",
  "util",
+ "walkdir",
 ]
 
 [[package]]

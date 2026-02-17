@@ -2,7 +2,10 @@
 // source.
 
 fn main() {
-    println!("cargo:rerun-if-changed=../janet/src");
+    for entry in walkdir::WalkDir::new("../janet/src") {
+        let entry = entry.unwrap();
+        println!("cargo:rerun-if-changed={}", entry.path().display());
+    }
 
     build_helper::ImageHelper::new(vec!["gurp.janet", "command-lib.janet"], "gurp.jimage")
         .compile_to_file();

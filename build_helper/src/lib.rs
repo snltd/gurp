@@ -16,10 +16,13 @@ pub struct ImageHelper {
 impl ImageHelper {
     pub fn new(src_files: Vec<&str>, img_name: &str) -> Self {
         let repo_root = ImageHelper::repo_root();
+        let src_dir = repo_root.join("janet").join("src");
 
-        // Emit rerun directives for all source files
-        for src_file in &src_files {
-            println!("cargo:rerun-if-changed=../janet/src/{}", src_file);
+        for entry in walkdir::WalkDir::new(&src_dir) {
+            let entry = entry.unwrap();
+            if entry.path().extension().is_some_and(|e| e == "janet") {
+                println!("cargo:rerun-if-changed={}", entry.path().display());
+            }
         }
 
         Self {
@@ -126,9 +129,15 @@ impl ImageHelper {
 
     fn source_hash(&self) -> Hash {
         let mut hasher = blake3::Hasher::new();
-        for src_file in &self.src_files {
-            let mut fh =
-                fs::File::open(src_file).expect(&format!("cannot read source file {}", src_file));
+        let src_dir = self.repo_root.join("janet").join("src");
+        let mut entries: Vec<_> = walkdir::WalkDir::new(&src_dir)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.path().extension().is_some_and(|x| x == "janet"))
+            .collect();
+        entries.sort_by_key(|e| e.path().to_owned()); // stable order
+        for entry in entries {
+            let mut fh = fs::File::open(entry.path()).expect("cannot read source file");
             std::io::copy(&mut fh, &mut hasher).expect("cannot hash source file");
         }
         hasher.finalize()
