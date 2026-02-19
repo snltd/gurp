@@ -25,7 +25,9 @@
   "Given rules or a path to a rules file, put an ensure struct in the collector"
   [name & spec]
   (if-not (has-exactly-one-of? [:content :from] spec)
-    (error "need exactly one of :content or :from"))
+    (pinpoint-error
+      :ensure
+      (error "need exactly one of :content or :from")))
 
   (collector/push :ensure doer (make-ensure-resource)))
 

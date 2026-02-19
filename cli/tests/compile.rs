@@ -25,13 +25,18 @@ mod test {
             let canonical_json = load_fixture(&format!("compile/outputs/{host}.json"));
             let expected_json = canonical_json.replace(canonical_test_dir, &test_dir);
 
-            cargo_bin_cmd!("gurp")
+            let output = cargo_bin_cmd!("gurp")
                 .arg("compile")
                 .arg(fixture(&format!("compile/inputs/{host}.janet")))
                 .arg("--format=json")
                 .assert()
-                .success()
-                .stdout(expected_json);
+                .success();
+
+            let actual: serde_json::Value =
+                serde_json::from_slice(&output.get_output().stdout).unwrap();
+            let expected: serde_json::Value = serde_json::from_str(&expected_json).unwrap();
+
+            assert_eq!(actual, expected);
         }
     }
 

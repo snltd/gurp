@@ -25,9 +25,13 @@
   "A convenience function to help produce an SMF dependent"
   [name & spec]
   (def spec-struct
-    (checked-spec
-      (make-spec-struct :name name ;spec)
-      mandatory-props-dependent optional-props-dependent))
+    (do
+      (def doer "smf")
+      (pinpoint-error
+        :dependent
+        (checked-spec (make-spec-struct :name name ;spec)
+                      mandatory-props-dependent
+                      optional-props-dependent))))
 
   (def all-specs (spec-with-defaults defaults-dependent spec-struct))
   (struct :dependencies all-specs))

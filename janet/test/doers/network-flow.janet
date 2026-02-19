@@ -60,9 +60,8 @@
                                  :role "test-role"}]}
       :remove @{:network-flow @[{:_id "/test-role/network-flow/unwanted"
                                  :name "unwanted"
-                                 :role "test-role"}]}}))
+                                 :role "test-role"}]}})
 
-(deftest network-flow-errors
   (test-error
     (network-flow/ensure "extraneous-property"
                          :this-should-break-it true
@@ -71,7 +70,7 @@
                          :local-port 80
                          :maxbw "10M"
                          :priority "high")
-    "unexpected property :this-should-break-it. Valid properties are :link, :dsfield, :remote-port, :remote-ip, :priority, :protocol, :label, :local-port, :maxbw, :local-ip")
+    "In network-flow/ensure extraneous-property: unexpected property :this-should-break-it. Valid properties are :link, :dsfield, :remote-port, :remote-ip, :priority, :protocol, :label, :local-port, :maxbw, :local-ip")
 
   (test-error
     (network-flow/ensure "missing-link"
@@ -79,4 +78,4 @@
                          :local-port 80
                          :maxbw "10M"
                          :priority "high")
-    "did not find mandatory property :link. Mandatory properties are :link"))
+    "In network-flow/ensure missing-link: did not find mandatory property :link. Mandatory properties are :link"))

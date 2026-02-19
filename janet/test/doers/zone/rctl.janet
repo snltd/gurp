@@ -20,5 +20,11 @@
              :priv "privileged"}})
 
   (test-error
+    (zone/rctl "zone.max-physical-memory"
+               :limit 524288000
+               :oops "wat?")
+    "In zone/rctl zone.max-physical-memory: unexpected property :oops. Valid properties are :priv, :name, :action, :limit, :label")
+
+  (test-error
     (zone/rctl "zone.max-physical-memory")
-    "did not find mandatory property :limit. Mandatory properties are :priv, :name, :action, :limit"))
+    "In zone/rctl zone.max-physical-memory: did not find mandatory property :limit. Mandatory properties are :priv, :name, :action, :limit"))

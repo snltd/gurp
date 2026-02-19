@@ -13,6 +13,8 @@
   [name & spec]
 
   (def spec-table
-    (group-ip-properties mandatory-props-ensure optional-props-ensure ;spec))
+    (pinpoint-error
+      :ensure
+      (group-ip-properties mandatory-props-ensure optional-props-ensure ;spec)))
 
   (collector/push :ensure doer (spec->resource doer name spec-table)))

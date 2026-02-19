@@ -16,7 +16,7 @@
    {:types [:array]
     :help "Labels of resources whose alteration triggers service restart"}})
 (def defaults-ensure
-  { :restarted-by []
+  {:restarted-by []
    :reloaded-by []})
 
 (defn ensure
@@ -32,9 +32,11 @@
   (if-let [reloaders (spec-table :reloaded-by)]
     (set (spec-table :reloaded-by) (map string reloaders)))
 
-  (def safe-specs (checked-spec spec-table
-                                mandatory-props-ensure
-                                optional-props-ensure))
+  (def safe-specs
+    (pinpoint-error
+      :ensure (checked-spec spec-table
+                            mandatory-props-ensure
+                            optional-props-ensure)))
 
   (collector/push :ensure doer (spec->resource doer name safe-specs)))
 

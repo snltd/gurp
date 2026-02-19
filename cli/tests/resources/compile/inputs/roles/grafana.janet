@@ -53,8 +53,8 @@
                             :content zfs-mount-script
                             :mode "0755")
 
-               (symlink/ensure "/etc/runlevels/boot/zfs-mount"
-                               :source zfs-mounter))
+               (link/ensure "/etc/runlevels/boot/zfs-mount"
+                            :source zfs-mounter))
 
       (section configure-grafana
                (def grafana-config
@@ -80,8 +80,8 @@
                                  :match "contains"
                                  :pattern "need net")
 
-               (symlink/ensure "/etc/runlevels/default/grafana"
-                               :source grafana-init)
+               (link/ensure "/etc/runlevels/default/grafana"
+                            :source grafana-init)
 
                (file-line/ensure "/etc/conf.d/grafana"
                                  :replace "127.0.0.1" :with "0.0.0.0")

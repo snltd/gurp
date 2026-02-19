@@ -20,10 +20,13 @@
                             :role "test-role"}
                            {:_id "/test-role/apk/python"
                             :name "python"
-                            :role "test-role"}]}}))
+                            :role "test-role"}]}})
 
-(deftest apk-error
+  (test-error
+    (apk/remove "go" :version "1.20.1")
+    "In apk/remove go: unexpected property :version. Valid properties are :label")
+    
   (test-error
     (apk/ensure "gurp"
                 :version "1.1.1")
-    "unexpected property :version. Valid properties are :label"))
+    "In apk/ensure gurp: unexpected property :version. Valid properties are :label"))

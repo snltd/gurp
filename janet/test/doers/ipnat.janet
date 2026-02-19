@@ -22,11 +22,12 @@
                               :role "test-role"}]}
           :remove @{:ipnat @[{:_id "/test-role/ipnat/removes-all-rules"
                               :name "removes-all-rules"
-                              :role "test-role"}]}}))
+                              :role "test-role"}]}})
 
-(deftest ipnat-errors
   (test-error
     (ipnat/ensure "error-test-1" :from "test/ipnat")
-    "did not find mandatory property :priority. Mandatory properties are :priority")
+    "In ipnat/ensure error-test-1: did not find mandatory property :priority. Mandatory properties are :priority")
 
-  (test-error (ipnat/ensure "error-test-2" :priority 0) "need exactly one of :content or :from"))
+  (test-error
+    (ipnat/ensure "error-test-2" :priority 0)
+    "In ipnat/ensure error-test-2: need exactly one of :content or :from"))

@@ -8,7 +8,8 @@
 (def protocol-opts
   (tabseq [protocol :in ip-protocols]
     protocol {:types [:struct :table]
-              :help (string "key-value pairs of valid " protocol " properties")}))
+              :help (string/format "key-value pairs of valid %s properties"
+                                   protocol)}))
 
 (defn comma-sep
   "Return a comma-separated string of the items in list"
@@ -16,8 +17,8 @@
   (string/join (map |(string/format "%p" $) list) ", "))
 
 (defn check-key-type
-  "Checks something is of a permissible type. Raises an error if it is not. Values
-  can *always* be keywords, because they denote references."
+  "Checks something is of a permissible type. Raises an error if it is not.
+  Values can *always* be keywords, because they denote references."
   [prop-name prop-value allowed-types]
   (def prop-type (type prop-value))
 
@@ -36,12 +37,13 @@
     (struct ;spec)
     ([e]
       (error
-        (string/format "unable to create struct from %d arg(s):  %p: %s" (length spec) spec e)))))
+        (string/format "unable to create struct from %d arg(s):  %p: %s"
+                       (length spec) spec e)))))
 
 (defn checked-spec
   "Compares a user's spec against what a resource definition expects. Raises
-  an error if anything is not as it should be, otherwise the given spec as a
-  struct."
+  an error if anything is not as it should be, otherwise returns the given spec
+  as a struct."
   [spec-struct mandatory-props optional-props]
 
   (def optional-props
@@ -67,7 +69,10 @@
           (string
             (string/format "unexpected property %p. Valid properties are "
                            prop-name)
-            (comma-sep (array/concat @[] (keys mandatory-props) (keys optional-props))))))))
+            (comma-sep
+              (array/concat @[]
+                            (keys mandatory-props)
+                            (keys optional-props))))))))
 
   spec-struct)
 
@@ -97,29 +102,44 @@
   [default-prop-values spec-struct]
   (merge default-prop-values spec-struct))
 
+(defmacro pinpoint-error
+  "Wraps an error in a string describing the resource which caused it"
+  [action & body]
+  (with-syms [$e]
+    ~(try
+       (do
+         ,;body)
+       ([$e]
+         (error
+           (string/format "In %s/%s %s: %s" doer ,action name $e))))))
+
 (defmacro make-ensure-resource
   "Pulls together some boilerplate in doer ensure functions"
   []
-  ~(do
-     (def spec-struct (make-spec-struct ;spec))
-     (def all-specs (spec-with-defaults defaults-ensure spec-struct))
-     (def safe-specs (checked-spec all-specs
-                                   mandatory-props-ensure
-                                   optional-props-ensure))
+  (with-syms [$e]
+    ~(pinpoint-error
+       :ensure
+       (def spec-struct (make-spec-struct ;spec))
+       (def all-specs (spec-with-defaults defaults-ensure spec-struct))
+       (def safe-specs (checked-spec all-specs
+                                     mandatory-props-ensure
+                                     optional-props-ensure))
 
-     (spec->resource doer name safe-specs)))
+       (spec->resource doer name safe-specs))))
 
 (defmacro make-remove-resource
   "Pulls together some boilerplate in doer remove functions"
   []
-  ~(do
-     (def spec-struct (make-spec-struct ;spec))
-     (def all-specs (spec-with-defaults defaults-remove spec-struct))
-     (def safe-specs (checked-spec all-specs
-                                   mandatory-props-remove
-                                   optional-props-remove))
+  (with-syms [$e]
+    ~(pinpoint-error
+       :remove
+       (def spec-struct (make-spec-struct ;spec))
+       (def all-specs (spec-with-defaults defaults-remove spec-struct))
+       (def safe-specs (checked-spec all-specs
+                                     mandatory-props-remove
+                                     optional-props-remove))
 
-     (spec->resource doer name safe-specs)))
+       (spec->resource doer name safe-specs))))
 
 (defn has-exactly-one-of?
   "Checks whether a spec contains exactly one of the required-keys"
@@ -167,7 +187,7 @@
 (defn group-ip-properties
   "Move IP protocol properties into a separate :protocol property"
   [mandatory-props optional-props & spec]
-  
+
   (def temp-spec-table
     (checked-spec (make-spec-struct ;spec) mandatory-props optional-props))
 

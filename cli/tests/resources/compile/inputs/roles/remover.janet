@@ -33,8 +33,8 @@
 
       # svcprop/remove
 
-      (symlink/remove "/var/ld/64")
-      (symlink/remove "/never/existed")
+      (link/remove "/var/ld/64")
+      (link/remove "/never/existed")
 
       # (user/remove "sys") # Protected user
       (user/remove "zfssnap")

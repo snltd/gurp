@@ -25,6 +25,15 @@
     {:attr @{:name "kernel-ver"
              :type "string"
              :value "4.4"}})
+
+  (test-error
+    (zone/attr "huh?")
+    "In zone/attr huh?: did not find mandatory property :value. Mandatory properties are :name, :value")
+        
+  (test-error
+    (zone/attr "thing" :value 123 :oops "wat")
+    "In zone/attr thing: unexpected property :oops. Valid properties are :name, :value, :type, :label")
+
   (test-error
     (zone/attr "thing" :type "astring")
-    "did not find mandatory property :value. Mandatory properties are :name, :value"))
+    "In zone/attr thing: did not find mandatory property :value. Mandatory properties are :name, :value"))

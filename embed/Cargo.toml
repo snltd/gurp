@@ -16,3 +16,4 @@ util = { path = "../util" }
 
 [build-dependencies]
 build_helper = { path = "../build_helper" }
+walkdir = "2.5.0"

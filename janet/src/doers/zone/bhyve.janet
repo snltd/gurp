@@ -1,5 +1,6 @@
 (use ../lib)
 
+(def doer :zone)
 (def description-bhyve "Describe a bhyve zone inside a zone resource.")
 (def name-is-bhyve nil)
 (def defaults-bhyve
@@ -40,10 +41,13 @@
 (defn bhyve
   "Given a spec, return config for a bhyve zone"
   [& spec]
+  (def name "NO-NAME")
   (def spec-struct (make-spec-struct ;spec))
-  (def spec-table (checked-spec (spec-with-defaults defaults-bhyve spec-struct)
-                                mandatory-props-bhyve
-                                optional-props-bhyve))
+  (def expanded-spec (spec-with-defaults defaults-bhyve spec-struct))
+  (def spec-table
+    (pinpoint-error
+      :bhyve
+      (checked-spec expanded-spec mandatory-props-bhyve optional-props-bhyve)))
   (struct :bhyve spec-table))
 
 (def notes-bhyve

@@ -19,10 +19,9 @@
                               :role "test-role"}]}
       :remove @{:etherstub @[{:_id "/test-role/etherstub/oldstub0"
                               :name "oldstub0"
-                              :role "test-role"}]}}))
+                              :role "test-role"}]}})
 
-(deftest etherstub-error
   (test-error
     (etherstub/ensure "estub4"
                       :with "field")
-    "unexpected property :with. Valid properties are :label"))
+    "In etherstub/ensure estub4: unexpected property :with. Valid properties are :label"))

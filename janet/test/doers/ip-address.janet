@@ -24,9 +24,8 @@
                                :type "dhcp"}]}
       :remove @{:ip-address @[{:_id "/test-role/ip-address/example2_v4"
                                :name "example2/v4"
-                               :role "test-role"}]}}))
+                               :role "test-role"}]}})
 
-(deftest ip-address-error
   (test-error
     (ip-address/ensure "bad0" :over "e1000g")
-    "did not find mandatory property :type. Mandatory properties are :type"))
+    "In ip-address/ensure bad0: did not find mandatory property :type. Mandatory properties are :type"))

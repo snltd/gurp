@@ -64,9 +64,12 @@
         (set (spec-table :from) url-or-qualified-path))))
 
   (def all-specs (spec-with-defaults defaults-ensure spec-table))
-  (def safe-specs (checked-spec all-specs
-                                mandatory-props-ensure
-                                optional-props-ensure))
+  (def safe-specs
+    (pinpoint-error
+      :ensure
+      (checked-spec all-specs
+                    mandatory-props-ensure
+                    optional-props-ensure)))
 
   (collector/push :ensure doer (spec->resource doer name safe-specs)))
 

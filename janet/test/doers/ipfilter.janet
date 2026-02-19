@@ -24,13 +24,12 @@
                              :role "test-role"}]}
       :remove @{:ipfilter @[{:_id "/test-role/ipfilter/removes-all-rules"
                              :name "removes-all-rules"
-                             :role "test-role"}]}}))
+                             :role "test-role"}]}})
 
-(deftest ipfilter-errors
   (test-error
     (ipfilter/ensure "error-test-1" :from "test/ipfilter")
-    "did not find mandatory property :priority. Mandatory properties are :priority")
+    "In ipfilter/ensure error-test-1: did not find mandatory property :priority. Mandatory properties are :always-reload, :priority")
 
   (test-error
     (ipfilter/ensure "error-test-2" :priority 0)
-    "need exactly one of :content or :from"))
+    "In ipfilter/ensure error-test-2: need exactly one of :content or :from"))

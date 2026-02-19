@@ -14,9 +14,11 @@
            :type "lofs"}})
 
   (test-error
-    (zone/fs "/home" :special "/export/home" :oops "wat?")
-    "unexpected property :oops. Valid properties are :dir, :special, :type, :options, :label")
+    (zone/fs "/home"
+             :special "/export/home"
+             :oops "wat?")
+    "In zone/fs /home: unexpected property :oops. Valid properties are :dir, :special, :type, :options, :label")
 
   (test-error
     (zone/fs "/dir")
-    "did not find mandatory property :special. Mandatory properties are :dir, :special"))
+    "In zone/fs /dir: did not find mandatory property :special. Mandatory properties are :dir, :special"))

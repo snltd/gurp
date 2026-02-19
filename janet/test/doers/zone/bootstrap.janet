@@ -14,4 +14,4 @@
 
   (test-error
     (zone/bootstrap :oops "wat?")
-    "unexpected property :oops. Valid properties are :label, :file, :server, :hostname"))
+    "In zone/bootstrap NO-NAME: unexpected property :oops. Valid properties are :label, :file, :server, :hostname"))
