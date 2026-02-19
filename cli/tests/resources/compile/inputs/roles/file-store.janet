@@ -37,7 +37,7 @@
                            :compression "lz4"}))
 
 (role file-store
-      (symlink/ensure "/home" :source home-root)
+      (link/ensure "/home" :source home-root)
 
       (section users
                (zfs/ensure (zfscat globals/fast-pool "export/home/rob")

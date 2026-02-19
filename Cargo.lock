@@ -1090,6 +1090,7 @@ dependencies = [
  "common",
  "predicates",
  "pretty_assertions",
+ "serde_json",
  "tester",
  "tracing",
  "tracing-subscriber",
