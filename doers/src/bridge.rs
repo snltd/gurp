@@ -104,7 +104,8 @@ impl GurpBridgeEnsure {
                 "show-bridge",
                 "-p",
                 "-o",
-                "protect,priority,bhellotime,bfwddelay,forceproto,bmaxage"
+                "protect,priority,bhellotime,bfwddelay,forceproto,bmaxage",
+                &self.name
             )?,
             links: cmd_output!(
                 DLADM_BIN,
@@ -279,7 +280,7 @@ impl GurpBridgeRemove {
             run_cmd!(cmd)?;
         }
 
-        Ok(ONE_RESOURCE_NO_CHANGE)
+        Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 }
 
@@ -367,6 +368,43 @@ mod test {
                 id: "/NO-ROLE/bridge/unwanted".to_owned(),
             },
             deserialized_example::<GurpBridgeRemove>("bridge/remove-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_parse_bridge() {
+        assert_eq!(
+            BridgeState {
+                links: None,
+                protect: "stp".to_owned(),
+                priority: 4096,
+                hello_time: 2,
+                forward_delay: 16,
+                force_protocol: 3,
+                max_age: 20,
+            },
+            parse_bridge(&RawBridgeState {
+                state: "stp:4096:2:16:3:20".to_owned(),
+                links: String::new(),
+            })
+            .unwrap()
+        );
+
+        assert_eq!(
+            BridgeState {
+                links: Some(BTreeSet::from(["stub0".to_owned(), "stub2".to_owned()])),
+                protect: "stp".to_owned(),
+                priority: 32768,
+                hello_time: 2,
+                forward_delay: 15,
+                force_protocol: 3,
+                max_age: 20,
+            },
+            parse_bridge(&RawBridgeState {
+                state: "stp:32768:2:15:3:20".to_owned(),
+                links: "stub0\nstub2".to_owned(),
+            })
+            .unwrap()
         );
     }
 }
