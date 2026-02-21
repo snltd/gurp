@@ -240,7 +240,11 @@ impl GurpFileEnsure {
     }
 
     fn write_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
-        self.back_up_file(opts)?;
+        if let Some(suffix) = &self.desired_state.backup_suffix
+            && self.path.exists()
+        {
+            self.back_up_file(suffix, opts)?;
+        }
 
         let new_content = if let Some(content) = &self.desired_state.content {
             Some(content)
@@ -295,32 +299,28 @@ impl GurpFileEnsure {
         }
     }
 
-    fn back_up_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
-        if let Some(suffix) = &self.desired_state.backup_suffix {
-            let suffix = if suffix == "TIMESTAMP" {
-                epoch_time_as_string()
-            } else {
-                suffix.to_owned()
-            };
-
-            let backup_target = &self.path.with_extension(suffix);
-            tracing::debug!("Backing up to {}", backup_target);
-
-            if !opts.noop {
-                fs::rename(&self.path, backup_target)?;
-                file::ensure_metadata(
-                    FileMetadata {
-                        group: &NameOrId::Name("root".to_owned()),
-                        owner: &NameOrId::Name("root".to_owned()),
-                        mode: "0o0400",
-                        path: backup_target,
-                        changes: 1,
-                    },
-                    opts,
-                )?;
-            }
+    fn back_up_file(&self, suffix: &str, opts: &ApplyOpts) -> anyhow::Result<()> {
+        let suffix = if suffix == "TIMESTAMP" {
+            epoch_time_as_string()
         } else {
-            tracing::debug!("No backup of {} requested", &self.path);
+            suffix.to_owned()
+        };
+
+        let backup_target = &self.path.with_extension(suffix);
+        tracing::debug!("Backing up to {}", backup_target);
+
+        if !opts.noop {
+            fs::rename(&self.path, backup_target)?;
+            file::ensure_metadata(
+                FileMetadata {
+                    group: &NameOrId::Name("root".to_owned()),
+                    owner: &NameOrId::Name("root".to_owned()),
+                    mode: "0400",
+                    path: backup_target,
+                    changes: 1,
+                },
+                opts,
+            )?;
         }
 
         Ok(())

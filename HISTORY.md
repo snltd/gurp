@@ -32,15 +32,17 @@ Items marked [*] are breaking changes.
 - Replace `symlink` doer with `link`, which also handles hard links. [*]
 - Helpers like `zone-fs` or `smf-method` are now referred to as `zone/fs`
   and `smf/method`. [*]
+- Add `bridge` doer.
+- Add `ipfilter` doer.
+- Add `ipnat` doer.
 - Add `network-flow` doer.
 - Add `vlan` doer.
-- Add `ipnat` doer.
-- Add `ipfilter` doer.
 - Add `limitpriv`, `hostid`, `ip-type`, `pool` to `zone` doer.
 - Changed syntax of `ip-address/ensure`, `ip-properties/ensure`, and
   `ip-interface/ensure` to make them all consistent.
 - Doer documentation is machine-generated from definition files.
 - `file` and `directory` doers now accept numeric IDs for `:owner` and `:group`.
+- File backups now work.
 
 ### Internals
 
