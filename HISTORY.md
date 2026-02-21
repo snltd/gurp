@@ -8,6 +8,7 @@ Items marked [*] are breaking changes.
   behaves differently on client and server. The old JSON transfer still exists.
 - Default to jimage in client/server mode. [*]
 - Write a lock file (`/var/run/gurp.lock`) when running in `apply` mode.
+- More detailed, more useful error messages.
 
 ### Commands
 
@@ -43,6 +44,8 @@ Items marked [*] are breaking changes.
 - Doer documentation is machine-generated from definition files.
 - `file` and `directory` doers now accept numeric IDs for `:owner` and `:group`.
 - File backups now work.
+- `file` and `directory` doers now error with a meaningful message if you try
+  to ensure a path which already exists, but is of a different type.
 
 ### Internals
 

@@ -92,6 +92,12 @@ impl GurpFileEnsure {
         let mut changes = 0;
 
         if self.path.exists() {
+            ensure!(
+                self.path.is_file(),
+                "{} exists and is not a file",
+                self.path
+            );
+
             if self.file_has_changed()? {
                 tracing::info!("updating {}", self.path);
 

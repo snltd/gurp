@@ -1,4 +1,4 @@
-use anyhow::ensure;
+use anyhow::{bail, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_DIRS};
 use common::types::{ApplyOpts, ApplySummary};
@@ -48,7 +48,13 @@ impl GurpDirectoryEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut changes = 0;
 
-        if !self.path.exists() {
+        if self.path.exists() {
+            ensure!(
+                self.path.is_dir(),
+                "{} exists and is not a directory",
+                self.path
+            );
+        } else {
             tracing::info!("creating directory: {}", self.path);
             return_if_noop!(opts);
 
@@ -72,6 +78,12 @@ impl GurpDirectoryEnsure {
 impl GurpDirectoryRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if self.path.exists() {
+            ensure!(
+                self.path.is_dir(),
+                "asked to remove {} but it is not a directory",
+                self.path
+            );
+
             ensure!(
                 !PROTECTED_DIRS.contains(&self.path),
                 format!("protected resource: {}", self.path)

@@ -58,4 +58,5 @@ None
 
 - Directories are created/removed in the order of a natural sort.
 - Directories are created 'mkdir -p' style, but only the mode and owner of the specified directory are managed by Gurp. Any directories 'filled in' to get to the target path will have their ownership and mode dictated by the Gurp process and its umask.
+- If you ensure a directory at a path which already exists but is not a directory, Gurp will error
 - Removing a directory removes all its contents, but does not remove any empty ancestors.

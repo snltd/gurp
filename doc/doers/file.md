@@ -71,4 +71,5 @@ None
 - The `template-out` and `indoc` macros are useful when specifying :content.
 - `:from` takes a fully-qualified or relative path. If you use the latter, Gurp assumes the file is in a ``files/` directory at the same level as the directory holding the file being parsed.
 - `:from-struct` and `:to-format` let you turn Janet values into a config file. Fully supported file formats are `json`, `toml`, and `yaml`: these formats can represent any valid struct. You can create INI files (`:to-format "ini"`), but the limits of that format mean your struct must be a struct of structs, each representing a section. An invalid struct will cause an error.
+- Unless you specify TIMESTAMP, only one backup file is kept. Backup files are always owned by `root:root`, with mode `0400`.
 - Gurp can also create key-value pairs (`:to-format "kvp"`). It can do this from a single-level struct, or from an array. In the latter case, entries are alternately keys and values. Using an array lets you create files with duplicate keys, which is sometimes necessary.

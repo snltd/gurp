@@ -94,6 +94,8 @@
     will cause an error."
    "Unless you specify TIMESTAMP, only one backup file is kept. Backup files are
     always owned by `root:root`, with mode `0400`."
+   "If you try to ensure a file at a path which exists, but is not a file, Gurp
+    will error"
    "Gurp can also create key-value pairs (`:to-format \"kvp\"`). It can do this
     from a single-level struct, or from an array. In the latter case, entries
     are alternately keys and values. Using an array lets you create files with
