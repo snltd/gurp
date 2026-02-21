@@ -39,6 +39,14 @@ pub struct GurpFileLineRemove {
 impl GurpFileLineEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         ensure!(
+            self.path.exists(),
+            "{} does not exist: file-line cannot ensure its contents",
+            self.path
+        );
+
+        ensure!(self.path.is_file(), "{} is not a regular file", self.path);
+
+        ensure!(
             !(self.line.is_some() && self.replace.is_some()),
             "use either :line or :replace, not both"
         );
