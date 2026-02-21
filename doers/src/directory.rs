@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure};
+use anyhow::ensure;
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_DIRS};
 use common::types::{ApplyOpts, ApplySummary};
