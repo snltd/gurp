@@ -28,16 +28,18 @@ impl GurpIpPropertiesEnsure {
             let current_values = current_properties.get(protocol).unwrap_or(&no_values);
 
             for (property, desired_value) in properties {
-                if ip_protocols::align_property(AlignIpPropArg {
-                    ipadm_cmd: "set-prop",
-                    protocol: Some(protocol),
-                    property,
-                    current_value: current_values.get(property).map(String::as_str),
-                    desired_value,
-                    pass_protocol_to_ipadm: false,
-                    ipadm_final_arg: None,
+                if ip_protocols::align_property(
+                    AlignIpPropArg {
+                        ipadm_cmd: "set-prop",
+                        protocol: Some(protocol),
+                        property,
+                        current_value: current_values.get(property).map(String::as_str),
+                        desired_value,
+                        protocol_requires_flag: false,
+                        ipadm_object: None,
+                    },
                     opts,
-                })? {
+                )? {
                     changes += 1;
                 }
             }

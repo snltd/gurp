@@ -102,16 +102,18 @@ impl GurpIpAddressEnsure {
             let current_values = parse_address_props(&raw);
 
             for (property, desired_value) in desired_props {
-                if ip_protocols::align_property(AlignIpPropArg {
-                    ipadm_cmd: "set-addrprop",
-                    protocol: None,
-                    property,
-                    current_value: current_values.get(property).map(String::as_str),
-                    desired_value,
-                    pass_protocol_to_ipadm: false,
-                    ipadm_final_arg: None,
+                if ip_protocols::align_property(
+                    AlignIpPropArg {
+                        ipadm_cmd: "set-addrprop",
+                        protocol: None,
+                        property,
+                        current_value: current_values.get(property).map(String::as_str),
+                        desired_value,
+                        protocol_requires_flag: false,
+                        ipadm_object: Some(&self.name),
+                    },
                     opts,
-                })? {
+                )? {
                     summary = ONE_RESOURCE_ONE_CHANGE
                 }
             }

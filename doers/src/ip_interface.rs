@@ -38,39 +38,49 @@ impl GurpIpInterfaceEnsure {
             tracing::debug!("{} exists", self.name);
         } else {
             tracing::info!("creating {}", self.name);
+            let mut cmd = cmd!(IPADM_BIN, "create-if", &self.name);
 
             if !opts.noop {
-                cmd_output!(IPADM_BIN, "create-if", &self.name)?;
+                run_cmd!(cmd)?;
             }
 
             summary = ONE_RESOURCE_ONE_CHANGE;
         }
 
-        // The properties
+        // The properties can only be considered if the interface exists. If we're in the middle
+        // of a no-op, it won't
 
-        let raw = self.current_properties_raw()?;
-        let current_properties = ip_protocols::parse_ipadm_props(&raw);
+        if interface_exists(&self.name)? {
+            let raw = self.current_properties_raw()?;
+            let current_properties = ip_protocols::parse_ipadm_props(&raw);
 
-        if let Some(protocols) = &self.protocols {
-            for (protocol, properties) in protocols {
-                let no_values = HashMap::new();
-                let current_values = current_properties.get(protocol).unwrap_or(&no_values);
+            if let Some(protocols) = &self.protocols {
+                for (protocol, properties) in protocols {
+                    let no_values = HashMap::new();
+                    let current_values = current_properties.get(protocol).unwrap_or(&no_values);
 
-                for (property, desired_value) in properties {
-                    if ip_protocols::align_property(AlignIpPropArg {
-                        ipadm_cmd: "set-prop",
-                        protocol: Some(protocol),
-                        property,
-                        current_value: current_values.get(property.as_str()).map(String::as_str),
-                        desired_value,
-                        pass_protocol_to_ipadm: true,
-                        ipadm_final_arg: Some(&self.name),
-                        opts,
-                    })? {
-                        summary = ONE_RESOURCE_ONE_CHANGE
+                    for (property, desired_value) in properties {
+                        if ip_protocols::align_property(
+                            AlignIpPropArg {
+                                ipadm_cmd: "set-ifprop",
+                                protocol: Some(protocol),
+                                property,
+                                current_value: current_values
+                                    .get(property.as_str())
+                                    .map(String::as_str),
+                                desired_value,
+                                protocol_requires_flag: true,
+                                ipadm_object: Some(&self.name),
+                            },
+                            opts,
+                        )? {
+                            summary = ONE_RESOURCE_ONE_CHANGE
+                        }
                     }
                 }
             }
+        } else if opts.noop {
+            tracing::info!("cannot consider new interface props in a no-op");
         }
 
         Ok(summary)
