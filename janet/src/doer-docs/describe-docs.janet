@@ -87,10 +87,10 @@
     "\n"
     (bold-underline (a/b doer "ensure"))
     "\n"
-    (string "  " (bold "name")
-            (if-let [name-str (doer-lookup doer :name-is)]
-              (string "  [:string]  " name-str)
-              "This doer does not take a name parameter"))
+    (if-let [name-str (doer-lookup doer :name-is)]
+      (string "  " (bold "name")
+              "  [:string]  " name-str)
+      "\nThis doer does not take a name parameter.")
     "\n"
     "\n"
     (bold "Mandatory properties")
@@ -106,15 +106,19 @@
     (bold-underline (a/b doer "remove"))
     "\n"
     "\n"
-    (bold "Mandatory properties")
-    "\n"
-    (format-properties (doer-lookup doer :mandatory-props-remove))
-    "\n"
-    "\n"
-    (bold "Optional properties")
-    "\n"
-    (format-properties (doer-lookup doer :optional-props-remove))
-    "\n"
+    (if (doer-lookup doer :remove)
+      (string
+        (bold "Mandatory properties")
+        "\n"
+        (format-properties (doer-lookup doer :mandatory-props-remove))
+        "\n"
+        "\n"
+        (bold "Optional properties")
+        "\n"
+        (format-properties (doer-lookup doer :optional-props-remove))
+        "\n")
+      (string "There is no " doer "/remove action.\n"))
+
     (if-let [notes (doer-lookup doer :notes)]
       (string "\n" (bold "Notes") "\n" (splice (map note notes))))))
 
