@@ -16,8 +16,9 @@
                               :role "test-role"}]}
           :remove @{:group @[{:_id "/test-role/group/old-group"
                               :name "old-group"
-                              :role "test-role"}]}})
+                              :role "test-role"}]}}))
 
+(deftest group-error
   (test-error
     (group/ensure "wat")
     "In group/ensure wat: did not find mandatory property :gid. Mandatory properties are :gid")

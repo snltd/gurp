@@ -35,8 +35,9 @@
           :remove @{:cron @[{:_id "/test-role/cron/that-old-cron-job"
                              :name "that-old-cron-job"
                              :role "test-role"
-                             :user "root"}]}})
+                             :user "root"}]}}))
 
+(deftest cron-error
   (test-error
     (cron/ensure "missing-data" :hour 6)
     "In cron/ensure missing-data: did not find mandatory property :command. Mandatory properties are :command, :user")

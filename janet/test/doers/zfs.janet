@@ -27,8 +27,9 @@
                             :size "10G"}]}
           :remove @{:zfs @[{:_id "/test-role/zfs/tank_old_filesystem"
                             :name "tank/old/filesystem"
-                            :role "test-role"}]}})
+                            :role "test-role"}]}}))
 
+(deftest zfs-error
   (test-error
     (zfs/ensure "pool/fs"
                 :properties {:mountpoint "none"}

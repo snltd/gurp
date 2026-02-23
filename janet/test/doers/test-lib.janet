@@ -13,4 +13,4 @@
   "Bring any doer examples into scope for Janet tests"
   [doer env]
   (loop [file :in (sort (os/dir (pathcat example-root doer)))]
-    (dofile (pathcat example-root doer file) :env env)))
+    (eval-string (slurp (pathcat example-root doer file)))))

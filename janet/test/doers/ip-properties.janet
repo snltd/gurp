@@ -16,8 +16,9 @@
                                                   :ipv6 {:hoplimit 123 :hostmodel "weak"}}
                                       :name "general"
                                       :role "test-role"}]}
-          :remove @{}})
+          :remove @{}}))
 
+(deftest ip-properties-error
   (test-error
     (ip-properties/ensure "general"
                           :ipv6 [1234567])

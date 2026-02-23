@@ -24,8 +24,9 @@
           :remove @{:svcprop @[{:_id "/test-role/svcprop/example_svc_3"
                                 :name "example/svc_3"
                                 :properties ["application/thing"]
-                                :role "test-role"}]}})
+                                :role "test-role"}]}}))
 
+(deftest svcprop-error
   (test-error
     (svcprop/ensure "mariadb" :wat true)
     "In svcprop/ensure mariadb: did not find mandatory property :properties. Mandatory properties are :properties"))

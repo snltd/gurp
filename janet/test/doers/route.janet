@@ -48,8 +48,9 @@
                              {:_id "/test-role/route/192.168.1.1"
                               :gateway "default"
                               :name "192.168.1.1"
-                              :role "test-role"}]}})
+                              :role "test-role"}]}}))
 
+(deftest route-error
   (test-error
     (route/ensure "192.168.1.1")
     "Provide exactly one of :gateway and :interface")

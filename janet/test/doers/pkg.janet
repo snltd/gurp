@@ -19,8 +19,9 @@
                             :role "test-role"}
                            {:_id "/test-role/pkg/ooce_developer_python"
                             :name "ooce/developer/python"
-                            :role "test-role"}]}})
+                            :role "test-role"}]}}))
 
+(deftest pkg-error
   (test-error
     (pkg/ensure "sysdef/tools/gurp"
                 :version "1.1.1")

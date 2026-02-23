@@ -15,8 +15,9 @@
                             :restarted-by @["/test-role/file/stub"]
                             :role "NO-ROLE"
                             :state "enabled"}]}
-          :remove @{}})
+          :remove @{}}))
 
+(deftest svc-error
   (test-error
     (svc/ensure "too/many/keys"
                 :state "enabled"
