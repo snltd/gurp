@@ -21,8 +21,9 @@
                                      :role "test-role"}]}
           :remove @{:ip-interface @[{:_id "/test-role/ip-interface/example2"
                                      :name "example2"
-                                     :role "test-role"}]}})
+                                     :role "test-role"}]}}))
 
+(deftest ip-address-error
   (test-error
     (ip-interface/ensure "bad0" :ipv5 {:forwarding true})
     "In ip-interface/ensure bad0: unexpected property :ipv5. Valid properties are :ipv6, :ipv4, :ip, :label, :udp, :icmp, :tcp, :sctp")
@@ -34,4 +35,3 @@
   (test-error
     (ip-interface/remove "bad2" :ipv4 {:forwarding true})
     "In ip-interface/remove bad2: unexpected property :ipv4. Valid properties are :label"))
-

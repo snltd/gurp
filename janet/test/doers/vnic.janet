@@ -23,8 +23,9 @@
                              :with-interface true}]}
           :remove @{:vnic @[{:_id "/test-role/vnic/vnic2"
                              :name "vnic2"
-                             :role "test-role"}]}})
+                             :role "test-role"}]}}))
 
+(deftest vnic-error
   (test-error
     (vnic/ensure "missing_link0")
     "In vnic/ensure missing_link0: did not find mandatory property :over. Mandatory properties are :over")

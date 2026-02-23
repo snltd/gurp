@@ -11,16 +11,17 @@
   (etherstub/ensure "estub1")
 
   (test *collector*
-    @{:ensure @{:etherstub @[{:_id "/test-role/etherstub/newstub0"
-                              :name "newstub0"
-                              :role "test-role"}
-                             {:_id "/test-role/etherstub/estub1"
-                              :name "estub1"
-                              :role "test-role"}]}
-      :remove @{:etherstub @[{:_id "/test-role/etherstub/oldstub0"
-                              :name "oldstub0"
-                              :role "test-role"}]}})
+        @{:ensure @{:etherstub @[{:_id "/test-role/etherstub/newstub0"
+                                  :name "newstub0"
+                                  :role "test-role"}
+                                 {:_id "/test-role/etherstub/estub1"
+                                  :name "estub1"
+                                  :role "test-role"}]}
+          :remove @{:etherstub @[{:_id "/test-role/etherstub/oldstub0"
+                                  :name "oldstub0"
+                                  :role "test-role"}]}}))
 
+(deftest etherstub-error
   (test-error
     (etherstub/ensure "estub4"
                       :with "field")

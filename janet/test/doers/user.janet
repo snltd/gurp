@@ -21,8 +21,9 @@
                              :uid 264}]}
           :remove @{:user @[{:_id "/test-role/user/lolex"
                              :name "lolex"
-                             :role "test-role"}]}})
+                             :role "test-role"}]}}))
 
+(deftest user-error
   (test-error
     (user/ensure "wat"
                  :uid 100)

@@ -32,8 +32,9 @@
                              :enable-smb "frances"
                              :name "enable-smb-frances"
                              :role "test-role"}]}
-          :remove @{}})
+          :remove @{}}))
 
+(deftest misc-error
   (test-error
     (misc/ensure
       :scheduler-class "FSS"

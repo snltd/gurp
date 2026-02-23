@@ -24,8 +24,9 @@
                              :type "hard"}]}
           :remove @{:link @[{:_id "/test-role/link/_dont_want_this_link"
                              :name "/dont/want/this/link"
-                             :role "test-role"}]}})
+                             :role "test-role"}]}}))
 
+(deftest link-error
   (test-error
     (link/ensure "/where/does/this/point")
     "In link/ensure /where/does/this/point: did not find mandatory property :source. Mandatory properties are :source, :type")

@@ -128,8 +128,9 @@
                              :zonepath "/zones/test-zone-fat"}]}
           :remove @{:zone @[{:_id "/test-role/zone/unwanted-zone"
                              :name "unwanted-zone"
-                             :role "test-role"}]}})
+                             :role "test-role"}]}}))
 
+(deftest zone-error
   (test-error
     (zone/ensure "wat-brand")
     "In zone/ensure wat-brand: did not find mandatory property :brand. Mandatory properties are :brand")

@@ -36,8 +36,9 @@
                             :stop-method {:exec ":kill" :timeout 10}}]}
           :remove @{:smf @[{:_id "/NO-ROLE/smf/unwanted_service"
                             :name "unwanted/service"
-                            :role "NO-ROLE"}]}})
+                            :role "NO-ROLE"}]}}))
 
+(deftest smf-error
   (test-error
     (smf/ensure "telegraf"
                 :description "Run Telegraf agent"
