@@ -26,10 +26,24 @@ impl GurpIpPropertiesEnsure {
         for (protocol, properties) in &self.protocols {
             let no_values = HashMap::new();
             let current_values = current_properties.get(protocol).unwrap_or(&no_values);
-
             for (property, desired_value) in properties {
-                if ip_protocols::align_property(
-                    AlignIpPropArg {
+                if property == "extra_priv_ports" {
+                    if ip_protocols::align_list_property(
+                        AlignIpPropArg {
+                            ipadm_cmd: "set-prop",
+                            protocol: Some(protocol),
+                            property,
+                            current_value: current_values.get(property).map(String::as_str),
+                            desired_value,
+                            protocol_requires_flag: false,
+                            ipadm_object: None,
+                        },
+                        opts,
+                    )? {
+                        changes += 1;
+                    }
+                } else if ip_protocols::align_property(
+                    &AlignIpPropArg {
                         ipadm_cmd: "set-prop",
                         protocol: Some(protocol),
                         property,

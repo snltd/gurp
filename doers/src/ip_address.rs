@@ -103,7 +103,7 @@ impl GurpIpAddressEnsure {
 
             for (property, desired_value) in desired_props {
                 if ip_protocols::align_property(
-                    AlignIpPropArg {
+                    &AlignIpPropArg {
                         ipadm_cmd: "set-addrprop",
                         protocol: None,
                         property,

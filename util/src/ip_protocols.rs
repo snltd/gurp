@@ -1,6 +1,6 @@
 use common::constants::IPADM_BIN;
 use common::types::ApplyOpts;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::process::Command;
 
 pub type IpProtocol = String;
@@ -17,7 +17,58 @@ pub struct AlignIpPropArg<'a> {
     pub ipadm_object: Option<&'a str>,
 }
 
-pub fn align_property(args: AlignIpPropArg, opts: &ApplyOpts) -> anyhow::Result<bool> {
+fn modify_list_property(
+    property: &str,
+    value: &str,
+    protocol: Option<&str>,
+    operation: &str,
+    opts: &ApplyOpts,
+) -> anyhow::Result<()> {
+    let mut cmd = cmd!(
+        IPADM_BIN,
+        "set-prop",
+        "-p",
+        format!("{property}{operation}={value}"),
+    );
+
+    if let Some(protocol) = protocol {
+        cmd.arg(protocol);
+    }
+
+    if !opts.noop {
+        let _stdout = run_cmd!(cmd)?;
+    }
+
+    Ok(())
+}
+
+// extra_priv_ports is a list. We need to align the list with the user's list, and we can
+// only change one element of the list at a time
+pub fn align_list_property(args: AlignIpPropArg, opts: &ApplyOpts) -> anyhow::Result<bool> {
+    if property_alignment_notification(&args) {
+        let current_props: BTreeSet<&str> = if let Some(current) = args.current_value {
+            current.split(",").collect()
+        } else {
+            BTreeSet::new()
+        };
+
+        let desired_props: BTreeSet<&str> = args.desired_value.split(",").collect();
+
+        for value in desired_props.difference(&current_props) {
+            modify_list_property(args.property, value, args.protocol, "+", opts)?;
+        }
+
+        for value in current_props.difference(&desired_props) {
+            modify_list_property(args.property, value, args.protocol, "-", opts)?;
+        }
+
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
+fn property_alignment_notification(args: &AlignIpPropArg) -> bool {
     let mut resource = if let Some(protocol) = args.protocol {
         format!("{protocol}/{}", args.property)
     } else {
@@ -31,7 +82,7 @@ pub fn align_property(args: AlignIpPropArg, opts: &ApplyOpts) -> anyhow::Result<
     if let Some(current_value) = args.current_value {
         if current_value == args.desired_value {
             tracing::debug!("{resource} already {current_value}");
-            return Ok(false);
+            return false;
         }
 
         tracing::info!(
@@ -46,16 +97,24 @@ pub fn align_property(args: AlignIpPropArg, opts: &ApplyOpts) -> anyhow::Result<
         );
     }
 
-    let mut cmd = construct_ipadm_prop_cmd(args);
-
-    if !opts.noop {
-        let _stdout = run_cmd!(cmd);
-    }
-
-    Ok(true)
+    true
 }
 
-fn construct_ipadm_prop_cmd(args: AlignIpPropArg) -> Command {
+pub fn align_property(args: &AlignIpPropArg, opts: &ApplyOpts) -> anyhow::Result<bool> {
+    if property_alignment_notification(args) {
+        let mut cmd = construct_ipadm_prop_cmd(args);
+
+        if !opts.noop {
+            let _stdout = run_cmd!(cmd);
+        }
+
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
+fn construct_ipadm_prop_cmd(args: &AlignIpPropArg) -> Command {
     let mut cmd = cmd!(
         IPADM_BIN,
         args.ipadm_cmd,
@@ -116,7 +175,7 @@ mod test {
             ipadm_object: Some("mvnic1"),
         };
 
-        let cmd = construct_ipadm_prop_cmd(input);
+        let cmd = construct_ipadm_prop_cmd(&input);
 
         assert_eq!(
             "/usr/sbin/ipadm set-ifprop -p nud=on -m ipv6 mvnic1",
@@ -136,7 +195,7 @@ mod test {
             ipadm_object: None,
         };
 
-        let cmd = construct_ipadm_prop_cmd(input);
+        let cmd = construct_ipadm_prop_cmd(&input);
 
         assert_eq!(
             "/usr/sbin/ipadm set-prop -p hostmodel=strong ipv6",
@@ -156,7 +215,7 @@ mod test {
             ipadm_object: Some("e1000g0/v4"),
         };
 
-        let cmd = construct_ipadm_prop_cmd(input);
+        let cmd = construct_ipadm_prop_cmd(&input);
 
         assert_eq!(
             "/usr/sbin/ipadm set-addrprop -p transmit=on e1000g0/v4",

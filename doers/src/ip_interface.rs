@@ -61,7 +61,7 @@ impl GurpIpInterfaceEnsure {
 
                     for (property, desired_value) in properties {
                         if ip_protocols::align_property(
-                            AlignIpPropArg {
+                            &AlignIpPropArg {
                                 ipadm_cmd: "set-ifprop",
                                 protocol: Some(protocol),
                                 property,
