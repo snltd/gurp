@@ -138,8 +138,7 @@ impl GurpIpfilterRemove {
 
 // this is not 'Nam Smokey,
 fn there_are_rules() -> anyhow::Result<bool> {
-    let raw = cmd_output!(IPFSTAT_BIN, "-io")?;
-    Ok(raw.trim() == "empty list for ipfilter(out)\nempty list for ipfilter(in)")
+    Ok(!cmd_output!(IPFSTAT_BIN, "-io")?.is_empty())
 }
 
 fn check_filter_rules_are_valid(rules: &str) -> anyhow::Result<()> {
