@@ -45,7 +45,7 @@ impl GurpIpnatRemove {
             tracing::debug!("no live NATs to clear");
         } else {
             tracing::info!("clearing live NAT table");
-            let mut cmd = cmd!(IPNAT_BIN, "-C");
+            let mut cmd = cmd!(IPNAT_BIN, "-FC");
 
             if !opts.noop {
                 run_cmd!(cmd)?;
@@ -97,8 +97,11 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
             );
         }
 
-        let mut fh = File::create(nat_file)?;
-        write!(fh, "{desired_rules}")?;
+        if !opts.noop {
+            let mut fh = File::create(nat_file)?;
+            write!(fh, "{desired_rules}")?;
+        }
+
         Ok(true)
     }
 }
