@@ -192,8 +192,11 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
             );
         }
 
-        let mut fh = File::create(filter_file)?;
-        write!(fh, "{desired_rules}")?;
+        if !opts.noop {
+            let mut fh = File::create(filter_file)?;
+            write!(fh, "{desired_rules}")?;
+        }
+
         Ok(true)
     }
 }
