@@ -34,4 +34,6 @@ None
 
 ## ip-properties/remove
 
-There is no ip-properties/remove.
+There is no ip-properties/remove.## Notes
+
+- Define `extra_priv_ports` as a comma-separated list.
