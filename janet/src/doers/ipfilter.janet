@@ -45,4 +45,5 @@
    "The doer automatically enables the ipfilter service."
    "We do not (currently) support any additional `ipf` options."
    "Per-zone rules are not supported."
+   "Using :always-reload means Gurp will always show a change to be made"
    "ipfilter/remove removes ALL filter rules"])
