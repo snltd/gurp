@@ -108,8 +108,8 @@ impl GurpIpfilterRemove {
         let mut ret = ONE_RESOURCE_NO_CHANGE;
 
         if there_are_rules()? {
-            tracing::info!("clearing live filter table");
-            let mut cmd = cmd!(IPF_BIN, "-C");
+            tracing::info!("clearing live ipf rules");
+            let mut cmd = cmd!(IPF_BIN, "-Fa");
 
             if !opts.noop {
                 run_cmd!(cmd)?;
@@ -117,11 +117,11 @@ impl GurpIpfilterRemove {
 
             ret = ONE_RESOURCE_ONE_CHANGE;
         } else {
-            tracing::debug!("no live filters to clear");
+            tracing::debug!("no live ipf rules to clear");
         }
 
         if filter_file.exists() {
-            tracing::info!("clearing persistent filter table");
+            tracing::info!("clearing persistent ipf rules");
 
             if !opts.noop {
                 fs::remove_file(&filter_file)?;
@@ -129,7 +129,7 @@ impl GurpIpfilterRemove {
 
             ret = ONE_RESOURCE_ONE_CHANGE;
         } else {
-            tracing::debug!("no persistent filters to clear");
+            tracing::debug!("no persistent ipf rules to clear");
         }
 
         Ok(ret)
