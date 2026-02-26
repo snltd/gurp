@@ -1,6 +1,9 @@
 use anyhow::{bail, ensure};
 use common::cmd;
-use common::constants::{DISPADMIN_BIN, ONE_RESOURCE_NO_CHANGE, SHARECTL_BIN, SMBADM_BIN};
+use common::constants::{
+    DISPADMIN_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, SHARECTL_BIN, SMBADM_BIN,
+    SVCADM_BIN,
+};
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::process::{Command, Stdio};
@@ -155,9 +158,19 @@ impl GurpMiscEnsure {
             desired_class
         );
 
-        let mut cmd = cmd!(DISPADMIN_BIN, "-d", desired_class);
-        return_if_noop!(opts);
-        one_change_or_stderr!(cmd, "error setting scheduler class")
+        let mut set_cmd = cmd!(DISPADMIN_BIN, "-d", desired_class);
+
+        if !opts.noop {
+            run_cmd!(set_cmd)?;
+        }
+
+        let mut svc_cmd = cmd!(SVCADM_BIN, "refresh", "svc:/system/scheduler:default");
+
+        if !opts.noop {
+            run_cmd!(svc_cmd)?;
+        }
+
+        Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 }
 
