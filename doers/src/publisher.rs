@@ -36,8 +36,14 @@ impl GurpPublisherEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let current_publishers = &CURRENT_PKG_OUTPUT;
 
+        let desired_uri = if self.uri.ends_with("/") {
+            &self.uri
+        } else {
+            &format!("{}/", self.uri)
+        };
+
         if let Some(existing) = &current_publishers.iter().find(|p| p.name == self.name) {
-            if existing.uri == self.uri {
+            if &existing.uri == desired_uri {
                 tracing::debug!("no change to {} publisher", &self.name);
                 return Ok(ONE_RESOURCE_NO_CHANGE);
             }
@@ -46,14 +52,16 @@ impl GurpPublisherEnsure {
                 "change {} publisher URI: {} -> {}",
                 self.name,
                 existing.uri,
-                self.uri,
+                desired_uri,
             );
         } else {
             tracing::info!("add publisher {}", self.name,);
         }
 
-        let mut cmd = cmd!(PKG_BIN, "set-publisher", "-g", &self.uri, &self.name);
+        let mut cmd = cmd!(PKG_BIN, "set-publisher", "-g", &desired_uri, &self.name);
+
         return_if_noop!(opts);
+
         one_change_or_stderr!(cmd, format!("error setting '{}'; publisher", self.name))
     }
 }
