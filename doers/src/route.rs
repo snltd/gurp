@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure};
+use anyhow::{Context, bail, ensure};
 use common::cmd;
 use common::constants::{
     IPADM_BIN, NETSTAT_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ROUTE_BIN,
@@ -80,8 +80,7 @@ impl GurpRouteEnsure {
             tracing::debug!(command = cmd::to_string(&cmd));
 
             if !opts.noop {
-                let status = cmd.status()?;
-                ensure!(status.success(), "Error running route command");
+                run_cmd!(cmd).context("error running rout command")?;
             }
 
             Ok(ONE_RESOURCE_ONE_CHANGE)
