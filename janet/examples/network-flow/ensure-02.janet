@@ -1,5 +1,5 @@
 (network-flow/ensure "ssh-flow"
-                     :link "vnic0"
+                     :link "vnic1"
                      :protocol "tcp"
                      :local-port 22
-                     :maxbw "1M")
+                     :maxbw "1200K")
