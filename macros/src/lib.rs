@@ -1,3 +1,13 @@
+use std::process::{Command, Output};
+
+pub fn log_error(cmd: &Command, output: Output) -> String {
+    let cmd = common::cmd::to_string(cmd);
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+    tracing::error!(command = cmd, stdout = stdout, stderr = stderr);
+    "error running external command".to_owned()
+}
+
 #[macro_export]
 #[allow(unused_macros)]
 macro_rules! one_change_or_stderr {
@@ -7,8 +17,7 @@ macro_rules! one_change_or_stderr {
         if output.status.success() {
             Ok(common::constants::ONE_RESOURCE_ONE_CHANGE)
         } else {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("{}: {}", $msg, stderr.trim());
+            anyhow::bail!($crate::log_error(&$cmd, output))
         }
     }};
 
@@ -18,7 +27,7 @@ macro_rules! one_change_or_stderr {
         if output.status.success() {
             Ok(common::constants::ONE_RESOURCE_ONE_CHANGE)
         } else {
-            anyhow::bail!("{}", String::from_utf8_lossy(&output.stderr).trim());
+            anyhow::bail!($crate::log_error(&$cmd, output))
         }
     }};
 }
@@ -76,9 +85,9 @@ macro_rules! cmd_change_or_noop{
         if !$opts.noop {
             let output = cmd.output()?;
 
-            anyhow::ensure!(output.status.success(),
-                "cmd_output error: {}", String::from_utf8_lossy(&output.stderr).into_owned()
-            );
+            if output.status.success() {
+                anyhow::bail!($crate::log_error(&$cmd, output))
+            }
         }
 
         Result::<common::types::ApplySummary, anyhow::Error>::Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -97,10 +106,7 @@ macro_rules! run_cmd {
                 String::from_utf8_lossy(&output.stdout).trim().to_owned(),
             )
         } else {
-            anyhow::bail!(
-                "cmd_output error: {}",
-                String::from_utf8_lossy(&output.stderr).into_owned()
-            );
+            anyhow::bail!($crate::log_error(&$cmd, output))
         }
     }};
 }
@@ -137,10 +143,7 @@ macro_rules! cmd_output {
                 String::from_utf8_lossy(&output.stdout).trim().to_owned()
             )
         } else {
-            anyhow::bail!(
-                "cmd_output error: {}",
-                String::from_utf8_lossy(&output.stderr).into_owned()
-            );
+            anyhow::bail!($crate::log_error(&cmd, output))
         }
     }};
 }

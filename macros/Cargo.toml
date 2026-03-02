@@ -5,9 +5,9 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.99"
+common = { path = "../common" }
 tracing = "0.1.41"
 
 [dev-dependencies]
-common = { path = "../common" }
 predicates = "3.1.3"
 tester = { path = "../tester" }
