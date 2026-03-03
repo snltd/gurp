@@ -31,6 +31,7 @@ Items marked [*] are breaking changes.
 ### Doers
 
 - Replace `symlink` doer with `link`, which also handles hard links. [*]
+- Add `force-link` to `link` doer, which can turn regular files into links.
 - Helpers like `zone-fs` or `smf-method` are now referred to as `zone/fs`
   and `smf/method`. [*]
 - Add `bridge` doer.
