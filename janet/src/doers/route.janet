@@ -39,10 +39,9 @@
   (collector/push :ensure doer (make-ensure-resource)))
 
 (defn remove
-  "Given a route gateway, put a remove struct in the collector"
+  "Given a route and a gateway, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
-
 
 (def notes
   ["The `route` command is messy legacy, and it takes all manner of commands.
