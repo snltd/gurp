@@ -11,19 +11,19 @@
   (import-tests "link" (curenv))
 
   (test *collector*
-    @{:ensure @{:link @[{:_id "/test-role/link/example-symlink"
+    @{:ensure @{:link @[{:_id "/test-role/link/_link_is_here"
+                         :force-link false
+                         :name "/link/is/here"
+                         :role "test-role"
+                         :source "/link/points/here"
+                         :type "hard"}
+                        {:_id "/test-role/link/example-symlink"
                          :force-link true
                          :label "example-symlink"
                          :name "/symlink/is/here"
                          :role "test-role"
                          :source "/link/points/here"
-                         :type "symbolic"}
-                        {:_id "/test-role/link/_link_is_here"
-                         :force-link false
-                         :name "/link/is/here"
-                         :role "test-role"
-                         :source "/link/points/here"
-                         :type "hard"}]}
+                         :type "symbolic"}]}
       :remove @{:link @[{:_id "/test-role/link/_dont_want_this_link"
                          :name "/dont/want/this/link"
                          :role "test-role"}]}}))

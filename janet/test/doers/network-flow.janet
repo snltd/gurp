@@ -24,19 +24,19 @@
                        :maxbw "1M")
 
   (test *collector*
-    @{:ensure @{:network-flow @[{:_id "/test-role/network-flow/tls-throttle"
-                                 :link "vnic1"
-                                 :maxbw "10M"
-                                 :name "tls-throttle"
-                                 :protocol "tcp"
-                                 :remote-port 443
-                                 :role "test-role"}
-                                {:_id "/test-role/network-flow/ssh-flow"
+    @{:ensure @{:network-flow @[{:_id "/test-role/network-flow/ssh-flow"
                                  :link "vnic1"
                                  :local-port 22
                                  :maxbw "1200K"
                                  :name "ssh-flow"
                                  :protocol "tcp"
+                                 :role "test-role"}
+                                {:_id "/test-role/network-flow/tls-throttle"
+                                 :link "vnic1"
+                                 :maxbw "10M"
+                                 :name "tls-throttle"
+                                 :protocol "tcp"
+                                 :remote-port 443
                                  :role "test-role"}
                                 {:_id "/test-role/network-flow/cap_all"
                                  :link "vnic0"
