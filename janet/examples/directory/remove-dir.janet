@@ -1,1 +1,1 @@
-(directory/remove "/path/to/dir")
+(directory/remove "/example")

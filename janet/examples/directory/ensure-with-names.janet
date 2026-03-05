@@ -1,5 +1,5 @@
-(directory/ensure "/path/to/dir_3"
-                  :owner "myself"
-                  :group "sysadmin"
+(directory/ensure "/example/dir_2"
+                  :owner "adm"
+                  :group "sys"
                   :mode "0700"
                   :label "all-the-specs")
