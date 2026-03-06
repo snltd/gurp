@@ -14,3 +14,9 @@ To test, just run `judge`, or use the `Dockerfile` if your system supports it.
 ```
 $ docker run $(docker build -q .)
 ```
+
+or
+
+```
+$ podman run $(podman build -q .)
+```
