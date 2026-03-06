@@ -10,13 +10,16 @@
   (import-tests "ip-properties" (curenv))
 
   (test *collector*
-        @{:ensure @{:ip-properties @[{:_id "/test-role/ip-properties/general"
-                                      :protocols {:icmp {:max_buf 1234567}
-                                                  :ipv4 {:hostmodel "weak"}
-                                                  :ipv6 {:hoplimit 123 :hostmodel "weak"}}
-                                      :name "general"
-                                      :role "test-role"}]}
-          :remove @{}}))
+    @{:ensure @{:ip-properties @[{:_id "/test-role/ip-properties/general"
+                                  :name "general"
+                                  :protocols {:icmp {:max_buf 262000}
+                                              :ipv4 {:forwarding true}
+                                              :ipv6 {:hoplimit 250}
+                                              :sctp {:max_buf 1048000}
+                                              :tcp {:sack "passive"}
+                                              :udp {:extra_priv_ports "2050,4040"}}
+                                  :role "test-role"}]}
+      :remove @{}}))
 
 (deftest ip-properties-error
   (test-error

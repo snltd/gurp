@@ -1,4 +1,4 @@
-(file/ensure "/file/from/content"
-             :owner "dataperson"
+(file/ensure "/example/file/from-content"
+             :owner "sys"
              :mode "0600"
-             :content "lots-of-data")
+             :content "words and stuff")

@@ -10,10 +10,10 @@
   (import-tests "ipfilter" (curenv))
 
   (test *collector*
-    @{:ensure @{:ipfilter @[{:_id "/test-role/ipfilter/rules-in-config"
+    @{:ensure @{:ipfilter @[{:_id "/test-role/ipfilter/rules-from-config"
                              :always-reload true
                              :content "block in log all\nblock out all"
-                             :name "rules-in-config"
+                             :name "rules-from-config"
                              :priority 0
                              :role "test-role"}
                             {:_id "/test-role/ipfilter/rules-from-file"

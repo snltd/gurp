@@ -1,4 +1,4 @@
-(file/ensure "/file/from/local_file"
+(file/ensure "/example/file/from-local-file"
              :group "daemon"
-             :mode "0755"
-             :from "file-test/does-not-exist")
+             :mode "4755"
+             :from "file-dir/example")
