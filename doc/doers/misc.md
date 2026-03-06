@@ -15,12 +15,12 @@ This doer does not accept a name
 
 ```janet
 (misc/ensure
-  :enable-smb "rob")
+  :scheduler "FSS")
 ```
 
 ```janet
 (misc/ensure
-  :scheduler "FSS")
+  :enable-smb "rob")
 ```
 
 ### Mandatory Properties

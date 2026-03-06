@@ -9,19 +9,19 @@ Name of flow. Must be unique (`:string`)
 ## network-flow/ensure
 
 ```janet
-(network-flow/ensure "tls-throttle"
-                       :link "vnic1"
-                       :protocol "tcp"
-                       :remote-port 443
-                       :maxbw "10M")
-```
-
-```janet
 (network-flow/ensure "ssh-flow"
                      :link "vnic1"
                      :protocol "tcp"
                      :local-port 22
                      :maxbw "1200K")
+```
+
+```janet
+(network-flow/ensure "tls-throttle"
+                     :link "vnic1"
+                     :protocol "tcp"
+                     :remote-port 443
+                     :maxbw "10M")
 ```
 
 ### Mandatory Properties

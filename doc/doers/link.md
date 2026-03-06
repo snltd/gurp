@@ -9,15 +9,15 @@ Qualified path to the link that will be created (`:string`)
 ## link/ensure
 
 ```janet
-(link/ensure "/symlink/is/here"
-             :label "example-symlink"
-             :force-link true
+(link/ensure "/link/is/here"
+             :type "hard"
              :source "/link/points/here")
 ```
 
 ```janet
-(link/ensure "/link/is/here"
-             :type "hard"
+(link/ensure "/symlink/is/here"
+             :label "example-symlink"
+             :force-link true
              :source "/link/points/here")
 ```
 

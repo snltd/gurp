@@ -9,16 +9,16 @@ Any convenient name: not used internally (`:string`)
 ## ipfilter/ensure
 
 ```janet
-(ipfilter/ensure "rules-from-file"
-                 :from "test/ipfilter-test"
-                 :priority 1)
-```
-
-```janet
-(ipfilter/ensure "rules-in-config"
+(ipfilter/ensure "rules-from-config"
                  :priority 0
                  :always-reload true
                  :content "block in log all\nblock out all")
+```
+
+```janet
+(ipfilter/ensure "rules-from-file"
+                 :from "test/ipfilter-test"
+                 :priority 1)
 ```
 
 ### Mandatory Properties

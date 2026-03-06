@@ -31,6 +31,13 @@ None
 
 ```janet
 (file-line/remove "/path/to/file"
+                  :pattern "string-prefix"
+                  :match "starts-with"
+                  :apply-to "last")
+```
+
+```janet
+(file-line/remove "/path/to/file"
                   :pattern "i-do-not-want-to-see-this-anywhere")
 ```
 
@@ -38,13 +45,6 @@ None
 (file-line/remove "/path/to/file"
                   :match "regex"
                   :pattern "rust-regex")
-```
-
-```janet
-(file-line/remove "/path/to/file"
-                  :pattern "string-prefix"
-                  :match "starts-with"
-                  :apply-to "last")
 ```
 
 ### Mandatory Properties

@@ -9,26 +9,24 @@ Fully qualified path to file (`:string`)
 ## file/ensure
 
 ```janet
-(file/ensure "/file/from/local_file"
-             :group "daemon"
-             :mode "0755"
-             :from "file-test/does-not-exist")
-```
-
-```janet
-(file/ensure "/file/from/content"
-             :owner "dataperson"
+(file/ensure "/example/file/from-content"
+             :owner "sys"
              :mode "0600"
-             :content "lots-of-data")
+             :content "words and stuff")
 ```
 
 ```janet
-(file/ensure "/file/from/arbitrary/server"
-             :owner "gibbus"
+(file/ensure "/example/file/from-local-file"
+             :group "daemon"
+             :mode "4755"
+             :from "file-dir/example")
+```
+
+```janet
+(file/ensure "/example/file/from-url"
              :label "remote-file"
-             :mode "0640"
-             :with-checksum "0123456789abcdef"
-             :from-url "https://example.com/files/config")
+             :with-checksum "561a47aa1d1bfc3a95ce45345639f9ce2d9ad332b05cfe5da74ad77f2842ee16"
+             :from-url "https://raw.githubusercontent.com/snltd/gurp/refs/heads/main/LICENSE.txt")
 ```
 
 ### Mandatory Properties

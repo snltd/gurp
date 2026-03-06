@@ -9,21 +9,21 @@ Fully qualified path to directory (`:string`)
 ## directory/ensure
 
 ```janet
-(directory/ensure "/path/to/dir_1")
+(directory/ensure "/example/dir_1")
 ```
 
 ```janet
-(directory/ensure "/path/to/dir_2"
+(directory/ensure "/example/dir_3"
                   :label "my-dir"
-                  :owner 264
-                  :group 14
-                  :mode "0700")
+                  :owner 4
+                  :group 12
+                  :mode "2750")
 ```
 
 ```janet
-(directory/ensure "/path/to/dir_3"
-                  :owner "myself"
-                  :group "sysadmin"
+(directory/ensure "/example/dir_2"
+                  :owner "adm"
+                  :group "sys"
                   :mode "0700"
                   :label "all-the-specs")
 ```
@@ -43,7 +43,7 @@ None
 ## directory/remove
 
 ```janet
-(directory/remove "/path/to/dir")
+(directory/remove "/example")
 ```
 
 ### Mandatory Properties
