@@ -279,7 +279,7 @@ mod test {
     }
 
     #[test]
-    fn test_deserialze_remove_cron_job() {
+    fn test_deserialize_remove_cron_job() {
         assert_eq!(
             GurpCronRemove {
                 id: "/NO-ROLE/cron/that-old-cron-job".to_owned(),
