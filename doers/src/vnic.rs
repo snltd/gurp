@@ -160,7 +160,21 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_deserialize_vnic_ensure_01() {
+    fn test_deserialize_ensure_vnic_with_interface_and_tag() {
+        assert_eq!(
+            GurpVnicEnsure {
+                id: "/NO-ROLE/vnic/vnic1".to_owned(),
+                name: "vnic1".to_owned(),
+                over: "e1000g".to_owned(),
+                vlan_tag: Some(10),
+                with_interface: true,
+            },
+            deserialized_example("vnic/ensure-vnic-with-interface-and-tag.janet")
+        );
+    }
+
+    #[test]
+    fn test_deserialize_ensure_vnic_over_e1000g0() {
         assert_eq!(
             GurpVnicEnsure {
                 id: "/NO-ROLE/vnic/vnic0".to_owned(),
@@ -169,18 +183,18 @@ mod test {
                 vlan_tag: None,
                 with_interface: false,
             },
-            deserialized_example("vnic/ensure-01.janet")
+            deserialized_example("vnic/ensure-vnic-over-e1000g0.janet")
         );
     }
 
     #[test]
-    fn test_deserialize_vnic_remove_01() {
+    fn test_deserialize_remove_vnic() {
         assert_eq!(
             GurpVnicRemove {
                 id: "/NO-ROLE/vnic/vnic2".to_owned(),
                 name: "vnic2".to_owned(),
             },
-            deserialized_example("vnic/remove-01.janet")
+            deserialized_example("vnic/remove-vnic.janet")
         );
     }
 }

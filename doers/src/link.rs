@@ -207,7 +207,7 @@ mod test {
     use tester::{defopts, defopts_noop, deserialized_example, janet2json};
 
     #[test]
-    fn test_deserialize_link_ensure_01() {
+    fn test_deserialize_link_ensure_symlink_forced() {
         assert_eq!(
             GurpLinkEnsure {
                 id: "/NO-ROLE/link/example-symlink".to_owned(),
@@ -216,12 +216,12 @@ mod test {
                 force_link: true,
                 link_type: LinkType::Symbolic,
             },
-            deserialized_example("link/ensure-01.janet")
+            deserialized_example("link/ensure-symlink-forced.janet")
         );
     }
 
     #[test]
-    fn test_deserialize_link_ensure_02() {
+    fn test_deserialize_link_ensure_hard_link() {
         assert_eq!(
             GurpLinkEnsure {
                 id: "/NO-ROLE/link/_link_is_here".to_owned(),
@@ -230,18 +230,18 @@ mod test {
                 force_link: false,
                 link_type: LinkType::Hard,
             },
-            deserialized_example("link/ensure-02.janet")
+            deserialized_example("link/ensure-hard-link.janet")
         );
     }
 
     #[test]
-    fn test_deserialize_link_remove_01() {
+    fn test_deserialize_link_remove_link() {
         assert_eq!(
             GurpLinkRemove {
                 id: "/NO-ROLE/link/_dont_want_this_link".to_owned(),
                 path: Utf8PathBuf::from("/dont/want/this/link"),
             },
-            deserialized_example("link/remove-01.janet")
+            deserialized_example("link/remove-link.janet")
         );
     }
 

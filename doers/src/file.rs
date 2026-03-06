@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure};
+use anyhow::{Context, bail, ensure};
 use blake3::Hash;
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_FILES};
@@ -81,6 +81,12 @@ impl GurpFileEnsure {
             self.content_xor_file_xor_content_struct(),
             "file '{}' must have exactly one of :content, :from, :from-url, or :from-struct",
             &self.path
+        );
+
+        ensure!(
+            self.path.is_absolute(),
+            "path must be absolute [{}]",
+            self.id
         );
 
         ensure!(self.source_exists_if_needed(), "Missing source file");
@@ -246,6 +252,17 @@ impl GurpFileEnsure {
     }
 
     fn write_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
+        let parent = &self
+            .path
+            .parent()
+            .context(format!("cannot get parent of {}", self.path))?;
+
+        ensure!(
+            parent.exists(),
+            "cannot create {}: parent dir does not exist",
+            self.path
+        );
+
         if let Some(suffix) = &self.desired_state.backup_suffix
             && self.path.exists()
         {
@@ -464,63 +481,69 @@ mod test {
     };
 
     #[test]
-    fn test_file_deserialize_ensure_02() {
+    fn test_deserialize_ensure_file_from_content() {
         assert_eq!(
             GurpFileEnsure {
-                id: "/NO-ROLE/file/_file_from_content".to_owned(),
-                path: Utf8PathBuf::from("/file/from/content"),
+                id: "/NO-ROLE/file/_example_file_from-content".to_owned(),
+                path: Utf8PathBuf::from("/example/file/from-content"),
                 desired_state: DesiredFileState {
                     backup_suffix: None,
-                    content: Some("lots-of-data".to_owned()),
+                    content: Some("words and stuff".to_owned()),
                     from_struct: None,
                     from_url: None,
                     from: None,
                     ignore_pattern: None,
                     mode: "0600".to_owned(),
                     group: NameOrId::Name("root".to_owned()),
-                    owner: NameOrId::Name("dataperson".to_owned()),
+                    owner: NameOrId::Name("sys".to_owned()),
                     to_format: None,
                     with_checksum: None,
                     remote_content: RefCell::new(None),
                 }
             },
-            deserialized_example::<GurpFileEnsure>("file/ensure-02.janet")
+            deserialized_example("file/ensure-from-content.janet")
         );
     }
 
     #[test]
-    fn test_file_deserialize_ensure_03() {
+    fn test_deserialize_ensure_file_from_url_with_checksum() {
         assert_eq!(
             GurpFileEnsure {
                 id: "/NO-ROLE/file/remote-file".to_owned(),
-                path: Utf8PathBuf::from("/file/from/arbitrary/server"),
+                path: Utf8PathBuf::from("/example/file/from-url"),
                 desired_state: DesiredFileState {
                     backup_suffix: None,
                     content: None,
                     from: None,
                     from_struct: None,
-                    from_url: Some("https://example.com/files/config".to_owned()),
-                    with_checksum: Some("0123456789abcdef".to_owned()),
+                    from_url: Some(
+                        "https://raw.githubusercontent.com/snltd/gurp/refs/heads/main/LICENSE.txt"
+                            .to_owned()
+                    ),
+                    with_checksum: Some(
+                        "561a47aa1d1bfc3a95ce45345639f9ce2d9ad332b05cfe5da74ad77f2842ee16"
+                            .to_owned()
+                    ),
                     ignore_pattern: None,
-                    mode: "0640".to_owned(),
-                    owner: NameOrId::Name("gibbus".to_owned()),
+                    mode: "0644".to_owned(),
+                    owner: NameOrId::Name("root".to_owned()),
                     group: NameOrId::Name("root".to_owned()),
                     to_format: None,
                     remote_content: RefCell::new(None),
                 }
             },
-            deserialized_example::<GurpFileEnsure>("file/ensure-03.janet")
+            deserialized_example("file/ensure-from-url-with-checksum.janet")
         );
     }
 
     #[test]
-    fn test_file_deserialize_remove_01() {
+    fn test_deserialize_remove_file() {
         assert_eq!(
             GurpFileRemove {
                 id: "/NO-ROLE/file/_path_to_file".to_owned(),
                 path: Utf8PathBuf::from("/path/to/file"),
             },
-            deserialized_example::<GurpFileRemove>("file/remove-01.janet")
+            deserialized_example("file/remove-file.janet")
         );
     }
 
@@ -1144,6 +1167,38 @@ mod test {
         let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
 
         assert!(sut.apply(&defopts()).is_err());
+    }
+
+    #[test]
+    fn test_filtering() {
+        let json_def = janet2json(r#"(file/ensure "/tmp/example" :content "some words")"#);
+        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+
+        let content = indoc! { "
+            first line
+            line #2
+            a third line
+            The Final Line"
+        };
+
+        assert_eq!(&sut.filter(content, "line").unwrap(), "The Final Line");
+
+        assert_eq!(
+            &sut.filter(content, "line$").unwrap(),
+            indoc! { "
+                line #2
+                The Final Line"
+            }
+        );
+
+        assert_eq!(
+            &sut.filter(content, "^line").unwrap(),
+            indoc! { "
+                first line
+                a third line
+                The Final Line"
+            }
+        );
     }
 
     #[test]

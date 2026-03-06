@@ -213,28 +213,43 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_ipfilter_deserialize_ensure_02() {
+    fn test_ipfilter_deserialize_ensure_from_config() {
         assert_eq!(
             GurpIpfilterEnsure {
-                name: "rules-in-config".to_owned(),
-                id: "/NO-ROLE/ipfilter/rules-in-config".to_owned(),
+                name: "rules-from-config".to_owned(),
+                id: "/NO-ROLE/ipfilter/rules-from-config".to_owned(),
                 priority: 0,
                 from: None,
                 content: Some("block in log all\nblock out all".to_owned()),
                 always_reload: true,
             },
-            deserialized_example::<GurpIpfilterEnsure>("ipfilter/ensure-02.janet")
+            deserialized_example("ipfilter/ensure-from-config.janet")
         );
     }
 
     #[test]
-    fn test_ipfilter_deserialize_remove_01() {
+    fn test_ipfilter_deserialize_ensure_from_file() {
+        assert_eq!(
+            GurpIpfilterEnsure {
+                name: "rules-from-file".to_owned(),
+                id: "/NO-ROLE/ipfilter/rules-from-file".to_owned(),
+                priority: 1,
+                from: Some("test/ipfilter-test".to_owned()),
+                content: None,
+                always_reload: false,
+            },
+            deserialized_example("ipfilter/ensure-from-file.janet")
+        );
+    }
+
+    #[test]
+    fn test_ipfilter_deserialize_remove_all_rules() {
         assert_eq!(
             GurpIpfilterRemove {
                 name: "removes-all-rules".to_owned(),
                 id: "/NO-ROLE/ipfilter/removes-all-rules".to_owned(),
             },
-            deserialized_example::<GurpIpfilterRemove>("ipfilter/remove-01.janet")
+            deserialized_example("ipfilter/remove-all-rules.janet")
         );
     }
 }

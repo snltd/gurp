@@ -159,22 +159,22 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_apk_deserialize_ensure_01() {
+    fn test_deserialize_apk_ensure_rust_package() {
         assert_eq!(
             GurpApkEnsure {
                 name: "rust".to_owned(),
             },
-            deserialized_example::<GurpApkEnsure>("apk/ensure-01.janet")
+            deserialized_example("apk/ensure-rust-package.janet")
         );
     }
 
     #[test]
-    fn test_apk_deserialize_remove_01() {
+    fn test_deserialize_apk_remove_go_package() {
         assert_eq!(
             GurpApkRemove {
                 name: "go".to_owned(),
             },
-            deserialized_example::<GurpApkRemove>("apk/remove-01.janet")
+            deserialized_example("apk/remove-go-package.janet")
         );
     }
 

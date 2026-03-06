@@ -250,7 +250,7 @@ mod test {
     use tester::{deserialized_example, janet2json, propmap};
 
     #[test]
-    fn test_ip_address_deserialize_ensure_01() {
+    fn test_ip_address_deserialize_ensure_static_with_properties() {
         assert_eq!(
             GurpIpAddressEnsure {
                 name: "example0/v4".to_owned(),
@@ -263,12 +263,12 @@ mod test {
                     "prefixlen" => "24",
                 })
             },
-            deserialized_example::<GurpIpAddressEnsure>("ip-address/ensure-01.janet")
+            deserialized_example("ip-address/ensure-static-with-properties.janet")
         );
     }
 
     #[test]
-    fn test_ip_address_deserialize_ensure_02() {
+    fn test_ip_address_deserialize_ensure_dhcp() {
         assert_eq!(
             GurpIpAddressEnsure {
                 name: "example1/v4".to_owned(),
@@ -277,18 +277,18 @@ mod test {
                 address_type: "dhcp".to_owned(),
                 properties: None,
             },
-            deserialized_example::<GurpIpAddressEnsure>("ip-address/ensure-02.janet")
+            deserialized_example("ip-address/ensure-dhcp.janet")
         );
     }
 
     #[test]
-    fn test_ip_address_deserialize_remove_01() {
+    fn test_ip_address_deserialize_remove_address() {
         assert_eq!(
             GurpIpAddressRemove {
                 name: "example2/v4".to_owned(),
                 id: "/NO-ROLE/ip-address/example2_v4".to_owned(),
             },
-            deserialized_example::<GurpIpAddressRemove>("ip-address/remove-01.janet")
+            deserialized_example("ip-address/remove-address.janet")
         );
     }
 

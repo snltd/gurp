@@ -336,10 +336,11 @@ fn bridge_exists(bridge: &str) -> anyhow::Result<bool> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use pretty_assertions::assert_eq;
     use tester::deserialized_example;
 
     #[test]
-    fn test_ensure_bridge_deserialize_01() {
+    fn test_deserialize_ensure_basic_bridge() {
         assert_eq!(
             GurpBridgeEnsure {
                 name: "basic".to_owned(),
@@ -354,12 +355,12 @@ mod test {
                     links: None,
                 },
             },
-            deserialized_example::<GurpBridgeEnsure>("bridge/ensure-01.janet")
+            deserialized_example("bridge/ensure-basic-bridge.janet")
         );
     }
 
     #[test]
-    fn test_ensure_bridge_deserialize_02() {
+    fn test_deserialize_ensure_bridge_with_links_and_props() {
         assert_eq!(
             GurpBridgeEnsure {
                 name: "with_links".to_owned(),
@@ -370,26 +371,22 @@ mod test {
                     hello_time: 2,
                     forward_delay: 15,
                     force_protocol: 3,
-                    max_age: 30,
-                    links: Some(BTreeSet::from([
-                        "vnic0".to_owned(),
-                        "stub0".to_owned(),
-                        "e1000g0".to_owned()
-                    ])),
+                    max_age: 27,
+                    links: Some(BTreeSet::from(["stub1".to_owned(), "stub2".to_owned(),])),
                 },
             },
-            deserialized_example::<GurpBridgeEnsure>("bridge/ensure-02.janet")
+            deserialized_example("bridge/ensure-bridge-with-links-and-props.janet")
         );
     }
 
     #[test]
-    fn test_remove_bridge_deserialize() {
+    fn test_deserialize_remove_bridge() {
         assert_eq!(
             GurpBridgeRemove {
                 name: "unwanted".to_owned(),
                 id: "/NO-ROLE/bridge/unwanted".to_owned(),
             },
-            deserialized_example::<GurpBridgeRemove>("bridge/remove-01.janet")
+            deserialized_example("bridge/remove-bridge.janet")
         );
     }
 

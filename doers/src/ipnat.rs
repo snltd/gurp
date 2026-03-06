@@ -245,7 +245,7 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_ipnat_deserialize_ensure_02() {
+    fn test_ipnat_deserialize_ensure_from_config() {
         assert_eq!(
             GurpIpnatEnsure {
                 name: "rules-in-config".to_owned(),
@@ -255,18 +255,18 @@ mod test {
                 content: Some("rdr le0 203.1.2.3/32 port 80 -> 203.1.2.3,203.1.2.4 port 80 tcp round-robin\nrdr le0 203.1.2.3/32 port 80 -> 203.1.2.5 port 80 tcp round-robin".to_owned())
             },
 
-            deserialized_example::<GurpIpnatEnsure>("ipnat/ensure-02.janet")
+            deserialized_example("ipnat/ensure-from-config.janet")
         );
     }
 
     #[test]
-    fn test_ipnat_deserialize_remove_01() {
+    fn test_ipnat_deserialize_remove_all_rules() {
         assert_eq!(
             GurpIpnatRemove {
                 name: "removes-all-rules".to_owned(),
                 id: "/NO-ROLE/ipnat/removes-all-rules".to_owned(),
             },
-            deserialized_example::<GurpIpnatRemove>("ipnat/remove-01.janet")
+            deserialized_example("ipnat/remove-all-rules.janet")
         );
     }
 

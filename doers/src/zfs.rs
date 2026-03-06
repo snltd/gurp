@@ -186,7 +186,7 @@ mod test {
     use tester::{deserialized_example, propmap};
 
     #[test]
-    fn test_deserialize_zfs_ensure_01() {
+    fn test_deserialize_zfs_ensure_filesystem_with_properties() {
         assert_eq!(
             GurpZfsEnsure {
                 id: "/NO-ROLE/zfs/zfs-example-1".to_owned(),
@@ -199,12 +199,12 @@ mod test {
                     "devices" => "off",
                 },
             },
-            deserialized_example("zfs/ensure-01.janet")
+            deserialized_example("zfs/ensure-filesystem-with-properties.janet")
         );
     }
 
     #[test]
-    fn test_deserialize_zfs_ensure_02() {
+    fn test_deserialize_zfs_ensure_volume_with_label() {
         assert_eq!(
             GurpZfsEnsure {
                 id: "/NO-ROLE/zfs/example-zfs-vol".to_owned(),
@@ -212,18 +212,18 @@ mod test {
                 size: Some("10G".to_owned()),
                 properties: propmap! {"mountpoint" => "none" },
             },
-            deserialized_example("zfs/ensure-02.janet")
+            deserialized_example("zfs/ensure-volume-with-label.janet")
         );
     }
 
     #[test]
-    fn test_deserialize_zfs_remove_01() {
+    fn test_deserialize_zfs_remove_dataset() {
         assert_eq!(
             GurpZfsRemove {
                 id: "/NO-ROLE/zfs/tank_old_filesystem".to_owned(),
                 name: "tank/old/filesystem".to_owned(),
             },
-            deserialized_example("zfs/remove-01.janet")
+            deserialized_example("zfs/remove-dataset.janet")
         );
     }
 }

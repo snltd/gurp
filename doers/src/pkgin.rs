@@ -176,22 +176,22 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_ensure_pkgin_deserialize() {
+    fn test_deserialize_pkgin_ensure_rust_package() {
         assert_eq!(
             GurpPkginEnsure {
                 name: "rust".to_owned(),
             },
-            deserialized_example::<GurpPkginEnsure>("pkgin/ensure-01.janet")
+            deserialized_example("pkgin/ensure-rust-package.janet")
         );
     }
 
     #[test]
-    fn test_remove_pkgin_deserialize() {
+    fn test_deserialize_pkgin_remove_go_package() {
         assert_eq!(
             GurpPkginRemove {
                 name: "go".to_owned(),
             },
-            deserialized_example::<GurpPkginRemove>("pkgin/remove-01.janet")
+            deserialized_example("pkgin/remove-go-package.janet")
         );
     }
 

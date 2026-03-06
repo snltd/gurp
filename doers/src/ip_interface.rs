@@ -124,19 +124,19 @@ mod test {
     use tester::{deserialized_example, propmap};
 
     #[test]
-    fn test_ip_interface_deserialize_ensure_01() {
+    fn test_ip_interface_deserialize_ensure_interface() {
         assert_eq!(
             GurpIpInterfaceEnsure {
                 name: "example0".to_owned(),
                 id: "/NO-ROLE/ip-interface/example0".to_owned(),
                 protocols: None,
             },
-            deserialized_example::<GurpIpInterfaceEnsure>("ip-interface/ensure-01.janet")
+            deserialized_example("ip-interface/ensure-interface.janet")
         );
     }
 
     #[test]
-    fn test_ip_interface_deserialize_ensure_02() {
+    fn test_ip_interface_deserialize_ensure_interface_with_options_and_label() {
         assert_eq!(
             GurpIpInterfaceEnsure {
                 name: "example1".to_owned(),
@@ -160,18 +160,18 @@ mod test {
                     )
                 ]))
             },
-            deserialized_example::<GurpIpInterfaceEnsure>("ip-interface/ensure-02.janet")
+            deserialized_example("ip-interface/ensure-interface-with-options-and-label.janet")
         );
     }
 
     #[test]
-    fn test_ip_interface_deserialize_remove_01() {
+    fn test_ip_interface_deserialize_remove_interface() {
         assert_eq!(
             GurpIpInterfaceRemove {
                 name: "example2".to_owned(),
                 id: "/NO-ROLE/ip-interface/example2".to_owned(),
             },
-            deserialized_example::<GurpIpInterfaceRemove>("ip-interface/remove-01.janet")
+            deserialized_example("ip-interface/remove-interface.janet")
         );
     }
 }

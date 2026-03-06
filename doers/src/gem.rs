@@ -306,7 +306,7 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_gem_deserialize_ensure_01() {
+    fn test_gem_deserialize_ensure_rubygem() {
         assert_eq!(
             GurpGemEnsure {
                 name: "wavefront-cli".to_owned(),
@@ -314,12 +314,12 @@ mod test {
                 source: None,
                 gem_path: None,
             },
-            deserialized_example::<GurpGemEnsure>("gem/ensure-01.janet")
+            deserialized_example("gem/ensure-rubygem.janet")
         );
     }
 
     #[test]
-    fn test_gem_deserialize_ensure_02() {
+    fn test_gem_deserialize_ensure_version_with_source_and_gempath() {
         assert_eq!(
             GurpGemEnsure {
                 name: "my-gem".to_owned(),
@@ -327,18 +327,18 @@ mod test {
                 source: Some("https://my-gem-repo.com".to_owned()),
                 gem_path: Some(Utf8PathBuf::from("/opt/pkgin/bin/gem")),
             },
-            deserialized_example::<GurpGemEnsure>("gem/ensure-02.janet")
+            deserialized_example("gem/ensure-version-with-source-and-gempath.janet")
         );
     }
 
     #[test]
-    fn test_gem_deserialize_remove_01() {
+    fn test_gem_deserialize_remove_gem() {
         assert_eq!(
             GurpGemRemove {
                 name: "webscale".to_owned(),
                 gem_path: None,
             },
-            deserialized_example::<GurpGemRemove>("gem/remove-01.janet")
+            deserialized_example("gem/remove-gem.janet")
         );
     }
 

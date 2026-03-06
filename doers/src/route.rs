@@ -7,6 +7,7 @@ use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
+use util::deserializer;
 
 #[derive(Debug, PartialEq)]
 struct Route {
@@ -35,6 +36,10 @@ pub struct GurpRouteEnsure {
     pub gateway: Option<String>,
     pub interface: Option<String>,
     pub force_gateway: bool,
+    #[serde(
+        default,
+        deserialize_with = "deserializer::option_property_deserializer"
+    )]
     pub flags: Option<Flags>,
     #[serde(rename = "type")]
     pub route_type: Option<String>, // dropped in right after the "add"
@@ -48,6 +53,8 @@ pub struct GurpRouteRemove {
     pub destination: String,
     pub gateway: Option<String>,
     pub interface: Option<String>,
+    #[serde(rename = "type")]
+    pub route_type: Option<String>,
 }
 
 impl GurpRouteEnsure {
@@ -144,13 +151,18 @@ impl GurpRouteRemove {
 
         if route_exists(&route, &route_table) {
             tracing::info!("removing {} -> {} {}", self.destination, route_type, target);
-            let mut cmd = cmd!(
-                ROUTE_BIN,
-                "-p",
-                "delete",
-                &self.destination,
-                gateway_or_interface(&route)?,
-            );
+            let mut cmd = Command::new(ROUTE_BIN);
+            cmd.arg("-p");
+            cmd.arg("delete");
+
+            if let Some(route_type) = &self.route_type {
+                cmd.arg(format!("-{route_type}"));
+            }
+
+            cmd.arg(&self.destination);
+            cmd.arg(gateway_or_interface(&route)?);
+
+            tracing::debug!(command = common::cmd::to_string(&cmd));
 
             if !opts.noop {
                 cmd.stderr(Stdio::piped());
@@ -261,7 +273,83 @@ fn parse_local_addrs(raw: &str) -> Vec<String> {
 mod test {
     use super::*;
     use pretty_assertions::assert_eq;
-    use tester::janet2json;
+    use tester::{deserialized_example, janet2json, propmap};
+
+    #[test]
+    fn test_deserialize_route_ensure_blackhole() {
+        assert_eq!(
+            GurpRouteEnsure {
+                id: "/NO-ROLE/route/203.0.113.0_24".to_owned(),
+                destination: "203.0.113.0/24".to_owned(),
+                gateway: Some("127.0.0.1".to_owned()),
+                interface: None,
+                force_gateway: false,
+                flags: None,
+                route_type: Some("blackhole".to_owned()),
+            },
+            deserialized_example("route/ensure-blackhole.janet")
+        );
+    }
+
+    #[test]
+    fn test_deserialize_route_ensure_default_route() {
+        assert_eq!(
+            GurpRouteEnsure {
+                id: "/NO-ROLE/route/default".to_owned(),
+                destination: "default".to_owned(),
+                gateway: Some("192.168.1.1".to_owned()),
+                interface: None,
+                force_gateway: false,
+                flags: None,
+                route_type: None,
+            },
+            deserialized_example("route/ensure-default-route.janet")
+        );
+    }
+
+    #[test]
+    fn test_deserialize_route_ensure_network_with_mtu() {
+        assert_eq!(
+            GurpRouteEnsure {
+                id: "/NO-ROLE/route/10.0.5.0_24".to_owned(),
+                destination: "10.0.5.0/24".to_owned(),
+                gateway: Some("10.0.5.150".to_owned()),
+                interface: None,
+                force_gateway: false,
+                flags: Some(propmap! {"mtu" => "1500"}),
+                route_type: None,
+            },
+            deserialized_example("route/ensure-network-with-mtu.janet")
+        );
+    }
+
+    #[test]
+    fn test_deserialize_route_remove_blackhole() {
+        assert_eq!(
+            GurpRouteRemove {
+                id: "/NO-ROLE/route/203.0.113.0_24".to_owned(),
+                destination: "203.0.113.0/24".to_owned(),
+                gateway: Some("127.0.0.1".to_owned()),
+                interface: None,
+                route_type: Some("blackhole".to_owned()),
+            },
+            deserialized_example("route/remove-blackhole.janet")
+        );
+    }
+
+    #[test]
+    fn test_deserialize_route_remove_net_route() {
+        assert_eq!(
+            GurpRouteRemove {
+                id: "/NO-ROLE/route/10.0.5.0_24".to_owned(),
+                destination: "10.0.5.0/24".to_owned(),
+                gateway: Some("10.0.5.150".to_owned()),
+                interface: None,
+                route_type: None,
+            },
+            deserialized_example("route/remove-net-route.janet")
+        );
+    }
 
     #[test]
     fn test_build_add_route_cmd() {

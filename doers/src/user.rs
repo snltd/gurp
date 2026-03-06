@@ -379,7 +379,7 @@ mod tests {
     use tester::deserialized_example;
 
     #[test]
-    fn test_deserialize_user_ensure_01() {
+    fn test_deserialize_user_ensure_rob() {
         assert_eq!(
             GurpUserEnsure {
                 id: "/NO-ROLE/user/rob".to_owned(),
@@ -395,18 +395,18 @@ mod tests {
                     profiles: None,
                 }
             },
-            deserialized_example("user/ensure-01.janet")
+            deserialized_example("user/ensure-user-rob.janet")
         );
     }
 
     #[test]
-    fn test_deserialize_user_remove_01() {
+    fn test_deserialize_user_remove_user_lolex() {
         assert_eq!(
             GurpUserRemove {
                 id: "/NO-ROLE/user/lolex".to_owned(),
                 name: "lolex".to_owned(),
             },
-            deserialized_example("user/remove-01.janet")
+            deserialized_example("user/remove-user-lolex.janet")
         );
     }
 
@@ -427,9 +427,9 @@ mod tests {
         let g = GurpUserEnsure {
             desired_state: UserState {
                 password_hash: Some("NEWHASH".into()),
-                ..deserialized_example("user/ensure-01.janet")
+                ..deserialized_example("user/ensure-user-rob.janet")
             },
-            ..deserialized_example("user/ensure-01.janet")
+            ..deserialized_example("user/ensure-user-rob.janet")
         };
 
         g.update_shadow(&path, "rob", "NEWHASH").unwrap();

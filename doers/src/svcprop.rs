@@ -320,7 +320,7 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_deserialize_svcprop_ensure_01() {
+    fn test_deserialize_svcprop_ensure_application_props() {
         assert_eq!(
             GurpSvcpropEnsure {
                 service: "example/svc_1".to_owned(),
@@ -350,12 +350,12 @@ mod test {
                     )
                 ])
             },
-            deserialized_example("svcprop/ensure-01.janet")
+            deserialized_example("svcprop/ensure-application-props.janet")
         );
     }
 
     #[test]
-    fn test_deserialize_svcprop_ensure_02() {
+    fn test_deserialize_svcprop_ensure_group_and_properties() {
         assert_eq!(
             GurpSvcpropEnsure {
                 service: "example/svc_1".to_owned(),
@@ -372,12 +372,12 @@ mod test {
                     }
                 ),])
             },
-            deserialized_example("svcprop/ensure-02.janet")
+            deserialized_example("svcprop/ensure-group-and-properties.janet")
         );
     }
 
     #[test]
-    fn test_deserialize_svcprop_remove_01() {
+    fn test_deserialize_svcprop_remove_properties() {
         assert_eq!(
             GurpSvcpropRemove {
                 id: "/NO-ROLE/svcprop/example_svc_3".to_owned(),
@@ -385,7 +385,7 @@ mod test {
                 properties: vec!["application/thing".to_owned()],
                 property_groups: None,
             },
-            deserialized_example("svcprop/remove-01.janet")
+            deserialized_example("svcprop/remove-properties.janet")
         );
     }
 

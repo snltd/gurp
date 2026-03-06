@@ -191,26 +191,25 @@ fn parse_pkg_output(output: &str) -> GlobalPkgs {
 #[cfg(test)]
 mod test {
     use super::*;
-    use pretty_assertions::assert_eq;
     use tester::deserialized_example;
 
     #[test]
-    fn test_ensure_pkg_deserialize() {
+    fn test_deserialize_pkg_ensure_rust_package() {
         assert_eq!(
             GurpPkgEnsure {
                 name: "ooce/developer/rust".to_owned(),
             },
-            deserialized_example::<GurpPkgEnsure>("pkg/ensure-01.janet")
+            deserialized_example("pkg/ensure-rust-package.janet")
         );
     }
 
     #[test]
-    fn test_remove_pkg_deserialize() {
+    fn test_deserialize_pkg_remove_go_package() {
         assert_eq!(
             GurpPkgRemove {
                 name: "ooce/developer/go".to_owned(),
             },
-            deserialized_example::<GurpPkgRemove>("pkg/remove-01.janet")
+            deserialized_example("pkg/remove-go-package.janet")
         );
     }
 
