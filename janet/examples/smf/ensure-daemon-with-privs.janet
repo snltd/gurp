@@ -1,20 +1,18 @@
 (smf/ensure "example"
             :description "Run example program"
             :fmri "snltd/example"
+            :duration "child"
             (smf/dependency "dependency1"
-                            :fmri "svc://example/service1:default")
+                            :fmri "svc:/milestone/name-services:default")
             (smf/dependency "dependency2"
-                            :grouping "optional-all"
+                            :grouping "optional_all"
                             :restart-on "error"
-                            :fmri "svc://example/service2:default")
+                            :fmri "svc:/system/pkgserv:default")
             (smf/method "start"
-                        :exec "/opt/site/lib/smf/method/example.sh"
-                        :user "example"
+                        :exec "/app/method.sh"
+                        :user "appuser"
                         :group "daemon"
                         :privileges ["basic"
-                                     "file_dac_search"
-                                     "sys_admin"
-                                     "proc_owner"
-                                     "proc_zone"])
+                                     "!file_dac_search"])
             :property-groups {:application "application"}
             :properties {:application/datadir "/data"})
