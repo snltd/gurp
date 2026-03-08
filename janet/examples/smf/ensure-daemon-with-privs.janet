@@ -14,5 +14,8 @@
                         :group "daemon"
                         :privileges ["basic"
                                      "!file_dac_search"])
-            :property-groups {:application "application"}
-            :properties {:application/datadir "/data"})
+            :property-groups {:application "application"
+                              :other_group "framework"}
+            :properties {:application/port 8080
+                         :application/ssl true
+                         :other_group/other_prop "abc123"})

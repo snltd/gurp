@@ -47,6 +47,7 @@ Items marked [*] are breaking changes.
 - File backups now work.
 - `file` and `directory` doers now error with a meaningful message if you try
   to ensure a path which already exists, but is of a different type.
+- `smf` doer now lets you set service properties.
 
 ### Internals
 

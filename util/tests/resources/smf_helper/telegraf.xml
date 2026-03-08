@@ -32,5 +32,8 @@
         </loctext>
       </common_name>
     </template>
+    <property_group name='application' type='application'>
+      <propval name='setting' type='astring' value='"some_value"' />
+    </property_group>
   </service>
 </service_bundle>
