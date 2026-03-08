@@ -24,6 +24,9 @@
     </exec_method>
     <exec_method name='stop' type='method' exec=':kill' timeout_seconds='10'/>
     <exec_method name='refresh' type='method' exec=':kill -THAW' timeout_seconds='60'/>
+    <property_group name='application' type='application'>
+      <propval name='setting' type='astring' value='"some_value"' />
+    </property_group>
     <stability value='Unstable'/>
     <template>
       <common_name>
@@ -32,8 +35,5 @@
         </loctext>
       </common_name>
     </template>
-    <property_group name='application' type='application'>
-      <propval name='setting' type='astring' value='"some_value"' />
-    </property_group>
   </service>
 </service_bundle>

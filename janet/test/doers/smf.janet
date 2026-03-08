@@ -25,8 +25,11 @@
                         :duration "child"
                         :fmri "snltd/example"
                         :name "example"
-                        :properties @{:application/datadir {:type "astring" :value "/data"}}
-                        :property-groups {:application "application"}
+                        :properties @{:application/port {:type "integer" :value 8080}
+                                      :application/ssl {:type "boolean" :value true}
+                                      :other_group/other_prop {:type "astring" :value "abc123"}}
+                        :property-groups {:application "application"
+                                          :other_group "framework"}
                         :role "NO-ROLE"
                         :single-instance true
                         :start-method @{:context {:group "daemon"

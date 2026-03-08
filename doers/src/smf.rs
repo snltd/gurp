@@ -278,6 +278,13 @@ mod test {
                 <property_group name='startd' type='framework'>
                   <propval name='duration' type='astring' value='child'/>
                 </property_group>
+                <property_group name='application' type='application'>
+                  <propval name='port' type='integer' value='8080'/>
+                  <propval name='ssl' type='boolean' value='true'/>
+                </property_group>
+                <property_group name='other_group' type='framework'>
+                  <propval name='other_prop' type='astring' value='"abc123"'/>
+                </property_group>
                 <stability value='Unstable'/>
                 <template>
                   <common_name>
@@ -286,13 +293,6 @@ mod test {
                     </loctext>
                   </common_name>
                 </template>
-                <property_group name='application' type='application'>
-                  <propval name='port' type='integer' value='8080'/>
-                  <propval name='ssl' type='boolean' value='true'/>
-                </property_group>
-                <property_group name='other_group' type='framework'>
-                  <propval name='other_prop' type='astring' value='"abc123"'/>
-                </property_group>
               </service>
             </service_bundle>
             "#},
