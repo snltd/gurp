@@ -9,6 +9,11 @@ Service FMRI (`:string`)
 ## svc/ensure
 
 ```janet
+(svc/ensure "snltd/example"
+            :state "disabled")
+```
+
+```janet
 (svc/ensure "important/service"
             :state "enabled"
             :restarted-by [:/test-role/file/stub])

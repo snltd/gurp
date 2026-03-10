@@ -5,6 +5,7 @@
 (def description "Set and remove properties and property groups of an existing
                   SMF service.")
 (def name-is "Any valid FMRI of the service whose properties you wish to set")
+(def allowed-actions ["restart" "refresh"])
 (def mandatory-props-ensure
   {:properties
    {:types [:struct]
@@ -12,7 +13,11 @@
 (def optional-props-ensure
   {:property-groups
    {:types [:struct]
-    :help "Property groups to create. Key is name, value is type"}})
+    :help "Property groups to create. Key is name, value is type"}
+   :on-change
+   {:types [:string]
+    :help (string "Take this action when a value is changed. One of "
+                  (string/join allowed-actions ", "))}})
 (def mandatory-props-remove
   {:properties
    {:types [:tuple]
@@ -27,6 +32,7 @@
 (defn ensure
   "Given a service property spec, put an ensure struct in the collector"
   [name & spec]
+
   (def spec-struct
     (pinpoint-error
       :ensure
@@ -34,6 +40,14 @@
                     mandatory-props-ensure
                     optional-props-ensure)))
   (def spec-table (spec-with-defaults defaults-ensure spec-struct))
+
+  (if-let [action (get spec-table :on-change)]
+    (pinpoint-error
+      :ensure
+      (if-not (has-value? allowed-actions action)
+        (error (string "on-change action must be one of "
+                       (string/join allowed-actions ", ")
+                       " [got '" action "']")))))
 
   # Properties must be expanded
   # 
@@ -50,5 +64,9 @@
   (collector/push :remove doer (make-remove-resource)))
 
 (def notes
-  ["If not specified, Gurp will infer the types of property values."
+  ["If you want to change a property value on a service instance, you may also
+    have to define the property group to which it belongs, as it may not be
+    inherited from the base service."
+   "When a service restarts on-change, it also refreshes."
+   "If not specified, Gurp will infer the types of property values."
    "You can't change the type of an existing property group."])
