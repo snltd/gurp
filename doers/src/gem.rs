@@ -65,7 +65,7 @@ impl GurpGem for GurpGemRemove {
 
 // To try to minimize remote calls, and therefore run time, bundles (no pun intended) together
 // calls which are directly to Rubygems using the default gem binary and without a specific
-// versoin. If the user has specified a version, a different source or gem binary for any gems,
+// version. If the user has specified a version, a different source or gem binary for any gems,
 // they are dealt with individually.
 //
 pub fn collect_and_ensure(gem_list: &EnsureList, opts: &ApplyOpts) -> ApplyResult {
