@@ -47,13 +47,13 @@ Any valid FMRI of the service whose properties you wish to set (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:properties` | `tuple` | Properties to remove |  |
+| `:properties` | `tuple array` | Properties to remove |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:property-groups` | `struct` | Property groups to remove |  |
+| `:property-groups` | `tuple array` | Property groups to remove |  |
 
 ## Notes
 

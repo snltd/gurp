@@ -18,7 +18,8 @@ Items marked [*] are breaking changes.
 - Add `repl` command, which opens a Janet REPL with the Gurp library loaded into
   the root environment.
 - Add `--destroy-everything-you-touch` to `apply` command.
-- Add `--as-json` option to client mode, for old compile-on-server behaviour.
+- Add `--as-json` option to apply command, for old compile-on-server behaviour.
+- Add `--remove-first` option to act on remove resources first.
 - `describe` command gives more information, and its layout adjusts for the
   terminal width.
 - `describe` and `doers` will not use ANSI colouring if `gurp` is part of a

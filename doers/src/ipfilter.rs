@@ -1,16 +1,20 @@
+use crate::types::ApplyResult;
 use anyhow::bail;
 use camino::Utf8PathBuf;
 use common::constants::{
-    IPF_BIN, IPF_SVC, IPFSTAT_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE,
+    IPF_BIN, IPF_SVC, IPFSTAT_BIN, NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_NO_CHANGE,
+    ONE_RESOURCE_ONE_CHANGE,
 };
 use common::info;
-use common::types::{ApplyOpts, ApplySummary};
+use common::types::{ApplyOpts, ApplySummary, ChangedIds};
 use serde::Deserialize;
 use std::fs::{self, File};
 use std::io::Write;
 use util::svcs;
 
 const IPF_CONF: &str = "/etc/ipf/ipf.conf";
+
+type EnsureList = Vec<GurpIpfilterEnsure>;
 
 // We build a single big set of filter rules from multiple sources, check its validity, and ensure
 // its contents align with those of /etc/ipf/ipf.conf. If the file has changed, or if any resource
@@ -38,12 +42,13 @@ pub struct GurpIpfilterRemove {
     pub name: String,
 }
 
-type EnsureList = Vec<GurpIpfilterEnsure>;
+pub fn collect_and_ensure(filter_list: &EnsureList, opts: &ApplyOpts) -> ApplyResult {
+    let mut changed_ids = ChangedIds::default();
 
-pub fn collect_and_ensure(
-    filter_list: &EnsureList,
-    opts: &ApplyOpts,
-) -> anyhow::Result<ApplySummary> {
+    if filter_list.is_empty() {
+        return Ok((NO_RESOURCES_TO_CHANGE, changed_ids));
+    }
+
     ensure_ipf_is_running()?;
     svcs::wait_for_state(IPF_SVC, "online")?;
     let mut force_reload = false;
@@ -69,7 +74,10 @@ pub fn collect_and_ensure(
         if filter.always_reload {
             force_reload = true;
         }
+
+        changed_ids.insert(filter.id);
     }
+
     if opts.dump_config {
         info::dump_config(&desired_rules, Some("ipfilter rules"), opts);
     }
@@ -83,7 +91,7 @@ pub fn collect_and_ensure(
         let mut reload_cmd = cmd!(IPF_BIN, "-Fa", "-f", IPF_CONF);
 
         if opts.noop {
-            Ok(ONE_RESOURCE_ONE_CHANGE)
+            Ok((ONE_RESOURCE_ONE_CHANGE, changed_ids))
         } else {
             let before_change = cmd_output!(IPFSTAT_BIN, "-io")?;
             run_cmd!(reload_cmd)?;
@@ -91,14 +99,14 @@ pub fn collect_and_ensure(
 
             if before_change == after_change {
                 tracing::debug!("reloading ipfilter conf did not change live rules");
-                Ok(ONE_RESOURCE_NO_CHANGE)
+                Ok((ONE_RESOURCE_NO_CHANGE, changed_ids))
             } else {
                 tracing::info!("reloading ipfilter conf produced new live rules");
-                Ok(ONE_RESOURCE_ONE_CHANGE)
+                Ok((ONE_RESOURCE_ONE_CHANGE, changed_ids))
             }
         }
     } else {
-        Ok(ONE_RESOURCE_NO_CHANGE)
+        Ok((ONE_RESOURCE_NO_CHANGE, changed_ids))
     }
 }
 

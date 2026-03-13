@@ -35,6 +35,13 @@ use serde_json::Error;
 use std::collections::BTreeSet;
 use util::json; // Because they are hashable
 
+pub(crate) type ApplyResult = anyhow::Result<(ApplySummary, ChangedIds)>;
+
+pub trait Apply {
+    fn id(&self) -> &str;
+    fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary>;
+}
+
 #[derive(Deserialize, Debug)]
 pub struct HostConfig {
     pub metadata: HostMetadata,
@@ -174,39 +181,113 @@ pub struct RemoveResources {
     pub zone: Vec<GurpZoneRemove>,
 }
 
-macro_rules! apply_resources {
-    ($summary_total:ident, $changed_ids:ident, $resources:expr, $opts:expr) => {
-        let total_count = $resources.len();
-        for (i, resource) in $resources.iter().enumerate() {
-            let chunks: Vec<_> = resource.id.split("/").collect();
-            if chunks.len() >= 3 {
-                tracing::debug!(
-                    "applying {} {}/{}: {}",
-                    chunks[1],
-                    i + 1,
-                    total_count,
-                    resource.id
-                );
-            } else {
-                tracing::debug!("applying [{}/{}]: {}", i + 1, total_count, resource.id);
-            }
-            let summary = match resource.apply($opts) {
-                Ok(summary) => summary,
-                Err(e) => {
-                    tracing::error!("from {} doer: {}", chunks[2], e);
-                    let err: anyhow::Error = e.into();
-                    return Err(err.context(format!("failed to apply resource {}", resource.id)));
+macro_rules! impl_apply {
+    ($($t:ty),*) => {
+        $(
+            impl Apply for $t {
+                fn id(&self) -> &str { &self.id }
+                fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+                    self.apply(opts)
                 }
-            };
-            $summary_total += summary;
-            if summary.changes > 0 {
-                $changed_ids.insert(resource.id.clone());
             }
-        }
-    };
+        )*
+    }
 }
+
+impl_apply!(
+    // GurpApkEnsure,
+    GurpBridgeEnsure,
+    GurpCronEnsure,
+    GurpDirectoryEnsure,
+    GurpEtherstubEnsure,
+    GurpFileEnsure,
+    GurpFileLineEnsure,
+    // GurpGemEnsure,
+    GurpGroupEnsure,
+    GurpIpAddressEnsure,
+    GurpIpInterfaceEnsure,
+    GurpIpPropertiesEnsure,
+    // GurpIpfilterEnsure,
+    // GurpIpnatEnsure,
+    GurpLinkEnsure,
+    GurpMiscEnsure,
+    GurpNetworkFlowEnsure,
+    // GurpPkgEnsure,
+    // GurpPkginEnsure,
+    GurpPublisherEnsure,
+    GurpRouteEnsure,
+    GurpSvcpropEnsure,
+    GurpSmfEnsure,
+    // GurpSvcEnsure,
+    GurpUserEnsure,
+    GurpVlanEnsure,
+    GurpVnicEnsure,
+    GurpZfsEnsure,
+    GurpZoneEnsure,
+    // GurpApkRemove,
+    GurpBridgeRemove,
+    GurpCronRemove,
+    GurpDirectoryRemove,
+    GurpEtherstubRemove,
+    GurpFileRemove,
+    GurpFileLineRemove,
+    // GurpGemRemove,
+    GurpGroupRemove,
+    GurpIpAddressRemove,
+    GurpIpInterfaceRemove,
+    GurpIpfilterRemove,
+    GurpIpnatRemove,
+    GurpLinkRemove,
+    GurpNetworkFlowRemove,
+    // GurpPkgRemove,
+    // GurpPkginRemove,
+    GurpPublisherRemove,
+    GurpRouteRemove,
+    GurpSmfRemove,
+    GurpSvcpropRemove,
+    GurpUserRemove,
+    GurpVlanRemove,
+    GurpVnicRemove,
+    GurpZfsRemove,
+    GurpZoneRemove
+);
+
 pub struct Applicator {
     json_config: String,
+}
+
+fn apply_resources<'a, T: Apply>(resources: &'a [T], opts: &'a ApplyOpts) -> ApplyResult {
+    let total_count = resources.len();
+    let mut changed_ids: ChangedIds = BTreeSet::new();
+    let mut apply_summary = ApplySummary::default();
+
+    for (i, resource) in resources.iter().enumerate() {
+        let id = resource.id();
+        let chunks: Vec<_> = id.split("/").collect();
+
+        if chunks.len() >= 3 {
+            tracing::debug!("applying {} {}/{total_count}: {id}", chunks[1], i + 1,);
+        } else {
+            tracing::debug!("applying [{}/{total_count}]: {id}", i + 1);
+        }
+
+        let summary = match resource.apply(opts) {
+            Ok(summary) => summary,
+            Err(e) => {
+                tracing::error!("from {} doer: {}", chunks[2], e);
+                let err: anyhow::Error = e;
+                return Err(err.context(format!("failed to apply resource {id}")));
+            }
+        };
+
+        if summary.changes > 0 {
+            changed_ids.insert(id.to_owned());
+        }
+
+        apply_summary += summary;
+    }
+
+    Ok((apply_summary, changed_ids))
 }
 
 impl Applicator {
@@ -238,106 +319,112 @@ impl Applicator {
         Ok(host_config)
     }
 
+    fn accumulate(
+        &self,
+        sum: &mut ApplySummary,
+        ids: &mut ChangedIds,
+        result: ApplyResult,
+    ) -> anyhow::Result<()> {
+        let (s, i) = result?;
+        *sum += s;
+        ids.extend(i);
+        Ok(())
+    }
+
+    #[rustfmt::skip]
+    fn apply_ensure(&self, res: &EnsureResources, opts: &ApplyOpts) -> ApplyResult {
+        let mut sum = ApplySummary::default();
+        let mut ids = ChangedIds::new();
+
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.publisher, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.etherstub, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.vnic, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.vlan, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.ip_interface, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.ip_address, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.bridge, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.route, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.ip_properties, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.network_flow, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.zfs, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.zone, opts))?;
+        self.accumulate(&mut sum, &mut ids, crate::ipfilter::collect_and_ensure(&res.ipfilter, opts))?;
+        self.accumulate(&mut sum, &mut ids, crate::ipnat::collect_and_ensure(&res.ipnat, opts))?;
+        self.accumulate(&mut sum, &mut ids, crate::pkg::collect_and_ensure(&res.pkg, opts))?;
+        self.accumulate(&mut sum, &mut ids, crate::pkgin::collect_and_ensure(&res.pkgin, opts))?;
+        self.accumulate(&mut sum, &mut ids, crate::apk::collect_and_ensure(&res.apk, opts))?;
+        self.accumulate(&mut sum, &mut ids, crate::gem::collect_and_ensure(&res.gem, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.group, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.user, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.cron, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.directory, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.file, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.file_line, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.link, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.svcprop, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.smf, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.misc, opts))?;
+
+        Ok((sum, ids))
+    }
+
+    #[rustfmt::skip]
+    fn apply_remove(&self, res: &RemoveResources, opts: &ApplyOpts) -> ApplyResult {
+        let mut sum = ApplySummary::default();
+        let mut ids = ChangedIds::new();
+
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.link, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.file_line, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.file, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.directory, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.svcprop, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.smf, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.cron, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.user, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.group, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.publisher, opts))?;
+        self.accumulate(&mut sum, &mut ids, crate::gem::collect_and_remove(&res.gem, opts))?;
+        self.accumulate(&mut sum, &mut ids, crate::pkg::collect_and_remove(&res.pkg, opts))?;
+        self.accumulate(&mut sum, &mut ids, crate::pkgin::collect_and_remove(&res.pkgin, opts))?;
+        self.accumulate(&mut sum, &mut ids, crate::apk::collect_and_remove(&res.apk, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.ipnat, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.ipfilter, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.zone, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.zfs, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.bridge, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.network_flow, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.route, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.ip_address, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.ip_interface, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.vlan, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.vnic, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.etherstub, opts))?;
+
+        Ok((sum, ids))
+    }
+
     fn apply(&self, config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let ensure = &config.resources.ensure;
-        let remove = &config.resources.remove;
+        let ensure_ids;
+        let remove_ids;
+        let ensure_summary;
+        let remove_summary;
 
-        let mut summary_total = ApplySummary::default();
-        let mut changed_ids: ChangedIds = BTreeSet::new();
-
-        apply_resources!(summary_total, changed_ids, &ensure.publisher, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.etherstub, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.vnic, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.vlan, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.ip_interface, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.ip_address, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.bridge, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.route, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.ip_properties, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.network_flow, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.zfs, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.zone, opts);
-
-        if !&ensure.ipfilter.is_empty() {
-            summary_total += crate::ipfilter::collect_and_ensure(&ensure.ipfilter, opts)?;
+        if opts.remove_first {
+            (remove_summary, remove_ids) = self.apply_remove(&config.resources.remove, opts)?;
+            (ensure_summary, ensure_ids) = self.apply_ensure(&config.resources.ensure, opts)?;
+        } else {
+            (ensure_summary, ensure_ids) = self.apply_ensure(&config.resources.ensure, opts)?;
+            (remove_summary, remove_ids) = self.apply_remove(&config.resources.remove, opts)?;
         }
 
-        if !&ensure.ipnat.is_empty() {
-            summary_total += crate::ipnat::collect_and_ensure(&ensure.ipnat, opts)?;
+        let changed_ids: ChangedIds = ensure_ids.union(&remove_ids).cloned().collect();
+        let mut summary_total = ensure_summary + remove_summary;
+
+        for service in &config.resources.ensure.svc {
+            summary_total += service.apply(&changed_ids, opts)?;
         }
 
-        if !&ensure.pkg.is_empty() {
-            summary_total += crate::pkg::collect_and_ensure(&ensure.pkg, opts)?;
-        }
-
-        if !&ensure.pkgin.is_empty() {
-            summary_total += crate::pkgin::collect_and_ensure(&ensure.pkgin, opts)?;
-        }
-
-        if !&ensure.apk.is_empty() {
-            summary_total += crate::apk::collect_and_ensure(&ensure.apk, opts)?;
-        }
-
-        if !&ensure.gem.is_empty() {
-            summary_total += crate::gem::collect_and_ensure(&ensure.gem, opts)?;
-        }
-
-        apply_resources!(summary_total, changed_ids, &ensure.group, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.user, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.cron, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.directory, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.file, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.file_line, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.link, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.svcprop, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.smf, opts);
-        apply_resources!(summary_total, changed_ids, &ensure.misc, opts);
-
-        apply_resources!(summary_total, changed_ids, &remove.link, opts);
-        apply_resources!(summary_total, changed_ids, &remove.file_line, opts);
-        apply_resources!(summary_total, changed_ids, &remove.file, opts);
-        apply_resources!(summary_total, changed_ids, &remove.directory, opts);
-        apply_resources!(summary_total, changed_ids, &remove.svcprop, opts);
-        apply_resources!(summary_total, changed_ids, &remove.smf, opts);
-        apply_resources!(summary_total, changed_ids, &remove.cron, opts);
-        apply_resources!(summary_total, changed_ids, &remove.user, opts);
-        apply_resources!(summary_total, changed_ids, &remove.group, opts);
-        apply_resources!(summary_total, changed_ids, &remove.publisher, opts);
-
-        if !&remove.gem.is_empty() {
-            summary_total += crate::gem::collect_and_remove(&remove.gem, opts)?;
-        }
-
-        if !&remove.pkg.is_empty() {
-            summary_total += crate::pkg::collect_and_remove(&remove.pkg, opts)?;
-        }
-
-        if !&remove.pkgin.is_empty() {
-            summary_total += crate::pkgin::collect_and_remove(&remove.pkgin, opts)?;
-        }
-
-        if !&remove.apk.is_empty() {
-            summary_total += crate::apk::collect_and_remove(&remove.apk, opts)?;
-        }
-
-        apply_resources!(summary_total, changed_ids, &remove.ipnat, opts);
-        apply_resources!(summary_total, changed_ids, &remove.ipfilter, opts);
-        apply_resources!(summary_total, changed_ids, &remove.zone, opts);
-        apply_resources!(summary_total, changed_ids, &remove.zfs, opts);
-        apply_resources!(summary_total, changed_ids, &remove.bridge, opts);
-        apply_resources!(summary_total, changed_ids, &remove.network_flow, opts);
-        apply_resources!(summary_total, changed_ids, &remove.route, opts);
-        apply_resources!(summary_total, changed_ids, &remove.ip_address, opts);
-        apply_resources!(summary_total, changed_ids, &remove.ip_interface, opts);
-        apply_resources!(summary_total, changed_ids, &remove.vlan, opts);
-        apply_resources!(summary_total, changed_ids, &remove.vnic, opts);
-        apply_resources!(summary_total, changed_ids, &remove.etherstub, opts);
-
-        for resource in &ensure.svc {
-            summary_total += resource.apply(&changed_ids, opts)?;
-        }
-
-        Ok(summary_total)
+        Ok(remove_summary + ensure_summary)
     }
 
     fn display_error(&self, e: Error) -> anyhow::Result<()> {

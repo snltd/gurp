@@ -186,51 +186,42 @@ impl GurpSvcpropEnsure {
 impl GurpSvcpropRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let all_values = current_svc_props(&self.service)?;
-        let resources = self.properties.len() as u32;
-        let mut changes = 0;
-        let mut to_remove = Vec::new();
+        let mut ret = ApplySummary::default();
 
         for property in &self.properties {
             if let Some(current) = all_values.properties.get(property) {
                 tracing::info!(
-                    "{} svcprop: removing '{}' (was'{}')",
+                    "{} svcprop: removing '{property}' (was'{}')",
                     self.service,
-                    property,
                     current.value,
                 );
-                to_remove.push(property);
+                ret += cmd_change_or_noop!(
+                    opts,
+                    SVCCFG_BIN,
+                    "-s",
+                    &self.service,
+                    "delprop",
+                    property
+                )?;
             } else {
                 tracing::debug!("{} svcprop: no '{}' property", self.service, property);
             }
+        }
 
-            if to_remove.is_empty() {
-                return Ok(ApplySummary {
-                    resources,
-                    changes: 0,
-                });
-            }
+        if let Some(property_groups) = &self.property_groups {
+            for pg in property_groups {
+                tracing::debug!("{}: looking for '{pg}' property group", self.service,);
 
-            for property in &to_remove {
-                let mut cmd = cmd!(SVCCFG_BIN, "-s", &self.service, "delprop", property);
-
-                if opts.noop {
-                    continue;
+                if all_values.property_groups.contains(pg) {
+                    tracing::debug!("{}: removing property group '{pg}'", self.service,);
+                    ret += cmd_change_or_noop!(opts, SVCCFG_BIN, "-s", &self.service, "delpg", pg)?;
+                } else {
+                    tracing::debug!("{}: property group '{pg}' exists", self.service,);
                 }
-
-                let output = cmd.output()?;
-
-                ensure!(
-                    output.status.success(),
-                    "error from svccfg: {}",
-                    String::from_utf8_lossy(&output.stderr).into_owned()
-                );
-
-                tracing::debug!("{} svcprop: removed '{}'", self.service, property);
-                changes += 1;
             }
         }
 
-        Ok(ApplySummary { resources, changes })
+        Ok(ret)
     }
 }
 
@@ -347,7 +338,7 @@ mod test {
     use super::*;
     use indoc::indoc;
     use pretty_assertions::assert_eq;
-    use std::collections::BTreeMap;
+    use std::collections::{BTreeMap, BTreeSet};
     use tester::deserialized_example;
 
     #[test]
@@ -418,7 +409,7 @@ mod test {
             GurpSvcpropRemove {
                 id: "/NO-ROLE/svcprop/example_svc_3".to_owned(),
                 service: "example/svc_3".to_owned(),
-                properties: vec!["application/thing".to_owned()],
+                properties: BTreeSet::from(["application/thing".to_owned()]),
                 property_groups: None,
             },
             deserialized_example("svcprop/remove-properties.janet")

@@ -58,6 +58,9 @@ enum Commands {
         /// Do not check for or use a lockfile
         #[arg(long = "no-lock")]
         no_lock: bool,
+        /// Run remove actions BEFORE ensure actions
+        #[arg(long = "remove-first")]
+        remove_first: bool,
         /// Host configuration file
         #[arg(
             required_unless_present = "server",
@@ -146,6 +149,7 @@ fn main() -> ExitCode {
             image,
             as_json,
             no_lock,
+            remove_first,
         } => {
             let opts = ApplyOpts {
                 noop,
@@ -165,6 +169,7 @@ fn main() -> ExitCode {
                 image,
                 as_json,
                 no_lock,
+                remove_first,
             };
             commands::apply::init::run(host_config_file.as_ref(), &opts)
         }

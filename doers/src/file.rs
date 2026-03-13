@@ -54,28 +54,6 @@ pub struct GurpFileRemove {
 }
 
 impl GurpFileEnsure {
-    fn remote_content(&self, url: &str) -> anyhow::Result<()> {
-        // As usual, complete MVP.
-        // I don't think I want to cache anything between Gurp runs, so I don't have anywhere to
-        // store ETags or whatever. (And I can't be sure the thing serving will serve them.)
-        // Therefore, we're going to have to pull the file every time. Read it into memory and pop
-        // it in the RefCell.
-        let content = http::remote_file_to_memory(url)?;
-
-        if let Some(checksum) = self.desired_state.with_checksum.as_ref() {
-            let remote_checksum = sha256::digest(&content);
-
-            ensure!(
-                checksum == &remote_checksum,
-                "Remote file has incorrect checksum"
-            );
-        }
-
-        *self.desired_state.remote_content.borrow_mut() = Some(content);
-
-        Ok(())
-    }
-
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         ensure!(
             self.content_xor_file_xor_content_struct(),
@@ -433,6 +411,28 @@ impl GurpFileEnsure {
         } else {
             bail!("from_struct requires to_format")
         }
+    }
+
+    fn remote_content(&self, url: &str) -> anyhow::Result<()> {
+        // As usual, complete MVP.
+        // I don't think I want to cache anything between Gurp runs, so I don't have anywhere to
+        // store ETags or whatever. (And I can't be sure the thing serving will serve them.)
+        // Therefore, we're going to have to pull the file every time. Read it into memory and pop
+        // it in the RefCell.
+        let content = http::remote_file_to_memory(url)?;
+
+        if let Some(checksum) = self.desired_state.with_checksum.as_ref() {
+            let remote_checksum = sha256::digest(&content);
+
+            ensure!(
+                checksum == &remote_checksum,
+                "Remote file has incorrect checksum"
+            );
+        }
+
+        *self.desired_state.remote_content.borrow_mut() = Some(content);
+
+        Ok(())
     }
 }
 

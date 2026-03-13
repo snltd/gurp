@@ -1,21 +1,50 @@
-use anyhow::{Context, bail};
+use crate::types::ApplyResult;
+use anyhow::{Context, ensure};
 use camino::Utf8PathBuf;
 use common::cmd;
 use common::constants::{GEM_BIN, GEM_BIN_DIR, NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_NO_CHANGE};
-use common::types::{ApplyOpts, ApplySummary};
+use common::types::{ApplyOpts, ApplySummary, ChangedIds};
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::process::{Command, Stdio};
 
-type GemName = String;
+// This is keyed on the gem binary which reported the gem
 type InstalledGems = HashMap<Utf8PathBuf, Vec<InstalledGem>>;
 type EnsureList = Vec<GurpGemEnsure>;
 type RemoveList = Vec<GurpGemRemove>;
+type GemName = String;
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
+#[serde(rename_all = "kebab-case")]
+pub struct GurpGemEnsure {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: GemName,
+    pub version: Option<String>,
+    pub source: Option<String>,
+    pub gem_path: Option<Utf8PathBuf>,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
+pub struct GurpGemRemove {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: GemName,
+    pub gem_path: Option<Utf8PathBuf>,
+}
 
 #[derive(Debug, PartialEq)]
 pub struct InstalledGem {
     pub name: GemName,
     pub versions: Vec<String>,
+}
+
+impl GurpGem for GurpGemEnsure {
+    fn gem_path(&self) -> &Option<Utf8PathBuf> {
+        &self.gem_path
+    }
 }
 
 trait GurpGem {
@@ -28,56 +57,165 @@ trait GurpGem {
     }
 }
 
-#[derive(Debug, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
-#[serde(rename_all = "kebab-case")]
-pub struct GurpGemEnsure {
-    pub name: GemName,
-    pub version: Option<String>,
-    pub source: Option<String>,
-    pub gem_path: Option<Utf8PathBuf>,
-}
-
-impl GurpGem for GurpGemEnsure {
-    fn gem_path(&self) -> &Option<Utf8PathBuf> {
-        &self.gem_path
-    }
-}
-
-#[derive(Debug, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
-pub struct GurpGemRemove {
-    pub name: GemName,
-    pub gem_path: Option<Utf8PathBuf>,
-}
-
 impl GurpGem for GurpGemRemove {
     fn gem_path(&self) -> &Option<Utf8PathBuf> {
         &self.gem_path
     }
 }
 
-fn installed_gems<T: GurpGem>(gem_list: &[T]) -> InstalledGems {
-    let mut installed_gems: InstalledGems = HashMap::new();
-    let ooce_bin = Utf8PathBuf::from(GEM_BIN);
+// To try to minimize remote calls, and therefore run time, bundles (no pun intended) together
+// calls which are directly to Rubygems using the default gem binary and without a specific
+// versoin. If the user has specified a version, a different source or gem binary for any gems,
+// they are dealt with individually.
+//
+pub fn collect_and_ensure(gem_list: &EnsureList, opts: &ApplyOpts) -> ApplyResult {
+    let mut changed_ids = ChangedIds::default();
 
-    if ooce_bin.exists() {
-        installed_gems.insert(
-            ooce_bin.clone(),
-            parse_gem_output(&gem_output(&ooce_bin).expect("Could not get gem list")),
-        );
+    if gem_list.is_empty() {
+        return Ok((NO_RESOURCES_TO_CHANGE, changed_ids));
     }
 
-    let alternate_gem_bins: HashSet<_> = gem_list.iter().map(|g| g.gem_bin_path()).collect();
+    let mut summary = ApplySummary::default();
+    let mut install_list = Vec::new();
+    let installed_gems = installed_gems(gem_list);
+    let batch_gem_bin = Utf8PathBuf::from(GEM_BIN);
 
-    for path in alternate_gem_bins {
-        installed_gems.insert(
-            path.clone(),
-            parse_gem_output(&gem_output(&path).expect("Could not get gem list")),
-        );
+    for gem in gem_list {
+        if gem.version.is_some() || gem.source.is_some() || gem.gem_path.is_some() {
+            changed_ids.insert(gem.id.clone());
+            summary += install_specific(gem, &installed_gems, opts)?;
+        } else if let Some(default_list) = installed_gems.get(&batch_gem_bin)
+            && default_list.iter().any(|g| g.name == gem.name)
+        {
+            summary.resources += 1;
+            tracing::debug!("gem {}: already installed", gem.name);
+        } else {
+            summary.resources += 1;
+            summary.changes += 1;
+            changed_ids.insert(gem.id.clone());
+            install_list.push(gem.name.clone());
+            tracing::debug!("gem {}: scheduled for install", gem.name);
+        }
     }
 
-    installed_gems
+    if install_list.is_empty() {
+        tracing::debug!("no gems to batch install");
+    } else {
+        tracing::info!("batch installing: {}", install_list.join(", "));
+
+        let mut cmd = Command::new(GEM_BIN);
+        cmd.arg("install");
+        cmd.arg("--bindir");
+        cmd.arg(GEM_BIN_DIR);
+        cmd.arg("--silent");
+        cmd.arg("--no-document");
+        cmd.args(&install_list);
+
+        tracing::debug!(command = cmd::to_string(&cmd));
+
+        if !opts.noop {
+            run_cmd!(cmd)?;
+        }
+    }
+
+    Ok((summary, changed_ids))
+}
+
+pub fn collect_and_remove(gem_list: &RemoveList, opts: &ApplyOpts) -> ApplyResult {
+    let mut changed_ids = ChangedIds::default();
+
+    if gem_list.is_empty() {
+        return Ok((NO_RESOURCES_TO_CHANGE, changed_ids));
+    }
+
+    let resources = gem_list.len() as u32;
+    let installed_gems = installed_gems(gem_list);
+    let default_gem_bin = Utf8PathBuf::from(GEM_BIN);
+    let mut changes = 0;
+    let mut remove_hash: HashMap<&Utf8PathBuf, Vec<&str>> = HashMap::new();
+
+    for gem in gem_list {
+        if let Some(gem_bin) = &gem.gem_path {
+            if let Some(inst) = installed_gems.get(gem_bin)
+                && inst.iter().any(|g| g.name == gem.name)
+            {
+                tracing::debug!("{}: scheduled for removal", gem.name);
+                changes += 1;
+                changed_ids.insert(gem.id.clone());
+                remove_hash.entry(gem_bin).or_default().push(&gem.name);
+            }
+        } else if let Some(inst) = installed_gems.get(&default_gem_bin) {
+            if inst.iter().any(|g| g.name == gem.name) {
+                changes += 1;
+                changed_ids.insert(gem.id.clone());
+                tracing::debug!("{}: scheduled for removal", gem.name);
+                remove_hash
+                    .entry(&default_gem_bin)
+                    .or_default()
+                    .push(&gem.name);
+            }
+        } else {
+            tracing::debug!("{}: not installed", gem.name);
+        }
+    }
+
+    let ret = ApplySummary { resources, changes };
+
+    if !opts.noop {
+        for (gem_bin, remove_list) in remove_hash {
+            tracing::info!("Removing {} [{}]", remove_list.join(", "), gem_bin);
+            let mut cmd = Command::new(gem_bin);
+            cmd.arg("uninstall");
+            cmd.arg("--silent");
+            cmd.arg("--executables");
+            cmd.arg("--all");
+            cmd.args(&remove_list);
+            cmd.stderr(Stdio::piped());
+
+            tracing::debug!(command = cmd::to_string(&cmd));
+
+            let _ = run_cmd!(cmd);
+        }
+    }
+
+    Ok((ret, changed_ids))
+}
+
+fn gem_output(gem_bin: &Utf8PathBuf) -> anyhow::Result<String> {
+    ensure!(gem_bin.exists(), format!("No gem binary at {gem_bin}"));
+    let cmd = Command::new(gem_bin).arg("list").arg("-l").output()?;
+    Ok(String::from_utf8_lossy(&cmd.stdout).into_owned())
+}
+
+fn parse_gem_output(output: &str) -> Vec<InstalledGem> {
+    let mut installed: Vec<_> = Vec::new();
+
+    for l in output.trim().lines() {
+        let bits: Vec<_> = l.split_whitespace().collect();
+
+        if bits.len() < 2 {
+            continue;
+        }
+
+        let name = bits[0].to_owned();
+
+        let versions: Vec<_> = bits[1..]
+            .iter()
+            .filter_map(|b| {
+                let trimmed = b.trim_matches([',', '(', ')']).to_owned();
+
+                if trimmed == "default:" {
+                    None
+                } else {
+                    Some(trimmed)
+                }
+            })
+            .collect();
+
+        installed.push(InstalledGem { name, versions });
+    }
+
+    installed
 }
 
 fn install_specific(
@@ -140,163 +278,27 @@ fn install_specific(
     one_change_or_stderr!(cmd, format!("failed to install gem {}", gem.name))
 }
 
-// Makes a single call to RubyGems to install things which don't specify an alternate source or
-// specific version
-pub fn collect_and_ensure(gem_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    if gem_list.is_empty() {
-        return Ok(NO_RESOURCES_TO_CHANGE);
+fn installed_gems<T: GurpGem>(gem_list: &[T]) -> InstalledGems {
+    let mut installed_gems: InstalledGems = HashMap::new();
+    let ooce_bin = Utf8PathBuf::from(GEM_BIN);
+
+    if ooce_bin.exists() {
+        installed_gems.insert(
+            ooce_bin.clone(),
+            parse_gem_output(&gem_output(&ooce_bin).expect("Could not get gem list")),
+        );
     }
 
-    let mut summary = ApplySummary::default();
-    let mut install_list = Vec::new();
-    let installed_gems = installed_gems(gem_list);
-    let default_gem_bin = Utf8PathBuf::from(GEM_BIN);
+    let alternate_gem_bins: HashSet<_> = gem_list.iter().map(|g| g.gem_bin_path()).collect();
 
-    let default_gem_list = installed_gems.get(&default_gem_bin);
-
-    for gem in gem_list {
-        if gem.version.is_some() || gem.source.is_some() || gem.gem_path.is_some() {
-            summary += install_specific(gem, &installed_gems, opts)?;
-        } else if let Some(default_list) = default_gem_list
-            && default_list.iter().any(|g| g.name == gem.name)
-        {
-            summary.resources += 1;
-            tracing::debug!("gem {}: already installed", gem.name);
-        } else {
-            summary.resources += 1;
-            summary.changes += 1;
-
-            tracing::debug!("gem {}: scheduled for install", gem.name);
-            install_list.push(gem.name.clone());
-        }
+    for path in alternate_gem_bins {
+        installed_gems.insert(
+            path.clone(),
+            parse_gem_output(&gem_output(&path).expect("Could not get gem list")),
+        );
     }
 
-    if install_list.is_empty() {
-        tracing::debug!("no gems to batch install");
-        Ok(summary)
-    } else {
-        tracing::info!("batch installing: {}", install_list.join(", "));
-
-        let mut cmd = Command::new(GEM_BIN);
-        cmd.arg("install");
-        cmd.arg("--bindir");
-        cmd.arg(GEM_BIN_DIR);
-        cmd.arg("--silent");
-        cmd.arg("--no-document");
-        cmd.args(&install_list);
-
-        tracing::debug!(command = cmd::to_string(&cmd));
-
-        let output = cmd.output()?;
-
-        if output.status.success() {
-            Ok(summary)
-        } else {
-            bail!(String::from_utf8_lossy(&output.stderr).into_owned());
-        }
-    }
-}
-
-pub fn collect_and_remove(gem_list: &RemoveList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    if gem_list.is_empty() {
-        return Ok(NO_RESOURCES_TO_CHANGE);
-    }
-
-    let resources = gem_list.len() as u32;
-    let installed_gems = installed_gems(gem_list);
-    let default_gem_bin = Utf8PathBuf::from(GEM_BIN);
-    let mut changes = 0;
-    let mut remove_hash: HashMap<&Utf8PathBuf, Vec<&str>> = HashMap::new();
-
-    for gem in gem_list {
-        if let Some(gem_bin) = &gem.gem_path {
-            if let Some(inst) = installed_gems.get(gem_bin)
-                && inst.iter().any(|g| g.name == gem.name)
-            {
-                tracing::debug!("{}: scheduled for removal", gem.name);
-                changes += 1;
-                remove_hash.entry(gem_bin).or_default().push(&gem.name);
-            }
-        } else if let Some(inst) = installed_gems.get(&default_gem_bin) {
-            if inst.iter().any(|g| g.name == gem.name) {
-                changes += 1;
-                tracing::debug!("{}: scheduled for removal", gem.name);
-                remove_hash
-                    .entry(&default_gem_bin)
-                    .or_default()
-                    .push(&gem.name);
-            }
-        } else {
-            tracing::debug!("{}: not installed", gem.name);
-        }
-    }
-
-    let ret = ApplySummary { resources, changes };
-
-    if opts.noop {
-        return Ok(ret);
-    }
-
-    for (gem_bin, remove_list) in remove_hash {
-        tracing::info!("Removing {} [{}]", remove_list.join(", "), gem_bin);
-        let mut cmd = Command::new(gem_bin);
-        cmd.arg("uninstall");
-        cmd.arg("--silent");
-        cmd.arg("--executables");
-        cmd.arg("--all");
-        cmd.args(&remove_list);
-        cmd.stderr(Stdio::piped());
-
-        tracing::debug!(command = cmd::to_string(&cmd));
-
-        let output = cmd.output()?;
-
-        if !output.status.success() {
-            bail!(String::from_utf8_lossy(&output.stderr).into_owned());
-        }
-    }
-
-    Ok(ret)
-}
-
-fn gem_output(gem_bin: &Utf8PathBuf) -> anyhow::Result<String> {
-    if !gem_bin.exists() {
-        bail!("No gem binary at {}", gem_bin);
-    }
-
-    let cmd = Command::new(gem_bin).arg("list").arg("-l").output()?;
-    Ok(String::from_utf8_lossy(&cmd.stdout).into_owned())
-}
-
-fn parse_gem_output(output: &str) -> Vec<InstalledGem> {
-    let mut installed: Vec<_> = Vec::new();
-
-    for l in output.trim().lines() {
-        let bits: Vec<_> = l.split_whitespace().collect();
-
-        if bits.len() < 2 {
-            continue;
-        }
-
-        let name = bits[0].to_owned();
-
-        let versions: Vec<_> = bits[1..]
-            .iter()
-            .filter_map(|b| {
-                let trimmed = b.trim_matches([',', '(', ')']).to_owned();
-
-                if trimmed == "default:" {
-                    None
-                } else {
-                    Some(trimmed)
-                }
-            })
-            .collect();
-
-        installed.push(InstalledGem { name, versions });
-    }
-
-    installed
+    installed_gems
 }
 
 #[cfg(test)]
@@ -309,6 +311,7 @@ mod test {
     fn test_gem_deserialize_ensure_rubygem() {
         assert_eq!(
             GurpGemEnsure {
+                id: "/NO-ROLE/gem/wavefront-cli".to_owned(),
                 name: "wavefront-cli".to_owned(),
                 version: None,
                 source: None,
@@ -322,6 +325,7 @@ mod test {
     fn test_gem_deserialize_ensure_version_with_source_and_gempath() {
         assert_eq!(
             GurpGemEnsure {
+                id: "/NO-ROLE/gem/my-gem".to_owned(),
                 name: "my-gem".to_owned(),
                 version: Some("1.2.3".to_owned()),
                 source: Some("https://my-gem-repo.com".to_owned()),
@@ -335,6 +339,7 @@ mod test {
     fn test_gem_deserialize_remove_gem() {
         assert_eq!(
             GurpGemRemove {
+                id: "/NO-ROLE/gem/webscale".to_owned(),
                 name: "webscale".to_owned(),
                 gem_path: None,
             },

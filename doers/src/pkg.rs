@@ -1,19 +1,19 @@
-use anyhow::bail;
+use crate::types::ApplyResult;
 use common::cmd;
 use common::constants::{NO_RESOURCES_TO_CHANGE, PKG_BIN};
-use common::types::{ApplyOpts, ApplySummary};
+use common::types::{ApplyOpts, ApplySummary, ChangedIds};
 use serde::Deserialize;
 use std::process::Command;
 use std::sync::LazyLock;
 
 static CURRENT_PKG_OUTPUT: LazyLock<String> =
-    LazyLock::new(|| pkg_output().expect("Could not get pkg list"));
+    LazyLock::new(|| get_pkg_list().expect("Could not get pkg list"));
 
 type PkgName = String;
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-struct GlobalPkgs {
+struct AllPkgs {
     available: Vec<PkgName>,
     installed: Vec<PkgName>,
 }
@@ -21,35 +21,42 @@ struct GlobalPkgs {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPkgEnsure {
+    #[serde(rename = "_id")]
+    pub id: String,
     pub name: PkgName,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPkgRemove {
+    #[serde(rename = "_id")]
+    pub id: String,
     pub name: PkgName,
 }
 
 type EnsureList = Vec<GurpPkgEnsure>;
 type RemoveList = Vec<GurpPkgRemove>;
 
-pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> ApplyResult {
+    let mut changed_ids = ChangedIds::default();
+
+    if pkg_list.is_empty() {
+        return Ok((NO_RESOURCES_TO_CHANGE, changed_ids));
+    }
+
     let resources = pkg_list.len() as u32;
-    let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
-    let pkg_names: Vec<_> = pkg_list.iter().map(|r| &r.name).collect();
+    let all_pkgs = parse_pkg_list(&CURRENT_PKG_OUTPUT);
     let mut install_list = Vec::new();
 
-    for pkg in &pkg_names {
-        if global_pkgs.installed.contains(pkg) {
-            tracing::debug!("already installed: {}", pkg);
-            continue;
-        }
-
-        if global_pkgs.available.contains(pkg) {
-            tracing::debug!("scheduled for install: {}", pkg);
-            install_list.push(pkg.as_str());
+    for pkg in pkg_list {
+        if all_pkgs.installed.contains(&pkg.name) {
+            tracing::debug!("already installed: {}", pkg.name);
+        } else if all_pkgs.available.contains(&pkg.name) {
+            tracing::debug!("scheduled for install: {}", pkg.name);
+            install_list.push(pkg.name.as_str());
+            changed_ids.insert(pkg.id.clone());
         } else {
-            tracing::warn!("not available: {}", pkg);
+            tracing::warn!("not available: {}", pkg.name);
         }
     }
 
@@ -57,10 +64,13 @@ pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
 
     if install_list.is_empty() {
         tracing::debug!("no packages to install");
-        Ok(ApplySummary {
-            resources,
-            changes: 0,
-        })
+        Ok((
+            ApplySummary {
+                resources,
+                changes: 0,
+            },
+            changed_ids,
+        ))
     } else {
         tracing::info!("installing: {}", install_list.join(", "));
 
@@ -73,53 +83,49 @@ pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
 
         cmd.args(&install_list);
         tracing::debug!(command = cmd::to_string(&cmd));
-        let output = cmd.output()?;
 
-        if output.status.success() {
-            Ok(ApplySummary {
+        run_cmd!(cmd)?;
+
+        Ok((
+            ApplySummary {
                 resources,
                 changes: install_list.len() as u32,
-            })
-        } else {
-            // pkg doesn't always write to stderr on an error
-            let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-
-            let error_message = if stderr.is_empty() {
-                let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
-                stdout
-                    .lines()
-                    .collect::<Vec<_>>()
-                    .last()
-                    .map_or("no output", |v| v)
-                    .to_owned()
-            } else {
-                stderr.to_owned()
-            };
-
-            bail!(error_message)
-        }
+            },
+            changed_ids,
+        ))
     }
 }
 
-pub fn collect_and_remove(pkg_list: &RemoveList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+pub fn collect_and_remove(pkg_list: &RemoveList, opts: &ApplyOpts) -> ApplyResult {
+    let mut changed_ids = ChangedIds::default();
+
+    if pkg_list.is_empty() {
+        return Ok((NO_RESOURCES_TO_CHANGE, changed_ids));
+    }
+
     let resources = pkg_list.len() as u32;
-    let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
-    let pkg_names: Vec<_> = pkg_list.iter().map(|r| &r.name).collect();
+    let all_pkgs = parse_pkg_list(&CURRENT_PKG_OUTPUT);
     let mut remove_list = Vec::new();
 
-    for pkg in pkg_names {
-        if global_pkgs.installed.contains(pkg) {
-            tracing::debug!("scheduled for removal: {}", pkg);
-            remove_list.push(pkg.as_str());
+    for pkg in pkg_list {
+        if all_pkgs.installed.contains(&pkg.name) {
+            tracing::debug!("scheduled for removal: {}", pkg.name);
+            remove_list.push(pkg.name.as_str());
+            changed_ids.insert(pkg.id.clone());
         } else {
-            tracing::debug!("not present: {}", pkg);
-            continue;
+            tracing::debug!("not present: {}", pkg.name);
         }
     }
 
     if remove_list.is_empty() {
         tracing::debug!("no packages to remove");
-        Ok(NO_RESOURCES_TO_CHANGE)
+        Ok((
+            ApplySummary {
+                resources,
+                changes: 0,
+            },
+            changed_ids,
+        ))
     } else {
         tracing::info!("removing: {}", remove_list.join(", "));
 
@@ -133,38 +139,23 @@ pub fn collect_and_remove(pkg_list: &RemoveList, opts: &ApplyOpts) -> anyhow::Re
 
         cmd.args(&remove_list);
         tracing::debug!(command = cmd::to_string(&cmd));
-        let output = cmd.output()?;
 
-        if output.status.success() {
-            Ok(ApplySummary {
+        run_cmd!(cmd)?;
+        Ok((
+            ApplySummary {
                 resources,
                 changes: remove_list.len() as u32,
-            })
-        } else {
-            let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-
-            let error_message = if stderr.is_empty() {
-                let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
-                stdout
-                    .lines()
-                    .collect::<Vec<_>>()
-                    .last()
-                    .map_or("no output", |v| v)
-                    .to_owned()
-            } else {
-                stderr.to_owned()
-            };
-
-            bail!(error_message)
-        }
+            },
+            changed_ids,
+        ))
     }
 }
 
-fn pkg_output() -> anyhow::Result<String> {
+fn get_pkg_list() -> anyhow::Result<String> {
     cmd_output!(PKG_BIN, "list", "-aHo", "name,flags")
 }
 
-fn parse_pkg_output(output: &str) -> GlobalPkgs {
+fn parse_pkg_list(output: &str) -> AllPkgs {
     let mut installed: Vec<String> = Vec::new();
     let mut available: Vec<String> = Vec::new();
 
@@ -182,7 +173,7 @@ fn parse_pkg_output(output: &str) -> GlobalPkgs {
         }
     }
 
-    GlobalPkgs {
+    AllPkgs {
         available,
         installed,
     }
@@ -197,6 +188,7 @@ mod test {
     fn test_deserialize_pkg_ensure_rust_package() {
         assert_eq!(
             GurpPkgEnsure {
+                id: "/NO-ROLE/pkg/ooce_developer_rust".to_owned(),
                 name: "ooce/developer/rust".to_owned(),
             },
             deserialized_example("pkg/ensure-rust-package.janet")
@@ -207,6 +199,7 @@ mod test {
     fn test_deserialize_pkg_remove_go_package() {
         assert_eq!(
             GurpPkgRemove {
+                id: "/NO-ROLE/pkg/ooce_developer_go".to_owned(),
                 name: "ooce/developer/go".to_owned(),
             },
             deserialized_example("pkg/remove-go-package.janet")
@@ -214,7 +207,7 @@ mod test {
     }
 
     #[test]
-    fn test_parse_pkg_output() {
+    fn test_parse_pkg_list() {
         let sample_output = indoc::indoc! { r#"
             ooce/extra-build-tools                          im-
             ooce/file/acltool                               ---
@@ -224,7 +217,7 @@ mod test {
             ooce/library/apr                                i--
         "#};
 
-        let expected = GlobalPkgs {
+        let expected = AllPkgs {
             available: vec!["ooce/file/acltool".to_owned(), "ooce/file/tree".to_owned()],
             installed: vec![
                 "ooce/extra-build-tools".to_owned(),
@@ -234,6 +227,6 @@ mod test {
             ],
         };
 
-        assert_eq!(expected, parse_pkg_output(sample_output));
+        assert_eq!(expected, parse_pkg_list(sample_output));
     }
 }

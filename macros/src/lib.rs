@@ -86,11 +86,11 @@ macro_rules! cmd_change_or_noop{
             let output = cmd.output()?;
 
             if output.status.success() {
-                anyhow::bail!($crate::log_error(&$cmd, output))
+                anyhow::bail!($crate::log_error(&cmd, output))
             }
         }
 
-        Result::<common::types::ApplySummary, anyhow::Error>::Ok(ONE_RESOURCE_ONE_CHANGE)
+        Result::<common::types::ApplySummary, anyhow::Error>::Ok(common::constants::ONE_RESOURCE_ONE_CHANGE)
     }};
 }
 

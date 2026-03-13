@@ -20,17 +20,17 @@
                   (string/join allowed-actions ", "))}})
 (def mandatory-props-remove
   {:properties
-   {:types [:tuple]
+   {:types [:tuple :array]
     :help "Properties to remove"}})
 (def optional-props-remove
   {:property-groups
-   {:types [:struct]
+   {:types [:tuple :array]
     :help "Property groups to remove"}})
 (def defaults-ensure {})
 (def defaults-remove {})
 
 (defn ensure
-  "Given a service property spec, put an ensure struct in the collector"
+  "Given a spec, put an ensure struct in the collector"
   [name & spec]
 
   (def spec-struct
@@ -45,21 +45,20 @@
     (pinpoint-error
       :ensure
       (if-not (has-value? allowed-actions action)
-        (error (string "on-change action must be one of "
-                       (string/join allowed-actions ", ")
-                       " [got '" action "']")))))
+        (error
+          (string/format "on-change action must be one of %s [got '%s']"
+                         (string/join allowed-actions ", ")
+                         action)))))
 
   # Properties must be expanded
-  # 
-  (if-let [properties (get spec-table :properties)]
-    (set (spec-table :properties)
-         (tabseq [[prop-name prop-val] :pairs properties]
-           prop-name (expand-svc-property prop-val))))
+  (set (spec-table :properties)
+       (tabseq [[prop-name prop-val] :pairs (get spec-table :properties ())]
+         prop-name (expand-svc-property prop-val)))
 
   (collector/push :ensure doer (spec->resource doer name spec-table)))
 
 (defn remove
-  "Given a service property spec, put a remove struct in the collector"
+  "Given a spec, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
 

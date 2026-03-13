@@ -1,48 +1,54 @@
-use anyhow::bail;
+use crate::types::ApplyResult;
 use common::cmd;
 use common::constants::{NO_RESOURCES_TO_CHANGE, PKGIN_BIN};
-use common::types::{ApplyOpts, ApplySummary};
+use common::types::{ApplyOpts, ApplySummary, ChangedIds};
 use serde::Deserialize;
+use std::collections::BTreeSet;
 use std::process::Command;
 use std::sync::LazyLock;
 
 static CURRENT_PKG_OUTPUT: LazyLock<String> =
-    LazyLock::new(|| pkgin_output().expect("Could not get pkgin list"));
+    LazyLock::new(|| get_package_list().expect("Could not get pkgin list"));
 
 type PkginName = String;
-
-#[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
-struct GlobalPkgins {
-    installed: Vec<PkginName>,
-}
+type InstalledPkgs = Vec<PkginName>;
+type EnsureList = Vec<GurpPkginEnsure>;
+type RemoveList = Vec<GurpPkginRemove>;
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPkginEnsure {
+    #[serde(rename = "_id")]
+    pub id: String,
     pub name: PkginName,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPkginRemove {
+    #[serde(rename = "_id")]
+    pub id: String,
     pub name: PkginName,
 }
 
-type EnsureList = Vec<GurpPkginEnsure>;
-type RemoveList = Vec<GurpPkginRemove>;
+pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> ApplyResult {
+    let mut changed_ids: ChangedIds = BTreeSet::new();
 
-pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    if pkg_list.is_empty() {
+        return Ok((NO_RESOURCES_TO_CHANGE, changed_ids));
+    }
+
+    let installed_pkgs = parse_pkg_list(&CURRENT_PKG_OUTPUT);
     let resources = pkg_list.len() as u32;
-    let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
-    let pkg_names: Vec<_> = pkg_list.iter().map(|r| &r.name).collect();
     let mut install_list = Vec::new();
 
-    for pkg in &pkg_names {
-        if global_pkgs.installed.contains(pkg) {
-            tracing::debug!("already installed: {}", pkg);
+    for pkg in pkg_list {
+        if installed_pkgs.contains(&pkg.name) {
+            tracing::debug!("already installed: {}", pkg.name);
         } else {
-            install_list.push(pkg.as_str());
+            tracing::debug!("scheduled for install: {}", pkg.name);
+            install_list.push(pkg.name.as_str());
+            changed_ids.insert(pkg.id.clone());
         }
     }
 
@@ -50,10 +56,13 @@ pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
 
     if install_list.is_empty() {
         tracing::debug!("no pkgsrc packages to install");
-        Ok(ApplySummary {
-            resources,
-            changes: 0,
-        })
+        Ok((
+            ApplySummary {
+                resources,
+                changes: 0,
+            },
+            changed_ids,
+        ))
     } else {
         tracing::info!("installing: {}", install_list.join(", "));
 
@@ -64,53 +73,50 @@ pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
 
         tracing::debug!(command = cmd::to_string(&cmd));
 
-        return_if_noop!(opts);
+        if !opts.noop {
+            run_cmd!(cmd)?;
+        }
 
-        let output = cmd.output()?;
-
-        if output.status.success() {
-            Ok(ApplySummary {
+        Ok((
+            ApplySummary {
                 resources,
                 changes: install_list.len() as u32,
-            })
-        } else {
-            let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-
-            let error_message = if stderr.is_empty() {
-                let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
-                stdout
-                    .lines()
-                    .collect::<Vec<_>>()
-                    .last()
-                    .map_or("no output", |v| v)
-                    .to_owned()
-            } else {
-                stderr.to_owned()
-            };
-
-            bail!(error_message)
-        }
+            },
+            changed_ids,
+        ))
     }
 }
 
-pub fn collect_and_remove(pkg_list: &RemoveList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+pub fn collect_and_remove(pkg_list: &RemoveList, opts: &ApplyOpts) -> ApplyResult {
+    let mut changed_ids = ChangedIds::default();
+
+    if pkg_list.is_empty() {
+        return Ok((NO_RESOURCES_TO_CHANGE, changed_ids));
+    }
+
     let resources = pkg_list.len() as u32;
-    let global_pkgs = parse_pkg_output(&CURRENT_PKG_OUTPUT);
-    let pkg_names: Vec<_> = pkg_list.iter().map(|r| &r.name).collect();
+    let installed_pkgs = parse_pkg_list(&CURRENT_PKG_OUTPUT);
     let mut remove_list = Vec::new();
 
-    for pkg in pkg_names {
-        if global_pkgs.installed.contains(pkg) {
-            tracing::debug!("scheduled for removal: {}", pkg);
-            remove_list.push(pkg.as_str());
+    for pkg in pkg_list {
+        if installed_pkgs.contains(&pkg.name) {
+            tracing::debug!("scheduled for removal: {}", pkg.name);
+            remove_list.push(pkg.name.as_str());
+            changed_ids.insert(pkg.id.clone());
         } else {
-            tracing::debug!("not present: {}", pkg);
+            tracing::debug!("not present: {}", pkg.name);
         }
     }
 
     if remove_list.is_empty() {
         tracing::debug!("no packages to remove");
-        Ok(NO_RESOURCES_TO_CHANGE)
+        Ok((
+            ApplySummary {
+                resources,
+                changes: 0,
+            },
+            changed_ids,
+        ))
     } else {
         tracing::info!("removing: {}", remove_list.join(", "));
 
@@ -121,40 +127,25 @@ pub fn collect_and_remove(pkg_list: &RemoveList, opts: &ApplyOpts) -> anyhow::Re
 
         tracing::debug!(command = cmd::to_string(&cmd));
 
-        return_if_noop!(opts);
+        if !opts.noop {
+            run_cmd!(cmd)?;
+        }
 
-        let output = cmd.output()?;
-
-        if output.status.success() {
-            Ok(ApplySummary {
+        Ok((
+            ApplySummary {
                 resources,
                 changes: remove_list.len() as u32,
-            })
-        } else {
-            let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-
-            let error_message = if stderr.is_empty() {
-                let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
-                stdout
-                    .lines()
-                    .collect::<Vec<_>>()
-                    .last()
-                    .map_or("no output", |v| v)
-                    .to_owned()
-            } else {
-                stderr.to_owned()
-            };
-
-            bail!(error_message)
-        }
+            },
+            changed_ids,
+        ))
     }
 }
 
-fn pkgin_output() -> anyhow::Result<String> {
+fn get_package_list() -> anyhow::Result<String> {
     cmd_output!(PKGIN_BIN, "list")
 }
 
-fn parse_pkg_output(output: &str) -> GlobalPkgins {
+fn parse_pkg_list(output: &str) -> InstalledPkgs {
     let mut installed: Vec<String> = Vec::new();
 
     for l in output.trim().lines() {
@@ -167,7 +158,7 @@ fn parse_pkg_output(output: &str) -> GlobalPkgins {
         }
     }
 
-    GlobalPkgins { installed }
+    installed
 }
 
 #[cfg(test)]
@@ -179,6 +170,7 @@ mod test {
     fn test_deserialize_pkgin_ensure_rust_package() {
         assert_eq!(
             GurpPkginEnsure {
+                id: "/NO-ROLE/pkgin/rust".to_owned(),
                 name: "rust".to_owned(),
             },
             deserialized_example("pkgin/ensure-rust-package.janet")
@@ -189,6 +181,7 @@ mod test {
     fn test_deserialize_pkgin_remove_go_package() {
         assert_eq!(
             GurpPkginRemove {
+                id: "/NO-ROLE/pkgin/go".to_owned(),
                 name: "go".to_owned(),
             },
             deserialized_example("pkgin/remove-go-package.janet")
@@ -196,7 +189,7 @@ mod test {
     }
 
     #[test]
-    fn test_parse_gem_output() {
+    fn test_parse_pkg_list() {
         let sample_output = indoc::indoc! { r#"
             libxml2-2.12.9nb2    XML parser library from the GNOME project
             ruby33-3.3.6         Ruby 3.3.6 release package
@@ -206,15 +199,13 @@ mod test {
         };
 
         assert_eq!(
-            GlobalPkgins {
-                installed: vec![
-                    "libxml2".to_owned(),
-                    "ruby33".to_owned(),
-                    "ruby33-mini_portile2".to_owned(),
-                    "Zlib".to_owned(),
-                ]
-            },
-            parse_pkg_output(sample_output)
+            vec![
+                "libxml2".to_owned(),
+                "ruby33".to_owned(),
+                "ruby33-mini_portile2".to_owned(),
+                "Zlib".to_owned(),
+            ],
+            parse_pkg_list(sample_output)
         );
     }
 }

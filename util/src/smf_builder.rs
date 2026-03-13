@@ -36,7 +36,7 @@ pub struct PropertyStruct {
 pub type PropertyName = String;
 pub type PropertyGroupName = String;
 pub type PropertyGroupType = String;
-pub type PropertyList = Vec<PropertyName>;
+pub type PropertyList = BTreeSet<PropertyName>;
 pub type PropertyMap = BTreeMap<String, PropertyStruct>;
 pub type PropertyGroupMap = BTreeMap<PropertyGroupName, PropertyGroupType>;
 pub type PropertyGroupList = BTreeSet<PropertyGroupName>;
@@ -454,7 +454,7 @@ mod test {
         assert_eq!(&expected_xml, &result_xml);
     }
 
-    // #[test]
+    #[test]
     fn test_make_transient_manifest() {
         let test_svc = SmfDefinition {
             name: "export".to_owned(),

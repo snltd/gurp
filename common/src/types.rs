@@ -21,6 +21,7 @@ pub struct ApplyOpts {
     pub destroy: bool,
     pub exec: Option<String>,
     pub no_lock: bool,
+    pub remove_first: bool,
 }
 
 #[derive(Debug, Default)]
