@@ -13,23 +13,27 @@
   (zfs/ensure "rpool/blank")
 
   (test *collector*
-        @{:ensure @{:zfs @[{:_id "/test-role/zfs/zfs-example-1"
-                            :label "zfs-example-1"
-                            :name "tank/example/filesystem"
-                            :properties {:compression "gzip9"
-                                         :dedup true
-                                         :devices false
-                                         :mountpoint "/example/mountpoint"}
-                            :role "test-role"}
-                           {:_id "/test-role/zfs/example-zfs-vol"
-                            :label "example-zfs-vol"
-                            :name "tank/example/volume"
-                            :properties {:mountpoint "none"}
-                            :role "test-role"
-                            :size "10G"}]}
-          :remove @{:zfs @[{:_id "/test-role/zfs/tank_old_filesystem"
-                            :name "tank/old/filesystem"
-                            :role "test-role"}]}}))
+    @{:ensure @{:zfs @[{:_id "/test-role/zfs/zfs-example-1"
+                        :label "zfs-example-1"
+                        :name "rpool/example/filesystem"
+                        :properties {:compression "gzip-9"
+                                     :dedup true
+                                     :devices false
+                                     :mountpoint "/example/mountpoint"}
+                        :role "test-role"}
+                       {:_id "/test-role/zfs/example-zfs-vol"
+                        :label "example-zfs-vol"
+                        :name "rpool/example/volume"
+                        :properties {}
+                        :role "test-role"
+                        :size "10G"}
+                       {:_id "/test-role/zfs/rpool_blank"
+                        :name "rpool/blank"
+                        :properties {:mountpoint "none"}
+                        :role "test-role"}]}
+      :remove @{:zfs @[{:_id "/test-role/zfs/rpool_old_filesystem"
+                        :name "rpool/old/filesystem"
+                        :role "test-role"}]}}))
 
 (deftest zfs-error
   (test-error
