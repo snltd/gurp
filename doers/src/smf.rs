@@ -77,7 +77,7 @@ impl GurpSmfEnsure {
             let current_state = svcs::current_state(&self.desired_state.name)?;
 
             if current_state != "disabled" {
-                svcs::set_state(&self.desired_state.name, &current_state, "disabled")?;
+                svcs::set_state(&self.desired_state.name, &current_state, "disabled", opts)?;
             }
 
             let mut cmd = cmd!(SVCCFG_BIN, "delete", &self.desired_state.name);
@@ -103,8 +103,9 @@ impl GurpSmfRemove {
 
             if current_state != "disabled" {
                 tracing::info!("svc: {} stopping service", &self.name);
+
                 if !opts.noop {
-                    svcs::set_state(&self.name, &current_state, "disabled")?;
+                    svcs::set_state(&self.name, &current_state, "disabled", opts)?;
                     self.wait_for_disabled_state()?;
                 }
             }

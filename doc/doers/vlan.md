@@ -28,7 +28,7 @@ None
 ## vlan/remove
 
 ```janet
-(vlan/remove "e1000g020")
+(vlan/remove "e1000g010")
 ```
 
 ### Mandatory Properties

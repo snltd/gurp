@@ -190,10 +190,10 @@ mod test {
         assert_eq!(
             GurpZfsEnsure {
                 id: "/NO-ROLE/zfs/zfs-example-1".to_owned(),
-                name: "tank/example/filesystem".to_owned(),
+                name: "rpool/example/filesystem".to_owned(),
                 size: None,
                 properties: propmap! {
-                    "compression" => "gzip9",
+                    "compression" => "gzip-9",
                     "dedup" => "on",
                     "mountpoint" => "/example/mountpoint",
                     "devices" => "off",
@@ -208,9 +208,9 @@ mod test {
         assert_eq!(
             GurpZfsEnsure {
                 id: "/NO-ROLE/zfs/example-zfs-vol".to_owned(),
-                name: "tank/example/volume".to_owned(),
+                name: "rpool/example/volume".to_owned(),
                 size: Some("10G".to_owned()),
-                properties: propmap! {"mountpoint" => "none" },
+                properties: propmap! {},
             },
             deserialized_example("zfs/ensure-volume-with-label.janet")
         );
@@ -220,8 +220,8 @@ mod test {
     fn test_deserialize_zfs_remove_dataset() {
         assert_eq!(
             GurpZfsRemove {
-                id: "/NO-ROLE/zfs/tank_old_filesystem".to_owned(),
-                name: "tank/old/filesystem".to_owned(),
+                id: "/NO-ROLE/zfs/rpool_old_filesystem".to_owned(),
+                name: "rpool/old/filesystem".to_owned(),
             },
             deserialized_example("zfs/remove-dataset.janet")
         );

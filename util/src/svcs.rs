@@ -1,5 +1,6 @@
 use anyhow::bail;
 use common::constants::{SVC_WAIT_INTERVAL, SVC_WAIT_TIMEOUT, SVCADM_BIN, SVCCFG_BIN, SVCS_BIN};
+use common::types::ApplyOpts;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -24,7 +25,12 @@ pub fn exists(svc: &str) -> anyhow::Result<bool> {
     }
 }
 
-pub fn set_state(svc: &str, current_state: &str, desired_state: &str) -> anyhow::Result<String> {
+pub fn set_state(
+    svc: &str,
+    current_state: &str,
+    desired_state: &str,
+    opts: &ApplyOpts,
+) -> anyhow::Result<String> {
     let action = if current_state == "maintenance" {
         tracing::debug!("trying to clear svc: {}", svc);
         "clear"
@@ -47,7 +53,13 @@ pub fn set_state(svc: &str, current_state: &str, desired_state: &str) -> anyhow:
             desired_state
         );
 
-        cmd_output!(SVCADM_BIN, action, svc)
+        let mut cmd = cmd!(SVCADM_BIN, action, svc);
+
+        if opts.noop {
+            Ok("noop".to_owned())
+        } else {
+            run_cmd!(cmd)
+        }
     }
 }
 

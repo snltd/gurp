@@ -48,7 +48,7 @@ pub fn collect_and_ensure(nat_list: &EnsureList, opts: &ApplyOpts) -> ApplyResul
         return Ok((NO_RESOURCES_TO_CHANGE, changed_ids));
     }
 
-    ensure_ipf_is_running()?;
+    ensure_ipf_is_running(opts)?;
     svcs::wait_for_state(IPF_SVC, "online")?;
 
     let mut nat_list = nat_list.clone();
@@ -245,9 +245,9 @@ fn parse_nat_table(raw: &str) -> String {
         .to_string()
 }
 
-fn ensure_ipf_is_running() -> anyhow::Result<()> {
+fn ensure_ipf_is_running(opts: &ApplyOpts) -> anyhow::Result<()> {
     let ipf_state = svcs::current_state(IPF_SVC)?;
-    svcs::set_state(IPF_SVC, &ipf_state, "online")?;
+    svcs::set_state(IPF_SVC, &ipf_state, "online", opts)?;
     Ok(())
 }
 

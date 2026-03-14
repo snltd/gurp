@@ -10,6 +10,8 @@
 
   (import-tests "zfs" (curenv))
 
+  (zfs/ensure "rpool/blank")
+
   (test *collector*
         @{:ensure @{:zfs @[{:_id "/test-role/zfs/zfs-example-1"
                             :label "zfs-example-1"

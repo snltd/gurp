@@ -49,7 +49,7 @@ pub fn collect_and_ensure(filter_list: &EnsureList, opts: &ApplyOpts) -> ApplyRe
         return Ok((NO_RESOURCES_TO_CHANGE, changed_ids));
     }
 
-    ensure_ipf_is_running()?;
+    ensure_ipf_is_running(opts)?;
     svcs::wait_for_state(IPF_SVC, "online")?;
     let mut force_reload = false;
 
@@ -208,9 +208,9 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
     }
 }
 
-fn ensure_ipf_is_running() -> anyhow::Result<()> {
+fn ensure_ipf_is_running(opts: &ApplyOpts) -> anyhow::Result<()> {
     let ipf_state = svcs::current_state(IPF_SVC)?;
-    svcs::set_state(IPF_SVC, &ipf_state, "online")?;
+    svcs::set_state(IPF_SVC, &ipf_state, "online", opts)?;
     Ok(())
 }
 

@@ -144,8 +144,8 @@ mod test {
     fn test_deserialize_remove_vlan() {
         assert_eq!(
             GurpVlanRemove {
-                id: "/NO-ROLE/vlan/e1000g020".to_owned(),
-                name: "e1000g020".to_owned(),
+                id: "/NO-ROLE/vlan/e1000g010".to_owned(),
+                name: "e1000g010".to_owned(),
             },
             deserialized_example("vlan/remove-vlan.janet")
         );

@@ -56,16 +56,8 @@ impl GurpSvcEnsure {
                 }
             }
         } else {
-            tracing::info!(
-                "change {} state: {} -> {}",
-                self.name,
-                current_state,
-                self.desired_state
-            );
+            svcs::set_state(&self.name, &current_state, &self.desired_state, opts)?;
 
-            return_if_noop!(opts);
-
-            svcs::set_state(&self.name, &current_state, &self.desired_state)?;
             Ok(ONE_RESOURCE_ONE_CHANGE)
         }
     }
