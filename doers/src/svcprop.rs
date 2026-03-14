@@ -109,10 +109,18 @@ impl GurpSvcpropEnsure {
                         current_val.value,
                         desired.value,
                     );
+                    changes += 1;
                 }
             } else {
                 tracing::debug!("{} svcprop: did not find '{}'", self.service, property);
             }
+
+            tracing::info!(
+                "setting {} = {}: {}\n",
+                property,
+                desired.prop_type,
+                desired.value
+            );
 
             svccfg_script.push_str(&format!(
                 "setprop {} = {}: {}\n",
@@ -135,10 +143,7 @@ impl GurpSvcpropEnsure {
             }
 
             if opts.noop {
-                return Ok(ApplySummary {
-                    resources,
-                    changes: 0,
-                });
+                return Ok(ApplySummary { resources, changes });
             }
 
             let mut cmd = cmd_with_stdin!(SVCCFG_BIN, "-s", &self.service);
@@ -185,11 +190,11 @@ impl GurpSvcpropEnsure {
 
 impl GurpSvcpropRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let all_values = current_svc_props(&self.service)?;
+        let current_state = current_svc_props(&self.service)?;
         let mut ret = ApplySummary::default();
 
         for property in &self.properties {
-            if let Some(current) = all_values.properties.get(property) {
+            if let Some(current) = current_state.properties.get(property) {
                 tracing::info!(
                     "{} svcprop: removing '{property}' (was'{}')",
                     self.service,
@@ -212,7 +217,7 @@ impl GurpSvcpropRemove {
             for pg in property_groups {
                 tracing::debug!("{}: looking for '{pg}' property group", self.service,);
 
-                if all_values.property_groups.contains(pg) {
+                if current_state.property_groups.contains(pg) {
                     tracing::debug!("{}: removing property group '{pg}'", self.service,);
                     ret += cmd_change_or_noop!(opts, SVCCFG_BIN, "-s", &self.service, "delpg", pg)?;
                 } else {
@@ -225,10 +230,12 @@ impl GurpSvcpropRemove {
     }
 }
 
+// We inspect only the directly referenced service/instance. No composition.
 fn svc_property_values(svc: &str) -> anyhow::Result<String> {
     cmd_output!(SVCCFG_BIN, "-s", svc, "listprop")
 }
 
+// We inspect only the directly referenced service/instance. No composition.
 fn svc_property_groups(svc: &str) -> anyhow::Result<String> {
     cmd_output!(SVCCFG_BIN, "-s", svc, "listpg")
 }
@@ -336,7 +343,6 @@ fn ensure_instance(svc: &str, opts: &ApplyOpts) -> anyhow::Result<()> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use indoc::indoc;
     use pretty_assertions::assert_eq;
     use std::collections::{BTreeMap, BTreeSet};
     use tester::deserialized_example;
@@ -418,7 +424,7 @@ mod test {
 
     #[test]
     fn test_process_property_groups() {
-        let input = indoc! { r#"
+        let input = indoc::indoc! { r#"
             general                            framework
             general/enabled                    boolean  true
             restarter                          framework	NONPERSISTENT

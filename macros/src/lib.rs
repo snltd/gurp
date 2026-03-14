@@ -4,7 +4,13 @@ pub fn log_error(cmd: &Command, output: Output) -> String {
     let cmd = common::cmd::to_string(cmd);
     let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
-    tracing::error!(command = cmd, stdout = stdout, stderr = stderr);
+    let exit_code = &output.status.code();
+    tracing::error!(
+        command = cmd,
+        exit_code = exit_code,
+        stdout = stdout,
+        stderr = stderr
+    );
     "error running external command".to_owned()
 }
 
@@ -85,7 +91,7 @@ macro_rules! cmd_change_or_noop{
         if !$opts.noop {
             let output = cmd.output()?;
 
-            if output.status.success() {
+            if !output.status.success() {
                 anyhow::bail!($crate::log_error(&cmd, output))
             }
         }
