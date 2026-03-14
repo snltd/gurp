@@ -195,43 +195,34 @@ macro_rules! impl_apply {
 }
 
 impl_apply!(
-    // GurpApkEnsure,
     GurpBridgeEnsure,
     GurpCronEnsure,
     GurpDirectoryEnsure,
     GurpEtherstubEnsure,
     GurpFileEnsure,
     GurpFileLineEnsure,
-    // GurpGemEnsure,
     GurpGroupEnsure,
     GurpIpAddressEnsure,
     GurpIpInterfaceEnsure,
     GurpIpPropertiesEnsure,
-    // GurpIpfilterEnsure,
-    // GurpIpnatEnsure,
     GurpLinkEnsure,
     GurpMiscEnsure,
     GurpNetworkFlowEnsure,
-    // GurpPkgEnsure,
-    // GurpPkginEnsure,
     GurpPublisherEnsure,
     GurpRouteEnsure,
     GurpSvcpropEnsure,
     GurpSmfEnsure,
-    // GurpSvcEnsure,
     GurpUserEnsure,
     GurpVlanEnsure,
     GurpVnicEnsure,
     GurpZfsEnsure,
     GurpZoneEnsure,
-    // GurpApkRemove,
     GurpBridgeRemove,
     GurpCronRemove,
     GurpDirectoryRemove,
     GurpEtherstubRemove,
     GurpFileRemove,
     GurpFileLineRemove,
-    // GurpGemRemove,
     GurpGroupRemove,
     GurpIpAddressRemove,
     GurpIpInterfaceRemove,
@@ -239,8 +230,6 @@ impl_apply!(
     GurpIpnatRemove,
     GurpLinkRemove,
     GurpNetworkFlowRemove,
-    // GurpPkgRemove,
-    // GurpPkginRemove,
     GurpPublisherRemove,
     GurpRouteRemove,
     GurpSmfRemove,
@@ -424,7 +413,7 @@ impl Applicator {
             summary_total += service.apply(&changed_ids, opts)?;
         }
 
-        Ok(remove_summary + ensure_summary)
+        Ok(summary_total)
     }
 
     fn display_error(&self, e: Error) -> anyhow::Result<()> {
