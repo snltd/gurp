@@ -1,0 +1,1 @@
+(directory/remove "/example")

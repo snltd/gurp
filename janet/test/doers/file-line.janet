@@ -10,28 +10,28 @@
   (import-tests "file-line" (curenv))
 
   (test *collector*
-        @{:ensure @{:file-line @[{:_id "/test-role/file-line/_path_to_file"
-                                  :line "i-want-to-see-this"
-                                  :name "/path/to/file"
-                                  :role "test-role"}]}
-          :remove @{:file-line @[{:_id "/test-role/file-line/_path_to_file"
-                                  :apply-to "all"
-                                  :match "exact"
-                                  :name "/path/to/file"
-                                  :pattern "i-do-not-want-to-see-this-anywhere"
-                                  :role "test-role"}
-                                 {:_id "/test-role/file-line/_path_to_file"
-                                  :apply-to "all"
-                                  :match "regex"
-                                  :name "/path/to/file"
-                                  :pattern "rust-regex"
-                                  :role "test-role"}
-                                 {:_id "/test-role/file-line/_path_to_file"
-                                  :apply-to "last"
-                                  :match "starts-with"
-                                  :name "/path/to/file"
-                                  :pattern "string-prefix"
-                                  :role "test-role"}]}}))
+    @{:ensure @{:file-line @[{:_id "/test-role/file-line/_path_to_file"
+                              :line "i-want-to-see-this"
+                              :name "/path/to/file"
+                              :role "test-role"}]}
+      :remove @{:file-line @[{:_id "/test-role/file-line/_path_to_file"
+                              :apply-to "last"
+                              :match "starts-with"
+                              :name "/path/to/file"
+                              :pattern "string-prefix"
+                              :role "test-role"}
+                             {:_id "/test-role/file-line/_path_to_file"
+                              :apply-to "all"
+                              :match "exact"
+                              :name "/path/to/file"
+                              :pattern "i-do-not-want-to-see-this-anywhere"
+                              :role "test-role"}
+                             {:_id "/test-role/file-line/_path_to_file"
+                              :apply-to "all"
+                              :match "regex"
+                              :name "/path/to/file"
+                              :pattern "rust-regex"
+                              :role "test-role"}]}}))
 
 (deftest file-line-error
   (test-error

@@ -9,13 +9,19 @@
   (import-tests "svc" (curenv))
 
   (test *collector*
-        @{:ensure @{:svc @[{:_id "/NO-ROLE/svc/important_service"
-                            :name "important/service"
-                            :reloaded-by @[]
-                            :restarted-by @["/test-role/file/stub"]
-                            :role "NO-ROLE"
-                            :state "enabled"}]}
-          :remove @{}}))
+    @{:ensure @{:svc @[{:_id "/NO-ROLE/svc/snltd_example"
+                        :name "snltd/example"
+                        :reloaded-by @[]
+                        :restarted-by @[]
+                        :role "NO-ROLE"
+                        :state "disabled"}
+                       {:_id "/NO-ROLE/svc/important_service"
+                        :name "important/service"
+                        :reloaded-by @[]
+                        :restarted-by @["/test-role/file/stub"]
+                        :role "NO-ROLE"
+                        :state "enabled"}]}
+      :remove @{}}))
 
 (deftest svc-error
   (test-error

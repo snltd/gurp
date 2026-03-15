@@ -26,18 +26,34 @@ impl GurpIpPropertiesEnsure {
         for (protocol, properties) in &self.protocols {
             let no_values = HashMap::new();
             let current_values = current_properties.get(protocol).unwrap_or(&no_values);
-
             for (property, desired_value) in properties {
-                if ip_protocols::align_property(AlignIpPropArg {
-                    ipadm_cmd: "set-prop",
-                    protocol: Some(protocol),
-                    property,
-                    current_value: current_values.get(property).map(String::as_str),
-                    desired_value,
-                    pass_protocol_to_ipadm: false,
-                    ipadm_final_arg: None,
+                if property == "extra_priv_ports" {
+                    if ip_protocols::align_list_property(
+                        AlignIpPropArg {
+                            ipadm_cmd: "set-prop",
+                            protocol: Some(protocol),
+                            property,
+                            current_value: current_values.get(property).map(String::as_str),
+                            desired_value,
+                            protocol_requires_flag: false,
+                            ipadm_object: None,
+                        },
+                        opts,
+                    )? {
+                        changes += 1;
+                    }
+                } else if ip_protocols::align_property(
+                    &AlignIpPropArg {
+                        ipadm_cmd: "set-prop",
+                        protocol: Some(protocol),
+                        property,
+                        current_value: current_values.get(property).map(String::as_str),
+                        desired_value,
+                        protocol_requires_flag: false,
+                        ipadm_object: None,
+                    },
                     opts,
-                })? {
+                )? {
                     changes += 1;
                 }
             }
@@ -61,7 +77,7 @@ mod test {
     use tester::{deserialized_example, propmap};
 
     #[test]
-    fn test_ip_properties_deserialize_ensure_01() {
+    fn test_ip_properties_deserialize_ensure_properties() {
         assert_eq!(
             GurpIpPropertiesEnsure {
                 name: "general".to_owned(),
@@ -70,28 +86,43 @@ mod test {
                     (
                         "ipv4".to_owned(),
                         propmap! {
-                            "hostmodel" => "weak",
-
-                        }
-                    ),
-                    (
-                        "icmp".to_owned(),
-                        propmap! {
-                            "max_buf" => "1234567",
+                            "forwarding" => "on",
 
                         }
                     ),
                     (
                         "ipv6".to_owned(),
                         propmap! {
-                            "hoplimit" => "123",
-                            "hostmodel" => "weak",
-
+                            "hoplimit" => "250",
                         }
-                    )
+                    ),
+                    (
+                        "icmp".to_owned(),
+                        propmap! {
+                            "max_buf" => "262000",
+                        }
+                    ),
+                    (
+                        "tcp".to_owned(),
+                        propmap! {
+                            "sack" => "passive",
+                        }
+                    ),
+                    (
+                        "sctp".to_owned(),
+                        propmap! {
+                            "max_buf" => "1048000",
+                        }
+                    ),
+                    (
+                        "udp".to_owned(),
+                        propmap! {
+                            "extra_priv_ports" => "2050,4040",
+                        }
+                    ),
                 ])
             },
-            deserialized_example::<GurpIpPropertiesEnsure>("ip-properties/ensure-01.janet")
+            deserialized_example("ip-properties/ensure-properties.janet")
         );
     }
 }

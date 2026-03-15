@@ -10,18 +10,18 @@
   (import-tests "user" (curenv))
 
   (test *collector*
-        @{:ensure @{:user @[{:_id "/test-role/user/rob"
-                             :gecos "Test User"
-                             :home-dir "/home/rob"
-                             :name "rob"
-                             :password-hash "w0934cm-4i5c-42u5cn492hrc97h234ui"
-                             :primary-group "sysadmin"
-                             :role "test-role"
-                             :shell "/bin/zsh"
-                             :uid 264}]}
-          :remove @{:user @[{:_id "/test-role/user/lolex"
-                             :name "lolex"
-                             :role "test-role"}]}}))
+    @{:ensure @{:user @[{:_id "/test-role/user/gurpuser"
+                         :gecos "Gurp Managed User"
+                         :home-dir "/home/gurpuser"
+                         :name "gurpuser"
+                         :password-hash "w0934cm-4i5c-42u5cn492hrc97h234ui"
+                         :primary-group "sysadmin"
+                         :role "test-role"
+                         :shell "/bin/zsh"
+                         :uid 1264}]}
+      :remove @{:user @[{:_id "/test-role/user/lolex"
+                         :name "lolex"
+                         :role "test-role"}]}}))
 
 (deftest user-error
   (test-error

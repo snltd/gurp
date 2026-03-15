@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure};
+use anyhow::{Context, bail, ensure};
 use blake3::Hash;
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_FILES};
@@ -54,33 +54,17 @@ pub struct GurpFileRemove {
 }
 
 impl GurpFileEnsure {
-    fn remote_content(&self, url: &str) -> anyhow::Result<()> {
-        // As usual, complete MVP.
-        // I don't think I want to cache anything between Gurp runs, so I don't have anywhere to
-        // store ETags or whatever. (And I can't be sure the thing serving will serve them.)
-        // Therefore, we're going to have to pull the file every time. Read it into memory and pop
-        // it in the RefCell.
-        let content = http::remote_file_to_memory(url)?;
-
-        if let Some(checksum) = self.desired_state.with_checksum.as_ref() {
-            let remote_checksum = sha256::digest(&content);
-
-            ensure!(
-                checksum == &remote_checksum,
-                "Remote file has incorrect checksum"
-            );
-        }
-
-        *self.desired_state.remote_content.borrow_mut() = Some(content);
-
-        Ok(())
-    }
-
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         ensure!(
             self.content_xor_file_xor_content_struct(),
             "file '{}' must have exactly one of :content, :from, :from-url, or :from-struct",
             &self.path
+        );
+
+        ensure!(
+            self.path.is_absolute(),
+            "path must be absolute [{}]",
+            self.id
         );
 
         ensure!(self.source_exists_if_needed(), "Missing source file");
@@ -92,6 +76,12 @@ impl GurpFileEnsure {
         let mut changes = 0;
 
         if self.path.exists() {
+            ensure!(
+                self.path.is_file(),
+                "{} exists and is not a file",
+                self.path
+            );
+
             if self.file_has_changed()? {
                 tracing::info!("updating {}", self.path);
 
@@ -240,7 +230,22 @@ impl GurpFileEnsure {
     }
 
     fn write_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
-        self.back_up_file(opts)?;
+        let parent = &self
+            .path
+            .parent()
+            .context(format!("cannot get parent of {}", self.path))?;
+
+        ensure!(
+            parent.exists(),
+            "cannot create {}: parent dir does not exist",
+            self.path
+        );
+
+        if let Some(suffix) = &self.desired_state.backup_suffix
+            && self.path.exists()
+        {
+            self.back_up_file(suffix, opts)?;
+        }
 
         let new_content = if let Some(content) = &self.desired_state.content {
             Some(content)
@@ -295,32 +300,28 @@ impl GurpFileEnsure {
         }
     }
 
-    fn back_up_file(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
-        if let Some(suffix) = &self.desired_state.backup_suffix {
-            let suffix = if suffix == "TIMESTAMP" {
-                epoch_time_as_string()
-            } else {
-                suffix.to_owned()
-            };
-
-            let backup_target = &self.path.with_extension(suffix);
-            tracing::debug!("Backing up to {}", backup_target);
-
-            if !opts.noop {
-                fs::rename(&self.path, backup_target)?;
-                file::ensure_metadata(
-                    FileMetadata {
-                        group: &NameOrId::Name("root".to_owned()),
-                        owner: &NameOrId::Name("root".to_owned()),
-                        mode: "0o0400",
-                        path: backup_target,
-                        changes: 1,
-                    },
-                    opts,
-                )?;
-            }
+    fn back_up_file(&self, suffix: &str, opts: &ApplyOpts) -> anyhow::Result<()> {
+        let suffix = if suffix == "TIMESTAMP" {
+            epoch_time_as_string()
         } else {
-            tracing::debug!("No backup of {} requested", &self.path);
+            suffix.to_owned()
+        };
+
+        let backup_target = &self.path.with_extension(suffix);
+        tracing::debug!("Backing up to {}", backup_target);
+
+        if !opts.noop {
+            fs::rename(&self.path, backup_target)?;
+            file::ensure_metadata(
+                FileMetadata {
+                    group: &NameOrId::Name("root".to_owned()),
+                    owner: &NameOrId::Name("root".to_owned()),
+                    mode: "0400",
+                    path: backup_target,
+                    changes: 1,
+                },
+                opts,
+            )?;
         }
 
         Ok(())
@@ -411,6 +412,28 @@ impl GurpFileEnsure {
             bail!("from_struct requires to_format")
         }
     }
+
+    fn remote_content(&self, url: &str) -> anyhow::Result<()> {
+        // As usual, complete MVP.
+        // I don't think I want to cache anything between Gurp runs, so I don't have anywhere to
+        // store ETags or whatever. (And I can't be sure the thing serving will serve them.)
+        // Therefore, we're going to have to pull the file every time. Read it into memory and pop
+        // it in the RefCell.
+        let content = http::remote_file_to_memory(url)?;
+
+        if let Some(checksum) = self.desired_state.with_checksum.as_ref() {
+            let remote_checksum = sha256::digest(&content);
+
+            ensure!(
+                checksum == &remote_checksum,
+                "Remote file has incorrect checksum"
+            );
+        }
+
+        *self.desired_state.remote_content.borrow_mut() = Some(content);
+
+        Ok(())
+    }
 }
 
 impl GurpFileRemove {
@@ -458,63 +481,69 @@ mod test {
     };
 
     #[test]
-    fn test_file_deserialize_ensure_02() {
+    fn test_deserialize_ensure_file_from_content() {
         assert_eq!(
             GurpFileEnsure {
-                id: "/NO-ROLE/file/_file_from_content".to_owned(),
-                path: Utf8PathBuf::from("/file/from/content"),
+                id: "/NO-ROLE/file/_example_file_from-content".to_owned(),
+                path: Utf8PathBuf::from("/example/file/from-content"),
                 desired_state: DesiredFileState {
                     backup_suffix: None,
-                    content: Some("lots-of-data".to_owned()),
+                    content: Some("words and stuff".to_owned()),
                     from_struct: None,
                     from_url: None,
                     from: None,
                     ignore_pattern: None,
                     mode: "0600".to_owned(),
                     group: NameOrId::Name("root".to_owned()),
-                    owner: NameOrId::Name("dataperson".to_owned()),
+                    owner: NameOrId::Name("sys".to_owned()),
                     to_format: None,
                     with_checksum: None,
                     remote_content: RefCell::new(None),
                 }
             },
-            deserialized_example::<GurpFileEnsure>("file/ensure-02.janet")
+            deserialized_example("file/ensure-from-content.janet")
         );
     }
 
     #[test]
-    fn test_file_deserialize_ensure_03() {
+    fn test_deserialize_ensure_file_from_url_with_checksum() {
         assert_eq!(
             GurpFileEnsure {
                 id: "/NO-ROLE/file/remote-file".to_owned(),
-                path: Utf8PathBuf::from("/file/from/arbitrary/server"),
+                path: Utf8PathBuf::from("/example/file/from-url"),
                 desired_state: DesiredFileState {
                     backup_suffix: None,
                     content: None,
                     from: None,
                     from_struct: None,
-                    from_url: Some("https://example.com/files/config".to_owned()),
-                    with_checksum: Some("0123456789abcdef".to_owned()),
+                    from_url: Some(
+                        "https://raw.githubusercontent.com/snltd/gurp/refs/heads/main/LICENSE.txt"
+                            .to_owned()
+                    ),
+                    with_checksum: Some(
+                        "561a47aa1d1bfc3a95ce45345639f9ce2d9ad332b05cfe5da74ad77f2842ee16"
+                            .to_owned()
+                    ),
                     ignore_pattern: None,
-                    mode: "0640".to_owned(),
-                    owner: NameOrId::Name("gibbus".to_owned()),
+                    mode: "0644".to_owned(),
+                    owner: NameOrId::Name("root".to_owned()),
                     group: NameOrId::Name("root".to_owned()),
                     to_format: None,
                     remote_content: RefCell::new(None),
                 }
             },
-            deserialized_example::<GurpFileEnsure>("file/ensure-03.janet")
+            deserialized_example("file/ensure-from-url-with-checksum.janet")
         );
     }
 
     #[test]
-    fn test_file_deserialize_remove_01() {
+    fn test_deserialize_remove_file() {
         assert_eq!(
             GurpFileRemove {
                 id: "/NO-ROLE/file/_path_to_file".to_owned(),
                 path: Utf8PathBuf::from("/path/to/file"),
             },
-            deserialized_example::<GurpFileRemove>("file/remove-01.janet")
+            deserialized_example("file/remove-file.janet")
         );
     }
 
@@ -1138,6 +1167,38 @@ mod test {
         let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
 
         assert!(sut.apply(&defopts()).is_err());
+    }
+
+    #[test]
+    fn test_filtering() {
+        let json_def = janet2json(r#"(file/ensure "/tmp/example" :content "some words")"#);
+        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+
+        let content = indoc! { "
+            first line
+            line #2
+            a third line
+            The Final Line"
+        };
+
+        assert_eq!(&sut.filter(content, "line").unwrap(), "The Final Line");
+
+        assert_eq!(
+            &sut.filter(content, "line$").unwrap(),
+            indoc! { "
+                line #2
+                The Final Line"
+            }
+        );
+
+        assert_eq!(
+            &sut.filter(content, "^line").unwrap(),
+            indoc! { "
+                first line
+                a third line
+                The Final Line"
+            }
+        );
     }
 
     #[test]

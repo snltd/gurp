@@ -128,7 +128,7 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_deserialize_vlan_ensure_01() {
+    fn test_deserialize_ensure_vlan_10() {
         assert_eq!(
             GurpVlanEnsure {
                 id: "/NO-ROLE/vlan/e1000g010".to_owned(),
@@ -136,18 +136,18 @@ mod test {
                 over: "e1000g0".to_owned(),
                 vlan_tag: 10,
             },
-            deserialized_example("vlan/ensure-01.janet")
+            deserialized_example("vlan/ensure-vlan-10.janet")
         );
     }
 
     #[test]
-    fn test_deserialize_vlan_remove_01() {
+    fn test_deserialize_remove_vlan() {
         assert_eq!(
             GurpVlanRemove {
-                id: "/NO-ROLE/vlan/e1000g020".to_owned(),
-                name: "e1000g020".to_owned(),
+                id: "/NO-ROLE/vlan/e1000g010".to_owned(),
+                name: "e1000g010".to_owned(),
             },
-            deserialized_example("vlan/remove-01.janet")
+            deserialized_example("vlan/remove-vlan.janet")
         );
     }
 

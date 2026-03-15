@@ -66,7 +66,7 @@ mod test {
                 id: "/NO-ROLE/etherstub/newstub0".to_owned(),
                 name: "newstub0".to_owned(),
             },
-            deserialized_example::<GurpEtherstubEnsure>("etherstub/ensure-01.janet")
+            deserialized_example("etherstub/ensure-stub.janet")
         );
     }
 
@@ -77,7 +77,7 @@ mod test {
                 id: "/NO-ROLE/etherstub/oldstub0".to_owned(),
                 name: "oldstub0".to_owned(),
             },
-            deserialized_example::<GurpEtherstubRemove>("etherstub/remove-01.janet")
+            deserialized_example("etherstub/remove-stub.janet")
         );
     }
 }

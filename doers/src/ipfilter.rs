@@ -1,16 +1,20 @@
+use crate::types::ApplyResult;
 use anyhow::bail;
 use camino::Utf8PathBuf;
 use common::constants::{
-    IPF_BIN, IPF_SVC, IPFSTAT_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE,
+    IPF_BIN, IPF_SVC, IPFSTAT_BIN, NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_NO_CHANGE,
+    ONE_RESOURCE_ONE_CHANGE,
 };
 use common::info;
-use common::types::{ApplyOpts, ApplySummary};
+use common::types::{ApplyOpts, ApplySummary, ChangedIds};
 use serde::Deserialize;
 use std::fs::{self, File};
 use std::io::Write;
 use util::svcs;
 
 const IPF_CONF: &str = "/etc/ipf/ipf.conf";
+
+type EnsureList = Vec<GurpIpfilterEnsure>;
 
 // We build a single big set of filter rules from multiple sources, check its validity, and ensure
 // its contents align with those of /etc/ipf/ipf.conf. If the file has changed, or if any resource
@@ -38,13 +42,14 @@ pub struct GurpIpfilterRemove {
     pub name: String,
 }
 
-type EnsureList = Vec<GurpIpfilterEnsure>;
+pub fn collect_and_ensure(filter_list: &EnsureList, opts: &ApplyOpts) -> ApplyResult {
+    let mut changed_ids = ChangedIds::default();
 
-pub fn collect_and_ensure(
-    filter_list: &EnsureList,
-    opts: &ApplyOpts,
-) -> anyhow::Result<ApplySummary> {
-    ensure_ipf_is_running()?;
+    if filter_list.is_empty() {
+        return Ok((NO_RESOURCES_TO_CHANGE, changed_ids));
+    }
+
+    ensure_ipf_is_running(opts)?;
     svcs::wait_for_state(IPF_SVC, "online")?;
     let mut force_reload = false;
 
@@ -69,7 +74,10 @@ pub fn collect_and_ensure(
         if filter.always_reload {
             force_reload = true;
         }
+
+        changed_ids.insert(filter.id);
     }
+
     if opts.dump_config {
         info::dump_config(&desired_rules, Some("ipfilter rules"), opts);
     }
@@ -83,7 +91,7 @@ pub fn collect_and_ensure(
         let mut reload_cmd = cmd!(IPF_BIN, "-Fa", "-f", IPF_CONF);
 
         if opts.noop {
-            Ok(ONE_RESOURCE_ONE_CHANGE)
+            Ok((ONE_RESOURCE_ONE_CHANGE, changed_ids))
         } else {
             let before_change = cmd_output!(IPFSTAT_BIN, "-io")?;
             run_cmd!(reload_cmd)?;
@@ -91,14 +99,14 @@ pub fn collect_and_ensure(
 
             if before_change == after_change {
                 tracing::debug!("reloading ipfilter conf did not change live rules");
-                Ok(ONE_RESOURCE_NO_CHANGE)
+                Ok((ONE_RESOURCE_NO_CHANGE, changed_ids))
             } else {
                 tracing::info!("reloading ipfilter conf produced new live rules");
-                Ok(ONE_RESOURCE_ONE_CHANGE)
+                Ok((ONE_RESOURCE_ONE_CHANGE, changed_ids))
             }
         }
     } else {
-        Ok(ONE_RESOURCE_NO_CHANGE)
+        Ok((ONE_RESOURCE_NO_CHANGE, changed_ids))
     }
 }
 
@@ -108,8 +116,8 @@ impl GurpIpfilterRemove {
         let mut ret = ONE_RESOURCE_NO_CHANGE;
 
         if there_are_rules()? {
-            tracing::info!("clearing live filter table");
-            let mut cmd = cmd!(IPF_BIN, "-C");
+            tracing::info!("clearing live ipf rules");
+            let mut cmd = cmd!(IPF_BIN, "-Fa");
 
             if !opts.noop {
                 run_cmd!(cmd)?;
@@ -117,11 +125,11 @@ impl GurpIpfilterRemove {
 
             ret = ONE_RESOURCE_ONE_CHANGE;
         } else {
-            tracing::debug!("no live filters to clear");
+            tracing::debug!("no live ipf rules to clear");
         }
 
         if filter_file.exists() {
-            tracing::info!("clearing persistent filter table");
+            tracing::info!("clearing persistent ipf rules");
 
             if !opts.noop {
                 fs::remove_file(&filter_file)?;
@@ -129,7 +137,7 @@ impl GurpIpfilterRemove {
 
             ret = ONE_RESOURCE_ONE_CHANGE;
         } else {
-            tracing::debug!("no persistent filters to clear");
+            tracing::debug!("no persistent ipf rules to clear");
         }
 
         Ok(ret)
@@ -138,8 +146,7 @@ impl GurpIpfilterRemove {
 
 // this is not 'Nam Smokey,
 fn there_are_rules() -> anyhow::Result<bool> {
-    let raw = cmd_output!(IPFSTAT_BIN, "-io")?;
-    Ok(raw.trim() == "empty list for ipfilter(out)\nempty list for ipfilter(in)")
+    Ok(!cmd_output!(IPFSTAT_BIN, "-io")?.is_empty())
 }
 
 fn check_filter_rules_are_valid(rules: &str) -> anyhow::Result<()> {
@@ -192,15 +199,18 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
             );
         }
 
-        let mut fh = File::create(filter_file)?;
-        write!(fh, "{desired_rules}")?;
+        if !opts.noop {
+            let mut fh = File::create(filter_file)?;
+            write!(fh, "{desired_rules}")?;
+        }
+
         Ok(true)
     }
 }
 
-fn ensure_ipf_is_running() -> anyhow::Result<()> {
+fn ensure_ipf_is_running(opts: &ApplyOpts) -> anyhow::Result<()> {
     let ipf_state = svcs::current_state(IPF_SVC)?;
-    svcs::set_state(IPF_SVC, &ipf_state, "online")?;
+    svcs::set_state(IPF_SVC, &ipf_state, "online", opts)?;
     Ok(())
 }
 
@@ -211,28 +221,43 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_ipfilter_deserialize_ensure_02() {
+    fn test_ipfilter_deserialize_ensure_from_config() {
         assert_eq!(
             GurpIpfilterEnsure {
-                name: "rules-in-config".to_owned(),
-                id: "/NO-ROLE/ipfilter/rules-in-config".to_owned(),
+                name: "rules-from-config".to_owned(),
+                id: "/NO-ROLE/ipfilter/rules-from-config".to_owned(),
                 priority: 0,
                 from: None,
                 content: Some("block in log all\nblock out all".to_owned()),
                 always_reload: true,
             },
-            deserialized_example::<GurpIpfilterEnsure>("ipfilter/ensure-02.janet")
+            deserialized_example("ipfilter/ensure-from-config.janet")
         );
     }
 
     #[test]
-    fn test_ipfilter_deserialize_remove_01() {
+    fn test_ipfilter_deserialize_ensure_from_file() {
+        assert_eq!(
+            GurpIpfilterEnsure {
+                name: "rules-from-file".to_owned(),
+                id: "/NO-ROLE/ipfilter/rules-from-file".to_owned(),
+                priority: 1,
+                from: Some("test/ipfilter-test".to_owned()),
+                content: None,
+                always_reload: false,
+            },
+            deserialized_example("ipfilter/ensure-from-file.janet")
+        );
+    }
+
+    #[test]
+    fn test_ipfilter_deserialize_remove_all_rules() {
         assert_eq!(
             GurpIpfilterRemove {
                 name: "removes-all-rules".to_owned(),
                 id: "/NO-ROLE/ipfilter/removes-all-rules".to_owned(),
             },
-            deserialized_example::<GurpIpfilterRemove>("ipfilter/remove-01.janet")
+            deserialized_example("ipfilter/remove-all-rules.janet")
         );
     }
 }

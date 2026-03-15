@@ -1,8 +1,11 @@
+use crate::types::ApplyResult;
 use anyhow::bail;
 use camino::Utf8PathBuf;
-use common::constants::{IPF_SVC, IPNAT_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::constants::{
+    IPF_SVC, IPNAT_BIN, NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE,
+};
 use common::info;
-use common::types::{ApplyOpts, ApplySummary};
+use common::types::{ApplyOpts, ApplySummary, ChangedIds};
 use serde::Deserialize;
 use std::fs::{self, File};
 use std::io::Write;
@@ -11,9 +14,13 @@ use util::svcs;
 
 const NAT_CONF_FILE: &str = "/etc/ipf/ipnat.conf";
 
+type EnsureList = Vec<GurpIpnatEnsure>;
+
 // We build a single big set of NAT rules from multiple sources, and apply it, clearing out whatever
 // was already there. We also write the same rules to /etc/ipf/ipnat.conf. I don't see another
 // way to assert persistent state.
+//
+// If any component changes, all are considered to have changed.
 
 #[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -34,7 +41,53 @@ pub struct GurpIpnatRemove {
     pub name: String,
 }
 
-type EnsureList = Vec<GurpIpnatEnsure>;
+pub fn collect_and_ensure(nat_list: &EnsureList, opts: &ApplyOpts) -> ApplyResult {
+    let mut changed_ids = ChangedIds::default();
+
+    if nat_list.is_empty() {
+        return Ok((NO_RESOURCES_TO_CHANGE, changed_ids));
+    }
+
+    ensure_ipf_is_running(opts)?;
+    svcs::wait_for_state(IPF_SVC, "online")?;
+
+    let mut nat_list = nat_list.clone();
+    nat_list.sort_by_key(|r| r.priority);
+
+    let mut desired_rules = String::new();
+
+    for nat in nat_list {
+        if let Some(content) = nat.content {
+            desired_rules.push_str(&content);
+        } else if let Some(path) = nat.from {
+            desired_rules.push_str(&fs::read_to_string(path)?);
+        } else {
+            tracing::warn!("neither :from nor :content for rul {}", nat.id)
+        }
+
+        if !desired_rules.ends_with('\n') {
+            desired_rules.push('\n');
+        }
+
+        changed_ids.insert(nat.id);
+    }
+
+    if opts.dump_config {
+        info::dump_config(&desired_rules, Some("NAT rules"), opts);
+    }
+
+    let mut check_cmd = build_ipnat_cmd(true);
+    check_nat_rules_are_valid(&mut check_cmd, &desired_rules)?;
+
+    let persistent_change = ensure_persistent_rules(&desired_rules, opts)?;
+    let live_change = ensure_live_rules(&desired_rules, opts)?;
+
+    if persistent_change || live_change {
+        Ok((ONE_RESOURCE_ONE_CHANGE, changed_ids))
+    } else {
+        Ok((ONE_RESOURCE_NO_CHANGE, changed_ids))
+    }
+}
 
 impl GurpIpnatRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
@@ -45,7 +98,7 @@ impl GurpIpnatRemove {
             tracing::debug!("no live NATs to clear");
         } else {
             tracing::info!("clearing live NAT table");
-            let mut cmd = cmd!(IPNAT_BIN, "-C");
+            let mut cmd = cmd!(IPNAT_BIN, "-FC");
 
             if !opts.noop {
                 run_cmd!(cmd)?;
@@ -97,8 +150,11 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
             );
         }
 
-        let mut fh = File::create(nat_file)?;
-        write!(fh, "{desired_rules}")?;
+        if !opts.noop {
+            let mut fh = File::create(nat_file)?;
+            write!(fh, "{desired_rules}")?;
+        }
+
         Ok(true)
     }
 }
@@ -132,46 +188,6 @@ fn ensure_live_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Result<bo
     }
 
     Ok(true)
-}
-
-pub fn collect_and_ensure(nat_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    ensure_ipf_is_running()?;
-    svcs::wait_for_state(IPF_SVC, "online")?;
-
-    let mut nat_list = nat_list.clone();
-    nat_list.sort_by_key(|r| r.priority);
-
-    let mut desired_rules = String::new();
-
-    for nat in nat_list {
-        if let Some(content) = nat.content {
-            desired_rules.push_str(&content);
-        } else if let Some(path) = nat.from {
-            desired_rules.push_str(&fs::read_to_string(path)?);
-        } else {
-            tracing::warn!("neither :from nor :content for rul {}", nat.id)
-        }
-
-        if !desired_rules.ends_with('\n') {
-            desired_rules.push('\n');
-        }
-    }
-
-    if opts.dump_config {
-        info::dump_config(&desired_rules, Some("NAT rules"), opts);
-    }
-
-    let mut check_cmd = build_ipnat_cmd(true);
-    check_nat_rules_are_valid(&mut check_cmd, &desired_rules)?;
-
-    let persistent_change = ensure_persistent_rules(&desired_rules, opts)?;
-    let live_change = ensure_live_rules(&desired_rules, opts)?;
-
-    if persistent_change || live_change {
-        Ok(ONE_RESOURCE_ONE_CHANGE)
-    } else {
-        Ok(ONE_RESOURCE_NO_CHANGE)
-    }
 }
 
 fn check_nat_rules_are_valid(check_cmd: &mut Command, config: &str) -> anyhow::Result<()> {
@@ -229,9 +245,9 @@ fn parse_nat_table(raw: &str) -> String {
         .to_string()
 }
 
-fn ensure_ipf_is_running() -> anyhow::Result<()> {
+fn ensure_ipf_is_running(opts: &ApplyOpts) -> anyhow::Result<()> {
     let ipf_state = svcs::current_state(IPF_SVC)?;
-    svcs::set_state(IPF_SVC, &ipf_state, "online")?;
+    svcs::set_state(IPF_SVC, &ipf_state, "online", opts)?;
     Ok(())
 }
 
@@ -242,7 +258,7 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_ipnat_deserialize_ensure_02() {
+    fn test_ipnat_deserialize_ensure_from_config() {
         assert_eq!(
             GurpIpnatEnsure {
                 name: "rules-in-config".to_owned(),
@@ -252,18 +268,18 @@ mod test {
                 content: Some("rdr le0 203.1.2.3/32 port 80 -> 203.1.2.3,203.1.2.4 port 80 tcp round-robin\nrdr le0 203.1.2.3/32 port 80 -> 203.1.2.5 port 80 tcp round-robin".to_owned())
             },
 
-            deserialized_example::<GurpIpnatEnsure>("ipnat/ensure-02.janet")
+            deserialized_example("ipnat/ensure-from-config.janet")
         );
     }
 
     #[test]
-    fn test_ipnat_deserialize_remove_01() {
+    fn test_ipnat_deserialize_remove_all_rules() {
         assert_eq!(
             GurpIpnatRemove {
                 name: "removes-all-rules".to_owned(),
                 id: "/NO-ROLE/ipnat/removes-all-rules".to_owned(),
             },
-            deserialized_example::<GurpIpnatRemove>("ipnat/remove-01.janet")
+            deserialized_example("ipnat/remove-all-rules.janet")
         );
     }
 

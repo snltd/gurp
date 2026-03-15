@@ -11,32 +11,32 @@
   (import-tests "file" (curenv))
 
   (test *collector*
-        @{:ensure @{:file @[{:_id "/test-role/file/_file_from_local_file"
-                             :from "/gurpdir/files/file-test/does-not-exist"
-                             :group "daemon"
-                             :mode "0755"
-                             :name "/file/from/local_file"
-                             :owner "root"
-                             :role "test-role"}
-                            {:_id "/test-role/file/_file_from_content"
-                             :content "lots-of-data"
-                             :group "root"
-                             :mode "0600"
-                             :name "/file/from/content"
-                             :owner "dataperson"
-                             :role "test-role"}
-                            {:_id "/test-role/file/remote-file"
-                             :from-url "https://example.com/files/config"
-                             :group "root"
-                             :label "remote-file"
-                             :mode "0640"
-                             :name "/file/from/arbitrary/server"
-                             :owner "gibbus"
-                             :role "test-role"
-                             :with-checksum "0123456789abcdef"}]}
-          :remove @{:file @[{:_id "/test-role/file/_path_to_file"
-                             :name "/path/to/file"
-                             :role "test-role"}]}}))
+    @{:ensure @{:file @[{:_id "/test-role/file/_example_file_from-content"
+                         :content "words and stuff"
+                         :group "root"
+                         :mode "0600"
+                         :name "/example/file/from-content"
+                         :owner "sys"
+                         :role "test-role"}
+                        {:_id "/test-role/file/_example_file_from-local-file"
+                         :from "/gurpdir/files/file-dir/example"
+                         :group "daemon"
+                         :mode "4755"
+                         :name "/example/file/from-local-file"
+                         :owner "root"
+                         :role "test-role"}
+                        {:_id "/test-role/file/remote-file"
+                         :from-url "https://raw.githubusercontent.com/snltd/gurp/refs/heads/main/LICENSE.txt"
+                         :group "root"
+                         :label "remote-file"
+                         :mode "0644"
+                         :name "/example/file/from-url"
+                         :owner "root"
+                         :role "test-role"
+                         :with-checksum "561a47aa1d1bfc3a95ce45345639f9ce2d9ad332b05cfe5da74ad77f2842ee16"}]}
+      :remove @{:file @[{:_id "/test-role/file/_path_to_file"
+                         :name "/path/to/file"
+                         :role "test-role"}]}}))
 
 (deftest file-error
   (test-error

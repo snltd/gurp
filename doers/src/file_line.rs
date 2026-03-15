@@ -39,6 +39,14 @@ pub struct GurpFileLineRemove {
 impl GurpFileLineEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         ensure!(
+            self.path.exists(),
+            "{} does not exist: file-line cannot ensure its contents",
+            self.path
+        );
+
+        ensure!(self.path.is_file(), "{} is not a regular file", self.path);
+
+        ensure!(
             !(self.line.is_some() && self.replace.is_some()),
             "use either :line or :replace, not both"
         );
@@ -283,11 +291,10 @@ mod test {
     use common::constants::ONE_RESOURCE_NOOP;
     use indoc::{formatdoc, indoc};
     use pretty_assertions::assert_eq;
-    use tester::deserialized_example;
-    use tester::{defopts, defopts_noop, janet2json};
+    use tester::{defopts, defopts_noop, deserialized_example, janet2json};
 
     #[test]
-    fn test_file_line_deserialize_ensure_01() {
+    fn test_deserialize_file_line_ensure_line() {
         assert_eq!(
             GurpFileLineEnsure {
                 path: Utf8PathBuf::from("/path/to/file"),
@@ -298,12 +305,12 @@ mod test {
                 with: None,
                 apply_to: None,
             },
-            deserialized_example::<GurpFileLineEnsure>("file-line/ensure-01.janet")
+            deserialized_example("file-line/ensure-line.janet")
         );
     }
 
     #[test]
-    fn test_file_line_deserialize_remove_01() {
+    fn test_deserialize_file_line_remove_pattern() {
         assert_eq!(
             GurpFileLineRemove {
                 path: Utf8PathBuf::from("/path/to/file"),
@@ -312,12 +319,12 @@ mod test {
                 match_type: "exact".to_owned(),
                 apply_to: "all".to_owned(),
             },
-            deserialized_example::<GurpFileLineRemove>("file-line/remove-01.janet")
+            deserialized_example("file-line/remove-pattern.janet")
         );
     }
 
     #[test]
-    fn test_file_line_deserialize_remove_02() {
+    fn test_deserialize_file_line_remove_regex_match() {
         assert_eq!(
             GurpFileLineRemove {
                 path: Utf8PathBuf::from("/path/to/file"),
@@ -326,12 +333,12 @@ mod test {
                 match_type: "regex".to_owned(),
                 apply_to: "all".to_owned(),
             },
-            deserialized_example::<GurpFileLineRemove>("file-line/remove-02.janet")
+            deserialized_example("file-line/remove-regex-match.janet")
         );
     }
 
     #[test]
-    fn test_file_line_deserialize_remove_03() {
+    fn test_deserialize_file_line_remove_last_prefix_match() {
         assert_eq!(
             GurpFileLineRemove {
                 path: Utf8PathBuf::from("/path/to/file"),
@@ -340,7 +347,7 @@ mod test {
                 match_type: "starts-with".to_owned(),
                 apply_to: "last".to_owned(),
             },
-            deserialized_example::<GurpFileLineRemove>("file-line/remove-03.janet")
+            deserialized_example("file-line/remove-last-prefix-match.janet")
         );
     }
 

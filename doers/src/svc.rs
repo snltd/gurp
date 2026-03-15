@@ -56,17 +56,31 @@ impl GurpSvcEnsure {
                 }
             }
         } else {
-            tracing::info!(
-                "change {} state: {} -> {}",
-                self.name,
-                current_state,
-                self.desired_state
-            );
+            svcs::set_state(&self.name, &current_state, &self.desired_state, opts)?;
 
-            return_if_noop!(opts);
-
-            svcs::set_state(&self.name, &current_state, &self.desired_state)?;
             Ok(ONE_RESOURCE_ONE_CHANGE)
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use std::collections::BTreeSet;
+    use tester::deserialized_example;
+
+    #[test]
+    fn test_deserialize_ensure_svc_with_restarter() {
+        assert_eq!(
+            GurpSvcEnsure {
+                id: "/NO-ROLE/svc/important_service".to_owned(),
+                name: "important/service".to_owned(),
+                desired_state: "enabled".to_owned(),
+                restarters: BTreeSet::from(["/test-role/file/stub".to_owned()]),
+                reloaders: BTreeSet::new(),
+            },
+            deserialized_example("svc/ensure-svc-with-restarter.janet")
+        );
     }
 }

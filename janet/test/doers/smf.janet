@@ -9,34 +9,38 @@
   (import-tests "smf" (curenv))
 
   (test *collector*
-        @{:ensure @{:smf @[{:_id "/NO-ROLE/smf/example"
-                            :default-enabled true
-                            :dependencies @[@{:fmri "svc://example/service1:default"
-                                              :grouping "require_all"
-                                              :name "dependency1"
-                                              :restart-on "none"
-                                              :type "service"}
-                                            @{:fmri "svc://example/service2:default"
-                                              :grouping "optional-all"
-                                              :name "dependency2"
-                                              :restart-on "error"
-                                              :type "service"}]
-                            :description "Run example program"
-                            :fmri "snltd/example"
-                            :name "example"
-                            :properties @{:application/datadir {:type "astring" :value "/data"}}
-                            :property-groups {:application "application"}
-                            :role "NO-ROLE"
-                            :single-instance true
-                            :start-method @{:context {:group "daemon"
-                                                      :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"
-                                                      :user "example"}
-                                            :exec "/opt/site/lib/smf/method/example.sh"
-                                            :timeout 60}
-                            :stop-method {:exec ":kill" :timeout 10}}]}
-          :remove @{:smf @[{:_id "/NO-ROLE/smf/unwanted_service"
-                            :name "unwanted/service"
-                            :role "NO-ROLE"}]}}))
+    @{:ensure @{:smf @[{:_id "/NO-ROLE/smf/example"
+                        :default-enabled true
+                        :dependencies @[@{:fmri "svc:/milestone/name-services:default"
+                                          :grouping "require_all"
+                                          :name "dependency1"
+                                          :restart-on "none"
+                                          :type "service"}
+                                        @{:fmri "svc:/system/pkgserv:default"
+                                          :grouping "optional_all"
+                                          :name "dependency2"
+                                          :restart-on "error"
+                                          :type "service"}]
+                        :description "Run example program"
+                        :duration "child"
+                        :fmri "snltd/example"
+                        :name "example"
+                        :properties @{:application/port {:type "integer" :value 8080}
+                                      :application/ssl {:type "boolean" :value true}
+                                      :other_group/other_prop {:type "astring" :value "abc123"}}
+                        :property-groups {:application "application"
+                                          :other_group "framework"}
+                        :role "NO-ROLE"
+                        :single-instance true
+                        :start-method @{:context {:group "daemon"
+                                                  :privileges "basic,!file_dac_search"
+                                                  :user "appuser"}
+                                        :exec "/app/method.sh"
+                                        :timeout 60}
+                        :stop-method {:exec ":kill" :timeout 10}}]}
+      :remove @{:smf @[{:_id "/NO-ROLE/smf/unwanted_service"
+                        :name "unwanted/service"
+                        :role "NO-ROLE"}]}}))
 
 (deftest smf-error
   (test-error

@@ -353,53 +353,53 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_ensure_network_flow_deserialize_01() {
+    fn test_deserialize_network_flow_ensure_tcp_443_throttle() {
         assert_eq!(
             GurpNetworkFlowEnsure {
                 name: "tls-throttle".to_owned(),
                 id: "/NO-ROLE/network-flow/tls-throttle".to_owned(),
                 link: "vnic1".to_owned(),
                 protocol: Some("tcp".to_owned()),
-                remote_ip: Some("203.0.113.4".to_owned()),
-                remote_port: Some(443.to_owned()),
+                remote_ip: None,
+                remote_port: Some(443),
                 maxbw: Some("10M".to_owned()),
                 dsfield: None,
                 priority: None,
                 local_ip: None,
                 local_port: None,
             },
-            deserialized_example::<GurpNetworkFlowEnsure>("network-flow/ensure-01.janet")
+            deserialized_example("network-flow/ensure-tcp-443-throttle.janet")
         );
     }
 
     #[test]
-    fn test_ensure_network_flow_deserialize_02() {
+    fn test_deserialize_network_flow_ensure_ssh_local_throttle() {
         assert_eq!(
             GurpNetworkFlowEnsure {
                 name: "ssh-flow".to_owned(),
                 id: "/NO-ROLE/network-flow/ssh-flow".to_owned(),
-                link: "vnic0".to_owned(),
+                link: "vnic1".to_owned(),
                 protocol: Some("tcp".to_owned()),
                 remote_ip: None,
                 remote_port: None,
-                maxbw: Some("1M".to_owned()),
+                maxbw: Some("1200K".to_owned()),
                 dsfield: None,
                 priority: None,
                 local_ip: None,
                 local_port: Some(22),
             },
-            deserialized_example::<GurpNetworkFlowEnsure>("network-flow/ensure-02.janet")
+            deserialized_example("network-flow/ensure-ssh-local-throttle.janet")
         );
     }
 
     #[test]
-    fn test_remove_network_flow_deserialize() {
+    fn test_deserialize_network_flow_remove_flow() {
         assert_eq!(
             GurpNetworkFlowRemove {
                 name: "unwanted".to_owned(),
                 id: "/NO-ROLE/network-flow/unwanted".to_owned(),
             },
-            deserialized_example::<GurpNetworkFlowRemove>("network-flow/remove-01.janet")
+            deserialized_example("network-flow/remove-flow.janet")
         );
     }
 

@@ -9,26 +9,24 @@ Fully qualified path to file (`:string`)
 ## file/ensure
 
 ```janet
-(file/ensure "/file/from/local_file"
-             :group "daemon"
-             :mode "0755"
-             :from "file-test/does-not-exist")
-```
-
-```janet
-(file/ensure "/file/from/content"
-             :owner "dataperson"
+(file/ensure "/example/file/from-content"
+             :owner "sys"
              :mode "0600"
-             :content "lots-of-data")
+             :content "words and stuff")
 ```
 
 ```janet
-(file/ensure "/file/from/arbitrary/server"
-             :owner "gibbus"
+(file/ensure "/example/file/from-local-file"
+             :group "daemon"
+             :mode "4755"
+             :from "file-dir/example")
+```
+
+```janet
+(file/ensure "/example/file/from-url"
              :label "remote-file"
-             :mode "0640"
-             :with-checksum "0123456789abcdef"
-             :from-url "https://example.com/files/config")
+             :with-checksum "561a47aa1d1bfc3a95ce45345639f9ce2d9ad332b05cfe5da74ad77f2842ee16"
+             :from-url "https://raw.githubusercontent.com/snltd/gurp/refs/heads/main/LICENSE.txt")
 ```
 
 ### Mandatory Properties
@@ -71,4 +69,6 @@ None
 - The `template-out` and `indoc` macros are useful when specifying :content.
 - `:from` takes a fully-qualified or relative path. If you use the latter, Gurp assumes the file is in a ``files/` directory at the same level as the directory holding the file being parsed.
 - `:from-struct` and `:to-format` let you turn Janet values into a config file. Fully supported file formats are `json`, `toml`, and `yaml`: these formats can represent any valid struct. You can create INI files (`:to-format "ini"`), but the limits of that format mean your struct must be a struct of structs, each representing a section. An invalid struct will cause an error.
+- Unless you specify TIMESTAMP, only one backup file is kept. Backup files are always owned by `root:root`, with mode `0400`.
+- If you try to ensure a file at a path which exists, but is not a file, Gurp will error
 - Gurp can also create key-value pairs (`:to-format "kvp"`). It can do this from a single-level struct, or from an array. In the latter case, entries are alternately keys and values. Using an array lets you create files with duplicate keys, which is sometimes necessary.

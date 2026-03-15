@@ -75,25 +75,25 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_group_deserialize_ensure_01() {
+    fn test_group_deserialize_ensure_new_group() {
         assert_eq!(
             GurpGroupEnsure {
                 name: "new-group".to_owned(),
                 id: "/NO-ROLE/group/new-group".to_owned(),
                 gid: 264,
             },
-            deserialized_example::<GurpGroupEnsure>("group/ensure-01.janet")
+            deserialized_example("group/ensure-new-group.janet")
         );
     }
 
     #[test]
-    fn test_group_deserialize_remove_01() {
+    fn test_group_deserialize_remove_old_group() {
         assert_eq!(
             GurpGroupRemove {
                 name: "old-group".to_owned(),
                 id: "/NO-ROLE/group/old-group".to_owned(),
             },
-            deserialized_example::<GurpGroupRemove>("group/remove-01.janet")
+            deserialized_example("group/remove-old-group.janet")
         );
     }
 }

@@ -239,11 +239,11 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_ensure_cron_deserialize() {
+    fn test_deserialize_ensure_root_cron_job() {
         assert_eq!(
             GurpCronEnsure {
-                id: "/NO-ROLE/cron/mostly-default-values".to_owned(),
-                name: "mostly-default-values".to_owned(),
+                id: "/NO-ROLE/cron/root-cron-job".to_owned(),
+                name: "root-cron-job".to_owned(),
                 user: "root".to_owned(),
                 desired_state: CronState {
                     minute: StrOrNumber::Number(6),
@@ -254,19 +254,39 @@ mod test {
                     command: "/bin/thing arg1 arg2 arg3".to_owned(),
                 },
             },
-            deserialized_example::<GurpCronEnsure>("cron/ensure-01.janet")
+            deserialized_example("cron/ensure-root-cron-job.janet")
         );
     }
 
     #[test]
-    fn test_remove_cron_deserialize() {
+    fn test_deserialize_ensure_print_cron_job() {
+        assert_eq!(
+            GurpCronEnsure {
+                id: "/NO-ROLE/cron/print-cron-job".to_owned(),
+                name: "lots-of-values".to_owned(),
+                user: "lp".to_owned(),
+                desired_state: CronState {
+                    minute: StrOrNumber::Number(6),
+                    hour: StrOrNumber::Number(4),
+                    day_of_month: StrOrNumber::Str("*".to_owned()),
+                    month_of_year: StrOrNumber::Str("*".to_owned()),
+                    day_of_week: StrOrNumber::Number(5),
+                    command: "/bin/thing arg1 arg2 arg3".to_owned(),
+                },
+            },
+            deserialized_example("cron/ensure-print-cron-job.janet")
+        );
+    }
+
+    #[test]
+    fn test_deserialize_remove_cron_job() {
         assert_eq!(
             GurpCronRemove {
                 id: "/NO-ROLE/cron/that-old-cron-job".to_owned(),
                 user: "root".to_owned(),
                 name: "that-old-cron-job".to_owned(),
             },
-            deserialized_example::<GurpCronRemove>("cron/remove-01.janet")
+            deserialized_example("cron/remove-job.janet")
         );
     }
 

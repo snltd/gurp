@@ -16,6 +16,7 @@ const STATE_TRANSITION_INTERVAL: Duration = Duration::from_secs(1);
 const STATE_TRANSITION_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpSmfEnsure {
     #[serde(rename = "_id")]
     pub id: String,
@@ -24,6 +25,7 @@ pub struct GurpSmfEnsure {
 }
 
 #[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpSmfRemove {
     #[serde(rename = "_id")]
     pub id: String,
@@ -32,7 +34,7 @@ pub struct GurpSmfRemove {
 
 impl GurpSmfEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let new_manifest = smf_builder::make_manifest(&self.desired_state);
+        let new_manifest = smf_builder::make_manifest(&self.desired_state)?;
         let manifest_path = &manifest_path(&self.desired_state.name);
 
         if svcs::exists(&self.desired_state.name)? {
@@ -75,7 +77,7 @@ impl GurpSmfEnsure {
             let current_state = svcs::current_state(&self.desired_state.name)?;
 
             if current_state != "disabled" {
-                svcs::set_state(&self.desired_state.name, &current_state, "disabled")?;
+                svcs::set_state(&self.desired_state.name, &current_state, "disabled", opts)?;
             }
 
             let mut cmd = cmd!(SVCCFG_BIN, "delete", &self.desired_state.name);
@@ -101,8 +103,9 @@ impl GurpSmfRemove {
 
             if current_state != "disabled" {
                 tracing::info!("svc: {} stopping service", &self.name);
+
                 if !opts.noop {
-                    svcs::set_state(&self.name, &current_state, "disabled")?;
+                    svcs::set_state(&self.name, &current_state, "disabled", opts)?;
                     self.wait_for_disabled_state()?;
                 }
             }
@@ -158,91 +161,154 @@ fn manifest_path(svc_name: &str) -> Utf8PathBuf {
 #[cfg(test)]
 mod test {
     use super::*;
-    use indoc::indoc;
     use pretty_assertions::assert_eq;
     use std::collections::BTreeMap;
-    use tester::janet2json;
+    use tester::deserialized_example;
     use util::smf_builder::{
-        PropertyGroupMap, PropertyMap, PropertyStruct, PropertyValue, SmfDefinitionDependencySvc,
-        SmfDefinitionExecMethod, SmfDefinitionExecMethodContext,
+        PropertyStruct, PropertyValue, SmfDefinitionDependencySvc, SmfDefinitionExecMethod,
+        SmfDefinitionExecMethodContext,
     };
 
     #[test]
-    fn test_smf_conversion() {
-        let janet_desc = indoc! {r#"
-            (smf/ensure "telegraf"
-                :description "Run Telegraf agent"
-                :fmri "sysdef/telegraf"
-                :property-groups {:application "application"}
-                :properties {:application/datadir "/data"}
-                (smf/dependency "example"
-                    :fmri "/example/service")
-                (smf/method "start"
-                    :exec "/opt/site/lib/smf/method/telegraf.sh"
-                    :user "telegraf"
-                    :group "daemon"
-                    :privileges ["basic" "file_dac_search" "sys_admin" "proc_owner" "proc_zone"]
-                    :environment {:LC_CTYPE "en_US.UTF-8"})
-                (smf/method "refresh"
-                    :exec ":kill -THAW"
-                    :timeout 60))
-            "#};
+    fn test_deserialize_smf_ensure_daemon_with_privs() {
+        assert_eq!(
+            GurpSmfEnsure {
+                id: "/NO-ROLE/smf/example".to_owned(),
+                desired_state: SmfDefinition {
+                    name: "example".to_owned(),
+                    duration: Some("child".to_owned()),
+                    description: Some("Run example program".to_owned()),
+                    fmri: "snltd/example".to_owned(),
+                    default_enabled: true,
+                    single_instance: true,
+                    start_method: Some(SmfDefinitionExecMethod {
+                        exec: "/app/method.sh".to_owned(),
+                        timeout: 60,
+                        context: Some(SmfDefinitionExecMethodContext {
+                            user: "appuser".to_owned(),
+                            group: Some("daemon".to_owned()),
+                            privileges: Some("basic,!file_dac_search".to_owned()),
+                            environment: None
+                        })
+                    }),
+                    stop_method: Some(SmfDefinitionExecMethod {
+                        exec: ":kill".to_owned(),
+                        timeout: 10,
+                        context: None
+                    }),
+                    refresh_method: None,
+                    property_groups: Some(BTreeMap::from([
+                        ("application".to_owned(), "application".to_owned()),
+                        ("other_group".to_owned(), "framework".to_owned()),
+                    ]),),
+                    properties: Some(BTreeMap::from([
+                        (
+                            "application/port".to_owned(),
+                            PropertyStruct {
+                                value: PropertyValue::Int(8080),
+                                prop_type: "integer".to_owned(),
+                            }
+                        ),
+                        (
+                            "application/ssl".to_owned(),
+                            PropertyStruct {
+                                value: PropertyValue::Bool(true),
+                                prop_type: "boolean".to_owned(),
+                            }
+                        ),
+                        (
+                            "other_group/other_prop".to_owned(),
+                            PropertyStruct {
+                                value: PropertyValue::String("abc123".to_owned()),
+                                prop_type: "astring".to_owned(),
+                            }
+                        )
+                    ]),),
+                    dependencies: Some(vec![
+                        SmfDefinitionDependencySvc {
+                            name: "dependency1".to_owned(),
+                            fmri: "svc:/milestone/name-services:default".to_owned(),
+                            restart_on: "none".to_owned(),
+                            grouping: "require_all".to_owned(),
+                            dep_type: "service".to_owned(),
+                        },
+                        SmfDefinitionDependencySvc {
+                            name: "dependency2".to_owned(),
+                            fmri: "svc:/system/pkgserv:default".to_owned(),
+                            restart_on: "error".to_owned(),
+                            grouping: "optional_all".to_owned(),
+                            dep_type: "service".to_owned(),
+                        },
+                    ]),
+                    dependents: None,
+                }
+            },
+            deserialized_example("smf/ensure-daemon-with-privs.janet")
+        );
+    }
 
-        let expected = SmfDefinition {
-            name: "telegraf".to_owned(),
-            duration: None,
-            description: Some("Run Telegraf agent".to_owned()),
-            fmri: "sysdef/telegraf".to_owned(),
-            single_instance: true,
-            default_enabled: true,
-            property_groups: Some(PropertyGroupMap::from([(
-                "application".to_owned(),
-                "application".to_owned(),
-            )])),
-            dependencies: Some(vec![SmfDefinitionDependencySvc {
-                name: "example".to_owned(),
-                fmri: "/example/service".to_owned(),
-                restart_on: "none".to_owned(),
-                grouping: "require_all".to_owned(),
-                dep_type: "service".to_owned(),
-            }]),
-            dependents: None,
-            properties: Some(PropertyMap::from([(
-                "application/datadir".to_owned(),
-                PropertyStruct {
-                    value: PropertyValue::String("/data".to_owned()),
-                    prop_type: "astring".to_owned(),
-                },
-            )])),
-            start_method: Some(SmfDefinitionExecMethod {
-                exec: "/opt/site/lib/smf/method/telegraf.sh".to_owned(),
-                timeout: 60,
-                context: Some(SmfDefinitionExecMethodContext {
-                    user: "telegraf".to_owned(),
-                    group: Some("daemon".to_owned()),
-                    privileges: Some(
-                        "basic,file_dac_search,sys_admin,proc_owner,proc_zone".to_owned(),
-                    ),
-                    environment: Some(BTreeMap::from([(
-                        "LC_CTYPE".to_owned(),
-                        "en_US.UTF-8".to_owned(),
-                    )])),
-                }),
-            }),
-            stop_method: Some(SmfDefinitionExecMethod {
-                exec: ":kill".to_owned(),
-                timeout: 10,
-                context: None,
-            }),
-            refresh_method: Some(SmfDefinitionExecMethod {
-                exec: ":kill -THAW".to_owned(),
-                timeout: 60,
-                context: None,
-            }),
-        };
+    #[test]
+    fn test_generate_manifest() {
+        let sut: GurpSmfEnsure = deserialized_example("smf/ensure-daemon-with-privs.janet");
+        assert_eq!(
+            indoc::indoc! { r#"
+            <?xml version='1.0'?>
+            <!DOCTYPE service_bundle SYSTEM '/usr/share/lib/xml/dtd/service_bundle.dtd.1'>
+            <service_bundle type='manifest' name='example'>
+              <service name='snltd/example' type='service' version='1'>
+                <create_default_instance enabled='true'/>
+                <single_instance/>
+                <dependency name='physical' grouping='require_all' restart_on='none' type='service'>
+                  <service_fmri value='svc:/network/physical:default'/>
+                </dependency>
+                <dependency name='fs-local' grouping='require_all' restart_on='none' type='service'>
+                  <service_fmri value='svc:/system/filesystem/local'/>
+                </dependency>
+                <dependency name='dependency1' grouping='require_all' restart_on='none' type='service'>
+                  <service_fmri value='svc:/milestone/name-services:default'/>
+                </dependency>
+                <dependency name='dependency2' grouping='optional_all' restart_on='error' type='service'>
+                  <service_fmri value='svc:/system/pkgserv:default'/>
+                </dependency>
+                <exec_method name='start' type='method' exec='/app/method.sh' timeout_seconds='60'>
+                  <method_context>
+                    <method_credential user='appuser' group='daemon' privileges='basic,!file_dac_search'/>
+                  </method_context>
+                </exec_method>
+                <exec_method name='stop' type='method' exec=':kill' timeout_seconds='10'/>
+                <property_group name='startd' type='framework'>
+                  <propval name='duration' type='astring' value='child'/>
+                </property_group>
+                <property_group name='application' type='application'>
+                  <propval name='port' type='integer' value='8080'/>
+                  <propval name='ssl' type='boolean' value='true'/>
+                </property_group>
+                <property_group name='other_group' type='framework'>
+                  <propval name='other_prop' type='astring' value='"abc123"'/>
+                </property_group>
+                <stability value='Unstable'/>
+                <template>
+                  <common_name>
+                    <loctext xml:lang='C'>
+                      Run example program
+                    </loctext>
+                  </common_name>
+                </template>
+              </service>
+            </service_bundle>
+            "#},
+            smf_builder::make_manifest(&sut.desired_state).unwrap()
+        );
+    }
 
-        let json_def = janet2json(janet_desc);
-        let sut: SmfDefinition = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(expected, sut);
+    #[test]
+    fn test_deserialize_smf_remove_service() {
+        assert_eq!(
+            GurpSmfRemove {
+                id: "/NO-ROLE/smf/unwanted_service".to_owned(),
+                name: "unwanted/service".to_owned(),
+            },
+            deserialized_example("smf/remove-service.janet")
+        )
     }
 }

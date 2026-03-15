@@ -2,6 +2,8 @@ use serde::Deserialize;
 use serde::de::Deserializer;
 use std::collections::HashMap;
 
+type PropMap = HashMap<String, String>;
+
 // Lets the user supply Janet bools and numbers for things like ZFS and ipadm properties
 pub fn value_to_string(v: serde_json::Value) -> String {
     match v {
@@ -12,7 +14,7 @@ pub fn value_to_string(v: serde_json::Value) -> String {
 }
 
 // Deserializes properties, converting bools to on and off
-pub fn property_deserializer<'de, D>(deserializer: D) -> Result<HashMap<String, String>, D::Error>
+pub fn property_deserializer<'de, D>(deserializer: D) -> Result<PropMap, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -26,9 +28,7 @@ where
 }
 
 // Deserializes option properties, converting bools to on and off
-pub fn option_property_deserializer<'de, D>(
-    deserializer: D,
-) -> Result<Option<HashMap<String, String>>, D::Error>
+pub fn option_property_deserializer<'de, D>(deserializer: D) -> Result<Option<PropMap>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -44,7 +44,7 @@ where
 // Deserializes HashMap properties, converting bools to on and off
 pub fn hash_property_deserializer<'de, D>(
     deserializer: D,
-) -> Result<HashMap<String, HashMap<String, String>>, D::Error>
+) -> Result<HashMap<String, PropMap>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -65,7 +65,7 @@ where
 // Deserializes HashMap properties, converting bools to on and off
 pub fn option_hash_property_deserializer<'de, D>(
     deserializer: D,
-) -> Result<Option<HashMap<String, HashMap<String, String>>>, D::Error>
+) -> Result<Option<HashMap<String, PropMap>>, D::Error>
 where
     D: Deserializer<'de>,
 {

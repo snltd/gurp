@@ -8,6 +8,7 @@ Items marked [*] are breaking changes.
   behaves differently on client and server. The old JSON transfer still exists.
 - Default to jimage in client/server mode. [*]
 - Write a lock file (`/var/run/gurp.lock`) when running in `apply` mode.
+- More detailed, more useful error messages.
 
 ### Commands
 
@@ -17,7 +18,8 @@ Items marked [*] are breaking changes.
 - Add `repl` command, which opens a Janet REPL with the Gurp library loaded into
   the root environment.
 - Add `--destroy-everything-you-touch` to `apply` command.
-- Add `--as-json` option to client mode, for old compile-on-server behaviour.
+- Add `--as-json` option to apply command, for old compile-on-server behaviour.
+- Add `--remove-first` option to act on remove resources first.
 - `describe` command gives more information, and its layout adjusts for the
   terminal width.
 - `describe` and `doers` will not use ANSI colouring if `gurp` is part of a
@@ -30,17 +32,24 @@ Items marked [*] are breaking changes.
 ### Doers
 
 - Replace `symlink` doer with `link`, which also handles hard links. [*]
+- Add `force-link` to `link` doer, which can turn regular files into links.
 - Helpers like `zone-fs` or `smf-method` are now referred to as `zone/fs`
   and `smf/method`. [*]
+- Add `bridge` doer.
+- Add `ipfilter` doer.
+- Add `ipnat` doer.
 - Add `network-flow` doer.
 - Add `vlan` doer.
-- Add `ipnat` doer.
-- Add `ipfilter` doer.
 - Add `limitpriv`, `hostid`, `ip-type`, `pool` to `zone` doer.
 - Changed syntax of `ip-address/ensure`, `ip-properties/ensure`, and
   `ip-interface/ensure` to make them all consistent.
 - Doer documentation is machine-generated from definition files.
 - `file` and `directory` doers now accept numeric IDs for `:owner` and `:group`.
+- File backups now work.
+- `file` and `directory` doers now error with a meaningful message if you try
+  to ensure a path which already exists, but is of a different type.
+- `smf` doer now lets you set service properties.
+- Fix bug where removing a service property always produced an error.
 
 ### Internals
 

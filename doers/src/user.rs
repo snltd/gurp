@@ -379,45 +379,45 @@ mod tests {
     use tester::deserialized_example;
 
     #[test]
-    fn test_deserialize_user_ensure_01() {
+    fn test_deserialize_user_ensure_gurpuser() {
         assert_eq!(
             GurpUserEnsure {
-                id: "/NO-ROLE/user/rob".to_owned(),
-                name: "rob".to_owned(),
+                id: "/NO-ROLE/user/gurpuser".to_owned(),
+                name: "gurpuser".to_owned(),
                 desired_state: UserState {
                     primary_group: "sysadmin".to_owned(),
-                    uid: 264,
-                    home_dir: Utf8PathBuf::from("/home/rob"),
+                    uid: 1264,
+                    home_dir: Utf8PathBuf::from("/home/gurpuser"),
                     shell: Utf8PathBuf::from("/bin/zsh"),
-                    gecos: "Test User".to_owned(),
+                    gecos: "Gurp Managed User".to_owned(),
                     password_hash: Some("w0934cm-4i5c-42u5cn492hrc97h234ui".to_owned()),
                     other_groups: None,
                     profiles: None,
                 }
             },
-            deserialized_example("user/ensure-01.janet")
+            deserialized_example("user/ensure-user-gurpuser.janet")
         );
     }
 
     #[test]
-    fn test_deserialize_user_remove_01() {
+    fn test_deserialize_user_remove_user_lolex() {
         assert_eq!(
             GurpUserRemove {
                 id: "/NO-ROLE/user/lolex".to_owned(),
                 name: "lolex".to_owned(),
             },
-            deserialized_example("user/remove-01.janet")
+            deserialized_example("user/remove-user-lolex.janet")
         );
     }
 
     #[test]
     fn test_update_shadow_replaces_correctly() {
         let original_shadow = indoc::indoc! { "
-            rob:oldhash:264:14:99999:7:::
+            gurpuser:oldhash:264:14:99999:7:::
             otheruser:oldhash:..."};
 
         let expected_shadow = indoc::indoc! { "
-            rob:NEWHASH:264:14:99999:7:::
+            gurpuser:NEWHASH:264:14:99999:7:::
             otheruser:oldhash:..."};
 
         let path = Utf8PathBuf::from("/tmp/shadow-test");
@@ -427,12 +427,12 @@ mod tests {
         let g = GurpUserEnsure {
             desired_state: UserState {
                 password_hash: Some("NEWHASH".into()),
-                ..deserialized_example("user/ensure-01.janet")
+                ..deserialized_example("user/ensure-user-gurpuser.janet")
             },
-            ..deserialized_example("user/ensure-01.janet")
+            ..deserialized_example("user/ensure-user-gurpuser.janet")
         };
 
-        g.update_shadow(&path, "rob", "NEWHASH").unwrap();
+        g.update_shadow(&path, "gurpuser", "NEWHASH").unwrap();
         assert_eq!(expected_shadow, fs::read_to_string(&path).unwrap());
     }
 }

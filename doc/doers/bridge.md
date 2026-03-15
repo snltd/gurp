@@ -14,9 +14,9 @@ Any valid bridge name (`:string`)
 
 ```janet
 (bridge/ensure "with_links"
-               :links ["stub0" "vnic0" "e1000g0"]
+               :links ["stub1" "stub2"]
                :priority 4096
-               :max-age 30)
+               :max-age 27)
 ```
 
 ### Mandatory Properties

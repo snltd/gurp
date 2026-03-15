@@ -1,13 +1,18 @@
 use anyhow::{bail, ensure};
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::fmt::Debug;
 use std::fs;
 use std::os::unix;
+use std::os::unix::fs::MetadataExt;
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+// Just so we're all clear the TARGET is the end of the link that is created, and the SOURCE
+// is the thing the link points to. (i.e. which probably already exists)
+
+#[derive(Deserialize, Debug, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct GurpLinkEnsure {
     #[serde(rename = "_id")]
     pub id: String,
@@ -15,15 +20,23 @@ pub struct GurpLinkEnsure {
     pub target: Utf8PathBuf,
     pub source: Utf8PathBuf,
     #[serde(rename = "type")]
-    pub link_type: String,
+    pub link_type: LinkType,
+    pub force_link: bool,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq)]
 pub struct GurpLinkRemove {
     #[serde(rename = "_id")]
     pub id: String,
     #[serde(rename = "name")]
     pub path: Utf8PathBuf,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum LinkType {
+    Symbolic,
+    Hard,
 }
 
 impl GurpLinkEnsure {
@@ -33,71 +46,139 @@ impl GurpLinkEnsure {
 
         ensure!(source.exists(), "source not found: {source}");
 
-        if !target.exists() {
-            tracing::info!("creating link: {} -> {}", target, source);
-            return_if_noop!(opts);
+        if target.exists() {
+            tracing::debug!("link target exists: {target}");
 
-            self.create_link(source, target)
-        } else {
-            let current_matches = match self.link_type.as_str() {
-                "symbolic" => {
-                    if target.is_symlink() {
-                        let current_source = target.read_link_utf8()?;
-                        current_source == *source
-                    } else {
-                        false
+            if target.is_dir() {
+                if self.force_link {
+                    tracing::info!("removing existing directory {target}");
+
+                    if !opts.noop {
+                        fs::remove_dir_all(target)?;
                     }
-                }
-                "hard" => self.are_hard_linked(source, target)?,
-                other => bail!("unknown link type: {other}"),
-            };
 
-            if current_matches {
-                tracing::debug!("no change: {}", self.target);
-                Ok(ONE_RESOURCE_NO_CHANGE)
-            } else {
-                // Need to recreate the link
-                if target.is_symlink() {
-                    let current_source = target.read_link_utf8()?;
-                    tracing::info!(
-                        "change link source: [{}] {} -> {}",
-                        target,
-                        &current_source,
-                        source
-                    );
+                    self.create_link(opts)
+                } else {
+                    bail!("target exists, is a directory and force-link is not set")
+                }
+            } else if target.is_symlink() {
+                //
+                // The target exists and is a symbolic link. If the user wants a symbolic link,
+                // check it and if it's wrong, remove and re-create it.
+                //
+                // If the user wants a hard link, we'll remove it and create a hard link.
+                //
+                if self.link_is_correct()? {
+                    Ok(ONE_RESOURCE_NO_CHANGE)
                 } else {
                     tracing::info!(
-                        "change link source: [{}] (existing file) -> {}",
+                        "change link source: [{}] (existing symlink) -> {}",
                         target,
                         source
                     );
+                    self.remove_target(opts)?;
+                    self.create_link(opts)
                 }
-                return_if_noop!(opts);
-
-                fs::remove_file(target)?;
-                self.create_link(source, target)
+            } else {
+                //
+                // The target is probably a file. Maybe a hard link. Could even be something crazy
+                // like a FIFO. Who knows?
+                //
+                // If the user wants a symlink and has set force-link, remove the target and make
+                // a new link. If they want a symlink and haven't set that: error.
+                //
+                // If the user wants a hard link, compare the inodes of the source and target. If
+                // they're the same we can report no change. If they're not, refer to force-link.
+                // If it's true, blow away the source and create the link; if it's not: error.
+                //
+                match self.link_type {
+                    LinkType::Symbolic => {
+                        if self.force_link {
+                            if self.link_is_correct()? {
+                                Ok(ONE_RESOURCE_NO_CHANGE)
+                            } else {
+                                tracing::info!(
+                                    "change link source: [{}] (existing symlink) -> {}",
+                                    target,
+                                    source
+                                );
+                                self.remove_target(opts)?;
+                                self.create_link(opts)
+                            }
+                        } else {
+                            bail!(
+                                "link target [{}] is a file, and force-link is not set",
+                                self.target
+                            );
+                        }
+                    }
+                    LinkType::Hard => {
+                        if self.link_is_correct()? {
+                            Ok(ONE_RESOURCE_NO_CHANGE)
+                        } else {
+                            tracing::info!(
+                                "change link source: [{}] (existing symlink) -> {}",
+                                target,
+                                source
+                            );
+                            self.remove_target(opts)?;
+                            self.create_link(opts)
+                        }
+                    }
+                }
             }
+        } else {
+            self.create_link(opts)
         }
     }
 
-    fn create_link(&self, source: &Utf8Path, target: &Utf8Path) -> anyhow::Result<ApplySummary> {
-        match self.link_type.as_str() {
-            "symbolic" => unix::fs::symlink(source, target)?,
-            "hard" => fs::hard_link(source, target)?,
-            other => bail!("unknown link type: {other}"),
+    fn link_is_correct(&self) -> Result<bool, anyhow::Error> {
+        match self.link_type {
+            LinkType::Symbolic => {
+                if self.target.is_symlink() {
+                    let current_source = &self.target.read_link_utf8()?;
+                    if current_source == &self.source {
+                        tracing::debug!("no change: {}", self.target);
+                        return Ok(true);
+                    }
+                }
+            }
+            LinkType::Hard => {
+                let source_metadata = fs::metadata(&self.source)?;
+                let target_metadata = fs::metadata(&self.target)?;
+
+                if source_metadata.ino() == target_metadata.ino()
+                    && source_metadata.dev() == target_metadata.dev()
+                {
+                    tracing::debug!("no change: {}", self.target);
+                    return Ok(true);
+                }
+            }
+        }
+
+        Ok(false)
+    }
+
+    fn create_link(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        tracing::info!("creating link: {} -> {}", self.target, self.source);
+
+        if !opts.noop {
+            match self.link_type {
+                LinkType::Symbolic => unix::fs::symlink(&self.source, &self.target)?,
+                LinkType::Hard => fs::hard_link(&self.source, &self.target)?,
+            }
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
-    fn are_hard_linked(&self, source: &Utf8Path, target: &Utf8Path) -> anyhow::Result<bool> {
-        use std::os::unix::fs::MetadataExt;
+    fn remove_target(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
+        tracing::info!("removing existing link target: {}", self.target);
+        if !opts.noop {
+            fs::remove_file(&self.target)?;
+        }
 
-        let source_metadata = fs::metadata(source)?;
-        let target_metadata = fs::metadata(target)?;
-
-        Ok(source_metadata.ino() == target_metadata.ino()
-            && source_metadata.dev() == target_metadata.dev())
+        Ok(())
     }
 }
 
@@ -126,39 +207,41 @@ mod test {
     use tester::{defopts, defopts_noop, deserialized_example, janet2json};
 
     #[test]
-    fn test_deserialize_link_ensure_01() {
+    fn test_deserialize_link_ensure_symlink_forced() {
         assert_eq!(
             GurpLinkEnsure {
                 id: "/NO-ROLE/link/example-symlink".to_owned(),
                 target: Utf8PathBuf::from("/symlink/is/here"),
                 source: Utf8PathBuf::from("/link/points/here"),
-                link_type: "symbolic".to_owned(),
+                force_link: true,
+                link_type: LinkType::Symbolic,
             },
-            deserialized_example("link/ensure-01.janet")
+            deserialized_example("link/ensure-symlink-forced.janet")
         );
     }
 
     #[test]
-    fn test_deserialize_link_ensure_02() {
+    fn test_deserialize_link_ensure_hard_link() {
         assert_eq!(
             GurpLinkEnsure {
                 id: "/NO-ROLE/link/_link_is_here".to_owned(),
                 target: Utf8PathBuf::from("/link/is/here"),
                 source: Utf8PathBuf::from("/link/points/here"),
-                link_type: "hard".to_owned(),
+                force_link: false,
+                link_type: LinkType::Hard,
             },
-            deserialized_example("link/ensure-02.janet")
+            deserialized_example("link/ensure-hard-link.janet")
         );
     }
 
     #[test]
-    fn test_deserialize_link_remove_01() {
+    fn test_deserialize_link_remove_link() {
         assert_eq!(
             GurpLinkRemove {
                 id: "/NO-ROLE/link/_dont_want_this_link".to_owned(),
                 path: Utf8PathBuf::from("/dont/want/this/link"),
             },
-            deserialized_example("link/remove-01.janet")
+            deserialized_example("link/remove-link.janet")
         );
     }
 
@@ -332,5 +415,112 @@ mod test {
             fs::read_to_string(target_path.as_path()).unwrap(),
             "new-content".to_owned()
         );
+    }
+
+    #[test]
+    fn test_symlink_over_file_force_link_true() {
+        let temp_dir = Utf8TempDir::new().unwrap();
+        let source_file = temp_dir.child("source-file");
+        source_file.write_str("source-content").unwrap();
+        let source_path = temp_dir.child("source-file");
+        let target_file = temp_dir.child("target");
+        target_file.write_str("target-content").unwrap();
+        assert!(target_file.exists());
+
+        let json_def = janet2json(&indoc::formatdoc! { r#"
+            (link/ensure "{}"
+                :force-link true
+                :source "{}")
+            "#,
+            target_file.as_path(),
+            source_path.as_path(),
+        });
+
+        let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert!(target_file.exists());
+        assert!(target_file.is_symlink());
+        assert_eq!(
+            "source-content".to_owned(),
+            fs::read_to_string(&target_file).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_symlink_over_directory() {
+        let temp_dir = Utf8TempDir::new().unwrap();
+        let source_file = temp_dir.child("source-file");
+        source_file.write_str("source-content").unwrap();
+        let source_path = temp_dir.child("source-file");
+        let target_dir = temp_dir.child("target");
+        fs::create_dir(&target_dir).unwrap();
+        assert!(target_dir.exists());
+
+        let json_def = janet2json(&indoc::formatdoc! { r#"
+            (link/ensure "{}"
+                :force-link false
+                :source "{}")
+            "#,
+            target_dir.as_path(),
+            source_path.as_path(),
+        });
+
+        let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
+        assert!(
+            sut.apply(&defopts())
+                .unwrap_err()
+                .to_string()
+                .contains("target exists, is a directory and force-link is not set")
+        );
+        assert!(target_dir.exists());
+        assert!(target_dir.is_dir());
+
+        let json_def = janet2json(&indoc::formatdoc! { r#"
+            (link/ensure "{}"
+                :force-link true
+                :source "{}")
+            "#,
+            target_dir.as_path(),
+            source_path.as_path(),
+        });
+
+        let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert!(target_dir.exists());
+        assert!(target_dir.is_symlink());
+    }
+
+    #[test]
+    fn test_symlink_over_file_force_link_false() {
+        let temp_dir = Utf8TempDir::new().unwrap();
+        let source_file = temp_dir.child("source-file");
+        source_file.write_str("source-content").unwrap();
+        let source_path = temp_dir.child("source-file");
+        let target_file = temp_dir.child("target");
+        target_file.write_str("target-content").unwrap();
+        assert!(target_file.exists());
+
+        let json_def = janet2json(&indoc::formatdoc! { r#"
+            (link/ensure "{}"
+                :force-link false
+                :source "{}")
+            "#,
+            target_file.as_path(),
+            source_path.as_path(),
+        });
+
+        let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
+        assert!(
+            sut.apply(&defopts())
+                .unwrap_err()
+                .to_string()
+                .contains("is a file, and force-link is not set")
+        );
+        assert!(target_file.exists());
+        assert_eq!(
+            "target-content".to_owned(),
+            fs::read_to_string(&target_file).unwrap()
+        );
+        assert!(!target_file.is_symlink());
     }
 }

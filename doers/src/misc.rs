@@ -1,6 +1,9 @@
 use anyhow::{bail, ensure};
 use common::cmd;
-use common::constants::{DISPADMIN_BIN, ONE_RESOURCE_NO_CHANGE, SHARECTL_BIN, SMBADM_BIN};
+use common::constants::{
+    DISPADMIN_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, SHARECTL_BIN, SMBADM_BIN,
+    SVCADM_BIN,
+};
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::process::{Command, Stdio};
@@ -155,9 +158,19 @@ impl GurpMiscEnsure {
             desired_class
         );
 
-        let mut cmd = cmd!(DISPADMIN_BIN, "-d", desired_class);
-        return_if_noop!(opts);
-        one_change_or_stderr!(cmd, "error setting scheduler class")
+        let mut set_cmd = cmd!(DISPADMIN_BIN, "-d", desired_class);
+
+        if !opts.noop {
+            run_cmd!(set_cmd)?;
+        }
+
+        let mut svc_cmd = cmd!(SVCADM_BIN, "refresh", "svc:/system/scheduler:default");
+
+        if !opts.noop {
+            run_cmd!(svc_cmd)?;
+        }
+
+        Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 }
 
@@ -168,7 +181,7 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_misc_deserialize_ensure_01() {
+    fn test_misc_deserialize_ensure_nfs_domain() {
         assert_eq!(
             GurpMiscEnsure {
                 id: "/NO-ROLE/misc/nfs-domain-lan.id264.net".to_owned(),
@@ -178,12 +191,12 @@ mod test {
                     scheduler: None,
                 }
             },
-            deserialized_example::<GurpMiscEnsure>("misc/ensure-01.janet")
+            deserialized_example("misc/ensure-nfs-domain.janet")
         );
     }
 
     #[test]
-    fn test_misc_deserialize_ensure_02() {
+    fn test_misc_deserialize_ensure_smb_user() {
         assert_eq!(
             GurpMiscEnsure {
                 id: "/NO-ROLE/misc/enable-smb-rob".to_owned(),
@@ -193,12 +206,12 @@ mod test {
                     scheduler: None,
                 }
             },
-            deserialized_example::<GurpMiscEnsure>("misc/ensure-02.janet")
+            deserialized_example("misc/ensure-smb-user.janet")
         );
     }
 
     #[test]
-    fn test_misc_deserialize_ensure_03() {
+    fn test_misc_deserialize_ensure_scheduler_class() {
         assert_eq!(
             GurpMiscEnsure {
                 id: "/NO-ROLE/misc/scheduler-FSS".to_owned(),
@@ -208,7 +221,7 @@ mod test {
                     scheduler: Some("FSS".to_owned()),
                 }
             },
-            deserialized_example::<GurpMiscEnsure>("misc/ensure-03.janet")
+            deserialized_example("misc/ensure-scheduler-class.janet")
         );
     }
 }

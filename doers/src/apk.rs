@@ -1,46 +1,54 @@
-use anyhow::bail;
+use crate::types::ApplyResult;
 use common::cmd;
 use common::constants::{APK_BIN, NO_RESOURCES_TO_CHANGE};
-use common::types::{ApplyOpts, ApplySummary};
+use common::types::{ApplyOpts, ApplySummary, ChangedIds};
 use regex::Regex;
 use serde::Deserialize;
 use std::process::Command;
 use std::sync::LazyLock;
 
 static CURRENT_APK_OUTPUT: LazyLock<String> =
-    LazyLock::new(|| apk_output().expect("Could not get apk list"));
+    LazyLock::new(|| get_pkg_list().expect("Could not get apk list"));
 
 type ApkName = String;
 type InstalledApks = Vec<ApkName>;
+type EnsureList = Vec<GurpApkEnsure>;
+type RemoveList = Vec<GurpApkRemove>;
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpApkEnsure {
+    #[serde(rename = "_id")]
+    pub id: String,
     pub name: ApkName,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpApkRemove {
+    #[serde(rename = "_id")]
+    pub id: String,
     pub name: ApkName,
 }
 
-type EnsureList = Vec<GurpApkEnsure>;
-type RemoveList = Vec<GurpApkRemove>;
+pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> ApplyResult {
+    let mut changed_ids = ChangedIds::default();
 
-pub fn collect_and_ensure(apk_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    let resources = apk_list.len() as u32;
-    let installed_apks = parse_apk_output(&CURRENT_APK_OUTPUT);
-    let apk_names: Vec<_> = apk_list.iter().map(|r| &r.name).collect();
+    if pkg_list.is_empty() {
+        return Ok((NO_RESOURCES_TO_CHANGE, changed_ids));
+    }
+
+    let resources = pkg_list.len() as u32;
+    let installed_pkgs = parse_pkg_list(&CURRENT_APK_OUTPUT);
     let mut install_list = Vec::new();
 
-    for apk in &apk_names {
-        if installed_apks.contains(apk) {
-            tracing::debug!("already installed: {}", apk);
-            continue;
+    for pkg in pkg_list {
+        if installed_pkgs.contains(&pkg.name) {
+            tracing::debug!("already installed: {}", pkg.name);
         } else {
-            tracing::debug!("scheduled for install: {}", apk);
-            install_list.push(apk.as_str());
+            tracing::debug!("scheduled for install: {}", pkg.name);
+            install_list.push(pkg.name.as_str());
+            changed_ids.insert(pkg.id.clone());
         }
     }
 
@@ -48,10 +56,13 @@ pub fn collect_and_ensure(apk_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
 
     if install_list.is_empty() {
         tracing::debug!("no packages to install");
-        Ok(ApplySummary {
-            resources,
-            changes: 0,
-        })
+        Ok((
+            ApplySummary {
+                resources,
+                changes: 0,
+            },
+            changed_ids,
+        ))
     } else {
         tracing::info!("installing: {}", install_list.join(", "));
 
@@ -67,38 +78,44 @@ pub fn collect_and_ensure(apk_list: &EnsureList, opts: &ApplyOpts) -> anyhow::Re
         cmd.args(&install_list);
 
         tracing::debug!(command = cmd::to_string(&cmd));
-        let output = cmd.output()?;
 
-        if output.status.success() {
-            Ok(ApplySummary {
+        run_cmd!(cmd)?;
+
+        Ok((
+            ApplySummary {
                 resources,
                 changes: install_list.len() as u32,
-            })
-        } else {
-            bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-        }
+            },
+            changed_ids,
+        ))
     }
 }
 
-pub fn collect_and_remove(apk_list: &RemoveList, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    let resources = apk_list.len() as u32;
-    let installed_apks = parse_apk_output(&CURRENT_APK_OUTPUT);
-    let apk_names: Vec<_> = apk_list.iter().map(|r| &r.name).collect();
+pub fn collect_and_remove(pkg_list: &RemoveList, opts: &ApplyOpts) -> ApplyResult {
+    let mut changed_ids = ChangedIds::default();
+
+    if pkg_list.is_empty() {
+        return Ok((NO_RESOURCES_TO_CHANGE, changed_ids));
+    }
+
+    let resources = pkg_list.len() as u32;
+    let installed_pkgs = parse_pkg_list(&CURRENT_APK_OUTPUT);
     let mut remove_list = Vec::new();
 
-    for apk in apk_names {
-        if installed_apks.contains(apk) {
-            tracing::debug!("scheduled for removal: {}", apk);
-            remove_list.push(apk.as_str());
+    for pkg in pkg_list {
+        if installed_pkgs.contains(&pkg.name) {
+            tracing::debug!("scheduled for removal: {}", pkg.name);
+            remove_list.push(pkg.name.as_str());
+            changed_ids.insert(pkg.id.clone());
         } else {
-            tracing::debug!("not present: {}", apk);
+            tracing::debug!("not present: {}", pkg.name);
             continue;
         }
     }
 
     if remove_list.is_empty() {
         tracing::debug!("no packages to remove");
-        Ok(NO_RESOURCES_TO_CHANGE)
+        Ok((NO_RESOURCES_TO_CHANGE, changed_ids))
     } else {
         tracing::info!("removing: {}", remove_list.join(", "));
 
@@ -110,26 +127,23 @@ pub fn collect_and_remove(apk_list: &RemoveList, opts: &ApplyOpts) -> anyhow::Re
             cmd.arg("--simulate");
         }
 
-        cmd.args(&remove_list);
-        tracing::debug!(command = cmd::to_string(&cmd));
-        let output = cmd.output()?;
+        run_cmd!(cmd)?;
 
-        if output.status.success() {
-            Ok(ApplySummary {
+        Ok((
+            ApplySummary {
                 resources,
                 changes: remove_list.len() as u32,
-            })
-        } else {
-            bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-        }
+            },
+            changed_ids,
+        ))
     }
 }
 
-fn apk_output() -> anyhow::Result<String> {
+fn get_pkg_list() -> anyhow::Result<String> {
     cmd_output!(APK_BIN, "list", "-I")
 }
 
-fn parse_apk_output(output: &str) -> InstalledApks {
+fn parse_pkg_list(output: &str) -> InstalledApks {
     let rx = Regex::new(r"-\d").unwrap();
     let mut installed: Vec<_> = Vec::new();
 
@@ -159,22 +173,24 @@ mod test {
     use tester::deserialized_example;
 
     #[test]
-    fn test_apk_deserialize_ensure_01() {
+    fn test_deserialize_apk_ensure_rust_package() {
         assert_eq!(
             GurpApkEnsure {
+                id: "/NO-ROLE/apk/rust".to_owned(),
                 name: "rust".to_owned(),
             },
-            deserialized_example::<GurpApkEnsure>("apk/ensure-01.janet")
+            deserialized_example("apk/ensure-rust-package.janet")
         );
     }
 
     #[test]
-    fn test_apk_deserialize_remove_01() {
+    fn test_deserialize_apk_remove_go_package() {
         assert_eq!(
             GurpApkRemove {
+                id: "/NO-ROLE/apk/go".to_owned(),
                 name: "go".to_owned(),
             },
-            deserialized_example::<GurpApkRemove>("apk/remove-01.janet")
+            deserialized_example("apk/remove-go-package.janet")
         );
     }
 
@@ -208,6 +224,6 @@ mod test {
             "yascreen-dev".to_owned(),
         ];
 
-        assert_eq!(expected, parse_apk_output(sample_output));
+        assert_eq!(expected, parse_pkg_list(sample_output));
     }
 }

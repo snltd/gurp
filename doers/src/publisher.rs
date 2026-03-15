@@ -36,8 +36,14 @@ impl GurpPublisherEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let current_publishers = &CURRENT_PKG_OUTPUT;
 
+        let desired_uri = if self.uri.ends_with("/") {
+            &self.uri
+        } else {
+            &format!("{}/", self.uri)
+        };
+
         if let Some(existing) = &current_publishers.iter().find(|p| p.name == self.name) {
-            if existing.uri == self.uri {
+            if &existing.uri == desired_uri {
                 tracing::debug!("no change to {} publisher", &self.name);
                 return Ok(ONE_RESOURCE_NO_CHANGE);
             }
@@ -46,14 +52,16 @@ impl GurpPublisherEnsure {
                 "change {} publisher URI: {} -> {}",
                 self.name,
                 existing.uri,
-                self.uri,
+                desired_uri,
             );
         } else {
             tracing::info!("add publisher {}", self.name,);
         }
 
-        let mut cmd = cmd!(PKG_BIN, "set-publisher", "-g", &self.uri, &self.name);
+        let mut cmd = cmd!(PKG_BIN, "set-publisher", "-g", &desired_uri, &self.name);
+
         return_if_noop!(opts);
+
         one_change_or_stderr!(cmd, format!("error setting '{}'; publisher", self.name))
     }
 }
@@ -97,4 +105,33 @@ fn parse_pkg_output(output: &str) -> Vec<Publisher> {
             }
         })
         .collect()
+}
+#[cfg(test)]
+mod test {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use tester::deserialized_example;
+
+    #[test]
+    fn test_deserialize_publisher_ensure_new_publisher() {
+        assert_eq!(
+            GurpPublisherEnsure {
+                id: "/NO-ROLE/publisher/new_publisher".to_owned(),
+                name: "new_publisher".to_owned(),
+                uri: "http://pkg.lan.id264.net".to_owned(),
+            },
+            deserialized_example("publisher/ensure-new-publisher.janet")
+        );
+    }
+
+    #[test]
+    fn test_deserialize_publisher_remove_old_publisher() {
+        assert_eq!(
+            GurpPublisherRemove {
+                id: "/NO-ROLE/publisher/old_publisher".to_owned(),
+                name: "old_publisher".to_owned(),
+            },
+            deserialized_example("publisher/remove-old-publisher.janet")
+        );
+    }
 }
