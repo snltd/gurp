@@ -9,6 +9,7 @@ Items marked [*] are breaking changes.
 - Default to jimage in client/server mode. [*]
 - Write a lock file (`/var/run/gurp.lock`) when running in `apply` mode.
 - More detailed, more useful error messages.
+- Improved server telemetry.
 
 ### Commands
 

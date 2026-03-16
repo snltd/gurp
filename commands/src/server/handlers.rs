@@ -1,3 +1,4 @@
+use crate::server::http;
 use axum::Json;
 use axum::body::Body;
 use axum::extract::{Extension, Path, Query};
@@ -7,6 +8,7 @@ use common::constants::GURP_VERSION;
 use common::types::{ApplyOpts, ServerOpts};
 use embed::compiler;
 use mime_guess::from_path;
+use serde_json::json;
 use std::sync::Arc;
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
@@ -22,9 +24,12 @@ pub async fn status() -> &'static str {
     "ok"
 }
 
-pub async fn version() -> &'static str {
+pub async fn version() -> Json<serde_json::Value> {
     tracing::debug!("received version request");
-    GURP_VERSION
+    Json(json!({
+    "version": GURP_VERSION,
+    "sha": http::git_hash(),
+    }))
 }
 
 pub async fn config(
