@@ -12,7 +12,17 @@ use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider};
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::sync::LazyLock;
 use std::time::{Duration, Instant};
+
+static GIT_HASH: LazyLock<&'static str> = LazyLock::new(|| {
+    let sha = env!("VERGEN_GIT_SHA");
+    &sha[..sha.len().min(7)]
+});
+
+pub fn git_hash() -> &'static str {
+    *GIT_HASH
+}
 
 pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
     let victoriametrics_url = opts
@@ -21,7 +31,8 @@ pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
         .unwrap_or("http://localhost:8428".to_string());
 
     let _meter_provider = init_metrics(&victoriametrics_url)?;
-    tracing::info!("{victoriametrics_url}");
+
+    tracing::info!("sending metrics to {victoriametrics_url}");
 
     let conf_dir = opts.config_dir.clone();
     let server_opts = Arc::new(opts);
@@ -38,7 +49,12 @@ pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
         .layer(Extension(server_opts));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], SERVER_PORT));
-    tracing::info!("Gurp version {GURP_VERSION} listening on {addr}");
+
+    tracing::info!(
+        "Gurp version {GURP_VERSION} [{}] listening on {addr}",
+        git_hash()
+    );
+
     tracing::info!("Config dir is {conf_dir}");
 
     axum::serve(
@@ -110,6 +126,7 @@ pub fn init_metrics(victoriametrics_url: &str) -> anyhow::Result<SdkMeterProvide
             Resource::builder()
                 .with_service_name("gurp-server")
                 .with_attribute(KeyValue::new("service.version", env!("CARGO_PKG_VERSION")))
+                .with_attribute(KeyValue::new("service.build", *GIT_HASH))
                 .build(),
         )
         .build();
