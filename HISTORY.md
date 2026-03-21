@@ -51,6 +51,7 @@ Items marked [*] are breaking changes.
   to ensure a path which already exists, but is of a different type.
 - `smf` doer now lets you set service properties.
 - Fix bug where removing a service property always produced an error.
+- Fix bug where APK packages were never removed.
 
 ### Internals
 
