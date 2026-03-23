@@ -8,6 +8,16 @@ use embed::compiler;
 use std::process::ExitCode;
 use std::time::Instant;
 
+macro_rules! clean_up_lock {
+    ($lock: expr) => {
+        if let Some(lock) = $lock
+            && let Err(e) = lock.remove()
+        {
+            tracing::warn!("could not remove lock file at {}: {e}", lock.path);
+        }
+    };
+}
+
 pub fn run(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> ExitCode {
     if let Some(file) = host_file
         && !file.exists()
@@ -47,6 +57,7 @@ pub fn run(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> ExitCode {
             Ok(config) => config,
             Err(e) => {
                 tracing::error!("error compiling snippet: {e}");
+                clean_up_lock!(lock);
                 return ExitCode::FAILURE;
             }
         }
@@ -55,6 +66,7 @@ pub fn run(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> ExitCode {
             Ok(config) => config,
             Err(e) => {
                 tracing::error!("error compiling config: {e}");
+                clean_up_lock!(lock);
                 return ExitCode::FAILURE;
             }
         }
@@ -81,11 +93,6 @@ pub fn run(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> ExitCode {
         }
     }
 
-    if let Some(lock) = lock
-        && let Err(e) = lock.remove()
-    {
-        tracing::warn!("could not remove lock file at {}: {e}", lock.path);
-    }
-
+    clean_up_lock!(lock);
     exit
 }
