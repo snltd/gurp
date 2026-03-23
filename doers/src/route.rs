@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::process::{Command, Stdio};
 use util::deserializer;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 struct Route {
     destination: String,
     gateway: Option<String>,
@@ -26,8 +26,9 @@ struct ExtantRoute {
 
 type Flags = HashMap<String, String>;
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpRouteEnsure {
     #[serde(rename = "_id")]
     pub id: String,
@@ -45,7 +46,8 @@ pub struct GurpRouteEnsure {
     pub route_type: Option<String>, // dropped in right after the "add"
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpRouteRemove {
     #[serde(rename = "_id")]
     pub id: String,

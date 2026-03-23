@@ -1,4 +1,4 @@
-use anyhow::{Context, bail, ensure};
+use anyhow::{bail, ensure, Context};
 use camino::Utf8PathBuf;
 use common::cmd;
 use common::constants::{
@@ -388,7 +388,7 @@ mod tests {
                     primary_group: "sysadmin".to_owned(),
                     uid: 1264,
                     home_dir: Utf8PathBuf::from("/home/gurpuser"),
-                    shell: Utf8PathBuf::from("/bin/zsh"),
+                    shell: Utf8PathBuf::from("/bin/ksh"),
                     gecos: "Gurp Managed User".to_owned(),
                     password_hash: Some("w0934cm-4i5c-42u5cn492hrc97h234ui".to_owned()),
                     other_groups: None,

@@ -17,7 +17,7 @@
                          :password-hash "w0934cm-4i5c-42u5cn492hrc97h234ui"
                          :primary-group "sysadmin"
                          :role "test-role"
-                         :shell "/bin/zsh"
+                         :shell "/bin/ksh"
                          :uid 1264}]}
       :remove @{:user @[{:_id "/test-role/user/lolex"
                          :name "lolex"
