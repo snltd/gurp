@@ -66,7 +66,7 @@
    :limitpriv
    {:types [:tuple]
     :help "List of privileges to add to zone"}
-   :lx-image
+   :image
    {:types [:string]
     :help "Install zone using this image. See docs for pattern rules"}
    :net
@@ -132,7 +132,7 @@
   (collector/push :remove doer (make-remove-resource)))
 
 (def notes
-  ["`kvm` and `illumos` zones are not supported."
+  ["`kvm` zones are not supported."
    "You cannot modify an existing zone in-place."
    "`recreate` must be an integer, and it is the n:1 odds of a zone being
     destroyed and recreated. So, `0` means \"never recreate this zone\", and `1`
