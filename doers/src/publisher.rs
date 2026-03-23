@@ -4,27 +4,41 @@ use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::sync::LazyLock;
 
-static CURRENT_PKG_OUTPUT: LazyLock<Vec<Publisher>> =
-    LazyLock::new(|| parse_pkg_output(&pkg_output().expect("Could not get publisher list")));
+static CURRENT_PKG_OUTPUT: LazyLock<Vec<Publisher>> = LazyLock::new(|| {
+    parse_publisher_list(&list_publishers().expect("Could not get publisher list"))
+});
 
 const PKG_PUBLISHER_FIELDS: usize = 5;
 
 type PublisherName = String;
 type PublisherUri = String;
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
+#[serde(rename_all = "lowercase")]
+pub enum PublisherType {
+    Origin,
+    Mirror,
+}
+
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPublisherEnsure {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: PublisherName,
     pub uri: PublisherUri,
+    #[serde(rename = "type")]
+    pub publisher_type: PublisherType,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPublisherRemove {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: PublisherName,
+    pub mirror: Option<PublisherUri>,
 }
 
 // We don't care about anything else, for now at least
@@ -59,11 +73,15 @@ impl GurpPublisherEnsure {
             tracing::info!("add publisher {}", self.name,);
         }
 
+        let type_flag = match self.publisher_type {
+            PublisherType::Origin => "-g",
+            PublisherType::Mirror => "-m",
+        };
         cmd_change_or_noop!(
             opts,
             PKG_BIN,
             "set-publisher",
-            "-g",
+            type_flag,
             &desired_uri,
             &self.name
         )
@@ -73,24 +91,72 @@ impl GurpPublisherEnsure {
 
 impl GurpPublisherRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let current_publishers = &CURRENT_PKG_OUTPUT;
+        if let Some(mirror) = &self.mirror {
+            // Remove the mirror from the publisher
+            if publisher_exists(&self.name)? {
+                if publisher_has_mirror(&self.name, mirror)? {
+                    let mut cmd = cmd!(
+                        PKG_BIN,
+                        "set-publisher",
+                        "--remove-mirror",
+                        mirror,
+                        &self.name
+                    );
+                    return_if_noop!(opts);
 
         if current_publishers.iter().any(|p| p.name == self.name) {
             cmd_change_or_noop!(opts, PKG_BIN, "unset-publisher", &self.name)
                 .with_context(|| format!("failed to unset publisher {}", self.name))
+                    one_change_or_stderr!(
+                        cmd,
+                        format!(
+                            "error removing mirror '{mirror}' from publisher {}",
+                            self.name
+                        )
+                    )
+                } else {
+                    tracing::debug!("publisher {} has no mirror {}", self.name, mirror);
+                    Ok(ONE_RESOURCE_NO_CHANGE)
+                }
+            } else {
+                tracing::warn!(
+                    "publisher {} does not exist, so cannot remove mirror",
+                    self.name
+                );
+                Ok(ONE_RESOURCE_NO_CHANGE)
+            }
         } else {
-            tracing::debug!("publisher {} does not exist", self.name);
-            Ok(ONE_RESOURCE_NO_CHANGE)
+            // Remove the publisher
+            if publisher_exists(&self.name)? {
+                let mut cmd = cmd!(PKG_BIN, "unset-publisher", &self.name);
+                return_if_noop!(opts);
+
+                one_change_or_stderr!(cmd, format!("error unsetting '{}'; publisher", self.name))
+            } else {
+                tracing::debug!("publisher {} does not exist", self.name);
+                Ok(ONE_RESOURCE_NO_CHANGE)
+            }
         }
     }
 }
 
-fn pkg_output() -> anyhow::Result<String> {
+fn publisher_has_mirror(publisher: &str, mirror: &str) -> anyhow::Result<bool> {
+    let output = cmd_output!(PKG_BIN, "publisher", publisher)?;
+    let pattern = format!("Mirror URI: {mirror}");
+
+    Ok(output.lines().any(|l| l.trim() == pattern))
+}
+
+fn publisher_exists(name: &str) -> anyhow::Result<bool> {
+    Ok(CURRENT_PKG_OUTPUT.iter().any(|p| p.name == name))
+}
+
+fn list_publishers() -> anyhow::Result<String> {
     tracing::debug!("looking up publishers");
     cmd_output!(PKG_BIN, "publisher", "-H").context("failed to list publishers")
 }
 
-fn parse_pkg_output(output: &str) -> Vec<Publisher> {
+fn parse_publisher_list(output: &str) -> Vec<Publisher> {
     output
         .trim()
         .lines()
@@ -110,6 +176,7 @@ fn parse_pkg_output(output: &str) -> Vec<Publisher> {
         })
         .collect()
 }
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -123,6 +190,7 @@ mod test {
                 id: "/NO-ROLE/publisher/new_publisher".to_owned(),
                 name: "new_publisher".to_owned(),
                 uri: "http://pkg.lan.id264.net".to_owned(),
+                publisher_type: PublisherType::Origin,
             },
             deserialized_example("publisher/ensure-new-publisher.janet")
         );
@@ -134,6 +202,7 @@ mod test {
             GurpPublisherRemove {
                 id: "/NO-ROLE/publisher/old_publisher".to_owned(),
                 name: "old_publisher".to_owned(),
+                mirror: None,
             },
             deserialized_example("publisher/remove-old-publisher.janet")
         );

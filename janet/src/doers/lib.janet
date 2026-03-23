@@ -148,6 +148,17 @@
      (length
        (filter |(has-value? required-keys $) (keys (make-spec-struct ;spec))))))
 
+(defn key-has-value?
+  "Checks whether the given key has an acceptable value"
+  [spec key acceptable-values]
+  (if-let [given-value (get (struct ;spec) key)]
+    (if-not (has-value? acceptable-values given-value)
+      (error (string/format "%q must be one of %s [got '%s']"
+                            key
+                            (comma-sep acceptable-values)
+                            given-value)))))
+
+
 (defmacro table->flat-tuple
   "Completely flattens a struct or table, including its keys"
   [table]
