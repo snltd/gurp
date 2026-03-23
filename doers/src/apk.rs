@@ -127,6 +127,10 @@ pub fn collect_and_remove(pkg_list: &RemoveList, opts: &ApplyOpts) -> ApplyResul
             cmd.arg("--simulate");
         }
 
+        cmd.args(&remove_list);
+
+        tracing::debug!(command = cmd::to_string(&cmd));
+
         run_cmd!(cmd)?;
 
         Ok((
