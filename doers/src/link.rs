@@ -11,7 +11,8 @@ use std::os::unix::fs::MetadataExt;
 // Just so we're all clear the TARGET is the end of the link that is created, and the SOURCE
 // is the thing the link points to. (i.e. which probably already exists)
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpLinkEnsure {
     #[serde(rename = "_id")]
@@ -24,7 +25,8 @@ pub struct GurpLinkEnsure {
     pub force_link: bool,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpLinkRemove {
     #[serde(rename = "_id")]
     pub id: String,
@@ -32,7 +34,8 @@ pub struct GurpLinkRemove {
     pub path: Utf8PathBuf,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "lowercase")]
 pub enum LinkType {
     Symbolic,
