@@ -44,7 +44,7 @@ Zone name (`:string`)
 ```janet
 (zone/ensure "lx-zone"
              :brand "lx"
-             :lx-image "alpine"
+             :image "alpine"
              :final-state "reboot"
              (zone/network "znet0"
                            :global-nic "auto"
@@ -81,9 +81,9 @@ Zone name (`:string`)
 | `:final-state` | `string` | Put the zone in the given state. Also accepts 'reboot' |  |
 | `:fs` | `array` | See zone/fs |  |
 | `:hostid` | `string` | Force this hostid for the zone |  |
+| `:image` | `string` | Install zone using this image. See docs for pattern rules |  |
 | `:ip-type` | `string` | IP type: exclusive or shared |  |
 | `:limitpriv` | `tuple` | List of privileges to add to zone |  |
-| `:lx-image` | `string` | Install zone using this image. See docs for pattern rules |  |
 | `:net` | `array` | See zone/network |  |
 | `:pool` | `string` | Resource pool to which zone should belong |  |
 | `:rctl` | `array` | See zone/rctl |  |
@@ -106,8 +106,9 @@ None
 
 ## Notes
 
-- `kvm` and `illumos` zones are not supported.
+- `kvm` zones are not supported.
 - You cannot modify an existing zone in-place.
+- When building an illumos zone, you can use the `:image` key to specify a fully qualified path or URL to the install image. If you do not specify an image, Gurp will fetch the latest OmniOS non-global zone ZFS dataset. Images are cached in `/var/tmp`.
 - `recreate` must be an integer, and it is the n:1 odds of a zone being destroyed and recreated. So, `0` means "never recreate this zone", and `1` means "recreate this zone on every run". You can set the number as high as you like, so if you run Gurp every 15 minutes and want your zone rebuilt from scratch about once a week, you'd use `:recreate 672`.
 # zone/attr
 

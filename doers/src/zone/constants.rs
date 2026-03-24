@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+pub const OMNIOS_RELEASES_URL: &str = "https://downloads.omnios.org/media/stable/";
 pub const LX_RELEASES_URL: &str = "https://api.github.com/repos/omniosorg/lx-images/releases";
 pub const ZONEADM_FIELDS: usize = 8;
 pub const READY_SVC: &str = "svc:/milestone/multi-user-server:default";

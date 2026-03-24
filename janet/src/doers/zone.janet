@@ -66,7 +66,7 @@
    :limitpriv
    {:types [:tuple]
     :help "List of privileges to add to zone"}
-   :lx-image
+   :image
    {:types [:string]
     :help "Install zone using this image. See docs for pattern rules"}
    :net
@@ -132,8 +132,12 @@
   (collector/push :remove doer (make-remove-resource)))
 
 (def notes
-  ["`kvm` and `illumos` zones are not supported."
+  ["`kvm` zones are not supported."
    "You cannot modify an existing zone in-place."
+   "When building an illumos zone, you can use the `:image` key to specify
+    a fully qualified path or URL to the install image. If you do not specify an
+    image, Gurp will fetch the latest OmniOS non-global zone ZFS dataset. Images
+    are cached in `/var/tmp`."
    "`recreate` must be an integer, and it is the n:1 odds of a zone being
     destroyed and recreated. So, `0` means \"never recreate this zone\", and `1`
     means \"recreate this zone on every run\". You can set the number as high

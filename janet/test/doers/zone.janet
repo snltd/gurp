@@ -82,7 +82,7 @@
                                     "/gurpdir/files/lx-test/f2" "/bin/exec2"}
                          :exec-in ["/bin/exec1" "/bin/exec2"]
                          :final-state "reboot"
-                         :lx-image "alpine"
+                         :image "alpine"
                          :name "lx-zone"
                          :net @[@{:allowed-address "192.168.1.103/24"
                                   :defrouter "192.168.1.1"
@@ -139,4 +139,4 @@
     (zone/ensure "bad-key"
                  :brand "sparse"
                  :oops "wat")
-    "In zone/ensure bad-key: unexpected property :oops. Valid properties are :brand, :rctl, :copy-in, :lx-image, :ip-type, :limitpriv, :bootstrap, :final-state, :bhyve, :boot-after-install, :clone-from, :attr, :fs, :dns, :datasets, :net, :autoboot, :hostid, :bootstrap-from, :zonepath, :capped-memory, :label, :pool, :exec-in, :recreate"))
+    "In zone/ensure bad-key: unexpected property :oops. Valid properties are :brand, :rctl, :copy-in, :ip-type, :limitpriv, :bootstrap, :final-state, :bhyve, :boot-after-install, :clone-from, :attr, :fs, :image, :dns, :datasets, :net, :autoboot, :hostid, :bootstrap-from, :zonepath, :capped-memory, :label, :pool, :exec-in, :recreate"))

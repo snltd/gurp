@@ -1,6 +1,6 @@
 (zone/ensure "lx-zone"
              :brand "lx"
-             :lx-image "alpine"
+             :image "alpine"
              :final-state "reboot"
              (zone/network "znet0"
                            :global-nic "auto"

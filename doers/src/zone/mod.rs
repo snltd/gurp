@@ -10,4 +10,5 @@ pub mod config;
 pub mod constants;
 pub mod control;
 pub mod doer;
+pub mod illumos;
 pub mod lx;

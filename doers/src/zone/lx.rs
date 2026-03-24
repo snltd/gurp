@@ -26,6 +26,36 @@ pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &GurpZoneDns) -> anyhow::Res
     Ok(())
 }
 
+pub fn image_path(image: Option<&str>) -> anyhow::Result<Utf8PathBuf> {
+    if let Some(img_pattern) = image {
+        match get_image(img_pattern)? {
+            Some(path) => Ok(path),
+            None => bail!("did not find a suitable LX image"),
+        }
+    } else {
+        bail!("LX zones require an :image")
+    }
+}
+
+pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
+    // Because there are a bunch of possible images, it's hard to know what to look for here. For
+    // starters I'm going to try, "are you running half-a-dozen processes"?
+    //
+    let elapsed = Duration::from_secs(0);
+    loop {
+        if is_ready(zone)? {
+            return Ok(true);
+        }
+
+        sleep(READINESS_WAIT_INTERVAL);
+        let elapsed = elapsed + READINESS_WAIT_INTERVAL;
+
+        if elapsed >= READINESS_WAIT_TIMEOUT_NATIVE {
+            bail!("Timed out waiting for {} be ready", zone)
+        }
+    }
+}
+
 fn fetch_latest_release_images() -> anyhow::Result<Option<Vec<String>>> {
     tracing::debug!("fetching latest release images");
     let response: Value = ureq::get(LX_RELEASES_URL).call()?.into_body().read_json()?;
@@ -53,17 +83,6 @@ fn find_image(pattern: &str) -> anyhow::Result<Option<String>> {
     }
 }
 
-pub fn image_path(image: Option<&str>) -> anyhow::Result<Utf8PathBuf> {
-    if let Some(img_pattern) = image {
-        match get_image(img_pattern)? {
-            Some(path) => Ok(path),
-            None => bail!("did not find a suitable LX image"),
-        }
-    } else {
-        bail!("LX zones require an :image")
-    }
-}
-
 fn get_image(pattern: &str) -> anyhow::Result<Option<Utf8PathBuf>> {
     if let Some(img_url) = find_image(pattern)? {
         let chunks = img_url.split("/");
@@ -88,23 +107,4 @@ fn get_image(pattern: &str) -> anyhow::Result<Option<Utf8PathBuf>> {
 fn is_ready(zone: &str) -> anyhow::Result<bool> {
     let ps_output = cmd_output!(PS_BIN, "-e", "-z", zone)?;
     Ok(ps_output.lines().count() > 5)
-}
-
-pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
-    // Because there are a bunch of possible images, it's hard to know what to look for here. For
-    // starters I'm going to try, "are you running half-a-dozen processes"?
-    //
-    let elapsed = Duration::from_secs(0);
-    loop {
-        if is_ready(zone)? {
-            return Ok(true);
-        }
-
-        sleep(READINESS_WAIT_INTERVAL);
-        let elapsed = elapsed + READINESS_WAIT_INTERVAL;
-
-        if elapsed >= READINESS_WAIT_TIMEOUT_NATIVE {
-            bail!("Timed out waiting for {} be ready", zone)
-        }
-    }
 }

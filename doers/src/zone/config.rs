@@ -27,7 +27,6 @@ pub struct GurpZoneConfig {
     pub hostid: Option<String>,
     pub ip_type: Option<String>,
     pub limitpriv: Option<Vec<String>>,
-    #[serde(rename = "lx-image")]
     pub image: Option<String>,
     pub net: GurpZoneNetworks,
     pub pool: Option<String>,
