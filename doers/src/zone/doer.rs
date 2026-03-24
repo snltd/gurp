@@ -1,7 +1,6 @@
-use crate::zone::bhyve;
 use crate::zone::config::GurpZoneConfig;
 use crate::zone::control::{self, ZoneadmState};
-use crate::zone::lx;
+use crate::zone::{bhyve, illumos, lx};
 use anyhow::{bail, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{
@@ -140,6 +139,10 @@ impl GurpZoneEnsure {
         tracing::info!("installing {} [{}]", self.name, self.config.brand);
 
         let _ = match self.config.brand.as_str() {
+            "illumos" => {
+                let img_path = illumos::image_path(self.config.image.as_deref())?;
+                cmd_output!(ZONEADM_BIN, "-z", &self.name, "install", "-s", img_path)?
+            }
             "lx" => {
                 let img_path = lx::image_path(self.config.image.as_deref())?;
                 cmd_output!(ZONEADM_BIN, "-z", &self.name, "install", "-s", img_path)?
