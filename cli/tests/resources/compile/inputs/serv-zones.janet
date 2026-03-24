@@ -157,7 +157,7 @@
       (zone/ensure "serv-grafana"
                    :brand "lx"
                    :recreate (recreate? "serv-grafana")
-                   :lx-image "alpine"
+                   :image "alpine"
                    :final-state "reboot"
                    (zone/attr "kernel-version" :value "4.4")
                    (zone/fs "/home" :special "/export/home")
