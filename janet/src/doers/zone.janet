@@ -135,7 +135,7 @@
   ["`kvm` zones are not supported."
    "You cannot modify an existing zone in-place."
    "When building an illumos zone, you can use the `:image` key to specify
-    a fully qualifed path or URL to the install image. If you do not specify an
+    a fully qualified path or URL to the install image. If you do not specify an
     image, Gurp will fetch the latest OmniOS non-global zone ZFS dataset. Images
     are cached in `/var/tmp`."
    "`recreate` must be an integer, and it is the n:1 odds of a zone being
