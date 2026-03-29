@@ -9,6 +9,9 @@ camino = { version = "1.1.9", features = ["serde1"] }
 common = { path = "../common" }
 macros = { path = "../macros" }
 nix = { version = "0.31.0", features = ["fs", "hostname", "user"] }
+opentelemetry = "0.31.0"
+opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio", "metrics"]}
+opentelemetry-otlp = { version = "0.31.0", features = ["metrics", "http-proto"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tracing = "0.1.41"
@@ -20,3 +23,6 @@ xmlwriter = "0.1.0"
 indoc = "2.0.7"
 pretty_assertions = "1.4.1"
 tester = { path = "../tester" }
+
+[build-dependencies]
+vergen-git2 = { version = "9.1.0", features = ["build", "cargo", "rustc", "si"] }

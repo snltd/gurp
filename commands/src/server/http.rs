@@ -1,58 +1,41 @@
 use crate::server::handlers;
 use axum::Router;
-use axum::extract::{Extension, Request};
+use axum::extract::{Extension, Request, State};
 use axum::middleware::Next;
 use axum::response::Response;
 use axum::routing::get;
 use common::constants::{GURP_VERSION, SERVER_PORT};
 use common::types::ServerOpts;
-use opentelemetry::{KeyValue, global};
-use opentelemetry_otlp::{MetricExporter, WithExportConfig};
-use opentelemetry_sdk::Resource;
-use opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider};
+use opentelemetry::KeyValue;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::sync::LazyLock;
-use std::time::{Duration, Instant};
-
-static GIT_HASH: LazyLock<&'static str> = LazyLock::new(|| {
-    let sha = env!("VERGEN_GIT_SHA");
-    &sha[..sha.len().min(7)]
-});
-
-pub fn git_hash() -> &'static str {
-    *GIT_HASH
-}
+use std::time::Instant;
+use util::info;
+use util::metrics::server::ServerMetrics;
 
 pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
-    let victoriametrics_url = opts
-        .metrics_to
-        .clone()
-        .unwrap_or("http://localhost:8428".to_string());
-
-    let _meter_provider = init_metrics(&victoriametrics_url)?;
-
-    tracing::info!("sending metrics to {victoriametrics_url}");
+    let metrics = ServerMetrics::new();
 
     let conf_dir = opts.config_dir.clone();
     let server_opts = Arc::new(opts);
 
-    let v1_routes = Router::new()
-        .route("/version", get(handlers::version))
-        .route("/status", get(handlers::status))
-        .route("/file/{*path}", get(handlers::file))
-        .route("/config/{host}", get(handlers::config));
-
     let app = Router::new()
-        .nest("/v1", v1_routes)
-        .layer(axum::middleware::from_fn(metrics_middleware))
+        .route("/v1/version", get(handlers::version))
+        .route("/v1/status", get(handlers::status))
+        .route("/v1/file/{*path}", get(handlers::file))
+        .route("/v1/config/{host}", get(handlers::config))
+        .route_layer(axum::middleware::from_fn_with_state(
+            metrics.clone(),
+            metrics_middleware,
+        ))
+        .with_state(metrics)
         .layer(Extension(server_opts));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], SERVER_PORT));
 
     tracing::info!(
         "Gurp version {GURP_VERSION} [{}] listening on {addr}",
-        git_hash()
+        info::build_hash()
     );
 
     tracing::info!("Config dir is {conf_dir}");
@@ -67,73 +50,31 @@ pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn metrics_middleware(req: Request, next: Next) -> Response {
+pub async fn metrics_middleware(
+    State(metrics): State<ServerMetrics>,
+    req: Request,
+    next: Next,
+) -> Response {
     let start = Instant::now();
-    let path = req.uri().path().to_string();
+    let path = req.uri().path().to_owned();
     let method = req.method().to_string();
     let response = next.run(req).await;
-    let duration = start.elapsed().as_secs_f64();
-    let status = response.status().as_u16();
-    let status_class = format!("{}xx", status / 100);
-    let meter = global::meter("http_server");
 
-    let request_counter = meter
-        .u64_counter("http_requests_total")
-        .with_description("Total HTTP requests")
-        .build();
-
-    request_counter.add(
+    metrics.http_requests_total.add(
         1,
         &[
             KeyValue::new("method", method.clone()),
             KeyValue::new("path", path.clone()),
-            KeyValue::new("status", status_class),
+            KeyValue::new("status", response.status().as_u16().to_string()),
         ],
     );
 
-    let duration_histogram = meter
-        .f64_histogram("http_request_duration_seconds")
-        .with_description("HTTP request duration in seconds")
-        .build();
-
-    duration_histogram.record(
-        duration,
+    metrics.http_request_duration.record(
+        start.elapsed().as_secs_f64() * 1000.0,
         &[KeyValue::new("method", method), KeyValue::new("path", path)],
     );
 
     response
-}
-
-pub fn init_metrics(victoriametrics_url: &str) -> anyhow::Result<SdkMeterProvider> {
-    let export_config = opentelemetry_otlp::ExportConfig {
-        endpoint: Some(format!("{}/opentelemetry/api/v1/push", victoriametrics_url)),
-        timeout: Some(Duration::from_secs(10)),
-        ..Default::default()
-    };
-
-    let exporter = MetricExporter::builder()
-        .with_http()
-        .with_export_config(export_config)
-        .build()?;
-
-    let reader = PeriodicReader::builder(exporter)
-        .with_interval(Duration::from_secs(10))
-        .build();
-
-    let provider = SdkMeterProvider::builder()
-        .with_reader(reader)
-        .with_resource(
-            Resource::builder()
-                .with_service_name("gurp-server")
-                .with_attribute(KeyValue::new("service.version", env!("CARGO_PKG_VERSION")))
-                .with_attribute(KeyValue::new("service.build", *GIT_HASH))
-                .build(),
-        )
-        .build();
-
-    global::set_meter_provider(provider.clone());
-
-    Ok(provider)
 }
 
 async fn shutdown_signal() {
