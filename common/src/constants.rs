@@ -52,6 +52,7 @@ pub const APPLY_LOCKFILE: &str = "/var/run/gurp.lock";
 // Client/server things
 pub const CLIENT_API_VERSION: &str = "v1";
 pub const SERVER_PORT: u16 = 1867;
+pub const SERVER_METRICS_INTERVAL: Duration = Duration::from_secs(10);
 
 // Service-related things
 pub const IPF_SVC: &str = "svc:/network/ipfilter:default";

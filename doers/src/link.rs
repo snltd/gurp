@@ -51,8 +51,9 @@ impl GurpLinkEnsure {
 
         if target.exists() {
             tracing::debug!("link target exists: {target}");
+            let target_metadata = target.symlink_metadata()?;
 
-            if target.is_dir() {
+            if target_metadata.is_dir() {
                 if self.force_link {
                     tracing::info!("removing existing directory {target}");
 
@@ -62,9 +63,9 @@ impl GurpLinkEnsure {
 
                     self.create_link(opts)
                 } else {
-                    bail!("target exists, is a directory and force-link is not set")
+                    bail!("target exists, is a directory and force-link is not set: {target}")
                 }
-            } else if target.is_symlink() {
+            } else if target_metadata.is_symlink() {
                 //
                 // The target exists and is a symbolic link. If the user wants a symbolic link,
                 // check it and if it's wrong, remove and re-create it.
@@ -136,9 +137,11 @@ impl GurpLinkEnsure {
     }
 
     fn link_is_correct(&self) -> Result<bool, anyhow::Error> {
+        let target_metadata = self.target.symlink_metadata()?;
+
         match self.link_type {
             LinkType::Symbolic => {
-                if self.target.is_symlink() {
+                if target_metadata.is_symlink() {
                     let current_source = &self.target.read_link_utf8()?;
                     if current_source == &self.source {
                         tracing::debug!("no change: {}", self.target);

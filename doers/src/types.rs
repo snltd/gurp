@@ -28,12 +28,13 @@ use crate::vnic::{GurpVnicEnsure, GurpVnicRemove};
 use crate::zfs::{GurpZfsEnsure, GurpZfsRemove};
 use crate::zone::{GurpZoneEnsure, GurpZoneRemove};
 use anyhow::bail;
+use bytesize::ByteSize;
 use colored::Colorize;
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
 use std::collections::BTreeSet;
-use util::json; // Because they are hashable
+use util::{json, runtime_stats};
 
 pub(crate) type ApplyResult = anyhow::Result<(ApplySummary, ChangedIds)>;
 
@@ -252,6 +253,13 @@ fn apply_resources<'a, T: Apply>(resources: &'a [T], opts: &'a ApplyOpts) -> App
 
     for (i, resource) in resources.iter().enumerate() {
         let id = resource.id();
+
+        if std::env::var("GURP_RSS_STATS").is_ok()
+            && let Some(rss) = runtime_stats::rss_bytes()
+        {
+            tracing::info!("RSS before {id}: {}", ByteSize(rss as u64));
+        }
+
         let chunks: Vec<_> = id.split("/").collect();
 
         if chunks.len() >= 3 {
@@ -288,7 +296,15 @@ impl Applicator {
         let config = self.json_to_hostconfig()?;
 
         tracing::info!("Configuring host: {}", config.metadata.name);
-        self.apply(&config, opts)
+        let ret = self.apply(&config, opts);
+
+        if std::env::var("GURP_RSS_STATS").is_ok()
+            && let Some(rss) = runtime_stats::rss_bytes()
+        {
+            tracing::info!("final RSS: {}", ByteSize(rss as u64));
+        }
+
+        ret
     }
 
     fn json_to_hostconfig(&self) -> anyhow::Result<HostConfig> {

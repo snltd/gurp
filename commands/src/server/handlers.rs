@@ -1,4 +1,3 @@
-use crate::server::http;
 use axum::Json;
 use axum::body::Body;
 use axum::extract::{Extension, Path, Query};
@@ -12,6 +11,7 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
+use util::info;
 
 #[derive(serde::Deserialize)]
 pub struct ConfigQuery {
@@ -28,7 +28,7 @@ pub async fn version() -> Json<serde_json::Value> {
     tracing::debug!("received version request");
     Json(json!({
     "version": GURP_VERSION,
-    "sha": http::git_hash(),
+    "sha": *info::BUILD_HASH,
     }))
 }
 

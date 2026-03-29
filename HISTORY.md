@@ -9,7 +9,7 @@ Items marked [*] are breaking changes.
 - Default to jimage in client/server mode. [*]
 - Write a lock file (`/var/run/gurp.lock`) when running in `apply` mode.
 - More detailed, more useful error messages.
-- Improved server telemetry.
+- Improved client and server telemetry, and tidied metrics namespace. [*]
 
 ### Commands
 
@@ -64,6 +64,7 @@ Items marked [*] are breaking changes.
   and to generate documentation.
 - The front-end checks helper properties and their types.
 - Various small bugfixes in front-end.
+- Use OpenTelemetry for client and server metrics.
 
 ## v 1.4.0 (2025-11-22)
 

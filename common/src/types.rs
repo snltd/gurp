@@ -64,3 +64,5 @@ pub type JsonConfig = String;
 
 pub type VlanID = u16;
 pub type ChangedIds = BTreeSet<String>;
+
+pub type GurpMetric<'a> = (&'a str, &'a str, u128);
