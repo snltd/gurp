@@ -8,7 +8,7 @@ use janetrs::env::DefOptions;
 use janetrs::{Janet, JanetString, TaggedJanet};
 use std::time::Duration;
 use std::{env, fs, thread};
-use util::{http, json, unix};
+use util::{http, info as util_info, json};
 
 // Config comes in various forms. It can be:
 //   1. a local Janet config which is compiled to Janet using Gurp's built-in library.
@@ -63,7 +63,10 @@ pub fn local_jimage_to_json(path: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Res
 
 // Get a JSON string from a Janet image from a remote server
 fn remote_jimage_to_json(server: &str, opts: &ApplyOpts) -> anyhow::Result<JsonConfig> {
-    let hostname = opts.hostname.clone().map_or_else(unix::my_hostname, Ok)?;
+    let hostname = opts
+        .hostname
+        .clone()
+        .map_or_else(util_info::my_hostname, Ok)?;
 
     jimage_to_json(
         &fetch_from_server(server, &hostname, "jimage")?,
@@ -80,7 +83,10 @@ fn local_json_to_json(path: &Utf8PathBuf) -> anyhow::Result<JsonConfig> {
 
 // Get a JSON string from a remote server
 fn remote_json_to_json(server: &str, opts: &ApplyOpts) -> anyhow::Result<JsonConfig> {
-    let hostname = opts.hostname.clone().map_or_else(unix::my_hostname, Ok)?;
+    let hostname = opts
+        .hostname
+        .clone()
+        .map_or_else(util_info::my_hostname, Ok)?;
 
     let host_config = String::from_utf8(fetch_from_server(server, &hostname, "json")?)?;
 
