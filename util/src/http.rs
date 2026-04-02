@@ -1,12 +1,19 @@
 use anyhow::Context;
-use camino::Utf8PathBuf;
-use std::fs::{self};
+use camino::Utf8Path;
+use std::fs::File;
+use std::io::{self, BufWriter};
 
 // Downloads a file to disk
-pub fn remote_file_to_disk(url: &str, path: &Utf8PathBuf) -> anyhow::Result<()> {
-    tracing::info!("download {url} -> {path}");
-    let response = remote_file_to_memory(url)?;
-    fs::write(path, response)?;
+pub fn remote_file_to_disk(url: &str, path: &Utf8Path) -> anyhow::Result<()> {
+    let response = ureq::get(url).call()?;
+    let mut body = response.into_body();
+    let mut reader = body.as_reader();
+
+    let file = File::create(path)?;
+    let mut writer = BufWriter::new(file);
+
+    io::copy(&mut reader, &mut writer)?;
+
     Ok(())
 }
 

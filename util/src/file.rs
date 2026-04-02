@@ -1,7 +1,7 @@
 use crate::users_and_groups;
 use anyhow::bail;
-use camino::Utf8PathBuf;
-use common::types::{ApplyOpts, ApplySummary};
+use camino::Utf8Path;
+use common::types::{ApplyOpts, Changes};
 use nix::sys::stat::{self, FileStat};
 use nix::unistd::{Gid, Uid};
 use serde::Deserialize;
@@ -13,8 +13,6 @@ pub struct FileMetadata<'a> {
     pub group: &'a NameOrId,
     pub mode: &'a str,
     pub owner: &'a NameOrId,
-    pub path: &'a Utf8PathBuf,
-    pub changes: u32,
 }
 
 #[derive(Deserialize, Clone, Debug, PartialEq)]
@@ -24,31 +22,39 @@ pub enum NameOrId {
     Id(u32),
 }
 
-pub fn ensure_metadata(spec: FileMetadata, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    let metadata = metadata(spec.path)?;
-    let new_uid = new_uid(spec.owner, &metadata)?;
-    let new_gid = new_gid(spec.group, &metadata)?;
-    let mut changes = spec.changes;
+pub fn ensure_metadata(
+    path: &Utf8Path,
+    md: FileMetadata,
+    opts: &ApplyOpts,
+) -> anyhow::Result<Changes> {
+    let metadata = metadata(path)?;
+    let new_uid = new_uid(md.owner, &metadata)?;
+    let new_gid = new_gid(md.group, &metadata)?;
+    let mut changes = 0;
 
-    if new_uid.is_some() || new_gid.is_some() {
-        changes = 1;
-        set_user(spec.path, new_uid, new_gid, opts)?;
+    if new_uid.is_some() {
+        changes += 1;
+    }
+
+    if new_gid.is_some() {
+        changes += 1;
+    }
+
+    if changes > 0 {
+        set_user(path, new_uid, new_gid, opts)?;
     }
 
     let current_mode = format!("{:04o}", metadata.st_mode & 0o7777);
 
-    if current_mode != spec.mode {
-        changes = 1;
-        set_mode(spec.path, &current_mode, spec.mode, opts)?;
+    if current_mode != md.mode {
+        changes += 1;
+        set_mode(path, &current_mode, md.mode, opts)?;
     }
 
-    Ok(ApplySummary {
-        resources: 1,
-        changes,
-    })
+    Ok(changes)
 }
 
-fn metadata(path: &Utf8PathBuf) -> anyhow::Result<FileStat> {
+fn metadata(path: &Utf8Path) -> anyhow::Result<FileStat> {
     let metadata = stat::stat(path.as_std_path())?;
     Ok(metadata)
 }
@@ -78,7 +84,7 @@ fn new_gid(desired_group: &NameOrId, metadata: &FileStat) -> anyhow::Result<Opti
 }
 
 fn set_user(
-    path: &Utf8PathBuf,
+    path: &Utf8Path,
     uid: Option<Uid>,
     gid: Option<Gid>,
     opts: &ApplyOpts,
@@ -103,7 +109,7 @@ fn set_user(
 }
 
 fn set_mode(
-    path: &Utf8PathBuf,
+    path: &Utf8Path,
     current_mode: &str,
     desired_mode: &str,
     opts: &ApplyOpts,

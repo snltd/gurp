@@ -8,32 +8,48 @@
 (def name-is "Fully qualified path to file")
 (def mandatory-props-ensure {})
 (def optional-props-ensure
-  {:backup-suffix {:types [:string]
-                   :help "Back up the file with this suff. Use 'TIMESTAMP' for
-                          an epoch timestamp"}
-   :from {:types [:string]
-          :help "Copy content from this file. If relative, looks in ../files"}
-   :from-struct {:types [:struct :table :tuple]
-                 :help "Generate a config file from the given struct. Requires
-                       :to-format"}
-   :from-url {:types [:string]
-              :help "Fetch file from the given URL"}
-   :group {:types [:string :number]
-           :help "The group name or GID of the for this file"}
-   :ignore-pattern {:types [:string]
-                    :help "When comparing, ignore lines matching this Rust regex"}
-   :mode {:types [:string]
-          :help "Permissions written as a four-digit octal"}
-   :owner {:types [:string :number]
-           :help "The username or UID of the user who owns this file"}
-   :to-format {:types [:string]
-               :help "Used with :from-struct to try to turn the struct into this
-                     format"}
-   :with-checksum {:types [:string]
-                   :help "Blake3 checksum used to validate files fetched by
-                         :from-url"}
-   :content {:types [:string]
-             :help "Literal content of the file. Must have :content xor :from"}})
+  {:backup-suffix
+   {:types [:string]
+    :help "Back up the file with this suffix. Use 'TIMESTAMP' for an epoch
+           timestamp"}
+   :from
+   {:types [:string]
+    :help "Copy content from this file. If relative, looks in ../files"}
+   :from-struct
+   {:types [:struct :table :tuple]
+    :help "Generate a config file from the given struct. Requires :to-format"}
+   :from-url
+   {:types [:string]
+    :help "Fetch file from the given URL"}
+   :group
+   {:types [:string :number]
+    :help "The group name or GID of the for this file"}
+   :ignore-pattern
+   {:types [:string]
+    :help "When comparing, ignore lines matching this Rust regex"}
+   :mode
+   {:types [:string]
+    :help "Permissions written as a four-digit octal"}
+   :owner
+   {:types [:string :number]
+    :help "The username or UID of the user who owns this file"}
+   :to-format
+   {:types [:string]
+    :help "Used with :from-struct to try to turn the struct into this format"}
+   :with-checksum
+   {:types [:string]
+    :help "Blake3 checksum used to validate files fetched by :from-url"}
+   :only-fetch-from-url-once
+   {:types [:boolean]
+    :help "If you use :from-url, Gurp must download the file on every run to
+           compare it with the installed copy. When this is set to true,
+           :from-url files are only downloaded if the target file is missing"}
+   :url-is-server
+   {:types [:boolean]
+    :help "Used internally to identify Gurp server URLs"}
+   :content
+   {:types [:string]
+    :help "Literal content of the file. Must have :content xor :from"}})
 (def mandatory-props-remove {})
 (def optional-props-remove {})
 (def defaults-ensure
@@ -48,7 +64,7 @@
 
 (defn ensure
   "Given a file path and spec, put an ensure struct in the collector. If Gurp is
-   running as a server, changes local file references into HTTP ones."
+   running as a remote client, changes local file references into HTTP ones."
   [name & spec]
   (def spec-table (struct/to-table (make-spec-struct ;spec)))
 
@@ -56,7 +72,8 @@
     (if-let [server-name (dyn :server-name)]
       (do
         (set (spec-table :from) nil)
-        (set (spec-table :from-url) (server-url server-name from-path)))
+        (set (spec-table :from-url) (server-url server-name from-path))
+        (set (spec-table :url-is-server) true))
       (let [url-or-qualified-path
             (if (string/find "://" from-path)
               from-path

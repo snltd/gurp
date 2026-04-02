@@ -62,16 +62,20 @@ impl GurpDirectoryEnsure {
             fs::create_dir_all(&self.path)?;
         }
 
-        file::ensure_metadata(
+        changes += file::ensure_metadata(
+            &self.path,
             FileMetadata {
                 group: &self.desired_state.group,
                 mode: &self.desired_state.mode,
                 owner: &self.desired_state.owner,
-                path: &self.path,
-                changes,
             },
             opts,
-        )
+        )?;
+
+        Ok(ApplySummary {
+            resources: 1,
+            changes,
+        })
     }
 }
 
