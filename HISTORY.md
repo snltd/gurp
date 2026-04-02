@@ -66,6 +66,8 @@ Items marked [*] are breaking changes.
 - Various small bugfixes in front-end.
 - Use OpenTelemetry for client and server metrics.
 - Remove the internal concept of a "noop". Things either happen or they don't.
+- Wherever possible, avoid loading files into memory. This improves client and
+  server memory usage.
 
 ## v 1.4.0 (2025-11-22)
 
