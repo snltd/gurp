@@ -2,7 +2,7 @@ use crate::file::actions;
 use crate::file::types::{CompareMethod, DesiredFileState};
 use camino::Utf8Path;
 use common::info;
-use common::types::{ApplyOpts, Changes};
+use common::types::{ApplyOpts, Changed};
 use std::fs;
 use std::io::Write;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -16,8 +16,8 @@ pub fn ensure_content(
     desired_state: &DesiredFileState,
     compare: &CompareMethod,
     opts: &ApplyOpts,
-) -> anyhow::Result<Changes> {
-    let mut changes = 0;
+) -> anyhow::Result<Changed> {
+    let mut changed = false;
 
     if path.exists() {
         match compare {
@@ -25,7 +25,7 @@ pub fn ensure_content(
                 if hash::of_string(new_content) == hash::of_file(path)? {
                     log_no_change!(path);
                 } else {
-                    changes += 1;
+                    changed = true;
                     log_updating!(path);
                     actions::write_text_file(
                         path,
@@ -43,7 +43,7 @@ pub fn ensure_content(
                 {
                     log_no_change!(path);
                 } else {
-                    changes += 1;
+                    changed = true;
                     log_updating!(path);
                     actions::write_text_file(
                         path,
@@ -55,7 +55,7 @@ pub fn ensure_content(
             }
         }
     } else {
-        changes += 1;
+        changed = true;
         log_creating!(path);
         actions::write_text_file(
             path,
@@ -65,7 +65,7 @@ pub fn ensure_content(
         )?;
     }
 
-    Ok(changes)
+    Ok(changed)
 }
 
 /// Blat a string to disk
@@ -132,7 +132,7 @@ pub fn ensure_metadata(
     path: &Utf8Path,
     desired_state: &DesiredFileState,
     opts: &ApplyOpts,
-) -> anyhow::Result<Changes> {
+) -> anyhow::Result<bool> {
     file::ensure_metadata(
         path,
         FileMetadata {

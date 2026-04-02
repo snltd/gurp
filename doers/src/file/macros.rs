@@ -17,3 +17,13 @@ macro_rules! log_creating {
         tracing::debug!("{}: has ", $path);
     };
 }
+
+macro_rules! apply_summary {
+    ($changed:expr) => {
+        if $changed {
+            Ok(common::constants::ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            Ok(common::constants::ONE_RESOURCE_NO_CHANGE)
+        }
+    };
+}

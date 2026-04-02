@@ -46,7 +46,7 @@ pub struct GurpDirectoryRemove {
 
 impl GurpDirectoryEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let mut changes = 0;
+        let mut changed = false;
 
         if self.path.exists() {
             ensure!(
@@ -58,11 +58,11 @@ impl GurpDirectoryEnsure {
             tracing::info!("creating directory: {}", self.path);
             return_if_noop!(opts);
 
-            changes = 1;
+            changed = true;
             fs::create_dir_all(&self.path)?;
         }
 
-        changes += file::ensure_metadata(
+        if file::ensure_metadata(
             &self.path,
             FileMetadata {
                 group: &self.desired_state.group,
@@ -70,12 +70,15 @@ impl GurpDirectoryEnsure {
                 owner: &self.desired_state.owner,
             },
             opts,
-        )?;
+        )? {
+            changed = true
+        }
 
-        Ok(ApplySummary {
-            resources: 1,
-            changes,
-        })
+        if changed {
+            Ok(ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        }
     }
 }
 
@@ -94,8 +97,11 @@ impl GurpDirectoryRemove {
             );
 
             tracing::info!("removing directory: {}", self.path);
-            return_if_noop!(opts);
-            fs::remove_dir_all(&self.path)?;
+
+            if !opts.noop {
+                fs::remove_dir_all(&self.path)?;
+            }
+
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
             tracing::debug!("not present: {}", self.path);

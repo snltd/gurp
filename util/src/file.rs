@@ -1,7 +1,7 @@
 use crate::users_and_groups;
 use anyhow::bail;
 use camino::Utf8Path;
-use common::types::{ApplyOpts, Changes};
+use common::types::ApplyOpts;
 use nix::sys::stat::{self, FileStat};
 use nix::unistd::{Gid, Uid};
 use serde::Deserialize;
@@ -26,32 +26,32 @@ pub fn ensure_metadata(
     path: &Utf8Path,
     md: FileMetadata,
     opts: &ApplyOpts,
-) -> anyhow::Result<Changes> {
+) -> anyhow::Result<bool> {
     let metadata = metadata(path)?;
     let new_uid = new_uid(md.owner, &metadata)?;
     let new_gid = new_gid(md.group, &metadata)?;
-    let mut changes = 0;
+    let mut changed = false;
 
     if new_uid.is_some() {
-        changes += 1;
+        changed = true;
     }
 
     if new_gid.is_some() {
-        changes += 1;
+        changed = true;
     }
 
-    if changes > 0 {
+    if changed {
         set_user(path, new_uid, new_gid, opts)?;
     }
 
     let current_mode = format!("{:04o}", metadata.st_mode & 0o7777);
 
     if current_mode != md.mode {
-        changes += 1;
+        changed = true;
         set_mode(path, &current_mode, md.mode, opts)?;
     }
 
-    Ok(changes)
+    Ok(changed)
 }
 
 fn metadata(path: &Utf8Path) -> anyhow::Result<FileStat> {

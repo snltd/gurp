@@ -19,7 +19,9 @@ pub struct DesiredFileState {
     pub owner: NameOrId,
     pub to_format: Option<OutputFileFormat>,
     pub with_checksum: Option<String>,
+    #[serde(default)]
     pub only_fetch_from_url_once: bool,
+    #[serde(default)]
     pub url_is_server: bool,
 }
 

@@ -46,7 +46,7 @@ impl<'a> FileFilter<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use indoc::indoc;
+    use tester::fixture;
 
     #[test]
     fn test_filter_string_1() {
@@ -59,16 +59,24 @@ mod test {
         let sut = FileFilter::from("line$").unwrap();
         assert_eq!(
             &sut.string(sample()),
-            indoc! { "
-                first line
-                a third line
+            indoc::indoc! { "
+                line #2
                 The Final Line"
             }
         );
     }
 
+    #[test]
+    fn test_filter_file() {
+        let sut = FileFilter::from("b.*ore").unwrap();
+        assert_eq!(
+            "Some stuff\nStuff at the end\n".to_owned(),
+            sut.file(&fixture("file-filter-test")).unwrap()
+        )
+    }
+
     fn sample() -> &'static str {
-        indoc! { "
+        indoc::indoc! { "
             first line
             line #2
             a third line

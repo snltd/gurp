@@ -17,11 +17,13 @@ pub fn of_file(path: &Utf8Path) -> anyhow::Result<Hash> {
     Ok(hasher.finalize())
 }
 
+// Requests a file hash from a Gurp server
 pub fn for_remote_file(url: &str) -> anyhow::Result<String> {
     let hash_url = url.replace("/file/", "/file-hash/");
     Ok(ureq::get(hash_url).call()?.into_body().read_to_string()?)
 }
 
+// Requests a file hash from a Gurp server
 pub fn for_remote_filtered_file(url: &str, pattern: &str) -> anyhow::Result<String> {
     let hash_url = format!(
         "{}?{}",
@@ -29,4 +31,26 @@ pub fn for_remote_filtered_file(url: &str, pattern: &str) -> anyhow::Result<Stri
         pattern
     );
     Ok(ureq::get(hash_url).call()?.into_body().read_to_string()?)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use tester::fixture;
+
+    #[test]
+    fn test_hash_of_string() {
+        assert_eq!(
+            "2fec886c2436e97948e0d75c80bcccf6beefa05a3aea2353f4068513d65ec485".to_owned(),
+            of_string("merp merp").to_string()
+        );
+    }
+
+    #[test]
+    fn test_hash_of_file() {
+        assert_eq!(
+            "40a2c4e17aa9abec2dd26709c045190b959922b5fffb4ff676568225c0525eca",
+            of_file(&fixture("file-filter-test")).unwrap().to_string()
+        );
+    }
 }

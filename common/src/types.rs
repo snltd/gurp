@@ -38,6 +38,7 @@ pub struct ServerOpts {
 
 pub type Changes = u32;
 pub type Resources = u32;
+pub type Changed = bool;
 
 #[derive(Debug, Default, PartialEq, Copy, Clone)]
 pub struct ApplySummary {

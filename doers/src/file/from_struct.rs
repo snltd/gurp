@@ -15,13 +15,15 @@ pub fn run(
         .from_struct
         .as_ref()
         .context("no user struct")?;
-    let new_content = to_file(&user_struct, desired_state.to_format.as_ref())?;
+    let new_content = to_file(user_struct, desired_state.to_format.as_ref())?;
 
-    Ok(ApplySummary {
-        resources: 1,
-        changes: actions::ensure_content(path, &new_content, desired_state, compare, opts)?
-            + actions::ensure_metadata(path, desired_state, opts)?,
-    })
+    let mut changed = actions::ensure_content(path, &new_content, desired_state, compare, opts)?;
+
+    if actions::ensure_metadata(path, desired_state, opts)? {
+        changed = true;
+    }
+
+    apply_summary!(changed)
 }
 
 fn to_file(user_struct: &Value, to_format: Option<&OutputFileFormat>) -> anyhow::Result<String> {
