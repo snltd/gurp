@@ -59,8 +59,6 @@ impl GurpSmfEnsure {
 
         tracing::debug!("rewriting manifest: {}", manifest_path);
 
-        return_if_noop!(opts);
-
         if opts.dump_config {
             println!(
                 "{}",
@@ -68,7 +66,10 @@ impl GurpSmfEnsure {
             );
         }
 
-        fs::write(manifest_path, &new_manifest)?;
+        if !opts.noop {
+            fs::write(manifest_path, &new_manifest)?;
+        }
+
         self.ensure_service(opts)
     }
 
@@ -80,19 +81,15 @@ impl GurpSmfEnsure {
                 svcs::set_state(&self.desired_state.name, &current_state, "disabled", opts)?;
             }
 
-            let mut cmd = cmd!(SVCCFG_BIN, "delete", &self.desired_state.name);
-            if !opts.noop {
-                cmd.status()?;
-            }
+            let _ = cmd_change_or_noop!(opts, SVCCFG_BIN, "delete", &self.desired_state.name)?;
         }
 
-        let mut cmd = cmd!(
+        cmd_change_or_noop!(
+            opts,
             SVCCFG_BIN,
             "import",
             manifest_path(&self.desired_state.name).as_str()
-        );
-        return_if_noop!(opts);
-        one_change_or_stderr!(cmd)
+        )
     }
 }
 
@@ -122,12 +119,14 @@ impl GurpSmfRemove {
 
             if manifest_path.exists() {
                 tracing::info!("svc: {} deleting manifest {}", &self.name, manifest_path);
-                return_if_noop!(opts);
 
-                fs::remove_file(manifest_path)?;
+                if !opts.noop {
+                    fs::remove_file(manifest_path)?;
+                }
             } else {
                 tracing::debug!("svc: {} no manifest at {}", &self.name, manifest_path);
             }
+
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
             tracing::debug!("svc: {} not present", self.name);

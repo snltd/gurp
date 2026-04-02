@@ -123,10 +123,7 @@ impl GurpIpAddressEnsure {
     }
 
     fn delete_addr(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
-        if !opts.noop {
-            cmd_output!(IPADM_BIN, "delete-addr", &self.name)?;
-        }
-
+        cmd_change_or_noop!(opts, IPADM_BIN, "delete-addr", &self.name)?;
         Ok(())
     }
 
@@ -155,11 +152,7 @@ impl GurpIpAddressEnsure {
         tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
-            let result = cmd.output()?;
-
-            if !result.status.success() {
-                bail!(String::from_utf8_lossy(&result.stderr).into_owned())
-            }
+            run_cmd!(cmd)?;
         }
 
         Ok(())
@@ -181,10 +174,7 @@ impl GurpIpAddressRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if describe_address(&self.name)?.is_some() {
             tracing::info!("removing {}", self.name);
-            return_if_noop!(opts);
-
-            cmd_output!(IPADM_BIN, "delete-addr", &self.name)?;
-            Ok(ONE_RESOURCE_ONE_CHANGE)
+            cmd_change_or_noop!(opts, IPADM_BIN, "delete-addr", &self.name)
         } else {
             tracing::debug!("{} does not exist", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)

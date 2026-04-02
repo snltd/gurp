@@ -58,11 +58,14 @@ impl GurpPublisherEnsure {
             tracing::info!("add publisher {}", self.name,);
         }
 
-        let mut cmd = cmd!(PKG_BIN, "set-publisher", "-g", &desired_uri, &self.name);
-
-        return_if_noop!(opts);
-
-        one_change_or_stderr!(cmd, format!("error setting '{}'; publisher", self.name))
+        cmd_change_or_noop!(
+            opts,
+            PKG_BIN,
+            "set-publisher",
+            "-g",
+            &desired_uri,
+            &self.name
+        )
     }
 }
 
@@ -71,9 +74,7 @@ impl GurpPublisherRemove {
         let current_publishers = &CURRENT_PKG_OUTPUT;
 
         if current_publishers.iter().any(|p| p.name == self.name) {
-            let mut cmd = cmd!(PKG_BIN, "unset-publisher", &self.name);
-            return_if_noop!(opts);
-            one_change_or_stderr!(cmd, format!("error unsetting '{}'; publisher", self.name))
+            cmd_change_or_noop!(opts, PKG_BIN, "unset-publisher", &self.name)
         } else {
             tracing::debug!("publisher {} does not exist", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)

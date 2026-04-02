@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure, Context};
+use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::cmd;
 use common::constants::{
@@ -58,12 +58,12 @@ impl GurpUserEnsure {
 
         let current = self.current_state()?;
         let desired = &self.desired_state;
-        let mut changes = 0;
+        let mut changed = false;
 
         let mut cmd = Command::new(USERMOD_BIN);
 
         if current.gecos != desired.gecos {
-            changes += 1;
+            changed = true;
             tracing::info!(
                 "change user gecos: [{}] {} -> {}",
                 self.name,
@@ -74,7 +74,7 @@ impl GurpUserEnsure {
         }
 
         if current.home_dir != desired.home_dir {
-            changes += 1;
+            changed = true;
             tracing::info!(
                 "change user home-dir: [{}] {} -> {}",
                 self.name,
@@ -85,7 +85,7 @@ impl GurpUserEnsure {
         }
 
         if current.primary_group != desired.primary_group {
-            changes += 1;
+            changed = true;
             tracing::info!(
                 "change user primary-group: [{}] {} -> {}",
                 self.name,
@@ -96,7 +96,7 @@ impl GurpUserEnsure {
         }
 
         if current.other_groups != desired.other_groups {
-            changes += 1;
+            changed = true;
             if let Some(groups) = desired.other_groups.as_ref() {
                 tracing::info!(
                     "change other-groups: [{}] -> {}",
@@ -113,7 +113,7 @@ impl GurpUserEnsure {
         }
 
         if current.profiles != desired.profiles {
-            changes += 1;
+            changed = true;
             if let Some(profiles) = desired.profiles.as_ref() {
                 tracing::info!("change profiles: [{}] -> {}", self.name, profiles.join(","));
                 cmd.arg("-P");
@@ -126,7 +126,7 @@ impl GurpUserEnsure {
         }
 
         if current.shell != desired.shell {
-            changes += 1;
+            changed = true;
             tracing::info!(
                 "change user shell: [{}] {} -> {}",
                 self.name,
@@ -137,7 +137,7 @@ impl GurpUserEnsure {
         }
 
         if current.uid != desired.uid {
-            changes += 1;
+            changed = true;
             tracing::info!(
                 "change user uid: [{}] {} -> {}",
                 self.name,
@@ -147,31 +147,27 @@ impl GurpUserEnsure {
             cmd.arg("-u").arg(desired.uid.to_string());
         }
 
-        return_if_noop!(opts, 1, changes);
-
         cmd.arg(&self.name);
 
-        if changes > 0 {
+        if changed {
             tracing::debug!(command = cmd::to_string(&cmd));
 
-            let result = cmd.output()?;
-
-            ensure!(
-                result.status.success(),
-                String::from_utf8_lossy(&result.stderr).into_owned()
-            );
+            if !opts.noop {
+                run_cmd!(cmd)?;
+            }
         }
 
         if current.password_hash.is_some() && current.password_hash != desired.password_hash {
-            changes += 1;
             let desired_hash = desired.password_hash.as_ref().unwrap();
-            self.update_shadow(&Utf8PathBuf::from(SHADOW_PATH), &self.name, desired_hash)?;
+            self.update_shadow(
+                &Utf8PathBuf::from(SHADOW_PATH),
+                &self.name,
+                desired_hash,
+                opts,
+            )?;
         }
 
-        Ok(ApplySummary {
-            resources: 1,
-            changes,
-        })
+        Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
     fn create(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
@@ -201,18 +197,11 @@ impl GurpUserEnsure {
 
         cmd.arg(&self.name);
 
-        return_if_noop!(opts);
-
-        let result = cmd.output()?;
-
-        if result.status.success() {
-            if let Some(password_hash) = &self.desired_state.password_hash {
-                self.update_shadow(&Utf8PathBuf::from(SHADOW_PATH), &self.name, password_hash)?;
-            }
-            Ok(ONE_RESOURCE_ONE_CHANGE)
-        } else {
-            bail!(String::from_utf8_lossy(&result.stderr).into_owned())
+        if !opts.noop {
+            run_cmd!(cmd)?;
         }
+
+        Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
     fn current_state(&self) -> anyhow::Result<UserState> {
@@ -275,6 +264,7 @@ impl GurpUserEnsure {
         shadow_path: &Utf8PathBuf,
         user: &str,
         new_hash: &str,
+        opts: &ApplyOpts,
     ) -> anyhow::Result<()> {
         tracing::info!("change user password-hash: [{}]", self.name);
 
@@ -298,7 +288,11 @@ impl GurpUserEnsure {
             .collect::<Result<Vec<_>, _>>()?
             .join("\n");
 
-        Ok(fs::write(shadow_path, output)?)
+        if !opts.noop {
+            fs::write(shadow_path, output)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -312,9 +306,7 @@ impl GurpUserRemove {
 
             tracing::info!("removing user: {}", self.name);
 
-            let mut cmd = cmd!(USERDEL_BIN, &self.name);
-            return_if_noop!(opts);
-            one_change_or_stderr!(cmd, format!("error deleting user {}", self.name))
+            cmd_change_or_noop!(opts, USERDEL_BIN, &self.name)
         } else {
             tracing::debug!("not present: {}", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
@@ -376,7 +368,7 @@ mod tests {
     use super::*;
     use camino::Utf8PathBuf;
     use pretty_assertions::assert_eq;
-    use tester::deserialized_example;
+    use tester::{defopts, deserialized_example};
 
     #[test]
     fn test_deserialize_user_ensure_gurpuser() {
@@ -432,7 +424,8 @@ mod tests {
             ..deserialized_example("user/ensure-user-gurpuser.janet")
         };
 
-        g.update_shadow(&path, "gurpuser", "NEWHASH").unwrap();
+        g.update_shadow(&path, "gurpuser", "NEWHASH", &defopts())
+            .unwrap();
         assert_eq!(expected_shadow, fs::read_to_string(&path).unwrap());
     }
 }

@@ -2,7 +2,9 @@ use crate::types::ApplyResult;
 use anyhow::{Context, ensure};
 use camino::Utf8PathBuf;
 use common::cmd;
-use common::constants::{GEM_BIN, GEM_BIN_DIR, NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_NO_CHANGE};
+use common::constants::{
+    GEM_BIN, GEM_BIN_DIR, NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE,
+};
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
@@ -161,20 +163,20 @@ pub fn collect_and_remove(gem_list: &RemoveList, opts: &ApplyOpts) -> ApplyResul
 
     let ret = ApplySummary { resources, changes };
 
-    if !opts.noop {
-        for (gem_bin, remove_list) in remove_hash {
-            tracing::info!("Removing {} [{}]", remove_list.join(", "), gem_bin);
-            let mut cmd = Command::new(gem_bin);
-            cmd.arg("uninstall");
-            cmd.arg("--silent");
-            cmd.arg("--executables");
-            cmd.arg("--all");
-            cmd.args(&remove_list);
-            cmd.stderr(Stdio::piped());
+    for (gem_bin, remove_list) in remove_hash {
+        tracing::info!("Removing {} [{}]", remove_list.join(", "), gem_bin);
+        let mut cmd = Command::new(gem_bin);
+        cmd.arg("uninstall");
+        cmd.arg("--silent");
+        cmd.arg("--executables");
+        cmd.arg("--all");
+        cmd.args(&remove_list);
+        cmd.stderr(Stdio::piped());
 
-            tracing::debug!(command = cmd::to_string(&cmd));
+        tracing::debug!(command = cmd::to_string(&cmd));
 
-            let _ = run_cmd!(cmd);
+        if !opts.noop {
+            let _ = run_cmd!(cmd)?;
         }
     }
 
@@ -273,9 +275,11 @@ fn install_specific(
 
     tracing::debug!(command = cmd::to_string(&cmd));
 
-    return_if_noop!(opts);
+    if !opts.noop {
+        run_cmd!(cmd)?;
+    }
 
-    one_change_or_stderr!(cmd, format!("failed to install gem {}", gem.name))
+    Ok(ONE_RESOURCE_ONE_CHANGE)
 }
 
 fn installed_gems<T: GurpGem>(gem_list: &[T]) -> InstalledGems {

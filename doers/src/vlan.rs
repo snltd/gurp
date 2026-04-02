@@ -1,4 +1,4 @@
-use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE};
 use common::types::{ApplyOpts, ApplySummary, VlanID};
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -53,7 +53,8 @@ impl GurpVlanEnsure {
     fn create_vlan(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         tracing::info!("creating VLAN {}", self.name);
 
-        let mut cmd = cmd!(
+        cmd_change_or_noop!(
+            opts,
             DLADM_BIN,
             "create-vlan",
             "-l",
@@ -61,12 +62,7 @@ impl GurpVlanEnsure {
             "-v",
             &self.vlan_tag.to_string(),
             &self.name
-        );
-
-        return_if_noop!(opts);
-
-        run_cmd!(cmd)?;
-        Ok(ONE_RESOURCE_ONE_CHANGE)
+        )
     }
 }
 
@@ -85,13 +81,7 @@ impl GurpVlanRemove {
 
 fn delete_vlan(name: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     tracing::info!("removing VLAN {name}");
-    let mut cmd = cmd!(DLADM_BIN, "delete-vlan", name);
-
-    return_if_noop!(opts);
-
-    run_cmd!(cmd)?;
-
-    Ok(ONE_RESOURCE_ONE_CHANGE)
+    cmd_change_or_noop!(opts, DLADM_BIN, "delete-vlan", name)
 }
 
 fn parse_vlans(raw: &str) -> Vlans {

@@ -28,7 +28,7 @@ pub fn run(
 mod test {
     use crate::file::ensure::GurpFileEnsure;
     use camino_tempfile_ext::prelude::*;
-    use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE};
+    use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use std::fs;
@@ -54,7 +54,7 @@ mod test {
 
         assert!(!temp_file.exists());
         let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
         assert!(!temp_file.exists());
     }
 

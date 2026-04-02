@@ -65,6 +65,7 @@ Items marked [*] are breaking changes.
 - The front-end checks helper properties and their types.
 - Various small bugfixes in front-end.
 - Use OpenTelemetry for client and server metrics.
+- Remove the internal concept of a "noop". Things either happen or they don't.
 
 ## v 1.4.0 (2025-11-22)
 

@@ -24,9 +24,11 @@ impl GurpFileRemove {
             );
 
             tracing::info!("removing: {}", self.path);
-            return_if_noop!(opts);
 
-            fs::remove_file(&self.path)?;
+            if !opts.noop {
+                fs::remove_file(&self.path)?;
+            }
+
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
             tracing::debug!("not present: {}", self.path);
@@ -40,7 +42,6 @@ mod test {
     use super::*;
     use camino::Utf8PathBuf;
     use camino_tempfile_ext::prelude::*;
-    use common::constants::ONE_RESOURCE_NOOP;
     use pretty_assertions::assert_eq;
     use tester::{defopts, defopts_noop, deserialized_example, janet2json};
     #[test]
@@ -104,7 +105,7 @@ mod test {
         let json_def = janet2json(&format!("(file/remove \"{temp_file}\")"));
         let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
         assert!(temp_file.exists());
     }
 }

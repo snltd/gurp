@@ -38,25 +38,6 @@ macro_rules! one_change_or_stderr {
     }};
 }
 
-#[macro_export]
-#[allow(unused_macros)]
-macro_rules! return_if_noop {
-    ($opts:expr) => {
-        if $opts.noop {
-            return Ok(common::constants::ONE_RESOURCE_NOOP);
-        }
-    };
-
-    ($opts:expr, $resources:expr, $changes:expr) => {
-        if $opts.noop {
-            return Ok(common::types::ApplySummary {
-                resources: $resources,
-                changes: $changes,
-            });
-        }
-    };
-}
-
 /// Builds a command from its args, returning a Command. Logs the constructed command
 #[macro_export]
 #[allow(unused_macros)]
@@ -156,10 +137,9 @@ macro_rules! cmd_output {
 
 #[cfg(test)]
 mod test {
-    use common::constants::{ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE};
-    use common::types::{ApplyOpts, ApplySummary};
+    use common::constants::ONE_RESOURCE_ONE_CHANGE;
+    use common::types::ApplySummary;
     use predicates::prelude::*;
-    use tester::{defopts, defopts_noop};
 
     #[test]
     fn test_cmd_macro_valid_command() {
@@ -195,17 +175,6 @@ mod test {
         let result = (|| cmd_output!("/bin/nonsense", "merp", "merp", "merp"))();
         assert!(result.is_err());
         Ok(())
-    }
-
-    #[test]
-    fn test_return_if_noop_macro() {
-        fn wrapper(opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-            return_if_noop!(opts);
-            Ok(ONE_RESOURCE_ONE_CHANGE)
-        }
-
-        assert_eq!(ONE_RESOURCE_NOOP, wrapper(&defopts_noop()).unwrap());
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, wrapper(&defopts()).unwrap());
     }
 
     #[test]

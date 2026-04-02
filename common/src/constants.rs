@@ -65,11 +65,6 @@ pub const ONE_RESOURCE_ONE_CHANGE: ApplySummary = ApplySummary {
     changes: 1,
 };
 
-pub const ONE_RESOURCE_NOOP: ApplySummary = ApplySummary {
-    resources: 1,
-    changes: 1,
-};
-
 pub const ONE_RESOURCE_NO_CHANGE: ApplySummary = ApplySummary {
     resources: 1,
     changes: 0,

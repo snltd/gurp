@@ -80,9 +80,7 @@ impl GurpCronEnsure {
                     );
                 }
 
-                return_if_noop!(opts);
-
-                write_crontab(&self.user, &new_crontab)
+                write_crontab(&self.user, &new_crontab, opts)
             }
             None => {
                 tracing::debug!("no change: {}", &self.name);
@@ -139,13 +137,9 @@ impl GurpCronRemove {
             // If you try to write an empty file, crontab(1) will reject it. If we take out the
             // managed resource and there's nothing left, we have to *remove* the crontab.
             Some(new_crontab) => {
-                tracing::info!("removing: {}", self.name);
                 if new_crontab.is_empty() {
-                    tracing::debug!("new {} crontab is empty", self.user);
-                    return_if_noop!(opts);
-
-                    tracing::debug!("removing crontab: {}", self.user);
-                    self.empty_crontab()
+                    tracing::debug!("new {} crontab is empty: removing", self.user);
+                    self.empty_crontab(opts)
                 } else {
                     if opts.dump_config {
                         println!(
@@ -157,9 +151,8 @@ impl GurpCronRemove {
                             )
                         );
                     }
-                    return_if_noop!(opts);
 
-                    write_crontab(&self.user, &new_crontab)
+                    write_crontab(&self.user, &new_crontab, opts)
                 }
             }
             None => {
@@ -197,9 +190,14 @@ impl GurpCronRemove {
         }
     }
 
-    fn empty_crontab(&self) -> anyhow::Result<ApplySummary> {
+    fn empty_crontab(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut cmd = cmd!(CRONTAB_BIN, "-u", &self.user, "-r");
-        one_change_or_stderr!(cmd)
+
+        if !opts.noop {
+            run_cmd!(cmd)?;
+        }
+
+        Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 }
 
@@ -212,23 +210,26 @@ fn current_crontab(username: &str) -> anyhow::Result<String> {
     Ok(String::from_utf8(result.stdout)?)
 }
 
-fn write_crontab(username: &str, content: &str) -> anyhow::Result<ApplySummary> {
+fn write_crontab(username: &str, content: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     let mut cmd = cmd_with_stdin!(CRONTAB_BIN, "-u", username);
     let mut child = cmd.spawn()?;
 
-    if let Some(stdin) = child.stdin.as_mut() {
-        tracing::debug!("{}: writing: {}", username, content);
-        stdin.write_all(content.as_bytes())?;
+    if !opts.noop {
+        if let Some(stdin) = child.stdin.as_mut() {
+            tracing::debug!("{}: writing: {}", username, content);
+            stdin.write_all(content.as_bytes())?;
+        }
+
+        let output = child.wait_with_output()?;
+
+        if output.status.success() {
+            tracing::debug!("{}: crontab updated successfully", username);
+        } else {
+            bail!(String::from_utf8_lossy(&output.stderr).into_owned())
+        }
     }
 
-    let output = child.wait_with_output()?;
-
-    if output.status.success() {
-        tracing::debug!("{}: crontab updated successfully", username);
-        Ok(ONE_RESOURCE_ONE_CHANGE)
-    } else {
-        bail!(String::from_utf8_lossy(&output.stderr).into_owned())
-    }
+    Ok(ONE_RESOURCE_ONE_CHANGE)
 }
 
 #[cfg(test)]

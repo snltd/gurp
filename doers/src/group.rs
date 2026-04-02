@@ -40,10 +40,7 @@ impl GurpGroupEnsure {
     }
 
     fn group_cmd(&self, command: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let mut cmd = cmd!(command, "-g", &self.gid.to_string(), &self.name);
-        return_if_noop!(opts);
-
-        one_change_or_stderr!(cmd, format!("group error {}", self.name))
+        cmd_change_or_noop!(opts, command, "-g", &self.gid.to_string(), &self.name)
     }
 }
 
@@ -57,11 +54,7 @@ impl GurpGroupRemove {
 
             tracing::info!("removing group: {}", self.name);
 
-            let mut cmd = cmd!(GROUPDEL_BIN, &self.name);
-
-            return_if_noop!(opts);
-
-            one_change_or_stderr!(cmd, format!("error deleting group {}", self.name))
+            cmd_change_or_noop!(opts, GROUPDEL_BIN, &self.name)
         } else {
             tracing::debug!("not present: {}", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)

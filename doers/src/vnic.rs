@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure};
+use anyhow::bail;
 use common::cmd;
 use common::constants::{DLADM_BIN, IPADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary, VlanID};
@@ -34,9 +34,8 @@ fn vnic_exists(vnic_name: &str) -> anyhow::Result<bool> {
     Ok(dladm_output.lines().any(|l| l == vnic_name))
 }
 
-fn delete_vnic(vnic_name: &str) -> anyhow::Result<()> {
-    cmd_output!(DLADM_BIN, "delete-vnic", vnic_name)?;
-    Ok(())
+fn delete_vnic(vnic_name: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    cmd_change_or_noop!(opts, DLADM_BIN, "delete-vnic", vnic_name)
 }
 
 impl GurpVnicEnsure {
@@ -77,10 +76,7 @@ impl GurpVnicEnsure {
 
             if recreate {
                 tracing::info!("Removing {}", self.name);
-
-                if !opts.noop {
-                    delete_vnic(&self.name)?;
-                }
+                let _ = delete_vnic(&self.name, opts)?;
             } else {
                 return Ok(ONE_RESOURCE_NO_CHANGE);
             }
@@ -103,23 +99,15 @@ impl GurpVnicEnsure {
         tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
-            let result = cmd.output()?;
-            ensure!(
-                result.status.success(),
-                "error creating VNIC: {}",
-                String::from_utf8_lossy(&result.stderr)
-            );
+            run_cmd!(cmd)?;
         }
 
         if self.with_interface {
             tracing::info!("creating interface on {}", self.name);
-
-            if !opts.noop {
-                cmd_output!(IPADM_BIN, "create-if", &self.name)?;
-            }
+            cmd_change_or_noop!(opts, IPADM_BIN, "create-if", &self.name)
+        } else {
+            Ok(ONE_RESOURCE_ONE_CHANGE)
         }
-
-        Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
     fn vnic_info(&self) -> anyhow::Result<VnicInfo> {
@@ -142,10 +130,7 @@ impl GurpVnicRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if vnic_exists(&self.name)? {
             tracing::info!("Removing {}", self.name);
-            return_if_noop!(opts);
-
-            delete_vnic(&self.name)?;
-            Ok(ONE_RESOURCE_ONE_CHANGE)
+            delete_vnic(&self.name, opts)
         } else {
             tracing::debug!("{} does not exist", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
