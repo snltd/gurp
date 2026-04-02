@@ -1,6 +1,7 @@
 use crate::file::actions;
 use crate::file::types::{CompareMethod, DesiredFileState};
 use anyhow::Context;
+use anyhow::bail;
 use camino::Utf8Path;
 use camino_tempfile::NamedUtf8TempFile;
 use common::types::{ApplyOpts, ApplySummary, Changed};
@@ -93,6 +94,12 @@ fn file_from_remote(
             let temp_path = tmpfile.path();
             tracing::debug!("downloading {url} to {temp_path} for comparison");
             http::remote_file_to_disk(url, temp_path)?;
+
+            if let Some(ref checksum) = desired_state.with_checksum
+                && &hash::sha256_of_file(temp_path)? != checksum
+            {
+                bail!("incorrect checksum");
+            }
 
             match compare {
                 CompareMethod::Hash => {
@@ -200,7 +207,7 @@ mod test {
         });
 
         let json_def = janet2json(&indoc::formatdoc! {r#"
-            (file/ensure "/does/not/matter"
+            (file/ensure "/tmp/does-not-matter"
                 :from-url "{}"
                 :mode "0640"
                 :owner "{}"
@@ -228,7 +235,7 @@ mod test {
         });
 
         let json_def = janet2json(&indoc::formatdoc! {r#"
-            (file/ensure "/does/not/matter"
+            (file/ensure "/tmp/does-not-matter"
                 :from-url "{}"
                 :with-checksum "0000000000000000000000000000000000000000000000000000000000000000"
                 :mode "0640"
@@ -242,10 +249,7 @@ mod test {
 
         let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
         let err = sut.apply(&defopts()).unwrap_err();
-        assert!(
-            err.to_string()
-                .contains("Remote file has incorrect checksum")
-        );
+        assert_eq!(err.to_string(), "incorrect checksum".to_owned());
         conf_mock.assert();
     }
 }

@@ -7,7 +7,7 @@ pub fn of_bytes(bytes: &[u8]) -> Hash {
 }
 
 pub fn of_string(user_string: &str) -> Hash {
-    of_bytes(user_string.as_bytes())
+    of_bytes(user_string.trim().as_bytes())
 }
 
 pub fn of_file(path: &Utf8Path) -> anyhow::Result<Hash> {
@@ -31,6 +31,11 @@ pub fn for_remote_filtered_file(url: &str, pattern: &str) -> anyhow::Result<Stri
         pattern
     );
     Ok(ureq::get(hash_url).call()?.into_body().read_to_string()?)
+}
+
+// Users supply SHA256 checksums
+pub fn sha256_of_file(path: &Utf8Path) -> anyhow::Result<String> {
+    Ok(sha256::try_digest(path)?)
 }
 
 #[cfg(test)]

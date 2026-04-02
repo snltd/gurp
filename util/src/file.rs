@@ -27,6 +27,11 @@ pub fn ensure_metadata(
     md: FileMetadata,
     opts: &ApplyOpts,
 ) -> anyhow::Result<bool> {
+    // If it's a create noop, the object will not exist
+    if !path.exists() {
+        return Ok(false);
+    }
+
     let metadata = metadata(path)?;
     let new_uid = new_uid(md.owner, &metadata)?;
     let new_gid = new_gid(md.group, &metadata)?;

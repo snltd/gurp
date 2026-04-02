@@ -69,13 +69,16 @@ impl GurpFileLineEnsure {
             tracing::debug!("no change: {}", &self.path);
             Ok(ONE_RESOURCE_NO_CHANGE)
         } else {
-            tracing::info!("creating: {}", &self.path);
+            tracing::info!("adding {} to {}", line, &self.path);
 
             if let Some(index) = self.insert_at {
                 self.insert_line_at_index(line, index, opts)
             } else {
-                let fh = fs::OpenOptions::new().append(true).open(&self.path)?;
-                writeln!(&fh, "\n{}\n", line)?;
+                if !opts.noop {
+                    let fh = fs::OpenOptions::new().append(true).open(&self.path)?;
+                    writeln!(&fh, "\n{}\n", line)?;
+                }
+
                 Ok(ONE_RESOURCE_ONE_CHANGE)
             }
         }

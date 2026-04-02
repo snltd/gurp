@@ -5,8 +5,7 @@ use common::types::{ApplyOpts, ApplySummary};
 use nix::unistd::{Gid, Uid};
 use serde::Deserialize;
 use std::fs;
-use util::file;
-use util::file::{FileMetadata, NameOrId};
+use util::file::{self, FileMetadata, NameOrId};
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]

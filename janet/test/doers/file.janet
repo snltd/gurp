@@ -44,7 +44,7 @@
                  :owner "merp"
                  :group "byerp"
                  :permissions "rwxr-xr-x")
-    "In file/ensure /octals/only: unexpected property :permissions. Valid properties are :owner, :content, :from-url, :group, :mode, :from-struct, :with-checksum, :from, :ignore-pattern, :to-format, :backup-suffix, :label"))
+    "In file/ensure /octals/only: unexpected property :permissions. Valid properties are :owner, :content, :url-is-server, :from-url, :group, :mode, :from-struct, :with-checksum, :from, :ignore-pattern, :to-format, :only-fetch-from-url-once, :backup-suffix, :label"))
 
 # In server mode local file references get turned into http ones, pointing
 # to the server.
@@ -80,7 +80,8 @@
                          :mode "0755"
                          :name "/path/to/file"
                          :owner "root"
-                         :role "test-role"}
+                         :role "test-role"
+                         :url-is-server true}
                         {:_id "/test-role/file/_file_path"
                          :content "lots-of-data"
                          :group "root"
