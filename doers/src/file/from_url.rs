@@ -98,7 +98,7 @@ fn file_from_remote(
             if let Some(ref checksum) = desired_state.with_checksum
                 && &hash::sha256_of_file(temp_path)? != checksum
             {
-                bail!("incorrect checksum");
+                bail!("Remote file has incorrect checksum");
             }
 
             match compare {
