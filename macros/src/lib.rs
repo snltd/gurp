@@ -14,33 +14,8 @@ pub fn log_error(cmd: &Command, output: Output) -> String {
     "error running external command".to_owned()
 }
 
-#[macro_export]
-#[allow(unused_macros)]
-macro_rules! one_change_or_stderr {
-    ($cmd:expr, $msg:expr) => {{
-        let output = $cmd.output()?;
-
-        if output.status.success() {
-            Ok(common::constants::ONE_RESOURCE_ONE_CHANGE)
-        } else {
-            anyhow::bail!($crate::log_error(&$cmd, output))
-        }
-    }};
-
-    ($cmd:expr) => {{
-        let output = $cmd.output()?;
-
-        if output.status.success() {
-            Ok(common::constants::ONE_RESOURCE_ONE_CHANGE)
-        } else {
-            anyhow::bail!($crate::log_error(&$cmd, output))
-        }
-    }};
-}
-
 /// Builds a command from its args, returning a Command. Logs the constructed command
 #[macro_export]
-#[allow(unused_macros)]
 macro_rules! cmd {
     ( $bin:expr $(, $arg:expr )* $(,)? ) => {{
         use std::process::{Command, Stdio};
@@ -57,7 +32,6 @@ macro_rules! cmd {
 }
 
 #[macro_export]
-#[allow(unused_macros)]
 macro_rules! cmd_change_or_noop{
     ( $opts:expr, $bin:expr $(, $arg:expr )* $(,)? ) => {{
         use std::process::{Command, Stdio};
@@ -83,7 +57,6 @@ macro_rules! cmd_change_or_noop{
 
 /// Receives a Command and runs it, returning a result of the standard out
 #[macro_export]
-#[allow(unused_macros)]
 macro_rules! run_cmd {
     ( $cmd:expr ) => {{
         let output = $cmd.output()?;
@@ -100,7 +73,6 @@ macro_rules! run_cmd {
 
 /// Builds and returns a Command from its args.
 #[macro_export]
-#[allow(unused_macros)]
 macro_rules! cmd_with_stdin {
     ( $bin:expr $(, $arg:expr )* $(,)? ) => {{
         use std::process::{Command, Stdio};
@@ -119,7 +91,6 @@ macro_rules! cmd_with_stdin {
 
 /// Builds a Command from its args, and executes that command, returning a result of stdout
 #[macro_export]
-#[allow(unused_macros)]
 macro_rules! cmd_output {
     ( $bin:expr, $( $arg:expr ),+ $(,)? ) => {{
         let mut cmd = cmd!($bin, $($arg), +);
@@ -137,8 +108,6 @@ macro_rules! cmd_output {
 
 #[cfg(test)]
 mod test {
-    use common::constants::ONE_RESOURCE_ONE_CHANGE;
-    use common::types::ApplySummary;
     use predicates::prelude::*;
 
     #[test]
@@ -175,25 +144,5 @@ mod test {
         let result = (|| cmd_output!("/bin/nonsense", "merp", "merp", "merp"))();
         assert!(result.is_err());
         Ok(())
-    }
-
-    #[test]
-    fn test_one_change_or_stderr_macro_ok() {
-        fn wrapper() -> anyhow::Result<ApplySummary> {
-            let mut cmd = cmd!("/bin/echo");
-            one_change_or_stderr!(cmd)
-        }
-
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, wrapper().unwrap());
-    }
-
-    #[test]
-    fn test_one_change_or_stderr_macro_err() {
-        fn wrapper() -> anyhow::Result<ApplySummary> {
-            let mut cmd = cmd!("/bin/chubb");
-            one_change_or_stderr!(cmd)
-        }
-
-        assert!(wrapper().is_err());
     }
 }

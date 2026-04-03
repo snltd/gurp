@@ -82,11 +82,6 @@ fn file_from_remote(
     let url = desired_state.from_url.as_ref().context("no :from-url")?;
     let mut changed = false;
 
-    let source = desired_state
-        .from_url
-        .as_ref()
-        .context("no source file name")?;
-
     if path.exists() && desired_state.only_fetch_from_url_once {
         tracing::debug!("{path} exists and :only-fetch-from-url-once is set");
         return Ok(false);
