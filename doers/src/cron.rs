@@ -66,6 +66,7 @@ impl GurpCronEnsure {
         match self.ensured_crontab(&content)? {
             Some(new_crontab) => {
                 tracing::info!("changing job '{}'", self.name);
+
                 if opts.dump_config {
                     println!(
                         "{}",
@@ -212,9 +213,10 @@ fn current_crontab(username: &str) -> anyhow::Result<String> {
 
 fn write_crontab(username: &str, content: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     let mut cmd = cmd_with_stdin!(CRONTAB_BIN, "-u", username);
-    let mut child = cmd.spawn()?;
 
     if !opts.noop {
+        let mut child = cmd.spawn()?;
+
         if let Some(stdin) = child.stdin.as_mut() {
             tracing::debug!("{}: writing: {}", username, content);
             stdin.write_all(content.as_bytes())?;
