@@ -249,7 +249,10 @@ mod test {
 
         let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
         let err = sut.apply(&defopts()).unwrap_err();
-        assert_eq!(err.to_string(), "incorrect checksum".to_owned());
+        assert_eq!(
+            err.to_string(),
+            "Remote file has incorrect checksum".to_owned()
+        );
         conf_mock.assert();
     }
 }
