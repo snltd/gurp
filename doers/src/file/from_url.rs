@@ -138,7 +138,7 @@ fn file_from_remote(
     }
 
     if changed && !opts.noop {
-        let _bytes = fs::copy(source, path)?;
+        let _bytes = fs::copy(temp_path, path)?;
     }
 
     Ok(changed)
