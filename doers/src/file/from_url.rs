@@ -15,10 +15,8 @@ pub fn run(
     opts: &ApplyOpts,
 ) -> anyhow::Result<ApplySummary> {
     let mut changed = if desired_state.url_is_server {
-        println!("server path");
         file_from_server(path, desired_state, compare, opts)
     } else {
-        println!("remote path");
         file_from_remote(path, desired_state, compare, opts)
     }?;
 
@@ -97,10 +95,16 @@ fn file_from_remote(
             tracing::debug!("downloading {url} to {temp_path} for comparison");
             http::remote_file_to_disk(url, temp_path)?;
 
-            if let Some(ref checksum) = desired_state.with_checksum
-                && &hash::sha256_of_file(temp_path)? != checksum
-            {
-                bail!("Remote file has incorrect checksum");
+            if let Some(ref expected_checksum) = desired_state.with_checksum {
+                let actual_checksum = &hash::sha256_of_file(temp_path)?;
+                println!("comparing {actual_checksum} and {expected_checksum}");
+                if actual_checksum != expected_checksum {
+                    bail!("Remote file has incorrect checksum");
+                } else {
+                    println!("correct checksum");
+                }
+            } else {
+                println!("no checksum to compare");
             }
 
             match compare {
