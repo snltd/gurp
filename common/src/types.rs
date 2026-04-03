@@ -36,10 +36,14 @@ pub struct ServerOpts {
     pub metrics_to: Option<String>,
 }
 
+pub type Changes = u32;
+pub type Resources = u32;
+pub type Changed = bool;
+
 #[derive(Debug, Default, PartialEq, Copy, Clone)]
 pub struct ApplySummary {
-    pub resources: u32,
-    pub changes: u32,
+    pub resources: Resources,
+    pub changes: Changes,
 }
 
 impl Add for ApplySummary {

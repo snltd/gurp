@@ -38,13 +38,7 @@ impl GurpIpInterfaceEnsure {
             tracing::debug!("{} exists", self.name);
         } else {
             tracing::info!("creating {}", self.name);
-            let mut cmd = cmd!(IPADM_BIN, "create-if", &self.name);
-
-            if !opts.noop {
-                run_cmd!(cmd)?;
-            }
-
-            summary = ONE_RESOURCE_ONE_CHANGE;
+            summary = cmd_change_or_noop!(opts, IPADM_BIN, "create-if", &self.name)?;
         }
 
         // The properties can only be considered if the interface exists. If we're in the middle
@@ -102,10 +96,7 @@ impl GurpIpInterfaceRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if interface_exists(&self.name)? {
             tracing::info!("removing {}", self.name);
-            return_if_noop!(opts);
-
-            cmd_output!(IPADM_BIN, "delete-if", &self.name)?;
-            Ok(ONE_RESOURCE_ONE_CHANGE)
+            cmd_change_or_noop!(opts, IPADM_BIN, "delete-if", &self.name)
         } else {
             tracing::debug!("{} does not exist", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)

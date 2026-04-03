@@ -69,15 +69,16 @@ impl GurpFileLineEnsure {
             tracing::debug!("no change: {}", &self.path);
             Ok(ONE_RESOURCE_NO_CHANGE)
         } else {
-            tracing::info!("creating: {}", &self.path);
-
-            return_if_noop!(opts);
+            tracing::info!("adding {} to {}", line, &self.path);
 
             if let Some(index) = self.insert_at {
                 self.insert_line_at_index(line, index, opts)
             } else {
-                let fh = fs::OpenOptions::new().append(true).open(&self.path)?;
-                writeln!(&fh, "\n{}\n", line)?;
+                if !opts.noop {
+                    let fh = fs::OpenOptions::new().append(true).open(&self.path)?;
+                    writeln!(&fh, "\n{}\n", line)?;
+                }
+
                 Ok(ONE_RESOURCE_ONE_CHANGE)
             }
         }
@@ -170,9 +171,12 @@ fn write_content(
     content: &str,
     opts: &ApplyOpts,
 ) -> anyhow::Result<ApplySummary> {
-    return_if_noop!(opts);
     tracing::debug!("writing new content to {path}");
-    fs::write(path, content)?;
+
+    if !opts.noop {
+        fs::write(path, content)?;
+    }
+
     Ok(ONE_RESOURCE_ONE_CHANGE)
 }
 
@@ -184,9 +188,6 @@ impl GurpFileLineRemove {
             remove_lines(&content, &self.match_type, &self.pattern, &self.apply_to)?
         {
             tracing::info!("removing line(s) from {}", &self.path);
-
-            return_if_noop!(opts);
-
             write_content(&self.path, &new_content, opts)
         } else {
             tracing::debug!("no change: {}", &self.path);
@@ -288,7 +289,6 @@ fn remove_lines(
 mod test {
     use super::*;
     use camino_tempfile_ext::prelude::*;
-    use common::constants::ONE_RESOURCE_NOOP;
     use indoc::{formatdoc, indoc};
     use pretty_assertions::assert_eq;
     use tester::{defopts, defopts_noop, deserialized_example, janet2json};
@@ -423,7 +423,7 @@ mod test {
 
         let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
         assert_eq!(
             "line_1\nline_2\nline_3".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()

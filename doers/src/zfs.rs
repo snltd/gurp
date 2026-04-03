@@ -1,4 +1,3 @@
-use anyhow::ensure;
 use byte_unit::Byte;
 use camino::Utf8PathBuf;
 use common::cmd;
@@ -112,14 +111,10 @@ impl GurpZfsEnsure {
             if run_cmd {
                 cmd.arg(&self.name);
                 tracing::debug!(command = cmd::to_string(&cmd));
-                return_if_noop!(opts);
 
-                let output = cmd.output()?;
-
-                ensure!(
-                    output.status.success(),
-                    String::from_utf8_lossy(&output.stderr).into_owned()
-                );
+                if !opts.noop {
+                    run_cmd!(cmd)?;
+                }
 
                 Ok(ONE_RESOURCE_ONE_CHANGE)
             } else {
@@ -154,9 +149,11 @@ impl GurpZfsEnsure {
         cmd.arg(&self.name).stderr(Stdio::piped());
         tracing::debug!(command = cmd::to_string(&cmd));
 
-        return_if_noop!(opts);
+        if !opts.noop {
+            run_cmd!(cmd)?;
+        }
 
-        one_change_or_stderr!(cmd, "creating ZFS dataset")
+        Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 }
 
@@ -165,7 +162,6 @@ impl GurpZfsRemove {
         tracing::debug!("zfs: looking for {}", self.name);
         if zfs_exists(&self.name)? {
             tracing::info!("removing filesystem: {}", self.name);
-            return_if_noop!(opts);
             self.remove_filesystem(opts)
         } else {
             tracing::debug!("not present: {}", self.name);
@@ -174,9 +170,7 @@ impl GurpZfsRemove {
     }
 
     fn remove_filesystem(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let mut cmd = cmd!(*ZFS_BIN_PATH, "destroy", "-r", &self.name);
-        return_if_noop!(opts);
-        one_change_or_stderr!(cmd)
+        cmd_change_or_noop!(opts, *ZFS_BIN_PATH, "destroy", "-r", &self.name)
     }
 }
 

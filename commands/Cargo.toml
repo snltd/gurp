@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.99"
-axum = "0.8.8"
+axum = { version = "0.8.8", features = ["macros"] }
 axum-macros = "0.5.0"
 camino = "1.1.9"
 common = { path = "../common"} 

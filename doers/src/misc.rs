@@ -1,8 +1,7 @@
 use anyhow::{bail, ensure};
 use common::cmd;
 use common::constants::{
-    DISPADMIN_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, SHARECTL_BIN, SMBADM_BIN,
-    SVCADM_BIN,
+    DISPADMIN_BIN, ONE_RESOURCE_NO_CHANGE, SHARECTL_BIN, SMBADM_BIN, SVCADM_BIN,
 };
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
@@ -78,10 +77,7 @@ impl GurpMiscEnsure {
         }
 
         tracing::info!("enabling smb user: {}", username);
-
-        let mut cmd = cmd!(SMBADM_BIN, "enable-user", username);
-        return_if_noop!(opts);
-        one_change_or_stderr!(cmd, "error enabling SMB share")
+        cmd_change_or_noop!(opts, SMBADM_BIN, "enable-user", username)
     }
 
     fn ensure_nfs_domain(
@@ -109,16 +105,14 @@ impl GurpMiscEnsure {
             desired_domain
         );
 
-        let mut cmd = cmd!(
+        cmd_change_or_noop!(
+            opts,
             SHARECTL_BIN,
             "set",
             "-p",
             format!("nfsmapid_domain={desired_domain}"),
             "nfs"
-        );
-
-        return_if_noop!(opts);
-        one_change_or_stderr!(cmd, "error setting NFS domain")
+        )
     }
 
     fn set_scheduler_class(
@@ -158,19 +152,8 @@ impl GurpMiscEnsure {
             desired_class
         );
 
-        let mut set_cmd = cmd!(DISPADMIN_BIN, "-d", desired_class);
-
-        if !opts.noop {
-            run_cmd!(set_cmd)?;
-        }
-
-        let mut svc_cmd = cmd!(SVCADM_BIN, "refresh", "svc:/system/scheduler:default");
-
-        if !opts.noop {
-            run_cmd!(svc_cmd)?;
-        }
-
-        Ok(ONE_RESOURCE_ONE_CHANGE)
+        let _ = cmd_change_or_noop!(opts, DISPADMIN_BIN, "-d", desired_class)?;
+        cmd_change_or_noop!(opts, SVCADM_BIN, "refresh", "svc:/system/scheduler:default")
     }
 }
 

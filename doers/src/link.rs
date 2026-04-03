@@ -192,9 +192,11 @@ impl GurpLinkRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if self.path.exists() {
             tracing::info!("removing link: {}", self.path);
-            return_if_noop!(opts);
 
-            fs::remove_file(&self.path)?;
+            if !opts.noop {
+                fs::remove_file(&self.path)?;
+            }
+
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
             tracing::debug!("not present: {}", self.path);
@@ -207,7 +209,6 @@ impl GurpLinkRemove {
 mod test {
     use super::*;
     use camino_tempfile_ext::prelude::*;
-    use common::constants::ONE_RESOURCE_NOOP;
     use pretty_assertions::assert_eq;
     use std::os::unix;
     use tester::{defopts, defopts_noop, deserialized_example, janet2json};
@@ -292,7 +293,7 @@ mod test {
 
         assert!(!target_path.exists());
         let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
         assert!(!target_path.exists());
     }
 
@@ -320,7 +321,7 @@ mod test {
         let json_def = janet2json(&format!(r#"(link/remove "{}")"#, target.as_path()));
         assert!(target.exists());
         let sut: GurpLinkRemove = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
         assert!(target.exists());
     }
 

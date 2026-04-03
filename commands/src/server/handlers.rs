@@ -11,12 +11,18 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
-use util::info;
+use util::filter::FileFilter;
+use util::{hash, info};
 
 #[derive(serde::Deserialize)]
 pub struct ConfigQuery {
     server_name: String,
     format: String,
+}
+
+#[derive(serde::Deserialize)]
+pub struct FilterHashQuery {
+    pattern: String,
 }
 
 pub async fn status() -> &'static str {
@@ -139,4 +145,76 @@ pub async fn file(
                 .into_response()
         }
     }
+}
+
+pub async fn file_hash(
+    Path(path): Path<String>,
+    Extension(opts): Extension<Arc<ServerOpts>>,
+) -> impl IntoResponse {
+    tracing::info!("request for hash of file {}", path);
+
+    let path = match opts
+        .config_dir
+        .join("files")
+        .join(&path)
+        .canonicalize_utf8()
+    {
+        Ok(path) => path,
+        Err(e) => {
+            tracing::warn!("could not read {path}: {e}");
+            return (StatusCode::NOT_FOUND).into_response();
+        }
+    };
+
+    let hash = match hash::of_file(&path) {
+        Ok(hash) => hash,
+        Err(e) => {
+            tracing::warn!("could not get hash of {path}: {e}");
+            return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
+        }
+    };
+
+    hash.to_string().into_response()
+}
+
+#[axum::debug_handler]
+pub async fn file_hash_filtered(
+    Path(path): Path<String>,
+    Query(params): Query<FilterHashQuery>,
+    Extension(opts): Extension<Arc<ServerOpts>>,
+) -> impl IntoResponse {
+    let pattern = params.pattern;
+
+    tracing::info!("request for hash of file {path} filtered on {pattern}");
+
+    let path = match opts
+        .config_dir
+        .join("files")
+        .join(&path)
+        .canonicalize_utf8()
+    {
+        Ok(path) => path,
+        Err(e) => {
+            tracing::warn!("could not read {path}: {e}");
+            return (StatusCode::NOT_FOUND).into_response();
+        }
+    };
+
+    let filter = match FileFilter::from(&pattern) {
+        Ok(hash) => hash,
+        Err(e) => {
+            tracing::warn!("could instantiate filter for {pattern}: {e}");
+            return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
+        }
+    };
+
+    let hash = match filter.file(&path) {
+        Ok(hash) => hash,
+        Err(e) => {
+            tracing::warn!("could not get filtered hash of {path}: {e}");
+            return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
+        }
+    };
+
+    hash.to_string().into_response()
 }

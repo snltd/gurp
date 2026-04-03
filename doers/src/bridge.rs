@@ -58,8 +58,6 @@ impl GurpBridgeEnsure {
             }
         } else {
             tracing::info!("creating bridge {}", self.name);
-            return_if_noop!(opts);
-
             self.create_bridge(opts)
         }
     }

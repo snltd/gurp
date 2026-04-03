@@ -1,4 +1,4 @@
-use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 
@@ -26,10 +26,7 @@ impl GurpEtherstubEnsure {
             Ok(ONE_RESOURCE_NO_CHANGE)
         } else {
             tracing::info!("creating {}", self.name);
-            return_if_noop!(opts);
-
-            cmd_output!(DLADM_BIN, "create-etherstub", &self.name)?;
-            Ok(ONE_RESOURCE_ONE_CHANGE)
+            cmd_change_or_noop!(opts, DLADM_BIN, "create-etherstub", &self.name)
         }
     }
 }
@@ -38,10 +35,7 @@ impl GurpEtherstubRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if etherstub_exists(&self.name)? {
             tracing::info!("Removing {}", self.name);
-            return_if_noop!(opts);
-
-            cmd_output!(DLADM_BIN, "delete-etherstub", &self.name)?;
-            Ok(ONE_RESOURCE_ONE_CHANGE)
+            cmd_change_or_noop!(opts, DLADM_BIN, "delete-etherstub", &self.name)
         } else {
             tracing::debug!("{} does not exist", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)

@@ -37,7 +37,7 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:backup-suffix` | `string` | Back up the file with this suff. Use 'TIMESTAMP' for an epoch timestamp |  |
+| `:backup-suffix` | `string` | Back up the file with this suffix. Use 'TIMESTAMP' for an epoch timestamp |  |
 | `:content` | `string` | Literal content of the file. Must have :content xor :from |  |
 | `:from-struct` | `struct table tuple` | Generate a config file from the given struct. Requires :to-format |  |
 | `:from-url` | `string` | Fetch file from the given URL |  |
@@ -45,8 +45,10 @@ None
 | `:group` | `string number` | The group name or GID of the for this file | `"root"` |
 | `:ignore-pattern` | `string` | When comparing, ignore lines matching this Rust regex |  |
 | `:mode` | `string` | Permissions written as a four-digit octal | `"0644"` |
+| `:only-fetch-from-url-once` | `boolean` | If you use :from-url, Gurp must download the file on every run to compare it with the installed copy. When this is set to true, :from-url files are only downloaded if the target file is missing |  |
 | `:owner` | `string number` | The username or UID of the user who owns this file | `"root"` |
 | `:to-format` | `string` | Used with :from-struct to try to turn the struct into this format |  |
+| `:url-is-server` | `boolean` | Used internally to identify Gurp server URLs |  |
 | `:with-checksum` | `string` | Blake3 checksum used to validate files fetched by :from-url |  |
 
 ## file/remove

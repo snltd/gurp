@@ -4,8 +4,7 @@ use crate::zone::{bhyve, illumos, lx};
 use anyhow::{bail, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{
-    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_NOOP, ONE_RESOURCE_ONE_CHANGE, ZLOGIN_BIN, ZONEADM_BIN,
-    ZONECFG_BIN,
+    ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ZLOGIN_BIN, ZONEADM_BIN, ZONECFG_BIN,
 };
 use common::types::{ApplyOpts, ApplySummary};
 use common::{cmd, info};
@@ -42,15 +41,6 @@ pub struct GurpZoneRemove {
 }
 
 impl GurpZoneEnsure {
-    fn recreate(&self) -> bool {
-        if self.config.recreate == 0 {
-            false
-        } else {
-            let num = rand::random_range(1..=self.config.recreate);
-            tracing::debug!("zone recreate random: {} == {}", self.config.recreate, num);
-            num == 1
-        }
-    }
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let config_input = self.config.to_zonecfg();
 
@@ -75,7 +65,7 @@ impl GurpZoneEnsure {
         }
 
         if opts.noop {
-            Ok(ONE_RESOURCE_NOOP)
+            Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
             self.create_from_config(&config_input)?;
             self.build_zone(opts)
@@ -345,14 +335,25 @@ impl GurpZoneEnsure {
             Ok(())
         }
     }
+
+    fn recreate(&self) -> bool {
+        if self.config.recreate == 0 {
+            false
+        } else {
+            let num = rand::random_range(1..=self.config.recreate);
+            tracing::debug!("zone recreate random: {} == {}", self.config.recreate, num);
+            num == 1
+        }
+    }
 }
 
 impl GurpZoneRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if current_zone_list()?.contains_key(&self.name) {
             tracing::info!("zone {}: remove", self.name);
+
             if opts.noop {
-                Ok(ONE_RESOURCE_NOOP)
+                Ok(ONE_RESOURCE_ONE_CHANGE)
             } else {
                 control::remove_zone(&self.name)
             }

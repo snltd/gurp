@@ -5,8 +5,7 @@ use common::types::{ApplyOpts, ApplySummary};
 use nix::unistd::{Gid, Uid};
 use serde::Deserialize;
 use std::fs;
-use util::file;
-use util::file::{FileMetadata, NameOrId};
+use util::file::{self, FileMetadata, NameOrId};
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -46,7 +45,7 @@ pub struct GurpDirectoryRemove {
 
 impl GurpDirectoryEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let mut changes = 0;
+        let mut changed = false;
 
         if self.path.exists() {
             ensure!(
@@ -56,22 +55,30 @@ impl GurpDirectoryEnsure {
             );
         } else {
             tracing::info!("creating directory: {}", self.path);
-            return_if_noop!(opts);
+            changed = true;
 
-            changes = 1;
-            fs::create_dir_all(&self.path)?;
+            if !opts.noop {
+                fs::create_dir_all(&self.path)?;
+            }
         }
 
-        file::ensure_metadata(
+        if file::ensure_metadata(
+            &self.path,
             FileMetadata {
                 group: &self.desired_state.group,
                 mode: &self.desired_state.mode,
                 owner: &self.desired_state.owner,
-                path: &self.path,
-                changes,
             },
             opts,
-        )
+        )? {
+            changed = true
+        }
+
+        if changed {
+            Ok(ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        }
     }
 }
 
@@ -90,8 +97,11 @@ impl GurpDirectoryRemove {
             );
 
             tracing::info!("removing directory: {}", self.path);
-            return_if_noop!(opts);
-            fs::remove_dir_all(&self.path)?;
+
+            if !opts.noop {
+                fs::remove_dir_all(&self.path)?;
+            }
+
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
             tracing::debug!("not present: {}", self.path);
@@ -104,7 +114,6 @@ impl GurpDirectoryRemove {
 mod test {
     use super::*;
     use camino_tempfile_ext::prelude::*;
-    use common::constants::ONE_RESOURCE_NOOP;
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use std::os::unix::fs::PermissionsExt;
@@ -177,7 +186,7 @@ mod test {
         let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert!(!dir.exists());
-        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
         assert!(!dir.exists());
     }
 
@@ -275,7 +284,7 @@ mod test {
         let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
 
         assert!(dir.exists());
-        assert_eq!(ONE_RESOURCE_NOOP, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
         assert!(dir.exists());
     }
 }

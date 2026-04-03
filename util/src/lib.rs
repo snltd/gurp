@@ -3,6 +3,8 @@ extern crate macros;
 
 pub mod deserializer;
 pub mod file;
+pub mod filter;
+pub mod hash;
 pub mod http;
 pub mod info;
 pub mod ip_protocols;

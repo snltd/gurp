@@ -90,6 +90,7 @@ impl GurpNetworkFlowEnsure {
             let status = cmd.status()?;
             ensure!(status.success(), "Error running flowadm command");
         }
+
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
@@ -212,10 +213,7 @@ impl GurpNetworkFlowRemove {
 
         if extant_flows.contains_key(&self.name) {
             tracing::info!("removing flow {}", self.name);
-            return_if_noop!(opts);
-
-            cmd_output!(FLOWADM_BIN, "remove-flow", &self.name)?;
-            Ok(ONE_RESOURCE_ONE_CHANGE)
+            cmd_change_or_noop!(opts, FLOWADM_BIN, "remove-flow", &self.name)
         } else {
             tracing::debug!("flow {} does not exist", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)

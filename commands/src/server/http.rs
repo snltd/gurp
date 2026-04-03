@@ -23,6 +23,11 @@ pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
         .route("/v1/version", get(handlers::version))
         .route("/v1/status", get(handlers::status))
         .route("/v1/file/{*path}", get(handlers::file))
+        .route("/v1/file-hash/{*path}", get(handlers::file_hash))
+        .route(
+            "/v1/file-hash-filtered/{*path}",
+            get(handlers::file_hash_filtered),
+        )
         .route("/v1/config/{host}", get(handlers::config))
         .route_layer(axum::middleware::from_fn_with_state(
             metrics.clone(),
