@@ -53,7 +53,13 @@ impl GurpUserEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if !user_exists(&self.name)? {
             tracing::info!("creating user: {}", self.name);
-            return self.create(opts);
+            self.create(opts)?;
+
+            if let Some(hash) = self.desired_state.password_hash.as_ref() {
+                self.update_shadow(&Utf8PathBuf::from(SHADOW_PATH), &self.name, hash, opts)?;
+            }
+
+            return Ok(ONE_RESOURCE_ONE_CHANGE);
         }
 
         let current = self.current_state()?;
@@ -167,10 +173,14 @@ impl GurpUserEnsure {
             )?;
         }
 
-        Ok(ONE_RESOURCE_ONE_CHANGE)
+        if changed {
+            Ok(ONE_RESOURCE_ONE_CHANGE)
+        } else {
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        }
     }
 
-    fn create(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    fn create(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
         let mut cmd = cmd!(
             USERADD_BIN,
             "-c",
@@ -201,7 +211,7 @@ impl GurpUserEnsure {
             run_cmd!(cmd)?;
         }
 
-        Ok(ONE_RESOURCE_ONE_CHANGE)
+        Ok(())
     }
 
     fn current_state(&self) -> anyhow::Result<UserState> {
