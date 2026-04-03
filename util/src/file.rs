@@ -81,7 +81,7 @@ fn new_gid(desired_group: &NameOrId, metadata: &FileStat) -> anyhow::Result<Opti
     let desired_gid = users_and_groups::group_from(desired_group)?;
 
     if current_gid == desired_gid {
-        tracing::debug!("owner is correct");
+        tracing::debug!("group is correct");
         Ok(None)
     } else {
         Ok(Some(desired_gid))
