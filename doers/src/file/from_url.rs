@@ -81,67 +81,64 @@ fn file_from_remote(
 ) -> anyhow::Result<Changed> {
     let url = desired_state.from_url.as_ref().context("no :from-url")?;
     let mut changed = false;
+
     let source = desired_state
         .from_url
         .as_ref()
         .context("no source file name")?;
 
-    if path.exists() {
-        if desired_state.only_fetch_from_url_once {
-            tracing::debug!("{path} exists and :only-fetch-from-url-once is set");
-        } else {
-            let tmpfile = NamedUtf8TempFile::new()?;
-            let temp_path = tmpfile.path();
-            tracing::debug!("downloading {url} to {temp_path} for comparison");
-            http::remote_file_to_disk(url, temp_path)?;
+    if path.exists() && desired_state.only_fetch_from_url_once {
+        tracing::debug!("{path} exists and :only-fetch-from-url-once is set");
+        return Ok(false);
+    }
 
-            if let Some(ref expected_checksum) = desired_state.with_checksum {
-                let actual_checksum = &hash::sha256_of_file(temp_path)?;
-                println!("comparing {actual_checksum} and {expected_checksum}");
-                if actual_checksum != expected_checksum {
-                    bail!("Remote file has incorrect checksum");
-                } else {
-                    println!("correct checksum");
-                }
-            } else {
-                println!("no checksum to compare");
+    let tmpfile = NamedUtf8TempFile::new()?;
+    let temp_path = tmpfile.path();
+    tracing::debug!("downloading {url} to {temp_path} for comparison");
+    http::remote_file_to_disk(url, temp_path)?;
+
+    if let Some(ref expected_checksum) = desired_state.with_checksum {
+        let actual_checksum = &hash::sha256_of_file(temp_path)?;
+        if actual_checksum != expected_checksum {
+            if path.exists() {
+                tracing::debug!("removing downloaded file");
+                fs::remove_file(path)?;
             }
+            bail!("Remote file has incorrect checksum");
+        }
+    }
 
-            match compare {
-                CompareMethod::Hash => {
-                    if hash::of_file(temp_path)? == hash::of_file(path)? {
-                        log_no_change!(path);
-                    } else {
-                        changed = true;
-                        log_updating!(path);
+    // We have a local copy of the file
 
-                        if !opts.noop {
-                            let _bytes = fs::copy(source, path)?;
-                        }
-                    }
+    if path.exists() {
+        match compare {
+            CompareMethod::Hash => {
+                if hash::of_file(temp_path)? == hash::of_file(path)? {
+                    log_no_change!(path);
+                } else {
+                    log_updating!(path);
+                    changed = true;
                 }
-                CompareMethod::Filter(pattern) => {
-                    let filter = filter::FileFilter::from(pattern)?;
+            }
+            CompareMethod::Filter(pattern) => {
+                let filter = filter::FileFilter::from(pattern)?;
 
-                    if hash::of_string(&filter.file(temp_path)?)
-                        == hash::of_string(&filter.file(path)?)
-                    {
-                        log_no_change!(path);
-                    } else {
-                        changed = true;
-                        log_updating!(path);
-
-                        if !opts.noop {
-                            let _bytes = fs::copy(source, path)?;
-                        }
-                    }
+                if hash::of_string(&filter.file(temp_path)?) == hash::of_string(&filter.file(path)?)
+                {
+                    log_no_change!(path);
+                } else {
+                    log_updating!(path);
+                    changed = true;
                 }
             }
         }
     } else {
         changed = true;
         log_creating!(path);
-        http::remote_file_to_disk(url, path)?;
+    }
+
+    if changed && !opts.noop {
+        let _bytes = fs::copy(source, path)?;
     }
 
     Ok(changed)
