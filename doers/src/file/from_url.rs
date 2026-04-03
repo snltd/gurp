@@ -15,8 +15,10 @@ pub fn run(
     opts: &ApplyOpts,
 ) -> anyhow::Result<ApplySummary> {
     let mut changed = if desired_state.url_is_server {
+        println!("server path");
         file_from_server(path, desired_state, compare, opts)
     } else {
+        println!("remote path");
         file_from_remote(path, desired_state, compare, opts)
     }?;
 
@@ -237,7 +239,7 @@ mod test {
         let json_def = janet2json(&indoc::formatdoc! {r#"
             (file/ensure "/tmp/does-not-matter"
                 :from-url "{}"
-                :with-checksum "0000000000000000000000000000000000000000000000000000000000000000"
+                :with-checksum "0000000100000000000000000000000000000000000000000000000000000000"
                 :mode "0640"
                 :owner "{}"
                 :group "{}")
@@ -249,10 +251,12 @@ mod test {
 
         let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
         let err = sut.apply(&defopts()).unwrap_err();
+
         assert_eq!(
             err.to_string(),
             "Remote file has incorrect checksum".to_owned()
         );
+
         conf_mock.assert();
     }
 }
