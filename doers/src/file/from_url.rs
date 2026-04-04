@@ -1,7 +1,6 @@
 use crate::file::actions;
 use crate::file::types::{CompareMethod, DesiredFileState};
-use anyhow::Context;
-use anyhow::bail;
+use anyhow::{Context, bail};
 use camino::Utf8Path;
 use camino_tempfile::NamedUtf8TempFile;
 use common::types::{ApplyOpts, ApplySummary, Changed};
@@ -97,7 +96,7 @@ fn file_from_remote(
         if actual_checksum != expected_checksum {
             if path.exists() {
                 tracing::debug!("removing downloaded file");
-                fs::remove_file(path)?;
+                fs::remove_file(path).with_context(|| format!("failed to remove {path}"))?;
             }
             bail!("Remote file has incorrect checksum");
         }
@@ -133,7 +132,8 @@ fn file_from_remote(
     }
 
     if changed && !opts.noop {
-        let _bytes = fs::copy(temp_path, path)?;
+        fs::copy(temp_path, path)
+            .with_context(|| format!("failed to copy from {temp_path} to {path}"))?;
     }
 
     Ok(changed)

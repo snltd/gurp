@@ -13,7 +13,7 @@ pub fn build_hash() -> &'static str {
 
 pub fn my_hostname() -> anyhow::Result<String> {
     let hostname = unistd::gethostname()
-        .context("Failed getting hostname")?
+        .context("failed to get hostname")?
         .to_string_lossy()
         .into_owned();
 

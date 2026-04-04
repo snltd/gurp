@@ -1,3 +1,4 @@
+use anyhow::Context;
 use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
@@ -44,7 +45,9 @@ impl GurpEtherstubRemove {
 }
 
 fn etherstub_exists(etherstub_name: &str) -> anyhow::Result<bool> {
-    let dladm_output = cmd_output!(DLADM_BIN, "show-etherstub", "-p", "-o", "link")?;
+    let dladm_output = cmd_output!(DLADM_BIN, "show-etherstub", "-p", "-o", "link")
+        .with_context(|| format!("failed to test state of etherstub {etherstub_name}"))?;
+
     Ok(dladm_output.lines().any(|l| l == etherstub_name))
 }
 

@@ -2,7 +2,7 @@ use crate::zone::cloudinit;
 use crate::zone::config::{GurpZoneBhyve, GurpZoneConfig, GurpZoneFilesystem};
 use crate::zone::constants::READINESS_WAIT_TIMEOUT_BHYVE;
 use anyhow::{Context, bail, ensure};
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use common::constants::{IMG_CACHE_DIR, QEMU_IMG_BIN, ZLOGIN_BIN};
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 use std::fs::{self, File};
@@ -53,9 +53,10 @@ pub fn pre_install(config: &GurpZoneConfig) -> anyhow::Result<()> {
 
     let image_raw_file: Utf8PathBuf;
 
-    if bhyve_config.image_url.is_some() && bhyve_config.image_path.is_some() {
-        bail!("bhyve requires exactly one of :image-path or :image-url");
-    }
+    ensure!(
+        exactly_one_some!(bhyve_config.image_url, bhyve_config.image_path),
+        "bhyve requires exactly one of :image-path or :image-url"
+    );
 
     if let Some(image_path) = &bhyve_config.image_path {
         ensure!(image_path.exists(), "Image file not found: {image_path}");
@@ -68,7 +69,7 @@ pub fn pre_install(config: &GurpZoneConfig) -> anyhow::Result<()> {
         } else {
             image_cache_file
                 .extension()
-                .context("cannot determine image format")?
+                .with_context(|| format!("cannot determine image format for {image_url}"))?
         };
 
         image_raw_file = image_cache_file.with_extension("raw");
@@ -78,6 +79,7 @@ pub fn pre_install(config: &GurpZoneConfig) -> anyhow::Result<()> {
 
             if !image_cache_file.exists() {
                 tracing::debug!("No cached image file at {}", image_cache_file);
+                tracing::info!("downloading image from {image_url}");
                 http::remote_file_to_disk(image_url, &image_cache_file)?;
             }
 
@@ -104,26 +106,28 @@ pub fn pre_install(config: &GurpZoneConfig) -> anyhow::Result<()> {
 }
 
 fn image_cache_filename(url: &str) -> anyhow::Result<Utf8PathBuf> {
-    let basename = url.split("/").last().context("unable to parse image URL")?;
+    let basename = url
+        .split("/")
+        .last()
+        .with_context(|| format!("unable to parse image URL {url}"))?;
     let cache_dir = Utf8PathBuf::from(IMG_CACHE_DIR);
     Ok(cache_dir.join(basename))
 }
 
-fn write_img_to_boot_zvol(raw_img_path: &Utf8PathBuf, vol: &str) -> anyhow::Result<()> {
+fn write_img_to_boot_zvol(raw_img_path: &Utf8Path, vol: &str) -> anyhow::Result<()> {
     let zvol = Utf8PathBuf::from("/dev/zvol/dsk").join(vol);
-
-    if !zvol.exists() {
-        bail!("zvol {zvol} not found");
-    }
-
+    ensure!(zvol.exists(), "zvol {zvol} not found");
     tracing::debug!("writing {} to {}", raw_img_path, zvol);
-    fs::copy(raw_img_path, &zvol)?;
+
+    fs::copy(raw_img_path, &zvol)
+        .with_context(|| format!("failed to write image from {raw_img_path} to {zvol}"))?;
+
     Ok(())
 }
 
 fn convert_image_to_raw(
-    img_path: &Utf8PathBuf,
-    raw_img_path: &Utf8PathBuf,
+    img_path: &Utf8Path,
+    raw_img_path: &Utf8Path,
     img_format: &str,
 ) -> anyhow::Result<()> {
     let qemu_img = Utf8PathBuf::from(QEMU_IMG_BIN);
@@ -144,7 +148,8 @@ fn convert_image_to_raw(
         "raw",
         img_path,
         &raw_img_path
-    );
+    )
+    .with_context(|| format!("failed to convert {img_path} to {img_format}"));
 
     Ok(())
 }
@@ -208,7 +213,8 @@ fn monitor_console(
     let mut cr_sent = false;
     let mut login_prompt_seen = false;
 
-    let log_file = File::create(log_path)?;
+    let log_file =
+        File::create(log_path).with_context(|| format!("failed to open +w log at {log_path}"))?;
     let mut log_writer = BufWriter::new(log_file);
 
     let start_time = Instant::now();

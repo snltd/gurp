@@ -1,5 +1,5 @@
 use anyhow::{Context, bail, ensure};
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use common::cmd;
 use common::constants::{
     GROUPS_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROFILES_BIN, PROTECTED_USERS,
@@ -51,12 +51,14 @@ pub struct GurpUserRemove {
 
 impl GurpUserEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        if !user_exists(&self.name)? {
-            tracing::info!("creating user: {}", self.name);
+        let user = &self.name;
+
+        if !user_exists(user)? {
+            tracing::info!("creating user: {user}");
             self.create(opts)?;
 
             if let Some(hash) = self.desired_state.password_hash.as_ref() {
-                self.update_shadow(&Utf8PathBuf::from(SHADOW_PATH), &self.name, hash, opts)?;
+                self.update_shadow(&Utf8PathBuf::from(SHADOW_PATH), user, hash, opts)?;
             }
 
             return Ok(ONE_RESOURCE_ONE_CHANGE);
@@ -65,14 +67,12 @@ impl GurpUserEnsure {
         let current = self.current_state()?;
         let desired = &self.desired_state;
         let mut changed = false;
-
         let mut cmd = Command::new(USERMOD_BIN);
 
         if current.gecos != desired.gecos {
             changed = true;
             tracing::info!(
-                "change user gecos: [{}] {} -> {}",
-                self.name,
+                "change user gecos: [{user}] {} -> {}",
                 current.gecos,
                 desired.gecos
             );
@@ -82,8 +82,7 @@ impl GurpUserEnsure {
         if current.home_dir != desired.home_dir {
             changed = true;
             tracing::info!(
-                "change user home-dir: [{}] {} -> {}",
-                self.name,
+                "change user home-dir: [{user}] {} -> {}",
                 current.home_dir,
                 desired.home_dir
             );
@@ -93,8 +92,7 @@ impl GurpUserEnsure {
         if current.primary_group != desired.primary_group {
             changed = true;
             tracing::info!(
-                "change user primary-group: [{}] {} -> {}",
-                self.name,
+                "change user primary-group: [{user}] {} -> {}",
                 current.primary_group,
                 desired.primary_group
             );
@@ -104,11 +102,7 @@ impl GurpUserEnsure {
         if current.other_groups != desired.other_groups {
             changed = true;
             if let Some(groups) = desired.other_groups.as_ref() {
-                tracing::info!(
-                    "change other-groups: [{}] -> {}",
-                    self.name,
-                    groups.join(",")
-                );
+                tracing::info!("change other-groups: [{user}] -> {}", groups.join(","));
                 cmd.arg("-G");
                 cmd.arg(groups.join(","));
             } else {
@@ -121,11 +115,11 @@ impl GurpUserEnsure {
         if current.profiles != desired.profiles {
             changed = true;
             if let Some(profiles) = desired.profiles.as_ref() {
-                tracing::info!("change profiles: [{}] -> {}", self.name, profiles.join(","));
+                tracing::info!("change profiles: [{user}] -> {}", profiles.join(","));
                 cmd.arg("-P");
                 cmd.arg(profiles.join(","));
             } else {
-                tracing::info!("clear profiles: [{}]", self.name);
+                tracing::info!("clear profiles: [{user}]");
                 cmd.arg("-P");
                 cmd.arg("");
             }
@@ -134,8 +128,7 @@ impl GurpUserEnsure {
         if current.shell != desired.shell {
             changed = true;
             tracing::info!(
-                "change user shell: [{}] {} -> {}",
-                self.name,
+                "change user shell: [{user}] {} -> {}",
                 current.shell,
                 desired.shell
             );
@@ -145,8 +138,7 @@ impl GurpUserEnsure {
         if current.uid != desired.uid {
             changed = true;
             tracing::info!(
-                "change user uid: [{}] {} -> {}",
-                self.name,
+                "change user uid: [{user}] {} -> {}",
                 current.uid,
                 desired.uid
             );
@@ -159,18 +151,13 @@ impl GurpUserEnsure {
             tracing::debug!(command = cmd::to_string(&cmd));
 
             if !opts.noop {
-                run_cmd!(cmd)?;
+                run_cmd!(cmd).with_context(|| format!("failed to add user {user}"))?;
             }
         }
 
         if current.password_hash.is_some() && current.password_hash != desired.password_hash {
             let desired_hash = desired.password_hash.as_ref().unwrap();
-            self.update_shadow(
-                &Utf8PathBuf::from(SHADOW_PATH),
-                &self.name,
-                desired_hash,
-                opts,
-            )?;
+            self.update_shadow(&Utf8PathBuf::from(SHADOW_PATH), user, desired_hash, opts)?;
         }
 
         if changed {
@@ -208,7 +195,7 @@ impl GurpUserEnsure {
         cmd.arg(&self.name);
 
         if !opts.noop {
-            run_cmd!(cmd)?;
+            run_cmd!(cmd).with_context(|| format!("failed to create user {}", self.name))?;
         }
 
         Ok(())
@@ -218,10 +205,9 @@ impl GurpUserEnsure {
         tracing::debug!("getting state: {}", &self.name);
         match User::from_name(&self.name)? {
             Some(user) => {
-                let primary_group = Group::from_gid(user.gid)?.context(format!(
-                    "Group id '{}' not found for user '{}'",
-                    user.gid, self.name
-                ))?;
+                let primary_group = Group::from_gid(user.gid)?.with_context(|| {
+                    format!("Group id '{}' not found for user '{}'", user.gid, self.name)
+                })?;
 
                 let password_hash = if self.desired_state.password_hash.is_some() {
                     Some(self.hash_for_user(&Utf8PathBuf::from(SHADOW_PATH))?)
@@ -231,8 +217,11 @@ impl GurpUserEnsure {
 
                 Ok(UserState {
                     uid: user.uid.into(),
-                    home_dir: Utf8PathBuf::try_from(user.dir)?,
-                    shell: Utf8PathBuf::try_from(user.shell)?,
+                    home_dir: Utf8PathBuf::try_from(user.dir).with_context(|| {
+                        format!("failed to read homedir path for {}", self.name)
+                    })?,
+                    shell: Utf8PathBuf::try_from(user.shell)
+                        .with_context(|| format!("failed to read shell path for {}", self.name))?,
                     gecos: user.gecos.to_string_lossy().to_string(),
                     primary_group: primary_group.name.clone(),
                     password_hash,
@@ -271,7 +260,7 @@ impl GurpUserEnsure {
 
     fn update_shadow(
         &self,
-        shadow_path: &Utf8PathBuf,
+        shadow_path: &Utf8Path,
         user: &str,
         new_hash: &str,
         opts: &ApplyOpts,
@@ -299,7 +288,8 @@ impl GurpUserEnsure {
             .join("\n");
 
         if !opts.noop {
-            fs::write(shadow_path, output)?;
+            fs::write(shadow_path, output)
+                .with_context(|| format!("failed to write to {shadow_path}"))?;
         }
 
         Ok(())
@@ -376,7 +366,6 @@ fn user_exists(username: &str) -> anyhow::Result<bool> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use camino::Utf8PathBuf;
     use pretty_assertions::assert_eq;
     use tester::{defopts, deserialized_example};
 

@@ -1,5 +1,5 @@
 use crate::types::ApplyResult;
-use anyhow::bail;
+use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
 use common::constants::{
     IPF_BIN, IPF_SVC, IPFSTAT_BIN, NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_NO_CHANGE,
@@ -50,7 +50,7 @@ pub fn collect_and_ensure(filter_list: &EnsureList, opts: &ApplyOpts) -> ApplyRe
     }
 
     ensure_ipf_is_running(opts)?;
-    svcs::wait_for_state(IPF_SVC, "online")?;
+    svcs::wait_for_state(IPF_SVC, "online").context("error waiting ipf service to come online")?;
     let mut force_reload = false;
 
     let mut filter_list = filter_list.clone();
@@ -62,7 +62,10 @@ pub fn collect_and_ensure(filter_list: &EnsureList, opts: &ApplyOpts) -> ApplyRe
         if let Some(content) = filter.content {
             desired_rules.push_str(&content);
         } else if let Some(path) = filter.from {
-            desired_rules.push_str(&fs::read_to_string(path)?);
+            desired_rules.push_str(
+                &fs::read_to_string(&path)
+                    .with_context(|| format!("error reading rules form {path}"))?,
+            );
         } else {
             tracing::warn!("neither :from nor :content for rule {}", filter.id)
         }
@@ -93,9 +96,13 @@ pub fn collect_and_ensure(filter_list: &EnsureList, opts: &ApplyOpts) -> ApplyRe
         if opts.noop {
             Ok((ONE_RESOURCE_ONE_CHANGE, changed_ids))
         } else {
-            let before_change = cmd_output!(IPFSTAT_BIN, "-io")?;
-            run_cmd!(reload_cmd)?;
-            let after_change = cmd_output!(IPFSTAT_BIN, "-io")?;
+            let before_change =
+                cmd_output!(IPFSTAT_BIN, "-io").context("failed to get ipfstat status")?;
+
+            run_cmd!(reload_cmd).context("failed to reload ipfilter rules")?;
+
+            let after_change =
+                cmd_output!(IPFSTAT_BIN, "-io").context("failed to get ipfstat status")?;
 
             if before_change == after_change {
                 tracing::debug!("reloading ipfilter conf did not change live rules");
@@ -120,7 +127,7 @@ impl GurpIpfilterRemove {
             let mut cmd = cmd!(IPF_BIN, "-Fa");
 
             if !opts.noop {
-                run_cmd!(cmd)?;
+                run_cmd!(cmd).context("failed to flush ipfilter rules")?;
             }
 
             ret = ONE_RESOURCE_ONE_CHANGE;
@@ -132,7 +139,8 @@ impl GurpIpfilterRemove {
             tracing::info!("clearing persistent ipf rules");
 
             if !opts.noop {
-                fs::remove_file(&filter_file)?;
+                fs::remove_file(&filter_file)
+                    .with_context(|| format!("failed to remove ipf config at {filter_file}"))?;
             }
 
             ret = ONE_RESOURCE_ONE_CHANGE;
@@ -146,7 +154,9 @@ impl GurpIpfilterRemove {
 
 // this is not 'Nam Smokey,
 fn there_are_rules() -> anyhow::Result<bool> {
-    Ok(!cmd_output!(IPFSTAT_BIN, "-io")?.is_empty())
+    Ok(!cmd_output!(IPFSTAT_BIN, "-io")
+        .context("failed to get ipf status")?
+        .is_empty())
 }
 
 fn check_filter_rules_are_valid(rules: &str) -> anyhow::Result<()> {
@@ -176,7 +186,8 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
     let filter_file = Utf8PathBuf::from(IPF_CONF);
 
     let current_persistent_rules = if filter_file.exists() {
-        fs::read_to_string(&filter_file)?
+        fs::read_to_string(&filter_file)
+            .with_context(|| format!("failed to read filter rules from {filter_file}"))?
     } else {
         String::new()
     };
@@ -200,8 +211,10 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
         }
 
         if !opts.noop {
-            let mut fh = File::create(filter_file)?;
-            write!(fh, "{desired_rules}")?;
+            let mut fh = File::create(&filter_file)
+                .with_context(|| format!("failed to open {filter_file}"))?;
+            write!(fh, "{desired_rules}")
+                .with_context(|| format!("failed to write ipfilter rules to {filter_file}"))?;
         }
 
         Ok(true)
@@ -210,7 +223,7 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
 
 fn ensure_ipf_is_running(opts: &ApplyOpts) -> anyhow::Result<()> {
     let ipf_state = svcs::current_state(IPF_SVC)?;
-    svcs::set_state(IPF_SVC, &ipf_state, "online", opts)?;
+    svcs::set_state(IPF_SVC, &ipf_state, "online", opts).context("failed to start ipf service")?;
     Ok(())
 }
 

@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{Context, bail};
 use common::constants::{SVC_WAIT_INTERVAL, SVC_WAIT_TIMEOUT, SVCADM_BIN, SVCCFG_BIN, SVCS_BIN};
 use common::types::ApplyOpts;
 use std::thread::sleep;
@@ -6,15 +6,19 @@ use std::time::Duration;
 
 pub fn current_state(svc: &str) -> anyhow::Result<String> {
     cmd_output!(SVCS_BIN, "-Ho", "state", svc)
+        .with_context(|| format!("failed to get state of service {svc}"))
 }
 
 pub fn run_svccfg(arg1: &str, arg2: &str) -> anyhow::Result<String> {
     cmd_output!(SVCCFG_BIN, arg1, arg2)
+        .with_context(|| format!("failed to run {SVCCFG_BIN} {arg1} {arg2}"))
 }
 
 pub fn exists(svc: &str) -> anyhow::Result<bool> {
     let mut cmd = cmd!(SVCS_BIN, svc);
-    let output = cmd.output()?;
+    let output = cmd
+        .output()
+        .with_context(|| format!("failed to run {SVCS_BIN} {svc}"))?;
 
     if output.status.success() {
         Ok(true)
@@ -58,7 +62,7 @@ pub fn set_state(
         if opts.noop {
             Ok("noop".to_owned())
         } else {
-            run_cmd!(cmd)
+            run_cmd!(cmd).with_context(|| format!("failed to run {SVCADM_BIN} {action} {svc}"))
         }
     }
 }

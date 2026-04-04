@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{Context, bail};
 use common::cmd;
 use common::constants::{DLADM_BIN, IPADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary, VlanID};
@@ -27,15 +27,6 @@ pub struct GurpVnicRemove {
 struct VnicInfo {
     over: String,
     vid: VlanID,
-}
-
-fn vnic_exists(vnic_name: &str) -> anyhow::Result<bool> {
-    let dladm_output = cmd_output!(DLADM_BIN, "show-vnic", "-p", "-o", "link")?;
-    Ok(dladm_output.lines().any(|l| l == vnic_name))
-}
-
-fn delete_vnic(vnic_name: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    cmd_change_or_noop!(opts, DLADM_BIN, "delete-vnic", vnic_name)
 }
 
 impl GurpVnicEnsure {
@@ -99,19 +90,21 @@ impl GurpVnicEnsure {
         tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
-            run_cmd!(cmd)?;
+            run_cmd!(cmd).with_context(|| format!("failed to create VNIC {}", self.name))?;
         }
 
         if self.with_interface {
             tracing::info!("creating interface on {}", self.name);
             cmd_change_or_noop!(opts, IPADM_BIN, "create-if", &self.name)
+                .with_context(|| format!("failed to create interface {}", self.name))
         } else {
             Ok(ONE_RESOURCE_ONE_CHANGE)
         }
     }
 
     fn vnic_info(&self) -> anyhow::Result<VnicInfo> {
-        let raw = cmd_output!(DLADM_BIN, "show-vnic", &self.name, "-p", "-o", "over,vid")?;
+        let raw = cmd_output!(DLADM_BIN, "show-vnic", &self.name, "-p", "-o", "over,vid")
+            .with_context(|| format!("failed to get config of VNIC {}", self.name))?;
 
         let chunks: Vec<_> = raw.split(':').collect();
 
@@ -136,6 +129,17 @@ impl GurpVnicRemove {
             Ok(ONE_RESOURCE_NO_CHANGE)
         }
     }
+}
+
+fn vnic_exists(vnic_name: &str) -> anyhow::Result<bool> {
+    let dladm_output = cmd_output!(DLADM_BIN, "show-vnic", "-p", "-o", "link")
+        .with_context(|| format!("failed to get state of VNIC {vnic_name}"))?;
+    Ok(dladm_output.lines().any(|l| l == vnic_name))
+}
+
+fn delete_vnic(vnic_name: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    cmd_change_or_noop!(opts, DLADM_BIN, "delete-vnic", vnic_name)
+        .with_context(|| format!("failed to delete VNIC {vnic_name}"))
 }
 
 #[cfg(test)]

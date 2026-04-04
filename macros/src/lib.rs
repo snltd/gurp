@@ -106,6 +106,14 @@ macro_rules! cmd_output {
     }};
 }
 
+/// Is exactly one of the Options a Some?
+#[macro_export]
+macro_rules! exactly_one_some {
+    ($($opt:expr),+) => {
+        [$($opt.is_some()),+].iter().filter(|&&x| x).count() == 1
+    };
+}
+
 #[cfg(test)]
 mod test {
     use predicates::prelude::*;

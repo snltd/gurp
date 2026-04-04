@@ -1,4 +1,5 @@
 use crate::types::ApplyResult;
+use anyhow::Context;
 use common::cmd;
 use common::constants::{NO_RESOURCES_TO_CHANGE, PKG_BIN};
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
@@ -84,7 +85,7 @@ pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> ApplyResul
         cmd.args(&install_list);
         tracing::debug!(command = cmd::to_string(&cmd));
 
-        run_cmd!(cmd)?;
+        run_cmd!(cmd).context("failed to install packages")?;
 
         Ok((
             ApplySummary {
@@ -140,7 +141,8 @@ pub fn collect_and_remove(pkg_list: &RemoveList, opts: &ApplyOpts) -> ApplyResul
         cmd.args(&remove_list);
         tracing::debug!(command = cmd::to_string(&cmd));
 
-        run_cmd!(cmd)?;
+        run_cmd!(cmd).context("failed to remove packages")?;
+
         Ok((
             ApplySummary {
                 resources,
@@ -152,7 +154,7 @@ pub fn collect_and_remove(pkg_list: &RemoveList, opts: &ApplyOpts) -> ApplyResul
 }
 
 fn get_pkg_list() -> anyhow::Result<String> {
-    cmd_output!(PKG_BIN, "list", "-aHo", "name,flags")
+    cmd_output!(PKG_BIN, "list", "-aHo", "name,flags").context("failed to get package list")
 }
 
 fn parse_pkg_list(output: &str) -> AllPkgs {

@@ -1,3 +1,4 @@
+use anyhow::Context;
 use common::constants::IPADM_BIN;
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
@@ -67,6 +68,7 @@ impl GurpIpPropertiesEnsure {
 
     fn current_properties_raw(&self) -> anyhow::Result<String> {
         cmd_output!(IPADM_BIN, "show-prop", "-c", "-o", "proto,property,current")
+            .context("failed to get ip-properties")
     }
 }
 

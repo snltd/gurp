@@ -88,7 +88,10 @@ fn remote_json_to_json(server: &str, opts: &ApplyOpts) -> anyhow::Result<JsonCon
         .clone()
         .map_or_else(util_info::my_hostname, Ok)?;
 
-    let host_config = String::from_utf8(fetch_from_server(server, &hostname, "json")?)?;
+    let host_config = String::from_utf8(
+        fetch_from_server(server, &hostname, "json")
+            .with_context(|| format!("failed to fetch JSON config for {hostname} from {server}"))?,
+    )?;
 
     if opts.dump_config {
         let formatted_json = json::pretty(&host_config)?;
@@ -115,7 +118,8 @@ pub fn local_janet_to_janet(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow
         host_file,
         opts,
         &format!(r#"(string/format "{format}" (machine-config))"#),
-    )?;
+    )
+    .with_context(|| "failed to compile to Janet")?;
 
     Ok(info::dump_config(&compiled_janet, None, opts))
 }
@@ -147,7 +151,9 @@ pub fn raw_janet_to_json(janet_snippet: &str, opts: &ApplyOpts) -> anyhow::Resul
         );
     }
 
-    let janet_result = client.run(janet_instructions)?;
+    let janet_result = client
+        .run(janet_instructions)
+        .with_context(|| "failed to compile raw Janet config")?;
     Ok(janet_result.unwrap().to_string())
 }
 
@@ -163,7 +169,9 @@ pub fn local_janet(
         host_file
     );
 
-    let host_file = host_file.canonicalize_utf8()?;
+    let host_file = host_file
+        .canonicalize_utf8()
+        .with_context(|| format!("failed to canonicalize {host_file}"))?;
 
     let config_dir = host_file
         .parent()
@@ -192,7 +200,10 @@ pub fn local_janet(
         );
     }
 
-    let janet_result = client.run(janet_instructions)?;
+    let janet_result = client
+        .run(janet_instructions)
+        .with_context(|| "failed to compile local Janet config")?;
+
     Ok(janet_result.unwrap().to_string())
 }
 
@@ -231,7 +242,10 @@ pub fn jimage_to_json(
 
     janet_instructions.push_str("\n(to-json (machine-config))");
 
-    let janet_result = client.run(janet_instructions)?;
+    let janet_result = client
+        .run(janet_instructions)
+        .with_context(|| "failed to compile jimage config")?;
+
     Ok(janet_result.unwrap().to_string())
 }
 
@@ -283,7 +297,9 @@ pub fn local_janet_to_jimage(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyho
         );
     }
 
-    let result = client.run(janet_instructions)?;
+    let result = client
+        .run(janet_instructions)
+        .with_context(|| "failed to compile local janet to jimage")?;
 
     match result.unwrap() {
         TaggedJanet::Buffer(buf) => Ok(buf.as_bytes().to_vec()),

@@ -1,7 +1,7 @@
 use crate::zone::config::GurpZoneConfig;
 use crate::zone::control::{self, ZoneadmState};
 use crate::zone::{bhyve, illumos, lx};
-use anyhow::{bail, ensure};
+use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{
     ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ZLOGIN_BIN, ZONEADM_BIN, ZONECFG_BIN,
@@ -42,20 +42,21 @@ pub struct GurpZoneRemove {
 
 impl GurpZoneEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        let zone = &self.name;
         let config_input = self.config.to_zonecfg();
 
-        if current_zone_list()?.contains_key(&self.name) {
-            tracing::debug!("zone {}: already exists", self.name);
+        if current_zone_list()?.contains_key(zone) {
+            tracing::debug!("zone {zone}: already exists");
 
             if self.recreate() {
-                tracing::info!("zone {}: remove", self.name);
-                control::remove_zone(&self.name)?;
+                tracing::info!("zone {zone}: remove");
+                control::remove_zone(zone)?;
             } else {
                 return Ok(ONE_RESOURCE_NO_CHANGE);
             }
         }
 
-        tracing::info!("Must create zone {}", self.name);
+        tracing::info!("Must create zone {zone}");
 
         if opts.dump_config {
             println!(
@@ -126,27 +127,32 @@ impl GurpZoneEnsure {
     }
 
     fn install(&self) -> anyhow::Result<()> {
-        tracing::info!("installing {} [{}]", self.name, self.config.brand);
+        let zone = &self.name;
+        tracing::info!("installing {} [{}]", zone, self.config.brand);
 
         let _ = match self.config.brand.as_str() {
             "illumos" => {
                 let img_path = illumos::image_path(self.config.image.as_deref())?;
-                cmd_output!(ZONEADM_BIN, "-z", &self.name, "install", "-s", img_path)?
+                cmd_output!(ZONEADM_BIN, "-z", zone, "install", "-s", img_path)
+                    .with_context(|| format!("failed to install illumos zone {zone}"))?
             }
             "lx" => {
                 let img_path = lx::image_path(self.config.image.as_deref())?;
-                cmd_output!(ZONEADM_BIN, "-z", &self.name, "install", "-s", img_path)?
+                cmd_output!(ZONEADM_BIN, "-z", zone, "install", "-s", img_path)
+                    .with_context(|| format!("failed to install lx zone {zone}"))?
             }
-            _ => cmd_output!(ZONEADM_BIN, "-z", &self.name, "install")?,
+            _ => cmd_output!(ZONEADM_BIN, "-z", zone, "install")
+                .with_context(|| format!("failed to install zone {zone}"))?,
         };
 
-        tracing::debug!("zone {}: installed", self.name);
+        tracing::debug!("zone {zone}: installed");
         Ok(())
     }
 
     fn clone(&self, source_zone: &str) -> anyhow::Result<()> {
         tracing::info!("zone {}: cloning from {}", self.name, source_zone);
-        cmd_output!(ZONEADM_BIN, "-z", &self.name, "clone", source_zone)?;
+        cmd_output!(ZONEADM_BIN, "-z", &self.name, "clone", source_zone)
+            .with_context(|| format!("failed to clone {} from {source_zone}", self.name))?;
 
         tracing::debug!("zone {}: cloned", self.name);
         Ok(())
@@ -155,7 +161,8 @@ impl GurpZoneEnsure {
     fn boot(&self) -> anyhow::Result<ApplySummary> {
         if self.config.boot_after_install {
             tracing::debug!("zone {}: booting", self.name);
-            cmd_output!(ZONEADM_BIN, "-z", &self.name, "boot")?;
+            cmd_output!(ZONEADM_BIN, "-z", &self.name, "boot")
+                .with_context(|| format!("failed to boot zone {}", self.name))?;
         }
 
         match self.config.brand.as_str() {
@@ -167,8 +174,14 @@ impl GurpZoneEnsure {
                         // It's safe to do this here. The config won't be re-read until the zone
                         // boots
                         let _ =
-                            cmd_output!(ZONECFG_BIN, "-z", &self.name, "remove attr name=cdrom")?;
-                        let _ = cmd_output!(ZONECFG_BIN, "-z", &self.name, "remove fs type=lofs")?;
+                            cmd_output!(ZONECFG_BIN, "-z", &self.name, "remove attr name=cdrom")
+                                .with_context(|| {
+                                    format!("failed to remove cdrom attr from zone {}", self.name)
+                                })?;
+                        let _ = cmd_output!(ZONECFG_BIN, "-z", &self.name, "remove fs type=lofs")
+                            .with_context(|| {
+                            format!("failed to remove cdrom lofs from zone {}", self.name)
+                        })?;
                     }
 
                     if bhyve_config.wait_for_boot {
@@ -222,9 +235,10 @@ impl GurpZoneEnsure {
         //
         let zone_root = &self.config.zonepath.join("root");
 
-        if !zone_root.exists() {
-            bail!("cannot find zone root {}", zone_root);
-        }
+        ensure!(
+            zone_root.exists(),
+            format!("cannot find zone root {zone_root}")
+        );
 
         let relative_dest = dest.trim_matches('/');
         let mut zone_dest = zone_root.join(relative_dest);
@@ -235,7 +249,8 @@ impl GurpZoneEnsure {
             && let Some(fname) = src.file_name()
         {
             if !zone_dest.exists() {
-                fs::create_dir_all(&zone_dest)?;
+                fs::create_dir_all(&zone_dest)
+                    .with_context(|| format!("failed to create zone dir {zone_dest}"))?;
             }
 
             zone_dest = zone_dest.join(fname);
@@ -244,12 +259,14 @@ impl GurpZoneEnsure {
         tracing::info!("copying {} -> {}", src, zone_dest);
 
         if src.is_file() {
-            fs::copy(src, zone_dest)?;
+            fs::copy(src, &zone_dest)
+                .with_context(|| format!("failed to copy from {src} to {zone_dest}"))?;
         } else if src.is_dir() {
             let mut options = CopyOptions::new();
             options.overwrite = true;
             options.copy_inside = true;
-            fs_extra::dir::copy(src, zone_dest, &options)?;
+            fs_extra::dir::copy(src, &zone_dest, &options)
+                .with_context(|| format!("failed to copy from {src} to {zone_dest}"))?;
         } else {
             bail!("{} is neither a file nor a directory", src);
         }
@@ -365,11 +382,7 @@ impl GurpZoneRemove {
 }
 
 fn zone_list() -> anyhow::Result<String> {
-    let mut cmd = Command::new(ZONEADM_BIN);
-    cmd.arg("list").arg("-cp");
-    tracing::debug!(command = cmd::to_string(&cmd));
-    let result = cmd.output()?;
-    Ok(String::from_utf8_lossy(&result.stdout).to_string())
+    cmd_output!(ZONEADM_BIN, "list", "-cp").context("failed to get zone list")
 }
 
 fn parse_zone_list(raw: &str) -> anyhow::Result<ZoneadmZones> {
@@ -406,7 +419,9 @@ fn run_zlogin_cmd(zone: &str, command: &str) -> anyhow::Result<()> {
 
     tracing::debug!(command = cmd::to_string(&cmd));
 
-    let output = cmd.output()?;
+    let output = cmd
+        .output()
+        .with_context(|| format!("failed to run zlogin command {command} against {zone}"))?;
 
     ensure!(
         output.status.success(),

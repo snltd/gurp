@@ -123,7 +123,8 @@ impl GurpIpAddressEnsure {
     }
 
     fn delete_addr(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
-        cmd_change_or_noop!(opts, IPADM_BIN, "delete-addr", &self.name)?;
+        cmd_change_or_noop!(opts, IPADM_BIN, "delete-addr", &self.name)
+            .with_context(|| format!("failed to delete ip-address {}", self.name))?;
         Ok(())
     }
 
@@ -152,7 +153,7 @@ impl GurpIpAddressEnsure {
         tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
-            run_cmd!(cmd)?;
+            run_cmd!(cmd).with_context(|| format!("failed to create ip-address {}", self.name))?;
         }
 
         Ok(())
@@ -167,6 +168,12 @@ impl GurpIpAddressEnsure {
             "property,perm,current",
             &self.name,
         )
+        .with_context(|| {
+            format!(
+                "failed to get address properties for ip-address {}",
+                self.name
+            )
+        })
     }
 }
 
@@ -175,6 +182,7 @@ impl GurpIpAddressRemove {
         if describe_address(&self.name)?.is_some() {
             tracing::info!("removing {}", self.name);
             cmd_change_or_noop!(opts, IPADM_BIN, "delete-addr", &self.name)
+                .with_context(|| format!("failed to delete ip-address {}", self.name))
         } else {
             tracing::debug!("{} does not exist", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
@@ -189,7 +197,8 @@ fn describe_address(address_name: &str) -> anyhow::Result<Option<IpAddressObject
         "-p",
         "-o",
         "addrobj,type,state,addr"
-    )?;
+    )
+    .with_context(|| format!("failed to describe ip-address {address_name}"))?;
 
     let info = ipadm_output
         .lines()

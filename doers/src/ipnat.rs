@@ -1,5 +1,5 @@
 use crate::types::ApplyResult;
-use anyhow::bail;
+use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
 use common::constants::{
     IPF_SVC, IPNAT_BIN, NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE,
@@ -49,7 +49,7 @@ pub fn collect_and_ensure(nat_list: &EnsureList, opts: &ApplyOpts) -> ApplyResul
     }
 
     ensure_ipf_is_running(opts)?;
-    svcs::wait_for_state(IPF_SVC, "online")?;
+    svcs::wait_for_state(IPF_SVC, "online").context("error waiting ipf service to come online")?;
 
     let mut nat_list = nat_list.clone();
     nat_list.sort_by_key(|r| r.priority);
@@ -60,7 +60,10 @@ pub fn collect_and_ensure(nat_list: &EnsureList, opts: &ApplyOpts) -> ApplyResul
         if let Some(content) = nat.content {
             desired_rules.push_str(&content);
         } else if let Some(path) = nat.from {
-            desired_rules.push_str(&fs::read_to_string(path)?);
+            desired_rules.push_str(
+                &fs::read_to_string(&path)
+                    .with_context(|| format!("error reading rules form {path}"))?,
+            );
         } else {
             tracing::warn!("neither :from nor :content for rul {}", nat.id)
         }
@@ -101,7 +104,7 @@ impl GurpIpnatRemove {
             let mut cmd = cmd!(IPNAT_BIN, "-FC");
 
             if !opts.noop {
-                run_cmd!(cmd)?;
+                run_cmd!(cmd).context("failed to clear NAT table")?;
             }
 
             ret = ONE_RESOURCE_ONE_CHANGE;
@@ -111,7 +114,8 @@ impl GurpIpnatRemove {
             tracing::info!("clearing persistent NAT table");
 
             if !opts.noop {
-                fs::remove_file(&nat_file)?;
+                fs::remove_file(&nat_file)
+                    .with_context(|| format!("failed to remove {nat_file}"))?;
             }
 
             ret = ONE_RESOURCE_ONE_CHANGE;
@@ -127,7 +131,8 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
     let nat_file = Utf8PathBuf::from(NAT_CONF_FILE);
 
     let current_persistent_rules = if nat_file.exists() {
-        fs::read_to_string(&nat_file)?
+        fs::read_to_string(&nat_file)
+            .with_context(|| format!("failed to read NAT rules from {nat_file}"))?
     } else {
         String::new()
     };
@@ -151,8 +156,10 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
         }
 
         if !opts.noop {
-            let mut fh = File::create(nat_file)?;
-            write!(fh, "{desired_rules}")?;
+            let mut fh =
+                File::create(&nat_file).with_context(|| format!("failed to open {nat_file}"))?;
+            write!(fh, "{desired_rules}")
+                .with_context(|| format!("failed to write ipnat rules to {nat_file}"))?;
         }
 
         Ok(true)
@@ -184,7 +191,7 @@ fn ensure_live_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Result<bo
     tracing::info!("updating live NAT rules");
 
     if !opts.noop {
-        run_cmd(&mut apply_cmd, desired_rules)?;
+        run_cmd(&mut apply_cmd, desired_rules).context("failed to apply NAT rules")?;
     }
 
     Ok(true)
@@ -229,11 +236,12 @@ fn run_cmd(cmd: &mut Command, config: &str) -> anyhow::Result<Output> {
     if let Some(stdin) = child.stdin.as_mut() {
         stdin.write_all(config.as_bytes())?;
     }
+
     Ok(child.wait_with_output()?)
 }
 
 fn ipnat_output() -> anyhow::Result<String> {
-    Ok(cmd_output!(IPNAT_BIN, "-l")?)
+    cmd_output!(IPNAT_BIN, "-l").context("failed to query ipnat")
 }
 
 fn parse_nat_table(raw: &str) -> String {
@@ -247,7 +255,9 @@ fn parse_nat_table(raw: &str) -> String {
 
 fn ensure_ipf_is_running(opts: &ApplyOpts) -> anyhow::Result<()> {
     let ipf_state = svcs::current_state(IPF_SVC)?;
-    svcs::set_state(IPF_SVC, &ipf_state, "online", opts)?;
+    svcs::set_state(IPF_SVC, &ipf_state, "online", opts)
+        .context("failed to ensure ipf service is online")?;
+
     Ok(())
 }
 

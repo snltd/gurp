@@ -1,5 +1,5 @@
 use crate::zone::constants::OMNIOS_RELEASES_URL;
-use anyhow::bail;
+use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
 use common::constants::IMG_CACHE_DIR;
 use util::http;
@@ -33,7 +33,8 @@ fn default_image() -> anyhow::Result<String> {
     );
 
     let html = ureq::get(OMNIOS_RELEASES_URL)
-        .call()?
+        .call()
+        .with_context(|| format!("failed to fetch OmniOS image page from {OMNIOS_RELEASES_URL}"))?
         .into_body()
         .read_to_string()?;
 

@@ -15,7 +15,7 @@ macro_rules! clean_up_lock {
         if let Some(lock) = $lock
             && let Err(e) = lock.remove()
         {
-            tracing::warn!("could not remove lock file at {}: {e}", lock.path);
+            tracing::warn!("could not remove lock file at {}: {e:#}", lock.path);
         }
     };
 }
@@ -31,7 +31,7 @@ pub fn run(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> ExitCode {
     }
 
     let provider = init::init_metrics(opts.metrics_to.as_deref(), "gurp").unwrap_or_else(|e| {
-        tracing::warn!("could not set up metrics: {e}");
+        tracing::warn!("could not set up metrics: {e:#}");
         None
     });
 
@@ -51,13 +51,13 @@ pub fn run(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> ExitCode {
                 return ExitCode::FAILURE; // is that a fail?
             }
             Err(e) => {
-                tracing::error!("error checking lockfile: {e}");
+                tracing::error!("error checking lockfile: {e:#}");
                 return ExitCode::FAILURE;
             }
         }
 
         if let Err(e) = lock.create() {
-            tracing::warn!("could not create lock file at {}: {e}", lock.path);
+            tracing::warn!("could not create lock file at {}: {e:#}", lock.path);
         }
     }
 
@@ -65,7 +65,7 @@ pub fn run(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> ExitCode {
         match compiler::raw_janet_to_json(janet_snippet, opts) {
             Ok(config) => config,
             Err(e) => {
-                tracing::error!("error compiling snippet: {e}");
+                tracing::error!("error compiling snippet: {e:#}");
                 clean_up_lock!(lock);
                 return ExitCode::FAILURE;
             }
@@ -74,7 +74,7 @@ pub fn run(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> ExitCode {
         match compiler::compile_to_json(host_file, opts) {
             Ok(config) => config,
             Err(e) => {
-                tracing::error!("error compiling config: {e}");
+                tracing::error!("error compiling config: {e:#}");
                 clean_up_lock!(lock);
                 return ExitCode::FAILURE;
             }
@@ -105,9 +105,9 @@ pub fn run(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> ExitCode {
         }
         Err(e) => {
             if let Some(host_file) = host_file {
-                tracing::error!("apply error on {host_file}: {e}");
+                tracing::error!("apply error on {host_file}: {e:#}");
             } else {
-                tracing::error!("apply error: {e}");
+                tracing::error!("apply error: {e:#}");
             }
 
             client_metrics.record_apply_duration("fail", elapsed_ms as u64);
@@ -124,11 +124,11 @@ pub fn run(host_file: Option<&Utf8PathBuf>, opts: &ApplyOpts) -> ExitCode {
 
     if let Some(p) = provider {
         if let Err(e) = p.force_flush() {
-            tracing::warn!("failed to flush metrics: {e}");
+            tracing::warn!("failed to flush metrics: {e:#}");
         }
 
         if let Err(e) = p.shutdown() {
-            tracing::warn!("failed to shut down OTEL provider: {e}");
+            tracing::warn!("failed to shut down OTEL provider: {e:#}");
         }
     }
 

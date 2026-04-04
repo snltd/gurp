@@ -1,4 +1,4 @@
-use anyhow::ensure;
+use anyhow::{Context, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{
     MANIFEST_DIR, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, SVCCFG_BIN,
@@ -67,52 +67,56 @@ impl GurpSmfEnsure {
         }
 
         if !opts.noop {
-            fs::write(manifest_path, &new_manifest)?;
+            fs::write(manifest_path, &new_manifest)
+                .with_context(|| format!("failed writing SMF manifest to {manifest_path}"))?;
         }
 
         self.ensure_service(opts)
     }
 
     fn ensure_service(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        if svcs::exists(&self.desired_state.name)? {
-            let current_state = svcs::current_state(&self.desired_state.name)?;
+        let svc = &self.desired_state.name;
+
+        if svcs::exists(svc)? {
+            let current_state = svcs::current_state(svc)?;
 
             if current_state != "disabled" {
-                svcs::set_state(&self.desired_state.name, &current_state, "disabled", opts)?;
+                svcs::set_state(svc, &current_state, "disabled", opts)?;
             }
 
-            let _ = cmd_change_or_noop!(opts, SVCCFG_BIN, "delete", &self.desired_state.name)?;
+            cmd_change_or_noop!(opts, SVCCFG_BIN, "delete", &svc)
+                .with_context(|| format!("failed to delete svc {svc}"))?;
         }
 
-        cmd_change_or_noop!(
-            opts,
-            SVCCFG_BIN,
-            "import",
-            manifest_path(&self.desired_state.name).as_str()
-        )
+        let manifest_path = manifest_path(&self.desired_state.name);
+
+        cmd_change_or_noop!(opts, SVCCFG_BIN, "import", &manifest_path)
+            .with_context(|| format!("failed to import from {manifest_path}"))
     }
 }
 
 impl GurpSmfRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        if svcs::exists(&self.name)? {
-            let current_state = svcs::current_state(&self.name)?;
+        let svc = &self.name;
+
+        if svcs::exists(svc)? {
+            let current_state = svcs::current_state(svc)?;
 
             if current_state != "disabled" {
-                tracing::info!("svc: {} stopping service", &self.name);
+                tracing::info!("svc: {svc} stopping service");
 
                 if !opts.noop {
-                    svcs::set_state(&self.name, &current_state, "disabled", opts)?;
+                    svcs::set_state(svc, &current_state, "disabled", opts)?;
                     self.wait_for_disabled_state()?;
                 }
             }
 
-            tracing::info!("svc: {} deleting service", &self.name);
+            tracing::info!("svc: {svc} deleting service");
 
-            let mut cmd = cmd!(SVCCFG_BIN, "delete", &self.name);
+            let mut cmd = cmd!(SVCCFG_BIN, "delete", svc);
 
             if !opts.noop {
-                cmd.status()?;
+                run_cmd!(cmd).with_context(|| format!("failed to delete svc {svc}"))?;
             }
 
             let manifest_path = manifest_path(&self.name);
@@ -121,7 +125,8 @@ impl GurpSmfRemove {
                 tracing::info!("svc: {} deleting manifest {}", &self.name, manifest_path);
 
                 if !opts.noop {
-                    fs::remove_file(manifest_path)?;
+                    fs::remove_file(&manifest_path)
+                        .with_context(|| format!("failed to delete {manifest_path}"))?;
                 }
             } else {
                 tracing::debug!("svc: {} no manifest at {}", &self.name, manifest_path);

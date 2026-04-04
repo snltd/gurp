@@ -1,3 +1,4 @@
+use anyhow::Context;
 use common::constants::IPADM_BIN;
 use common::types::ApplyOpts;
 use std::collections::{BTreeSet, HashMap};
@@ -36,7 +37,8 @@ fn modify_list_property(
     }
 
     if !opts.noop {
-        let _stdout = run_cmd!(cmd)?;
+        let _stdout = run_cmd!(cmd)
+            .with_context(|| format!("failed to set ip property {property} to {value}"))?;
     }
 
     Ok(())
@@ -105,7 +107,7 @@ pub fn align_property(args: &AlignIpPropArg, opts: &ApplyOpts) -> anyhow::Result
         let mut cmd = construct_ipadm_prop_cmd(args);
 
         if !opts.noop {
-            let _stdout = run_cmd!(cmd);
+            let _stdout = run_cmd!(cmd).context("failed to run ipadm")?;
         }
 
         Ok(true)
@@ -134,7 +136,6 @@ fn construct_ipadm_prop_cmd(args: &AlignIpPropArg) -> Command {
     }
 
     tracing::debug!(command = common::cmd::to_string(&cmd));
-
     cmd
 }
 

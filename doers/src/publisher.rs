@@ -1,3 +1,4 @@
+use anyhow::Context;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, PKG_BIN};
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
@@ -66,6 +67,7 @@ impl GurpPublisherEnsure {
             &desired_uri,
             &self.name
         )
+        .with_context(|| format!("failed to set publisher {} -> {desired_uri}", self.name))
     }
 }
 
@@ -75,6 +77,7 @@ impl GurpPublisherRemove {
 
         if current_publishers.iter().any(|p| p.name == self.name) {
             cmd_change_or_noop!(opts, PKG_BIN, "unset-publisher", &self.name)
+                .with_context(|| format!("failed to unset publisher {}", self.name))
         } else {
             tracing::debug!("publisher {} does not exist", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
@@ -84,7 +87,7 @@ impl GurpPublisherRemove {
 
 fn pkg_output() -> anyhow::Result<String> {
     tracing::debug!("looking up publishers");
-    cmd_output!(PKG_BIN, "publisher", "-H")
+    cmd_output!(PKG_BIN, "publisher", "-H").context("failed to list publishers")
 }
 
 fn parse_pkg_output(output: &str) -> Vec<Publisher> {

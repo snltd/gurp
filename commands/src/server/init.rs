@@ -9,14 +9,14 @@ pub fn run(opts: ServerOpts) -> ExitCode {
 
         let _provider = init::init_metrics(opts.metrics_to.as_deref(), "gurp.server")
             .unwrap_or_else(|e| {
-                tracing::warn!("could not set up server metrics: {e}");
+                tracing::warn!("could not set up server metrics: {e:#}");
                 None
             });
 
         match run_server(opts) {
             Ok(_) => ExitCode::SUCCESS,
             Err(e) => {
-                tracing::error!("server error: {e}");
+                tracing::error!("server error: {e:#}");
                 ExitCode::FAILURE
             }
         }

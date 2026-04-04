@@ -116,7 +116,7 @@ pub fn collect_and_ensure(gem_list: &EnsureList, opts: &ApplyOpts) -> ApplyResul
         tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
-            run_cmd!(cmd)?;
+            run_cmd!(cmd).context("failed to run gem install")?;
         }
     }
 
@@ -176,7 +176,7 @@ pub fn collect_and_remove(gem_list: &RemoveList, opts: &ApplyOpts) -> ApplyResul
         tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
-            let _ = run_cmd!(cmd)?;
+            let _ = run_cmd!(cmd).context("failed to run gem uninstall")?;
         }
     }
 
@@ -185,8 +185,7 @@ pub fn collect_and_remove(gem_list: &RemoveList, opts: &ApplyOpts) -> ApplyResul
 
 fn gem_output(gem_bin: &Utf8PathBuf) -> anyhow::Result<String> {
     ensure!(gem_bin.exists(), format!("No gem binary at {gem_bin}"));
-    let cmd = Command::new(gem_bin).arg("list").arg("-l").output()?;
-    Ok(String::from_utf8_lossy(&cmd.stdout).into_owned())
+    cmd_output!(gem_bin, "list", "-l").context("failed to list gems")
 }
 
 fn parse_gem_output(output: &str) -> Vec<InstalledGem> {
@@ -276,7 +275,7 @@ fn install_specific(
     tracing::debug!(command = cmd::to_string(&cmd));
 
     if !opts.noop {
-        run_cmd!(cmd)?;
+        run_cmd!(cmd).context("failed to install specific gem")?;
     }
 
     Ok(ONE_RESOURCE_ONE_CHANGE)

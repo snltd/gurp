@@ -1,3 +1,4 @@
+use anyhow::Context;
 use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE};
 use common::types::{ApplyOpts, ApplySummary, VlanID};
 use serde::Deserialize;
@@ -63,6 +64,7 @@ impl GurpVlanEnsure {
             &self.vlan_tag.to_string(),
             &self.name
         )
+        .with_context(|| format!("failed to create VLAN object {}", self.name))
     }
 }
 
@@ -82,6 +84,7 @@ impl GurpVlanRemove {
 fn delete_vlan(name: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     tracing::info!("removing VLAN {name}");
     cmd_change_or_noop!(opts, DLADM_BIN, "delete-vlan", name)
+        .with_context(|| format!("failed to delete VLAN object {name}"))
 }
 
 fn parse_vlans(raw: &str) -> Vlans {
@@ -110,6 +113,7 @@ fn parse_vlans(raw: &str) -> Vlans {
 
 fn get_vlans() -> anyhow::Result<String> {
     cmd_output!(DLADM_BIN, "show-vlan", "-p", "-olink,vid,over")
+        .context("failed to list VLAN objects")
 }
 
 #[cfg(test)]

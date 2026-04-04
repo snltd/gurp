@@ -7,7 +7,7 @@ pub fn owner_from(owner: &NameOrId) -> anyhow::Result<Uid> {
         NameOrId::Id(val) => Uid::from_raw(*val),
         NameOrId::Name(val) => {
             User::from_name(val)?
-                .context(format!("No such user '{val}'"))?
+                .with_context(|| format!("No such user: {val}"))?
                 .uid
         }
     })
@@ -18,7 +18,7 @@ pub fn group_from(group: &NameOrId) -> anyhow::Result<Gid> {
         NameOrId::Id(val) => Gid::from_raw(*val),
         NameOrId::Name(val) => {
             Group::from_name(val)?
-                .context(format!("No such group '{val}'"))?
+                .with_context(|| format!("No such group: {val}"))?
                 .gid
         }
     })

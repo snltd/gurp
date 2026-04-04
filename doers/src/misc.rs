@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure};
+use anyhow::{Context, bail, ensure};
 use common::cmd;
 use common::constants::{
     DISPADMIN_BIN, ONE_RESOURCE_NO_CHANGE, SHARECTL_BIN, SMBADM_BIN, SVCADM_BIN,
@@ -87,7 +87,8 @@ impl GurpMiscEnsure {
     ) -> anyhow::Result<ApplySummary> {
         tracing::debug!("calling misc/ensure_nfs_domain");
 
-        let status = cmd_output!(SHARECTL_BIN, "get", "-p", "nfsmapid_domain", "nfs")?;
+        let status = cmd_output!(SHARECTL_BIN, "get", "-p", "nfsmapid_domain", "nfs")
+            .context("failed to get nfsmapid_domain")?;
         let chunks: Vec<_> = status.split('=').collect();
 
         ensure!(chunks.len() == 2, "unexpected sharectl output: {}", status);
@@ -113,6 +114,7 @@ impl GurpMiscEnsure {
             format!("nfsmapid_domain={desired_domain}"),
             "nfs"
         )
+        .with_context(|| format!("failed to set nfsmapid_domain to {desired_domain}"))
     }
 
     fn set_scheduler_class(
@@ -152,8 +154,11 @@ impl GurpMiscEnsure {
             desired_class
         );
 
-        let _ = cmd_change_or_noop!(opts, DISPADMIN_BIN, "-d", desired_class)?;
+        let _ = cmd_change_or_noop!(opts, DISPADMIN_BIN, "-d", desired_class)
+            .with_context(|| format!("failed to set scheduler class to {desired_class}"))?;
+
         cmd_change_or_noop!(opts, SVCADM_BIN, "refresh", "svc:/system/scheduler:default")
+            .context("failed to refresh scheduler service")
     }
 }
 

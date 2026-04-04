@@ -1,3 +1,4 @@
+use anyhow::Context;
 use camino::Utf8PathBuf;
 use std::fs;
 use sysinfo::{Pid, System};
@@ -25,7 +26,8 @@ impl ApplyLock {
     pub fn create(&self) -> anyhow::Result<()> {
         if !self.exists() {
             tracing::debug!("creating lock file {}", self.path);
-            fs::write(&self.path, self.my_pid())?;
+            fs::write(&self.path, self.my_pid())
+                .with_context(|| format!("failed to create lock at {}", self.path))?;
         }
         Ok(())
     }
@@ -33,7 +35,8 @@ impl ApplyLock {
     pub fn remove(&self) -> anyhow::Result<()> {
         if self.exists() {
             tracing::debug!("removing lock file {}", self.path);
-            fs::remove_file(&self.path)?;
+            fs::remove_file(&self.path)
+                .with_context(|| format!("failed to remove lock at {}", self.path))?;
         }
         Ok(())
     }
@@ -55,7 +58,8 @@ impl ApplyLock {
     }
 
     fn locked_pid(&self) -> anyhow::Result<Pid> {
-        let locked_pid_string = fs::read_to_string(&self.path)?;
+        let locked_pid_string = fs::read_to_string(&self.path)
+            .with_context(|| format!("failed to read lock at {}", self.path))?;
         Ok(Pid::from(locked_pid_string.trim().parse::<usize>()?))
     }
 

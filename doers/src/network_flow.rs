@@ -1,4 +1,4 @@
-use anyhow::ensure;
+use anyhow::{Context, ensure};
 use common::cmd;
 use common::constants::{FLOWADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
@@ -72,7 +72,8 @@ impl GurpNetworkFlowEnsure {
                 }
             } else {
                 tracing::info!("must recreate flow {}: removing", self.name);
-                cmd_output!(FLOWADM_BIN, "remove-flow", &self.name)?;
+                cmd_output!(FLOWADM_BIN, "remove-flow", &self.name)
+                    .with_context(|| format!("failed to remove network-flow {}", self.name))?;
                 self.create_flow(opts)
             }
         } else {
@@ -87,7 +88,10 @@ impl GurpNetworkFlowEnsure {
         tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
-            let status = cmd.status()?;
+            let status = cmd
+                .status()
+                .with_context(|| format!("failed to create network-flow {}", self.name))?;
+
             ensure!(status.success(), "Error running flowadm command");
         }
 
@@ -125,7 +129,8 @@ impl GurpNetworkFlowEnsure {
         tracing::info!("resetting properties on {}", self.name);
 
         if !opts.noop {
-            cmd_output!(FLOWADM_BIN, "reset-flowprop", &self.name)?;
+            cmd_output!(FLOWADM_BIN, "reset-flowprop", &self.name)
+                .with_context(|| format!("failed to reset flowprops for {}", self.name))?;
         }
 
         let mut prop_args = Vec::new();
@@ -143,7 +148,8 @@ impl GurpNetworkFlowEnsure {
         let prop_arg: String = prop_args.join(",");
 
         if !opts.noop {
-            cmd_output!(FLOWADM_BIN, "set-flowprop", "-p", prop_arg, &self.name)?;
+            cmd_output!(FLOWADM_BIN, "set-flowprop", "-p", prop_arg, &self.name)
+                .with_context(|| format!("failed to set flowprops for {}", self.name))?;
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -214,6 +220,7 @@ impl GurpNetworkFlowRemove {
         if extant_flows.contains_key(&self.name) {
             tracing::info!("removing flow {}", self.name);
             cmd_change_or_noop!(opts, FLOWADM_BIN, "remove-flow", &self.name)
+                .with_context(|| format!("failed to remote network-flow {}", self.name))
         } else {
             tracing::debug!("flow {} does not exist", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
@@ -229,6 +236,7 @@ fn get_flows() -> anyhow::Result<String> {
         "-o",
         "flow,link,ipaddr,proto,lport,rport,dsfld"
     )
+    .context("failed to get network-flows")
 }
 
 fn get_flowprops(flow_name: &str) -> anyhow::Result<String> {
@@ -240,6 +248,7 @@ fn get_flowprops(flow_name: &str) -> anyhow::Result<String> {
         "property,value",
         flow_name,
     )
+    .with_context(|| format!("failed to get flowprops for network-flow {flow_name}"))
 }
 
 fn string_field_or_none(bits: &[String], index: usize) -> Option<String> {
