@@ -3,7 +3,6 @@ use crate::file::types::{CompareMethod, DesiredFileState};
 use anyhow::Context;
 use camino::Utf8Path;
 use common::types::{ApplyOpts, ApplySummary};
-use util::file;
 
 pub fn run(
     path: &Utf8Path,
