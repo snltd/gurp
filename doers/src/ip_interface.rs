@@ -1,3 +1,4 @@
+use anyhow::Context;
 use common::constants::{IPADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
@@ -38,7 +39,8 @@ impl GurpIpInterfaceEnsure {
             tracing::debug!("{} exists", self.name);
         } else {
             tracing::info!("creating {}", self.name);
-            summary = cmd_change_or_noop!(opts, IPADM_BIN, "create-if", &self.name)?;
+            summary = cmd_change_or_noop!(opts, IPADM_BIN, "create-if", &self.name)
+                .with_context(|| format!("failed to create ip-interface {}", self.name))?;
         }
 
         // The properties can only be considered if the interface exists. If we're in the middle
@@ -89,6 +91,7 @@ impl GurpIpInterfaceEnsure {
             "proto,property,current",
             &self.name,
         )
+        .with_context(|| format!("failed to get properties of ip-interface {}", self.name))
     }
 }
 
@@ -97,6 +100,7 @@ impl GurpIpInterfaceRemove {
         if interface_exists(&self.name)? {
             tracing::info!("removing {}", self.name);
             cmd_change_or_noop!(opts, IPADM_BIN, "delete-if", &self.name)
+                .with_context(|| format!("failed to delete ip-interface {}", self.name))
         } else {
             tracing::debug!("{} does not exist", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
@@ -105,7 +109,9 @@ impl GurpIpInterfaceRemove {
 }
 
 fn interface_exists(interface_name: &str) -> anyhow::Result<bool> {
-    let ipadm_output = cmd_output!(IPADM_BIN, "show-if", "-p", "-o", "ifname")?;
+    let ipadm_output = cmd_output!(IPADM_BIN, "show-if", "-p", "-o", "ifname")
+        .with_context(|| format!("failed to get state of ip-interface {interface_name}"))?;
+
     Ok(ipadm_output.lines().any(|l| l == interface_name))
 }
 

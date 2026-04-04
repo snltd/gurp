@@ -32,12 +32,14 @@ fn populate(dir: &Utf8TempDir, config: &GurpZoneBhyve) -> anyhow::Result<()> {
             let src_path = Utf8PathBuf::from(file);
             let basename = src_path
                 .file_name()
-                .context(format!("Cannot get basename of {}", src_path))?;
+                .with_context(|| format!("Cannot get basename of {}", src_path))?;
 
             let target_path = dir.path().join(basename);
 
             tracing::debug!("Copying {} to {}", src_path, target_path);
-            fs::copy(src_path, &target_path)?;
+
+            fs::copy(&src_path, &target_path)
+                .with_context(|| format!("failed to copy from {src_path} to {target_path}"))?;
         }
     }
 
@@ -55,7 +57,9 @@ fn populate(dir: &Utf8TempDir, config: &GurpZoneBhyve) -> anyhow::Result<()> {
                 cloudinit_yaml
             };
 
-            fs::write(&cloudinit_target, cloudinit_content)?;
+            fs::write(&cloudinit_target, cloudinit_content).with_context(|| {
+                format!("failed to write Cloudinit content to {cloudinit_target}")
+            })?;
         }
     }
 
@@ -71,8 +75,14 @@ fn create_cloudinit_iso(dir: &Utf8TempDir, target: &Utf8PathBuf) -> anyhow::Resu
         "cidata",
         "-joliet",
         "-rock",
-        format!("{}/", dir.path())
-    );
+        format!("{}/", &dir.path())
+    )
+    .with_context(|| {
+        format!(
+            "failed to create cloudinit ISO at {target} from {}",
+            dir.path()
+        )
+    })?;
 
     Ok(())
 }

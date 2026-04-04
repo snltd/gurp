@@ -1,5 +1,5 @@
 use crate::zone::constants::*;
-use anyhow::bail;
+use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_ONE_CHANGE, SVCS_BIN, ZONEADM_BIN, ZONECFG_BIN};
 use common::types::ApplySummary;
@@ -50,16 +50,18 @@ impl FromStr for ZoneState {
 }
 
 fn zone_state(zone_name: &str) -> anyhow::Result<ZoneState> {
-    let raw = cmd_output!(ZONEADM_BIN, "-z", zone_name, "list", "-p")?;
+    let raw = cmd_output!(ZONEADM_BIN, "-z", zone_name, "list", "-p")
+        .with_context(|| format!("failed to get state of zone {zone_name}"))?;
     let chunks: Vec<_> = raw.split(":").collect();
 
-    if chunks.len() != ZONEADM_FIELDS {
-        bail!(
+    ensure!(
+        chunks.len() == ZONEADM_FIELDS,
+        format!(
             "expected {} zoneadm fields. Got {}",
             ZONEADM_FIELDS,
             chunks.len()
-        );
-    }
+        )
+    );
 
     chunks[2].parse()
 }
@@ -97,32 +99,41 @@ pub fn remove_zone(zone: &str) -> anyhow::Result<ApplySummary> {
 // I've seen things (bhyve) get stuck here, but I can't reproduce anything right now
 pub fn halt_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: halting", zone);
-    cmd_output!(ZONEADM_BIN, "-z", zone, "halt")?;
+    cmd_output!(ZONEADM_BIN, "-z", zone, "halt")
+        .with_context(|| format!("failed to halt zone {zone}"))?;
     wait_for_state(zone, ZoneState::Installed)
 }
 
 pub fn reboot_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: rebooting", zone);
-    cmd_output!(ZONEADM_BIN, "-z", zone, "reboot")?;
+    cmd_output!(ZONEADM_BIN, "-z", zone, "reboot")
+        .with_context(|| format!("failed to reboot zone {zone}"))?;
     Ok(())
 }
 
 fn unmount_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: halting", zone);
-    cmd_output!(ZONEADM_BIN, "-z", zone, "unmount")?;
+    cmd_output!(ZONEADM_BIN, "-z", zone, "unmount")
+        .with_context(|| format!("failed to unmount zone {zone}"))?;
     wait_for_state(zone, ZoneState::Halted)
 }
 
 fn uninstall_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: uninstall", zone);
-    cmd_output!(ZONEADM_BIN, "-z", zone, "uninstall", "-F")?;
+    cmd_output!(ZONEADM_BIN, "-z", zone, "uninstall", "-F")
+        .with_context(|| format!("failed to uninstall zone {zone}"))?;
     wait_for_state(zone, ZoneState::Configured)
 }
 
 // We may want to clean up ZFS filesystems here as well
 fn delete_zone(zone: &str) -> anyhow::Result<String> {
     tracing::debug!("zone {}: delete", zone);
-    cmd_output!(ZONECFG_BIN, "-z", zone, "delete", "-F")
+    cmd_output!(ZONECFG_BIN, "-z", zone, "delete", "-F").with_context(|| {
+        format!(
+            "failed to delete
+      ▍    ↪ zone {zone}"
+        )
+    })
 }
 
 fn wait_for_state(zone: &str, desired_state: ZoneState) -> anyhow::Result<()> {
@@ -168,7 +179,9 @@ fn is_ready(zone: &str) -> anyhow::Result<bool> {
     // LX and Bhyve provide their own versions of this
     let mut cmd = cmd!(SVCS_BIN, "-z", zone, "-Ho", "state", READY_SVC);
 
-    let output = cmd.output()?;
+    let output = cmd
+        .output()
+        .with_context(|| format!("failed to get state of zone {zone}"))?;
 
     if output.status.success() {
         let status = String::from_utf8_lossy(&output.stdout);

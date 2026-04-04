@@ -1,4 +1,4 @@
-use anyhow::ensure;
+use anyhow::{Context, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_FILES};
 use common::types::{ApplyOpts, ApplySummary};
@@ -17,21 +17,23 @@ pub struct GurpFileRemove {
 
 impl GurpFileRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        if self.path.exists() {
+        let path = &self.path;
+
+        if path.exists() {
             ensure!(
-                !PROTECTED_FILES.contains(&self.path),
-                format!("protected resource: {}", self.path)
+                !PROTECTED_FILES.contains(path),
+                format!("protected resource: {path}")
             );
 
-            tracing::info!("removing: {}", self.path);
+            tracing::info!("removing: {path}");
 
             if !opts.noop {
-                fs::remove_file(&self.path)?;
+                fs::remove_file(path).with_context(|| format!("failed to remove {path}"))?;
             }
 
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
-            tracing::debug!("not present: {}", self.path);
+            tracing::debug!("not present: {path}");
             Ok(ONE_RESOURCE_NO_CHANGE)
         }
     }

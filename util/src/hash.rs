@@ -1,3 +1,4 @@
+use anyhow::Context;
 use blake3::Hash;
 use camino::Utf8Path;
 use std::fs;
@@ -12,15 +13,16 @@ pub fn of_string(user_string: &str) -> Hash {
 
 pub fn of_file(path: &Utf8Path) -> anyhow::Result<Hash> {
     let mut hasher = blake3::Hasher::new();
-    let mut fh = fs::File::open(path)?;
-    std::io::copy(&mut fh, &mut hasher)?;
+    let mut fh = fs::File::open(path).with_context(|| format!("cannot open {path}"))?;
+    std::io::copy(&mut fh, &mut hasher)
+        .with_context(|| format!("failed to read hash of {path}"))?;
     Ok(hasher.finalize())
 }
 
 // Requests a file hash from a Gurp server
 pub fn for_remote_file(url: &str) -> anyhow::Result<String> {
     let hash_url = url.replace("/file/", "/file-hash/");
-    Ok(ureq::get(hash_url).call()?.into_body().read_to_string()?)
+    fetch_hash(&hash_url)
 }
 
 // Requests a file hash from a Gurp server
@@ -30,12 +32,21 @@ pub fn for_remote_filtered_file(url: &str, pattern: &str) -> anyhow::Result<Stri
         url.replace("/file/", "/file-hash-filtered/"),
         pattern
     );
-    Ok(ureq::get(hash_url).call()?.into_body().read_to_string()?)
+    fetch_hash(&hash_url)
+}
+
+fn fetch_hash(hash_url: &str) -> anyhow::Result<String> {
+    ureq::get(hash_url)
+        .call()
+        .with_context(|| format!("failed to download {hash_url}"))?
+        .into_body()
+        .read_to_string()
+        .context("cannot turn fetched body into string")
 }
 
 // Users supply SHA256 checksums
 pub fn sha256_of_file(path: &Utf8Path) -> anyhow::Result<String> {
-    Ok(sha256::try_digest(path)?)
+    sha256::try_digest(path).with_context(|| format!("failed to get SHA256 of {path}"))
 }
 
 #[cfg(test)]

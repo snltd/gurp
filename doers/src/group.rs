@@ -1,4 +1,4 @@
-use anyhow::ensure;
+use anyhow::{Context, ensure};
 use common::constants::{
     GROUPADD_BIN, GROUPDEL_BIN, GROUPMOD_BIN, ONE_RESOURCE_NO_CHANGE, PROTECTED_GROUPS,
 };
@@ -36,6 +36,7 @@ impl GurpGroupEnsure {
         } else {
             tracing::info!("creating group: {}", self.name);
             self.group_cmd(GROUPADD_BIN, opts)
+                .with_context(|| format!("failed to create group {}", self.name))
         }
     }
 
@@ -55,6 +56,7 @@ impl GurpGroupRemove {
             tracing::info!("removing group: {}", self.name);
 
             cmd_change_or_noop!(opts, GROUPDEL_BIN, &self.name)
+                .with_context(|| format!("failed to delete group {}", self.name))
         } else {
             tracing::debug!("not present: {}", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)

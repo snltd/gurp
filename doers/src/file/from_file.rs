@@ -1,7 +1,6 @@
 use crate::file::actions;
 use crate::file::types::{CompareMethod, DesiredFileState};
-use anyhow::Context;
-use anyhow::ensure;
+use anyhow::{Context, ensure};
 use camino::Utf8Path;
 use common::types::{ApplyOpts, ApplySummary};
 use std::fs;
@@ -31,7 +30,8 @@ pub fn run(
                     log_updating!(path);
 
                     if !opts.noop {
-                        let _bytes = fs::copy(source, path)?;
+                        fs::copy(source, path)
+                            .with_context(|| format!("failed to copy from {source} to {path}"))?;
                     }
                 }
             }
@@ -45,7 +45,8 @@ pub fn run(
                     log_updating!(path);
 
                     if !opts.noop {
-                        let _bytes = fs::copy(source, path)?;
+                        fs::copy(source, path)
+                            .with_context(|| format!("failed to copy from {source} to {path}"))?;
                     }
                 }
             }
@@ -55,7 +56,8 @@ pub fn run(
         log_creating!(path);
 
         if !opts.noop {
-            let _bytes = fs::copy(source, path)?;
+            fs::copy(source, path)
+                .with_context(|| format!("failed to copy from {source} to {path}"))?;
         }
     }
 

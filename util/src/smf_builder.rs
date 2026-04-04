@@ -224,9 +224,6 @@ impl ServiceBuilder<'_> {
         properties: &BTreeMap<String, PropertyStruct>,
     ) -> anyhow::Result<()> {
         // The property name is property_group/property.
-
-        println!("prop_groups: {:?}", prop_groups);
-
         let mut current_group = "";
 
         // The properties are sorted because it's a BTreeSet

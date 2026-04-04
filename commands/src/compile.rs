@@ -10,21 +10,21 @@ pub fn run(host_file: &Utf8PathBuf, c_opts: &CompileOpts, opts: &ApplyOpts) -> E
         "json" => match compile_json(host_file, c_opts, opts) {
             Ok(_) => ExitCode::SUCCESS,
             Err(e) => {
-                tracing::error!("error compiling JSON: {e}");
+                tracing::error!("error compiling JSON: {e:#}");
                 ExitCode::FAILURE
             }
         },
         "janet" => match compile_janet(host_file, c_opts, opts) {
             Ok(_) => ExitCode::SUCCESS,
             Err(e) => {
-                tracing::error!("error compiling JSON: {e}");
+                tracing::error!("error compiling JSON: {e:#}");
                 ExitCode::FAILURE
             }
         },
         "jimage" => match compile_jimage(host_file, c_opts, opts) {
             Ok(_) => ExitCode::SUCCESS,
             Err(e) => {
-                tracing::error!("error compiling JSON: {e}");
+                tracing::error!("error compiling JSON: {e:#}");
                 ExitCode::FAILURE
             }
         },
@@ -43,7 +43,7 @@ fn compile_json(
     let json = compiler::local_janet_to_json(host_file, opts)?;
 
     if let Some(out_file) = &c_opts.output_file {
-        fs::write(out_file, json).context("error writing JSON to {out_file}: {e}")?;
+        fs::write(out_file, json).with_context(|| format!("error writing JSON to {out_file}"))?;
         tracing::info!("wrote JSON to {out_file}");
     } else {
         println!("{json}");
@@ -60,7 +60,7 @@ fn compile_janet(
     let json = compiler::local_janet_to_janet(host_file, opts)?;
 
     if let Some(out_file) = &c_opts.output_file {
-        fs::write(out_file, json).context("error writing JSON to {out_file}: {e}")?;
+        fs::write(out_file, json).with_context(|| format!("error writing JSON to {out_file}"))?;
         tracing::info!("wrote JSON to {out_file}");
     } else {
         println!("{json}");
@@ -79,10 +79,11 @@ fn compile_jimage(
         .as_ref()
         .context("writing an image requires an output path")?;
 
-    let image_data = compiler::local_janet_to_jimage(host_file, opts)
-        .context("error compiling image file: {e}")?;
+    let image_data =
+        compiler::local_janet_to_jimage(host_file, opts).context("error compiling image file")?;
 
-    fs::write(output_path, image_data).context("error writing image file: {e}")?;
+    fs::write(output_path, image_data)
+        .with_context(|| format!("error writing image file {output_path}"))?;
 
     tracing::info!("wrote image file to '{output_path}'");
     Ok(())

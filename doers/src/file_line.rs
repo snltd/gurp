@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure};
+use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
@@ -75,8 +75,12 @@ impl GurpFileLineEnsure {
                 self.insert_line_at_index(line, index, opts)
             } else {
                 if !opts.noop {
-                    let fh = fs::OpenOptions::new().append(true).open(&self.path)?;
-                    writeln!(&fh, "\n{}\n", line)?;
+                    let fh = fs::OpenOptions::new()
+                        .append(true)
+                        .open(&self.path)
+                        .with_context(|| format!("failed to open {}", self.path))?;
+                    writeln!(&fh, "\n{}\n", line)
+                        .with_context(|| format!("failed to write {}", self.path))?;
                 }
 
                 Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -122,7 +126,7 @@ impl GurpFileLineEnsure {
 }
 
 fn line_exists(path: &Utf8PathBuf, line: &str) -> anyhow::Result<bool> {
-    let contents = fs::read_to_string(path)?;
+    let contents = fs::read_to_string(path).with_context(|| format!("failed to read {path}"))?;
     Ok(contents.lines().any(|l| l == line))
 }
 
@@ -132,8 +136,9 @@ fn replace_lines(
     with: &str,
     apply_to: Option<&str>,
 ) -> anyhow::Result<Option<String>> {
-    let rx = Regex::new(replace)?;
-    let mut made_change = false;
+    let rx =
+        Regex::new(replace).with_context(|| format!("cannot create Rust regex from {replace}"))?;
+    let mut changed = false;
     let mut lines: Vec<_> = orig.lines().collect();
 
     let apply_to = apply_to.unwrap_or("all");
@@ -147,8 +152,8 @@ fn replace_lines(
     let mut new_lines: Vec<_> = lines
         .iter()
         .map(|line| {
-            if (!made_change || change_all) && rx.is_match(line) {
-                made_change = true;
+            if (!changed || change_all) && rx.is_match(line) {
+                changed = true;
                 rx.replace_all(line, with).into_owned()
             } else {
                 line.to_string()
@@ -156,7 +161,7 @@ fn replace_lines(
         })
         .collect();
 
-    if made_change {
+    if changed {
         if apply_to == "last" {
             new_lines.reverse();
         }
@@ -174,7 +179,7 @@ fn write_content(
     tracing::debug!("writing new content to {path}");
 
     if !opts.noop {
-        fs::write(path, content)?;
+        fs::write(path, content).with_context(|| format!("failed to write to {path}"))?;
     }
 
     Ok(ONE_RESOURCE_ONE_CHANGE)

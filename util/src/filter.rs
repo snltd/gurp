@@ -1,3 +1,4 @@
+use anyhow::Context;
 use camino::Utf8Path;
 use regex::Regex;
 use std::fs::File;
@@ -12,7 +13,8 @@ impl<'a> FileFilter<'a> {
     pub fn from(pattern: &'a str) -> anyhow::Result<Self> {
         Ok(Self {
             pattern,
-            rx: Regex::new(pattern)?,
+            rx: Regex::new(pattern)
+                .with_context(|| format!("cannot create valid Rust regex from {pattern}"))?,
         })
     }
 

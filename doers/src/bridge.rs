@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure};
+use anyhow::{Context, bail, ensure};
 use common::cmd;
 use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
@@ -83,7 +83,7 @@ impl GurpBridgeEnsure {
         tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
-            run_cmd!(cmd)?;
+            run_cmd!(cmd).with_context(|| format!("failed to create bridge {}", self.name))?;
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -155,7 +155,7 @@ impl GurpBridgeEnsure {
             tracing::debug!(command = cmd::to_string(&cmd));
 
             if !opts.noop {
-                run_cmd!(cmd)?;
+                run_cmd!(cmd).with_context(|| format!("failed to modify bridge {}", self.name))?;
             }
         }
         Ok(change)
@@ -215,7 +215,7 @@ impl GurpBridgeRemove {
         let mut cmd = cmd!(DLADM_BIN, "delete-bridge", &self.name);
 
         if !opts.noop {
-            run_cmd!(cmd)?;
+            run_cmd!(cmd).with_context(|| format!("failed to delete bridge: {}", self.name))?;
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -247,24 +247,27 @@ fn modify_links(
     tracing::debug!(command = cmd::to_string(&cmd));
 
     if !opts.noop {
-        run_cmd!(cmd)?;
+        run_cmd!(cmd).with_context(|| format!("failed to modify bridge {name}"))?;
     }
 
     Ok(())
 }
 
 fn describe_bridge(name: &str) -> anyhow::Result<RawBridgeState> {
-    Ok(RawBridgeState {
-        state: cmd_output!(
-            DLADM_BIN,
-            "show-bridge",
-            "-p",
-            "-o",
-            "protect,priority,bhellotime,bfwddelay,forceproto,bmaxage",
-            name
-        )?,
-        links: cmd_output!(DLADM_BIN, "show-bridge", "-l", "-p", "-o", "link", name)?,
-    })
+    let state = cmd_output!(
+        DLADM_BIN,
+        "show-bridge",
+        "-p",
+        "-o",
+        "protect,priority,bhellotime,bfwddelay,forceproto,bmaxage",
+        name
+    )
+    .with_context(|| format!("failed to get state of bridge {name}"))?;
+
+    let links = cmd_output!(DLADM_BIN, "show-bridge", "-l", "-p", "-o", "link", name)
+        .with_context(|| format!("failed to find links for bridge {name}"))?;
+
+    Ok(RawBridgeState { state, links })
 }
 
 fn align_links(
@@ -300,6 +303,7 @@ fn align_links(
 
 fn parse_bridge(raw: &RawBridgeState) -> anyhow::Result<BridgeState> {
     let state_chunks: Vec<_> = raw.state.split(":").collect();
+
     ensure!(
         state_chunks.len() == 6,
         "cannot parse bridge state: {}",
@@ -326,7 +330,8 @@ fn parse_bridge(raw: &RawBridgeState) -> anyhow::Result<BridgeState> {
 }
 
 fn bridge_exists(bridge: &str) -> anyhow::Result<bool> {
-    let raw = cmd_output!(DLADM_BIN, "show-bridge", "-p")?;
+    let raw = cmd_output!(DLADM_BIN, "show-bridge", "-p")
+        .with_context(|| format!("failed to check if bridge {bridge} exists"))?;
 
     Ok(raw.lines().any(|l| l.starts_with(&format!("{bridge}:"))))
 }

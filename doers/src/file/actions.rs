@@ -1,5 +1,6 @@
 use crate::file::actions;
 use crate::file::types::{CompareMethod, DesiredFileState};
+use anyhow::Context;
 use camino::Utf8Path;
 use common::info;
 use common::types::{ApplyOpts, Changed};
@@ -27,7 +28,7 @@ pub fn ensure_content(
                 } else {
                     changed = true;
                     log_updating!(path);
-                    actions::write_text_file(
+                    write_text_file(
                         path,
                         new_content,
                         desired_state.backup_suffix.as_deref(),
@@ -45,7 +46,7 @@ pub fn ensure_content(
                 } else {
                     changed = true;
                     log_updating!(path);
-                    actions::write_text_file(
+                    write_text_file(
                         path,
                         new_content,
                         desired_state.backup_suffix.as_deref(),
@@ -69,7 +70,7 @@ pub fn ensure_content(
 }
 
 /// Blat a string to disk
-pub fn write_text_file(
+fn write_text_file(
     path: &Utf8Path,
     content: &str,
     backup_suffix: Option<&str>,
@@ -83,7 +84,7 @@ pub fn write_text_file(
 
     if opts.dump_diffs {
         let existing_content = if path.exists() {
-            fs::read_to_string(path)?
+            fs::read_to_string(path).with_context(|| format!("failed to read from {path}"))?
         } else {
             String::new()
         };
@@ -95,8 +96,9 @@ pub fn write_text_file(
     }
 
     if !opts.noop {
-        let mut fh = fs::File::create(path)?;
-        fh.write_all(content.as_bytes())?;
+        let mut fh = fs::File::create(path).with_context(|| format!("failed to open {path}"))?;
+        fh.write_all(content.as_bytes())
+            .with_context(|| format!("failed write to {path}"))?;
     }
 
     Ok(())
@@ -113,7 +115,8 @@ pub fn back_up(path: &Utf8Path, suffix: &str, opts: &ApplyOpts) -> anyhow::Resul
     tracing::debug!("Backing up to {}", backup_target);
 
     if !opts.noop {
-        fs::rename(path, &backup_target)?;
+        fs::rename(path, &backup_target)
+            .with_context(|| format!("failed to rename {path} to {backup_target}"))?;
         file::ensure_metadata(
             &backup_target,
             FileMetadata {

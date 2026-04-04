@@ -1,3 +1,4 @@
+use anyhow::Context;
 use byte_unit::Byte;
 use camino::Utf8PathBuf;
 use common::cmd;
@@ -34,49 +35,12 @@ pub struct GurpZfsRemove {
     pub name: String,
 }
 
-fn zfs_bin() -> &'static str {
-    if Utf8PathBuf::from(ZFS_BIN).exists() {
-        ZFS_BIN
-    } else if Utf8PathBuf::from(ZFS_LX_BIN).exists() {
-        ZFS_LX_BIN
-    } else {
-        panic!("No ZFS binary");
-    }
-}
-
-fn zfs_output() -> anyhow::Result<Vec<String>> {
-    Ok(cmd_output!(*ZFS_BIN_PATH, "list", "-H", "-o", "name")?
-        .lines()
-        .map(|s| s.to_owned())
-        .collect())
-}
-
-fn zfs_state(name: &str) -> anyhow::Result<ZfsProperties> {
-    let mut ret = HashMap::new();
-    let prop_vals = cmd_output!(*ZFS_BIN_PATH, "get", "-pHo", "property,value", "all", name)?;
-
-    for l in prop_vals.lines() {
-        let bits: Vec<_> = l.split_whitespace().collect();
-
-        if bits.len() != 2 {
-            continue;
-        }
-
-        ret.insert(bits[0].to_owned(), bits[1].to_owned());
-    }
-
-    Ok(ret)
-}
-
-fn zfs_exists(name: &str) -> anyhow::Result<bool> {
-    Ok(zfs_output()?.contains(&name.to_owned()))
-}
-
 impl GurpZfsEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        if zfs_exists(&self.name)? {
-            tracing::debug!("zfs: {} exists", &self.name);
-            let current_state = zfs_state(&self.name)?;
+        let fs = &self.name;
+        if zfs_exists(fs)? {
+            tracing::debug!("zfs: {fs} exists");
+            let current_state = zfs_state(fs)?;
             let mut run_cmd = false;
             let mut cmd = Command::new(*ZFS_BIN_PATH);
             cmd.arg("set");
@@ -98,7 +62,7 @@ impl GurpZfsEnsure {
                         tracing::info!(
                             "change zfs {}: [{}] {} -> {}",
                             property,
-                            self.name,
+                            fs,
                             current_value,
                             desired_value,
                         );
@@ -109,16 +73,17 @@ impl GurpZfsEnsure {
             }
 
             if run_cmd {
-                cmd.arg(&self.name);
+                cmd.arg(fs);
                 tracing::debug!(command = cmd::to_string(&cmd));
 
                 if !opts.noop {
-                    run_cmd!(cmd)?;
+                    run_cmd!(cmd)
+                        .with_context(|| format!("failed to modify ZFS filesystem {fs}"))?;
                 }
 
                 Ok(ONE_RESOURCE_ONE_CHANGE)
             } else {
-                tracing::debug!("no change: {}", self.name);
+                tracing::debug!("no change: {fs}");
                 Ok(ONE_RESOURCE_NO_CHANGE)
             }
         } else {
@@ -150,7 +115,8 @@ impl GurpZfsEnsure {
         tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
-            run_cmd!(cmd)?;
+            run_cmd!(cmd)
+                .with_context(|| format!("failed to create ZFS filesystem {}", self.name))?;
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -160,6 +126,7 @@ impl GurpZfsEnsure {
 impl GurpZfsRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         tracing::debug!("zfs: looking for {}", self.name);
+
         if zfs_exists(&self.name)? {
             tracing::info!("removing filesystem: {}", self.name);
             self.remove_filesystem(opts)
@@ -171,7 +138,48 @@ impl GurpZfsRemove {
 
     fn remove_filesystem(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         cmd_change_or_noop!(opts, *ZFS_BIN_PATH, "destroy", "-r", &self.name)
+            .with_context(|| format!("failed to destroy ZFS filesystem {}", self.name))
     }
+}
+
+fn zfs_bin() -> &'static str {
+    if Utf8PathBuf::from(ZFS_BIN).exists() {
+        ZFS_BIN
+    } else if Utf8PathBuf::from(ZFS_LX_BIN).exists() {
+        ZFS_LX_BIN
+    } else {
+        panic!("No ZFS binary");
+    }
+}
+
+fn zfs_output() -> anyhow::Result<Vec<String>> {
+    Ok(cmd_output!(*ZFS_BIN_PATH, "list", "-H", "-o", "name")
+        .context("failed to list ZFS datasets")?
+        .lines()
+        .map(|s| s.to_owned())
+        .collect())
+}
+
+fn zfs_state(name: &str) -> anyhow::Result<ZfsProperties> {
+    let mut ret = HashMap::new();
+    let prop_vals = cmd_output!(*ZFS_BIN_PATH, "get", "-pHo", "property,value", "all", name)
+        .with_context(|| format!("failed to get ZFS properties for {name}"))?;
+
+    for l in prop_vals.lines() {
+        let bits: Vec<_> = l.split_whitespace().collect();
+
+        if bits.len() != 2 {
+            continue;
+        }
+
+        ret.insert(bits[0].to_owned(), bits[1].to_owned());
+    }
+
+    Ok(ret)
+}
+
+fn zfs_exists(name: &str) -> anyhow::Result<bool> {
+    Ok(zfs_output()?.contains(&name.to_owned()))
 }
 
 #[cfg(test)]

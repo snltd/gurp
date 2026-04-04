@@ -1,3 +1,4 @@
+use anyhow::Context;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, SVCADM_BIN};
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
 use serde::Deserialize;
@@ -24,11 +25,12 @@ impl GurpSvcEnsure {
         changed_ids: &ChangedIds,
         opts: &ApplyOpts,
     ) -> anyhow::Result<ApplySummary> {
-        let current_state = svcs::current_state(&self.name)?;
+        let svc = &self.name;
+        let current_state = svcs::current_state(svc)?;
 
         if current_state == self.desired_state {
             if changed_ids.is_empty() {
-                tracing::debug!("no changed resources, so no {} svc trigger", &self.name);
+                tracing::debug!("no changed resources, so no {svc} svc trigger");
                 Ok(ONE_RESOURCE_NO_CHANGE)
             } else {
                 tracing::debug!(
@@ -41,19 +43,20 @@ impl GurpSvcEnsure {
                 );
 
                 if !changed_ids.is_disjoint(&self.restarters) {
-                    tracing::info!("{}: restarting service", self.name);
-                    cmd_change_or_noop!(opts, SVCADM_BIN, "restart", &self.name)
+                    tracing::info!("{svc}: restarting service");
+                    cmd_change_or_noop!(opts, SVCADM_BIN, "restart", svc)
+                        .with_context(|| format!("failed to restart {svc}"))
                 } else if !changed_ids.is_disjoint(&self.reloaders) {
                     tracing::info!("{}: reloading service", self.name);
-                    cmd_change_or_noop!(opts, SVCADM_BIN, "reload", &self.name)
+                    cmd_change_or_noop!(opts, SVCADM_BIN, "reload", svc)
+                        .with_context(|| format!("failed to reload {svc}"))
                 } else {
-                    tracing::debug!("{}: no service trigger", self.name);
+                    tracing::debug!("{svc}: no service trigger");
                     Ok(ONE_RESOURCE_NO_CHANGE)
                 }
             }
         } else {
             svcs::set_state(&self.name, &current_state, &self.desired_state, opts)?;
-
             Ok(ONE_RESOURCE_ONE_CHANGE)
         }
     }

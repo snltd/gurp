@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure};
+use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
@@ -58,7 +58,8 @@ impl GurpLinkEnsure {
                     tracing::info!("removing existing directory {target}");
 
                     if !opts.noop {
-                        fs::remove_dir_all(target)?;
+                        fs::remove_dir_all(target)
+                            .with_context(|| format!("failed to remove {target}"))?;
                     }
 
                     self.create_link(opts)
@@ -137,12 +138,18 @@ impl GurpLinkEnsure {
     }
 
     fn link_is_correct(&self) -> Result<bool, anyhow::Error> {
-        let target_metadata = self.target.symlink_metadata()?;
+        let target_metadata = self
+            .target
+            .symlink_metadata()
+            .with_context(|| format!("failed to get metadata for {}", self.target))?;
 
         match self.link_type {
             LinkType::Symbolic => {
                 if target_metadata.is_symlink() {
-                    let current_source = &self.target.read_link_utf8()?;
+                    let current_source = &self
+                        .target
+                        .read_link_utf8()
+                        .with_context(|| format!("failed to read link {}", self.target))?;
                     if current_source == &self.source {
                         tracing::debug!("no change: {}", self.target);
                         return Ok(true);
@@ -150,8 +157,10 @@ impl GurpLinkEnsure {
                 }
             }
             LinkType::Hard => {
-                let source_metadata = fs::metadata(&self.source)?;
-                let target_metadata = fs::metadata(&self.target)?;
+                let source_metadata = fs::metadata(&self.source)
+                    .with_context(|| format!("failed to get metadata for {}", self.source))?;
+                let target_metadata = fs::metadata(&self.target)
+                    .with_context(|| format!("failed to get metadata for {}", self.target))?;
 
                 if source_metadata.ino() == target_metadata.ino()
                     && source_metadata.dev() == target_metadata.dev()
@@ -170,8 +179,20 @@ impl GurpLinkEnsure {
 
         if !opts.noop {
             match self.link_type {
-                LinkType::Symbolic => unix::fs::symlink(&self.source, &self.target)?,
-                LinkType::Hard => fs::hard_link(&self.source, &self.target)?,
+                LinkType::Symbolic => {
+                    unix::fs::symlink(&self.source, &self.target).with_context(|| {
+                        format!(
+                            "failed to create symlink {} -> {}",
+                            self.source, self.target
+                        )
+                    })?
+                }
+                LinkType::Hard => fs::hard_link(&self.source, &self.target).with_context(|| {
+                    format!(
+                        "failed to create hard link {} -> {}",
+                        self.source, self.target
+                    )
+                })?,
             }
         }
 
@@ -181,7 +202,8 @@ impl GurpLinkEnsure {
     fn remove_target(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
         tracing::info!("removing existing link target: {}", self.target);
         if !opts.noop {
-            fs::remove_file(&self.target)?;
+            fs::remove_file(&self.target)
+                .with_context(|| format!("failed to remove {}", self.target))?;
         }
 
         Ok(())
@@ -190,16 +212,19 @@ impl GurpLinkEnsure {
 
 impl GurpLinkRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        let path = &self.path;
+
         if self.path.exists() {
-            tracing::info!("removing link: {}", self.path);
+            tracing::info!("removing link: {path}");
 
             if !opts.noop {
-                fs::remove_file(&self.path)?;
+                fs::remove_file(path)
+                    .with_context(|| format!("failed to remove link at {path}"))?;
             }
 
             Ok(ONE_RESOURCE_ONE_CHANGE)
         } else {
-            tracing::debug!("not present: {}", self.path);
+            tracing::debug!("not present: {path}");
             Ok(ONE_RESOURCE_NO_CHANGE)
         }
     }

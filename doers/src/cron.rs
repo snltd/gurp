@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{Context, bail};
 use common::constants::{CRONTAB_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
 use common::{cmd, info};
@@ -207,7 +207,9 @@ fn current_crontab(username: &str) -> anyhow::Result<String> {
     cmd.arg("-u").arg(username).arg("-l");
     tracing::debug!(command = cmd::to_string(&cmd));
 
-    let result = cmd.output()?;
+    let result = cmd
+        .output()
+        .with_context(|| format!("failed to get crontab for {username}"))?;
     Ok(String::from_utf8(result.stdout)?)
 }
 
@@ -222,7 +224,9 @@ fn write_crontab(username: &str, content: &str, opts: &ApplyOpts) -> anyhow::Res
             stdin.write_all(content.as_bytes())?;
         }
 
-        let output = child.wait_with_output()?;
+        let output = child
+            .wait_with_output()
+            .context("error running crontab command")?;
 
         if output.status.success() {
             tracing::debug!("{}: crontab updated successfully", username);

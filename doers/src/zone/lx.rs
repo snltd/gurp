@@ -2,7 +2,7 @@ use super::config::GurpZoneDns;
 use crate::zone::constants::{
     LX_RELEASES_URL, READINESS_WAIT_INTERVAL, READINESS_WAIT_TIMEOUT_NATIVE,
 };
-use anyhow::bail;
+use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
 use common::constants::{IMG_CACHE_DIR, PS_BIN};
 use serde_json::Value;
@@ -21,7 +21,8 @@ pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &GurpZoneDns) -> anyhow::Res
         content.push_str(&format!("nameserver {ns}\n"));
     }
 
-    fs::write(resolv_path, content)?;
+    fs::write(&resolv_path, content)
+        .with_context(|| format!("failed to write DNS config to {resolv_path}"))?;
 
     Ok(())
 }
@@ -38,9 +39,6 @@ pub fn image_path(image: Option<&str>) -> anyhow::Result<Utf8PathBuf> {
 }
 
 pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
-    // Because there are a bunch of possible images, it's hard to know what to look for here. For
-    // starters I'm going to try, "are you running half-a-dozen processes"?
-    //
     let elapsed = Duration::from_secs(0);
     loop {
         if is_ready(zone)? {
@@ -58,7 +56,12 @@ pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
 
 fn fetch_latest_release_images() -> anyhow::Result<Option<Vec<String>>> {
     tracing::debug!("fetching latest release images");
-    let response: Value = ureq::get(LX_RELEASES_URL).call()?.into_body().read_json()?;
+    let response: Value = ureq::get(LX_RELEASES_URL)
+        .call()
+        .with_context(|| format!("failed to fetch LX image list from {LX_RELEASES_URL}"))?
+        .into_body()
+        .read_json()
+        .context("failed to parse LX release data")?;
 
     Ok(response
         .get(0)
@@ -104,7 +107,11 @@ fn get_image(pattern: &str) -> anyhow::Result<Option<Utf8PathBuf>> {
     }
 }
 
+// Because there are a bunch of possible images, it's hard to know what to look for here. For
+// starters I'm going to try, "are you running half-a-dozen processes"?
+//
 fn is_ready(zone: &str) -> anyhow::Result<bool> {
-    let ps_output = cmd_output!(PS_BIN, "-e", "-z", zone)?;
+    let ps_output = cmd_output!(PS_BIN, "-e", "-z", zone)
+        .with_context(|| format!("failed to get process table for zone {zone}"))?;
     Ok(ps_output.lines().count() > 5)
 }

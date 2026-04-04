@@ -89,7 +89,7 @@ impl GurpRouteEnsure {
             tracing::debug!(command = cmd::to_string(&cmd));
 
             if !opts.noop {
-                run_cmd!(cmd).context("error running rout command")?;
+                run_cmd!(cmd).context("error running route command")?;
             }
 
             Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -168,8 +168,8 @@ impl GurpRouteRemove {
 
             if !opts.noop {
                 cmd.stderr(Stdio::piped());
-                let status = cmd.status()?;
-                ensure!(status.success(), "Error running route command");
+                let status = cmd.status().context("error running route delete")?;
+                ensure!(status.success(), "error running route command");
             }
 
             Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -184,8 +184,10 @@ impl GurpRouteRemove {
 }
 
 fn current_routes() -> anyhow::Result<Vec<ExtantRoute>> {
-    let raw_netstat = cmd_output!(NETSTAT_BIN, "-rn", "-f", "inet")?;
-    let raw_ip = cmd_output!(IPADM_BIN, "show-addr", "-po", "addr")?;
+    let raw_netstat =
+        cmd_output!(NETSTAT_BIN, "-rn", "-f", "inet").context("error listing routes")?;
+    let raw_ip =
+        cmd_output!(IPADM_BIN, "show-addr", "-po", "addr").context("error listing ip-addresses")?;
     let local_ip_list = parse_local_addrs(&raw_ip);
 
     Ok(parse_route_table(&raw_netstat, &local_ip_list))

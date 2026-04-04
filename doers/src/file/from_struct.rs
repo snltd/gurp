@@ -29,11 +29,21 @@ pub fn run(
 fn to_file(user_struct: &Value, to_format: Option<&OutputFileFormat>) -> anyhow::Result<String> {
     if let Some(format) = to_format {
         match format {
-            OutputFileFormat::Yaml => Ok(serde_yaml_bw::to_string(&user_struct)?),
-            OutputFileFormat::Toml => Ok(toml::to_string(&user_struct)?),
-            OutputFileFormat::Json => Ok(serde_json::to_string_pretty(&user_struct)?),
-            OutputFileFormat::Ini => Ok(to_ini(user_struct)?),
-            OutputFileFormat::KeyValue => Ok(to_kv(user_struct)?),
+            OutputFileFormat::Yaml => {
+                Ok(serde_yaml_bw::to_string(&user_struct)
+                    .context("failed to deserialize to YAML")?)
+            }
+            OutputFileFormat::Toml => {
+                Ok(toml::to_string(&user_struct).context("failed to deserialize to TOML")?)
+            }
+            OutputFileFormat::Json => Ok(serde_json::to_string_pretty(&user_struct)
+                .context("failed to deserialize to JSON")?),
+            OutputFileFormat::Ini => {
+                Ok(to_ini(user_struct).context("failed to deserialize to INI")?)
+            }
+            OutputFileFormat::KeyValue => {
+                Ok(to_kv(user_struct).context("failed to deserialize to key-value")?)
+            }
         }
     } else {
         bail!("from_struct requires to_format")

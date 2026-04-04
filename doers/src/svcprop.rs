@@ -53,36 +53,24 @@ struct SvcView {
 
 impl GurpSvcpropEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        let svc = &self.service;
         ensure_instance(&self.service, opts)?;
 
-        let all_values = current_svc_props(&self.service)?;
+        let all_values = current_svc_props(svc)?;
         let mut resources = self.properties.len() as u32;
-
         let mut changes = 0;
         let mut svccfg_script = String::new();
 
         if let Some(property_groups) = &self.property_groups {
             resources += property_groups.len() as u32;
             for (property_group, pgtype) in property_groups {
-                tracing::debug!(
-                    "{}: looking for '{}' property group",
-                    self.service,
-                    property_group
-                );
+                tracing::debug!("{svc}: looking for pg '{property_group}' property group",);
 
                 if all_values.property_groups.contains(property_group) {
-                    tracing::debug!(
-                        "{}: property group '{}' exists",
-                        self.service,
-                        property_group
-                    );
+                    tracing::debug!("{svc}: property group '{property_group}' exists",);
                 } else {
                     changes += 1;
-                    tracing::debug!(
-                        "{}: adding property group '{}'",
-                        self.service,
-                        property_group
-                    );
+                    tracing::debug!("{svc}: adding property group '{property_group}'",);
                     svccfg_script.push_str(&format!("addpg {property_group} {pgtype}\n"));
                 }
             }
@@ -94,46 +82,38 @@ impl GurpSvcpropEnsure {
             if let Some(current_val) = all_values.properties.get(property) {
                 tracing::debug!("{} found {}", self.service, property);
                 if current_val.value == desired.value {
-                    tracing::debug!(
-                        "{} {}: already {}",
-                        &self.service,
-                        property,
-                        current_val.value
-                    );
+                    tracing::debug!("{svc} {property}: already {}", current_val.value);
                     continue;
                 } else {
                     tracing::info!(
-                        "{} {}: {} -> {}",
-                        self.service,
-                        property,
+                        "{svc} {property}: {} -> {}",
                         current_val.value,
                         desired.value,
                     );
                     changes += 1;
                 }
             } else {
-                tracing::debug!("{} svcprop: did not find '{}'", self.service, property);
+                tracing::debug!("{svc} svcprop: did not find '{property}'");
             }
 
             tracing::info!(
-                "setting {} = {}: {}\n",
-                property,
+                "setting {property} = {}: {}\n",
                 desired.prop_type,
                 desired.value
             );
 
             svccfg_script.push_str(&format!(
-                "setprop {} = {}: {}\n",
-                property, desired.prop_type, desired.value
+                "setprop {property} = {}: {}\n",
+                desired.prop_type, desired.value
             ));
 
             changes += 1;
         }
 
         if svccfg_script.is_empty() {
-            tracing::debug!("{} svcprop: no change", self.service);
+            tracing::debug!("{svc} svcprop: no change");
         } else {
-            tracing::debug!("{} svcprop: applying change file", self.service);
+            tracing::debug!("{svc} svcprop: applying change file");
 
             if opts.dump_config {
                 println!(
@@ -146,21 +126,21 @@ impl GurpSvcpropEnsure {
                 return Ok(ApplySummary { resources, changes });
             }
 
-            let mut cmd = cmd_with_stdin!(SVCCFG_BIN, "-s", &self.service);
+            let mut cmd = cmd_with_stdin!(SVCCFG_BIN, "-s", svc);
             let mut child = cmd.spawn()?;
 
             if let Some(stdin) = child.stdin.as_mut() {
                 stdin.write_all(svccfg_script.as_bytes())?;
             }
 
-            let output = child.wait_with_output()?;
+            let output = child.wait_with_output().context("error running svccfg")?;
 
             ensure!(
                 output.status.success(),
                 String::from_utf8_lossy(&output.stderr).into_owned()
             );
 
-            tracing::debug!("{} svcprop: applied successfully", self.service);
+            tracing::debug!("{svc} svcprop: applied svccfg successfully");
 
             if let Some(action) = &self.on_change {
                 match action {
@@ -181,7 +161,8 @@ impl GurpSvcpropEnsure {
         sleep(Duration::from_secs(1)); // I hate this, but it appears to make the difference
 
         if !opts.noop {
-            cmd_output!(SVCADM_BIN, action, &self.service)?;
+            cmd_output!(SVCADM_BIN, action, &self.service)
+                .with_context(|| format!("failed to run {SVCADM_BIN} {action} {}", self.service))?;
         }
 
         Ok(())
@@ -190,38 +171,35 @@ impl GurpSvcpropEnsure {
 
 impl GurpSvcpropRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let current_state = current_svc_props(&self.service)?;
+        let svc = &self.service;
+        let current_state = current_svc_props(svc)?;
         let mut ret = ApplySummary::default();
 
         for property in &self.properties {
             if let Some(current) = current_state.properties.get(property) {
                 tracing::info!(
-                    "{} svcprop: removing '{property}' (was'{}')",
-                    self.service,
+                    "{svc} svcprop: removing '{property}' (was'{}')",
                     current.value,
                 );
-                ret += cmd_change_or_noop!(
-                    opts,
-                    SVCCFG_BIN,
-                    "-s",
-                    &self.service,
-                    "delprop",
-                    property
-                )?;
+                ret += cmd_change_or_noop!(opts, SVCCFG_BIN, "-s", svc, "delprop", property)
+                    .with_context(|| format!("failed to delete property {property} from {svc}"))?;
             } else {
-                tracing::debug!("{} svcprop: no '{}' property", self.service, property);
+                tracing::debug!("{svc} svcprop: no '{property}' property");
             }
         }
 
         if let Some(property_groups) = &self.property_groups {
             for pg in property_groups {
-                tracing::debug!("{}: looking for '{pg}' property group", self.service,);
+                tracing::debug!("{svc}: looking for '{pg}' property group");
 
                 if current_state.property_groups.contains(pg) {
                     tracing::debug!("{}: removing property group '{pg}'", self.service,);
-                    ret += cmd_change_or_noop!(opts, SVCCFG_BIN, "-s", &self.service, "delpg", pg)?;
+                    ret += cmd_change_or_noop!(opts, SVCCFG_BIN, "-s", &self.service, "delpg", pg)
+                        .with_context(|| {
+                            format!("failed to delete property_group {pg} from {svc}")
+                        })?;
                 } else {
-                    tracing::debug!("{}: property group '{pg}' exists", self.service,);
+                    tracing::debug!("{svc}: property group '{pg}' exists");
                 }
             }
         }
@@ -233,11 +211,13 @@ impl GurpSvcpropRemove {
 // We inspect only the directly referenced service/instance. No composition.
 fn svc_property_values(svc: &str) -> anyhow::Result<String> {
     cmd_output!(SVCCFG_BIN, "-s", svc, "listprop")
+        .with_context(|| format!("failed to list properties for {svc}"))
 }
 
 // We inspect only the directly referenced service/instance. No composition.
 fn svc_property_groups(svc: &str) -> anyhow::Result<String> {
     cmd_output!(SVCCFG_BIN, "-s", svc, "listpg")
+        .with_context(|| format!("failed to list property groups for {svc}"))
 }
 
 fn process_property_groups(raw: &str) -> PropertyGroupList {
@@ -312,9 +292,9 @@ fn ensure_instance(svc: &str, opts: &ApplyOpts) -> anyhow::Result<()> {
         .context(format!("could not get instance of {svc}"))?;
 
     if svcs::exists(svc)? {
-        tracing::debug!("svc instance {} exists", svc);
+        tracing::debug!("svc instance {svc} exists");
     } else {
-        tracing::debug!("adding instance '{}' to service '{}'", instance, service);
+        tracing::debug!("adding instance '{instance}' to service '{service}'");
         let mut cmd = cmd_with_stdin!(SVCCFG_BIN, "-s", &service);
 
         if opts.noop {
@@ -327,7 +307,9 @@ fn ensure_instance(svc: &str, opts: &ApplyOpts) -> anyhow::Result<()> {
             stdin.write_all(format!("add {instance}").as_bytes())?;
         }
 
-        let output = child.wait_with_output()?;
+        let output = child
+            .wait_with_output()
+            .with_context(|| format!("failed to add instance {instance} to svc {service}"))?;
 
         ensure!(
             output.status.success(),

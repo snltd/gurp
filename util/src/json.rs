@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{Context, bail};
 use serde_json::Value;
 
 pub fn formatted(raw_json: &str) -> anyhow::Result<String> {
@@ -13,6 +13,6 @@ pub fn formatted(raw_json: &str) -> anyhow::Result<String> {
 }
 
 pub fn pretty(raw_json: &str) -> anyhow::Result<String> {
-    let value: Value = serde_json::from_str(raw_json)?;
+    let value: Value = serde_json::from_str(raw_json).context("could not deserialize JSON")?;
     Ok(serde_json::to_string_pretty(&value)?)
 }
