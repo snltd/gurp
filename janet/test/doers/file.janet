@@ -12,7 +12,7 @@
 
   (test *collector*
     @{:ensure @{:file @[{:_id "/test-role/file/_example_file_from-content"
-                         :content "words and stuff"
+                         :content "words\n and\nstuff\n"
                          :group "root"
                          :mode "0600"
                          :name "/example/file/from-content"

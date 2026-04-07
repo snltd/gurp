@@ -93,43 +93,4 @@ mod test {
                 "compile error: unknown symbol physical",
             ));
     }
-
-    #[test]
-    #[ignore]
-    fn test_compile_janet_to_json() {
-        use camino_tempfile_ext::prelude::*;
-        use std::fs;
-
-        let reference_file = "tests/resources/compile/outputs/compile-test.json";
-
-        let expected_output = fs::read_to_string(reference_file).unwrap();
-
-        cargo_bin_cmd!("gurp")
-            .arg("compile")
-            .arg("--format=json")
-            .arg("tests/resources/sample/serv-gurp.janet")
-            .assert()
-            .success()
-            .stdout(expected_output);
-
-        let temp_dir = Utf8TempDir::new().unwrap();
-        let output_file = temp_dir.child("test-output.json");
-
-        cargo_bin_cmd!("gurp")
-            .arg("compile")
-            .arg("--format=json")
-            .arg(format!("--output-file={}", output_file.as_path()))
-            .arg("tests/resources/sample/serv-gurp.janet")
-            .assert()
-            .success()
-            .stdout(predicate::str::ends_with(format!(
-                "wrote JSON to {}\n",
-                output_file.as_path()
-            )));
-
-        assert_eq!(
-            std::fs::read_to_string(output_file).unwrap().trim(),
-            std::fs::read_to_string(reference_file).unwrap().trim(),
-        );
-    }
 }

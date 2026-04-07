@@ -12,7 +12,10 @@ Fully qualified path to file (`:string`)
 (file/ensure "/example/file/from-content"
              :owner "sys"
              :mode "0600"
-             :content "words and stuff")
+             :content (indoc `
+                          words
+                           and
+                          stuff`))
 ```
 
 ```janet

@@ -1,19 +1,18 @@
 (import ../globals)
 (import ../helpers)
 
-(indoc startup-method-template `
+(def startup-method-template (indoc `
   #!/bin/sh -e
-  # 
+  
   if ! test -d "{{ repo-root}}/publisher"
   then
-	  /usr/bin/pkgrepo create {{ repo-root }}
+    /usr/bin/pkgrepo create {{ repo-root }}
   fi
-  
-	/usr/bin/pkgrepo set -s {{ repo-root }} publisher/prefix={{ repo-name }}
-  {{ refresh-repo-script }}
-`)
 
-(indoc refresh-repo-template `
+  /usr/bin/pkgrepo set -s {{ repo-root }} publisher/prefix={{ repo-name }}
+  {{ refresh-repo-script }}`))
+
+(def refresh-repo-template (indoc `
   #!/bin/ksh -e
 
   REPO_NAME="{{ repo-name }}"
@@ -35,8 +34,7 @@
   /usr/bin/pkgrepo refresh -s $REPO_ROOT refresh 
   # /usr/sbin/svcadm refresh $REPO_SVC
   # /usr/sbin/svcadm restart $REPO_SVC
-  /bin/touch $MARKER
-`)
+  /bin/touch $MARKER`))
 
 (def repo-name "sysdef")
 (def startup-method (pathcat globals/site-smf-method (string repo-name "-repo-setup.sh")))

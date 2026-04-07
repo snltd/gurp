@@ -148,24 +148,33 @@
     (map |(string/format (string format-string "\n") ;(values-as-tuple $)))
     (string/join)))
 
-(defmacro indoc
-  "Removes common leading spaces from multiline strings"
-  [name str]
-  ~(def ,name (string
-                (if-not (string? ,str)
-                  (error "indoc: expected a string literal"))
-                (->
-                  (->>
-                    ,str
-                    (string/split "\n")
-                    (filter |(not (empty? (string/trim $))))
-                    (map |(peg/find :S $))
-                    (min-of)
-                    (string/repeat " ")
-                    (string "\n"))
-                  (string/split (string "\n" ,str))
-                  (string/join "\n")
-                  (string/triml)))))
+(defn indoc
+  "Removes common leading spaces from multiline strings, adding a newline at the
+  end if there isn't one already. Start the first line on a new line."
+  [str]
+  (if-not (string? str)
+    (error (string "indoc: expected a string literal, got " str)))
+
+  (def lines (string/split "\n" str))
+
+  (def leader-to-remove
+    (->>
+      lines
+      (filter |(not (empty? (string/trim $))))
+      (map |(peg/find :S $))
+      (min-of)
+      (string/repeat " ")))
+
+  (def outdented-lines
+    (if (empty? leader-to-remove)
+      lines
+      (map |(string/replace leader-to-remove "" $) lines)))
+
+  (def outdented-block (string/join outdented-lines "\n"))
+
+  (if (string/has-suffix? "\n" outdented-block)
+    outdented-block
+    (string outdented-block "\n")))
 
 (defn template-out
   "Takes a template with vars in {{ brackets }} and a table of vars to values.
@@ -234,4 +243,3 @@
   "Returns a cloudinit meta-data struct for the given hostname"
   [hostname]
   {:instance-id hostname :local-hostname hostname})
-

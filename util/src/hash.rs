@@ -8,7 +8,7 @@ pub fn of_bytes(bytes: &[u8]) -> Hash {
 }
 
 pub fn of_string(user_string: &str) -> Hash {
-    of_bytes(user_string.trim().as_bytes())
+    of_bytes(user_string.as_bytes())
 }
 
 pub fn of_file(path: &Utf8Path) -> anyhow::Result<Hash> {

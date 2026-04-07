@@ -111,7 +111,7 @@ mod test {
                 path: Utf8PathBuf::from("/example/file/from-content"),
                 desired_state: DesiredFileState {
                     backup_suffix: None,
-                    content: Some("words and stuff".to_owned()),
+                    content: Some("words\n and\nstuff\n".to_owned()),
                     from_struct: None,
                     from_url: None,
                     from: None,

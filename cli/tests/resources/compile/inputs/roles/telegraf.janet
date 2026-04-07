@@ -5,15 +5,14 @@
 (def conf (pathcat globals/site-etc "telegraf.conf"))
 (def method (pathcat globals/site-smf-method "telegraf.sh"))
 
-(indoc method-content `
+(def method-content (indoc `
   #!/bin/ksh
   
   . /lib/svc/share/smf_include.sh
   
   {{ executable }} --config {{ conf }} &
   
-  exit $SMF_EXIT_OK
-  `)
+  exit $SMF_EXIT_OK`))
 
 (role telegraf
       (user/ensure "telegraf"

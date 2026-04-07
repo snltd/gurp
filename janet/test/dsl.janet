@@ -66,11 +66,33 @@
 
 (deftest indoc
   (test
-    (indoc tester `
+    (indoc "flat line") "flat line\n")
+
+  (test
+    (indoc ```
+    line1
+    line2
+    
+    ```)
+    "line1\nline2\n\n")
+
+  (test
+    (indoc `
+      first line indented
+    others
+    not`)
+    "  first line indented\nothers\nnot\n")
+
+  (test
+    (indoc `
       gibbus
          and
       chubb`)
-    "gibbus\n   and\nchubb"))
+    "gibbus\n   and\nchubb\n")
+
+  (test-error
+    (indoc 123)
+    "indoc: expected a string literal, got 123"))
 
 (deftest template
   (test

@@ -1,13 +1,12 @@
 (import ../helpers)
 (import ../globals)
 
-(indoc resolv.conf `
+(def resolv.conf (indoc `
   domain {{ domain }}
   nameserver {{ dns-server }}
-  nameserver {{ router }}
-  `)
+  nameserver {{ router }}`))
 
-(indoc ntp.conf `
+(def ntp.conf (indoc `
   statsdir /var/log/ntpstats
 
   restrict 127.0.0.1
@@ -17,8 +16,7 @@
   server 2.uk.pool.ntp.org iburst
   server 3.uk.pool.ntp.org iburst
 
-  driftfile /var/lib/ntp/drift
-  `)
+  driftfile /var/lib/ntp/drift`))
 
 (role physical
       (section "dns"
