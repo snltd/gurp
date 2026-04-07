@@ -44,12 +44,17 @@ Items marked [*] are breaking changes.
 - Add `ipnat` doer.
 - Add `network-flow` doer.
 - Add `vlan` doer.
-- Add `limitpriv`, `hostid`, `ip-type`, `pool` to `zone` doer.
+- Add `limitpriv`, `hostid`, `ip-type`, `pool` , `acpi` and `boot-rom` to
+  `zone` doer.
 - `zone` doer now supports illumos branded zones.
+- `zone` doer supports ZST images for bhyve zones (and has been refactored).
+- All brands which require an image now use the top-level `:image` key, rather
+  than having their own. [*] 
 - Add `force-link` to `link` doer, which can turn regular files into links.
 - Doer documentation is machine-generated from definition files.
 - `file` and `directory` doers now accept numeric IDs for `:owner` and `:group`.
-- File backups now work.
+- File backups now work, and the whole `file` doer has been refactored to make
+  it easier to work on and expand.
 - `file` and `directory` doers now error with a meaningful message if you try
   to ensure a path which already exists, but is of a different type.
 - `smf` doer now lets you set service properties.

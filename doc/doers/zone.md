@@ -181,6 +181,8 @@ This helpers does not accept a name
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
+| `:acpi` | `boolean` | whether to enable ACPI in zone |  |
+| `:boot-rom` | `string` | boot ROM image: may be BHYVE_RELEASE or BHYVE_RELEASE_CSM | `"BHYVE_RELEASE"` |
 | `:cloudinit-files` | `tuple` | Copy the given files into the Cloudinit image |  |
 | `:cloudinit-struct` | `struct` | Generate a Cloudinit file from the given struct. Top level keys map to files, e.g. 'user-data' |  |
 | `:image-format` | `string` | Specify the format of the image pointed to by :image-url |  |
@@ -190,7 +192,7 @@ This helpers does not accept a name
 
 ## Notes
 
-- The `:boot-volume` must already exist. It is not created by this doer.
+- If your image is a .zst, Gurp will create the `:boot-volume` automatically, clobbering it if it already exists. For any other image type, the `:boot-volume` must already exist.
 - You must supply exactly one of `:image-url` and `:image-path`
 
 # zone/bootstrap

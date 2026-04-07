@@ -36,9 +36,10 @@
   (test *collector*
     @{:ensure @{:zone @[{:_id "/test-role/zone/bhyve-zone"
                          :autoboot false
-                         :bhyve @{:boot-volume "tank/bhyve/test"
+                         :bhyve @{:acpi false
+                                  :boot-rom "BHYVE_RELEASE"
+                                  :boot-volume "tank/bhyve/test"
                                   :cloudinit-struct {:network {:version 2}}
-                                  :image-path "/var/tmp/noble-server-cloudimg-amd64.img.raw"
                                   :ram "4G"
                                   :vcpus 4
                                   :wait-for-boot true}
@@ -46,6 +47,7 @@
                          :brand "bhyve"
                          :dns {:domain "lan.id264.net"
                                :nameservers ["192.168.1.53" "192.168.1.1"]}
+                         :image "/var/tmp/noble-server-cloudimg-amd64.img.raw"
                          :name "bhyve-zone"
                          :net @[@{:allowed-address "192.168.1.102/24"
                                   :global-nic "auto"

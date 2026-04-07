@@ -8,7 +8,9 @@
                 :image-path "/var/tmp/noble-server-cloudimg-amd64.img.raw"
                 :boot-volume "tank/bhyve/test"
                 :cloudinit-struct {:network {:version 2}})
-    {:bhyve @{:boot-volume "tank/bhyve/test"
+    {:bhyve @{:acpi false
+              :boot-rom "BHYVE_RELEASE"
+              :boot-volume "tank/bhyve/test"
               :cloudinit-struct {:network {:version 2}}
               :image-path "/var/tmp/noble-server-cloudimg-amd64.img.raw"
               :ram "3G"
@@ -25,4 +27,4 @@
                 :image-path "/var/tmp/noble-server-cloudimg-amd64.img.raw"
                 :boot-volume "tank/bhyve/test"
                 :oops "wat?")
-    "In zone/bhyve NO-NAME: unexpected property :oops. Valid properties are :ram, :boot-volume, :vcpus, :cloudinit-files, :image-path, :label, :image-url, :image-format, :wait-for-boot, :cloudinit-struct"))
+    "In zone/bhyve NO-NAME: unexpected property :oops. Valid properties are :ram, :boot-volume, :vcpus, :acpi, :boot-rom, :cloudinit-files, :label, :image-path, :image-format, :wait-for-boot, :cloudinit-struct"))

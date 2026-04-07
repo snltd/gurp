@@ -1,32 +1,84 @@
-use crate::zone::cloudinit;
-use crate::zone::config::{GurpZoneBhyve, GurpZoneConfig, GurpZoneFilesystem};
+use crate::zfs;
+use crate::zone::config::{GurpZoneBhyve, GurpZoneFilesystem, ZoneConfig};
 use crate::zone::constants::READINESS_WAIT_TIMEOUT_BHYVE;
+use crate::zone::{cloudinit, control};
 use anyhow::{Context, bail, ensure};
 use camino::{Utf8Path, Utf8PathBuf};
-use common::constants::{IMG_CACHE_DIR, QEMU_IMG_BIN, ZLOGIN_BIN};
+use common::constants::{
+    IMG_CACHE_DIR, QEMU_IMG_BIN, ZFS_BIN, ZLOGIN_BIN, ZONEADM_BIN, ZONECFG_BIN, ZSTD_BIN,
+};
+use common::types::ApplyOpts;
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 use std::fs::{self, File};
-use std::io::{BufWriter, Read, Write};
+use std::io::{BufReader, BufWriter, Read, Write};
+use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 use util::http;
+use uuid::Uuid;
 
 const BUFFER_SIZE: usize = 8192;
 const WINDOW_SIZE: usize = 4096;
 
-pub fn zone_config(config: &GurpZoneBhyve, iso_path: Option<Utf8PathBuf>) -> String {
-    let mut ret = String::new();
-    let boot_device = format!("/dev/zvol/rdsk/{}", config.boot_volume);
+fn boot_device(config: &GurpZoneBhyve) -> Utf8PathBuf {
+    Utf8PathBuf::from("/dev/zvol/rdsk").join(&config.boot_volume)
+}
 
-    ret.push_str(zone_device!(boot_device));
-    ret.push_str(zone_attr!("bootrom", "string", "BHYVE_RELEASE"));
+pub fn build_zone(
+    zone: &str,
+    config: &ZoneConfig,
+    uuid: &Uuid,
+    opts: &ApplyOpts,
+) -> anyhow::Result<()> {
+    let image_str = config
+        .image
+        .as_ref()
+        .context("bhyve zones must have an :image")?;
+
+    let image_path = image_path(image_str).context("cannot get image path")?;
+    let bhyve_config = config.bhyve.as_ref().context("no bhyve config")?;
+
+    write_image(
+        &image_path,
+        &bhyve_config.boot_volume,
+        &bhyve_config.image_format,
+    )
+    .context("failed to write boot image")?;
+
+    if bhyve_config.has_cloudinit() {
+        cloudinit::setup(bhyve_config, &cloudinit::iso_path(uuid), opts)?;
+    }
+
+    cmd_output!(ZONEADM_BIN, "-z", zone, "install")?;
+
+    if config.boot_after_install {
+        control::boot_zone(zone)?;
+    }
+
+    if bhyve_config.wait_for_boot {
+        wait_for_readiness(zone, uuid)?;
+    }
+
+    if bhyve_config.has_cloudinit() {
+        remove_cloudinit_config(zone)?;
+    }
+
+    Ok(())
+}
+
+pub fn zone_config(config: &GurpZoneBhyve, uuid: &Uuid) -> String {
+    let mut ret = String::new();
+
+    ret.push_str(zone_device!(boot_device(config)));
+    ret.push_str(zone_attr!("bootrom", "string", config.boot_rom));
     ret.push_str(zone_attr!("bootdisk", "string", config.boot_volume));
     ret.push_str(zone_attr!("vcpus", "string", config.vcpus));
     ret.push_str(zone_attr!("ram", "string", config.ram));
-    ret.push_str(zone_attr!("acpi", "string", "false"));
+    ret.push_str(zone_attr!("acpi", "string", config.acpi));
 
-    if let Some(iso_path) = iso_path {
+    if config.has_cloudinit() {
+        let iso_path = cloudinit::iso_path(uuid);
         ret.push_str(zone_attr!("cdrom", "string", iso_path));
         ret.push_str(&zone_fs!(GurpZoneFilesystem {
             dir: iso_path.clone(),
@@ -39,70 +91,52 @@ pub fn zone_config(config: &GurpZoneBhyve, iso_path: Option<Utf8PathBuf>) -> Str
     ret
 }
 
-// Creating the volume is the ZFS doer/user's responsibility.
-// If we're given a path, assume the user's gone to the effort of converting it to raw. If it's
-// a URL, we'll do it for them.
-//
-pub fn pre_install(config: &GurpZoneConfig) -> anyhow::Result<()> {
-    tracing::debug!("Running bhyve pre_install");
+fn image_path(image: &str) -> anyhow::Result<Utf8PathBuf> {
+    if image.starts_with("http") {
+        let cached_path = image_cache_filename(image)?;
 
-    let bhyve_config = config
-        .bhyve
-        .as_ref()
-        .context("bhyve zone requested, but no config given")?;
-
-    let image_raw_file: Utf8PathBuf;
-
-    ensure!(
-        exactly_one_some!(bhyve_config.image_url, bhyve_config.image_path),
-        "bhyve requires exactly one of :image-path or :image-url"
-    );
-
-    if let Some(image_path) = &bhyve_config.image_path {
-        ensure!(image_path.exists(), "Image file not found: {image_path}");
-        image_raw_file = image_path.clone();
-    } else if let Some(image_url) = &bhyve_config.image_url {
-        let image_cache_file = image_cache_filename(image_url)?;
-
-        let image_format = if let Some(user_format) = &bhyve_config.image_format {
-            user_format
-        } else {
-            image_cache_file
-                .extension()
-                .with_context(|| format!("cannot determine image format for {image_url}"))?
-        };
-
-        image_raw_file = image_cache_file.with_extension("raw");
-
-        if !image_raw_file.exists() {
-            tracing::debug!("No cached raw file at {}", image_raw_file);
-
-            if !image_cache_file.exists() {
-                tracing::debug!("No cached image file at {}", image_cache_file);
-                tracing::info!("downloading image from {image_url}");
-                http::remote_file_to_disk(image_url, &image_cache_file)?;
-            }
-
-            convert_image_to_raw(&image_cache_file, &image_raw_file, image_format)?;
+        if !cached_path.exists() {
+            tracing::debug!("No cached image file at {}", cached_path);
+            tracing::info!("downloading image from {image}");
+            http::remote_file_to_disk(image, &cached_path)?;
         }
+
+        Ok(cached_path)
     } else {
-        bail!("Did not get bhyve :image-path or :image-url");
+        Ok(Utf8PathBuf::from(image))
     }
+}
 
-    write_img_to_boot_zvol(&image_raw_file, &bhyve_config.boot_volume)?;
+fn write_image(
+    image_path: &Utf8Path,
+    zvol: &str,
+    image_format: &Option<String>,
+) -> anyhow::Result<()> {
+    ensure!(image_path.exists(), "Image file not found: {image_path}");
 
-    if bhyve_config.has_cloudinit() {
-        cloudinit::setup(
-            bhyve_config,
-            &config
-                .cloudinit_iso_file
-                .borrow()
-                .clone()
-                .context("Could not borrow cloudinit_iso_file")?,
-        )?;
+    let image_format = if let Some(user_format) = image_format {
+        user_format
+    } else {
+        image_path
+            .extension()
+            .with_context(|| format!("cannot determine image format for {image_path}"))?
+    };
+
+    match image_format {
+        "zst" => {
+            tracing::debug!("no work needed on zst files");
+            stream_img_to_boot_zvol(image_path, zvol)
+        }
+        "raw" => {
+            tracing::debug!("no work needed on raw files");
+            write_img_to_boot_zvol(image_path, zvol)
+        }
+        other_format => {
+            let raw_image = image_path.with_extension("raw");
+            convert_image_to_raw(image_path, &raw_image, other_format)?;
+            write_img_to_boot_zvol(&raw_image, zvol)
+        }
     }
-
-    Ok(())
 }
 
 fn image_cache_filename(url: &str) -> anyhow::Result<Utf8PathBuf> {
@@ -114,14 +148,72 @@ fn image_cache_filename(url: &str) -> anyhow::Result<Utf8PathBuf> {
     Ok(cache_dir.join(basename))
 }
 
-fn write_img_to_boot_zvol(raw_img_path: &Utf8Path, vol: &str) -> anyhow::Result<()> {
-    let zvol = Utf8PathBuf::from("/dev/zvol/dsk").join(vol);
+fn remove_cloudinit_config(zone: &str) -> anyhow::Result<()> {
+    tracing::debug!("removing cloudinit cdrom from zone config");
+    // It's safe to do this here. The config won't be re-read until the zone
+    // boots
+    let _ = cmd_output!(ZONECFG_BIN, "-z", zone, "remove attr name=cdrom")
+        .with_context(|| format!("failed to remove cdrom attr from zone {}", zone))?;
+
+    tracing::debug!("removing cloudinit lofs from zone config");
+    let _ = cmd_output!(ZONECFG_BIN, "-z", zone, "remove fs type=lofs")
+        .with_context(|| format!("failed to remove cdrom lofs from zone {}", zone))?;
+
+    Ok(())
+}
+
+// For ZFS images
+fn stream_img_to_boot_zvol(raw_img_path: &Utf8Path, zvol: &str) -> anyhow::Result<()> {
+    if zfs::zfs_exists(zvol)? {
+        tracing::info!("ZFS volume {zvol} exists: removing");
+        zfs::remove_filesystem(zvol, &ApplyOpts::default())?;
+    }
+
+    let mut zstd = Command::new(ZSTD_BIN)
+        .args(["-d", raw_img_path.as_str(), "--stdout"])
+        .stdout(Stdio::piped())
+        .spawn()?;
+
+    let mut zfs = Command::new(ZFS_BIN)
+        .args(["receive", zvol])
+        .stdin(zstd.stdout.take().unwrap())
+        .spawn()?;
+
+    let zfs_status = zfs.wait()?;
+    let zstd_status = zstd.wait()?;
+
+    if !zstd_status.success() {
+        bail!("zstd failed: {zstd_status}");
+    }
+
+    if !zfs_status.success() {
+        bail!("zfs receive failed: {zfs_status}");
+    }
+
+    Ok(())
+}
+
+// Using std::fs::copy took forever. Use a big buffer.
+fn write_img_to_boot_zvol(raw_img_path: &Utf8Path, zvol: &str) -> anyhow::Result<()> {
+    let zvol = Utf8PathBuf::from("/dev/zvol/dsk").join(zvol);
     ensure!(zvol.exists(), "zvol {zvol} not found");
+
     tracing::debug!("writing {} to {}", raw_img_path, zvol);
 
-    fs::copy(raw_img_path, &zvol)
+    let src =
+        fs::File::open(raw_img_path).with_context(|| format!("failed to open {raw_img_path}"))?;
+    let dst = fs::OpenOptions::new()
+        .write(true)
+        .open(&zvol)
+        .with_context(|| format!("failed to open {zvol}"))?;
+
+    let mut reader = BufReader::with_capacity(16 * 1024 * 1024, src);
+    let mut writer = BufWriter::with_capacity(16 * 1024 * 1024, dst);
+
+    std::io::copy(&mut reader, &mut writer)
         .with_context(|| format!("failed to write image from {raw_img_path} to {zvol}"))?;
 
+    writer.flush().context("failed to flush writer")?;
     Ok(())
 }
 
@@ -154,12 +246,11 @@ fn convert_image_to_raw(
     Ok(())
 }
 
-pub fn wait_for_readiness(zone: &str, uuid: Option<&str>) -> anyhow::Result<bool> {
-    tracing::info!("Waiting for zone to be ready");
+pub fn wait_for_readiness(zone: &str, uuid: &Uuid) -> anyhow::Result<bool> {
+    tracing::info!("Waiting for zone '{zone}' to be ready");
 
-    let uuid = uuid.context("no uuid for zone")?;
     let console_log_dir = Utf8PathBuf::from("/var/tmp");
-    let console_log_file = console_log_dir.join(format!("gurp-{uuid}.log"));
+    let console_log_file = console_log_dir.join(format!("gurp-bhyve-{uuid}.log"));
 
     let pty_system = native_pty_system();
     let pair = pty_system

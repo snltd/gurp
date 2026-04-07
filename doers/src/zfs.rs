@@ -129,17 +129,17 @@ impl GurpZfsRemove {
 
         if zfs_exists(&self.name)? {
             tracing::info!("removing filesystem: {}", self.name);
-            self.remove_filesystem(opts)
+            remove_filesystem(&self.name, opts)
         } else {
             tracing::debug!("not present: {}", self.name);
             Ok(ONE_RESOURCE_NO_CHANGE)
         }
     }
+}
 
-    fn remove_filesystem(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        cmd_change_or_noop!(opts, *ZFS_BIN_PATH, "destroy", "-r", &self.name)
-            .with_context(|| format!("failed to destroy ZFS filesystem {}", self.name))
-    }
+pub fn remove_filesystem(name: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    cmd_change_or_noop!(opts, *ZFS_BIN_PATH, "destroy", "-r", name)
+        .with_context(|| format!("failed to destroy ZFS filesystem {}", name))
 }
 
 fn zfs_bin() -> &'static str {
@@ -152,9 +152,9 @@ fn zfs_bin() -> &'static str {
     }
 }
 
-fn zfs_output() -> anyhow::Result<Vec<String>> {
+fn list_filesystems() -> anyhow::Result<Vec<String>> {
     Ok(cmd_output!(*ZFS_BIN_PATH, "list", "-H", "-o", "name")
-        .context("failed to list ZFS datasets")?
+        .context("failed to list ZFS filesystems")?
         .lines()
         .map(|s| s.to_owned())
         .collect())
@@ -178,8 +178,8 @@ fn zfs_state(name: &str) -> anyhow::Result<ZfsProperties> {
     Ok(ret)
 }
 
-fn zfs_exists(name: &str) -> anyhow::Result<bool> {
-    Ok(zfs_output()?.contains(&name.to_owned()))
+pub fn zfs_exists(name: &str) -> anyhow::Result<bool> {
+    Ok(list_filesystems()?.contains(&name.to_owned()))
 }
 
 #[cfg(test)]

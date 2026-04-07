@@ -42,6 +42,7 @@ pub const ZFS_LX_BIN: &str = "/native/usr/sbin/zfs";
 pub const ZLOGIN_BIN: &str = "/usr/sbin/zlogin";
 pub const ZONEADM_BIN: &str = "/usr/sbin/zoneadm";
 pub const ZONECFG_BIN: &str = "/usr/sbin/zonecfg";
+pub const ZSTD_BIN: &str = "/bin/zstd";
 
 // Filesystem locations
 pub const IMG_CACHE_DIR: &str = "/var/tmp";

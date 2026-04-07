@@ -3,7 +3,6 @@
 (zone/bhyve
   :vcpus 4
   :ram "8G"
-  :image-url "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
   :image-format "qcow2"
   :boot-volume "tank/byhve/example-boot"
   :cloudinit-files [(config-file "cloud-init/user-data")]
