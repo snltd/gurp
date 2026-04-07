@@ -168,14 +168,14 @@ mod test {
         fs::set_permissions(&temp_file, fs::Permissions::from_mode(0o600)).unwrap();
         assert!(temp_file.exists());
 
-        let json_def = janet2json(&formatdoc! {"
-            (file/ensure \"{}\"
-                :content \"today is 2025-06-26\\nBut this never changes.\\nAnd nor does this.\"
-                :mode \"0600\"
-                :ignore-pattern \"^today is\"
-                :owner \"{}\"
-                :group \"{}\")
-            ",
+        let json_def = janet2json(&formatdoc! { r#"
+            (file/ensure "{}"
+                :content "today is 2025-06-26\nBut this never changes.\nAnd nor does this.\n"
+                :mode "0600"
+                :ignore-pattern "^today is"
+                :owner "{}"
+                :group "{}")
+            "#,
             temp_file,
             my_user(),
             my_group(),

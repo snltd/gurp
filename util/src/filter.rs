@@ -4,6 +4,17 @@ use regex::Regex;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
+// This is used by the file doer, in conjunction with crate::hash, to compare the content of files.
+// Turns out, this is tricky because of file endings.
+//
+//
+// The easy way to deal with this is to strip files before hashing them, but Gurp goes out of its
+// way to not load files into memory.
+//
+// Since Gurp tries to insist that the files it creates end with a newline, (at least until experience
+// shows this is a bad idea) here we will do the same. Make sure there's a newline at the end,
+// consistently.
+
 pub struct FileFilter<'a> {
     pattern: &'a str,
     rx: Regex,
@@ -20,11 +31,17 @@ impl<'a> FileFilter<'a> {
 
     pub fn string(&self, content: &str) -> String {
         tracing::debug!("filtering string on '{}'", self.pattern);
-        content
+        let mut output = content
             .lines()
             .filter(|l| !self.rx.is_match(l))
             .collect::<Vec<_>>()
-            .join("\n")
+            .join("\n");
+
+        if !output.ends_with('\n') {
+            output.push('\n');
+        }
+
+        output
     }
 
     pub fn file(&self, path: &Utf8Path) -> anyhow::Result<String> {
@@ -53,7 +70,7 @@ mod test {
     #[test]
     fn test_filter_string_1() {
         let sut = FileFilter::from("line").unwrap();
-        assert_eq!(&sut.string(sample()), "The Final Line");
+        assert_eq!(&sut.string(sample()), "The Final Line\n");
     }
 
     #[test]
@@ -63,7 +80,8 @@ mod test {
             &sut.string(sample()),
             indoc::indoc! { "
                 line #2
-                The Final Line"
+                The Final Line
+                "
             }
         );
     }
