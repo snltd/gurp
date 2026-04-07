@@ -19,9 +19,6 @@
    :wait-for-boot
    {:types [:boolean]
     :help "Wait for boot, or detach immediately"}
-   :image-url
-   {:types [:string]
-    :help "URL of remote install image"}
    :image-format
    {:types [:string]
     :help "Specify the format of the image pointed to by :image-url"}
@@ -59,6 +56,8 @@
   (struct :bhyve spec-table))
 
 (def notes-bhyve
-  ["If your image is a .zst, Gurp will create the `:boot-volume` automatically, clobbering it
-    if it already exists. For any other image type, the `:boot-volume` must already exist."
-   "You must supply exactly one of `:image-url` and `:image-path`"])
+  ["A bhyve zone must be built from an image. This can be a local path or a URL.
+    Specify it with the `:image` key in the main zone config."
+   "If your image is a .zst, Gurp will create the `:boot-volume` automatically,
+    clobbering it if it already exists. For any other image type, it is the 
+    user's responsibility to create the `:boot-volume`."])
