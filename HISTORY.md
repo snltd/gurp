@@ -10,6 +10,8 @@ Items marked [*] are breaking changes.
 - Write a lock file (`/var/run/gurp.lock`) when running in `apply` mode.
 - More detailed, more useful error messages.
 - Improved client and server telemetry, and tidied metrics namespace. [*]
+- New `/api/v1/gurp-binary` path serves up the currently-running Gurp binary,
+  for easier client bootstrapping.
 
 ### Commands
 

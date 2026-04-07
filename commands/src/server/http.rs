@@ -29,6 +29,7 @@ pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
             get(handlers::file_hash_filtered),
         )
         .route("/v1/config/{host}", get(handlers::config))
+        .route("/v1/gurp-binary", get(handlers::gurp_binary))
         .route_layer(axum::middleware::from_fn_with_state(
             metrics.clone(),
             metrics_middleware,

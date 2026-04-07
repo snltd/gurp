@@ -3,6 +3,7 @@ use axum::body::Body;
 use axum::extract::{Extension, Path, Query};
 use axum::http::{Response, StatusCode};
 use axum::response::IntoResponse;
+use camino::{Utf8Path, Utf8PathBuf};
 use common::constants::GURP_VERSION;
 use common::types::{ApplyOpts, ServerOpts};
 use embed::compiler;
@@ -107,6 +108,17 @@ pub async fn config(
     }
 }
 
+pub async fn gurp_binary() -> impl IntoResponse {
+    tracing::info!("request for gurp binary");
+
+    if let Ok(binary) = std::env::current_exe() {
+        send_file(&Utf8PathBuf::from_path_buf(binary).expect("non-utf8 path")).await
+    } else {
+        tracing::warn!("could not get Gurp path");
+        (StatusCode::INTERNAL_SERVER_ERROR).into_response()
+    }
+}
+
 pub async fn file(
     Path(path): Path<String>,
     Extension(opts): Extension<Arc<ServerOpts>>,
@@ -114,7 +126,10 @@ pub async fn file(
     tracing::info!("request for file {}", path);
 
     let path = opts.config_dir.join("files").join(&path);
+    send_file(&path).await
+}
 
+async fn send_file(path: &Utf8Path) -> Response<Body> {
     let fh = match File::open(&path).await {
         Ok(fh) => fh,
         Err(e) => {
@@ -124,7 +139,7 @@ pub async fn file(
     };
 
     let stream = ReaderStream::new(fh);
-    let mime = from_path(&path).first_or_octet_stream();
+    let mime = from_path(path).first_or_octet_stream();
 
     match Response::builder()
         .status(StatusCode::OK)
