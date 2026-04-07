@@ -1,7 +1,7 @@
 ## apply
 
 ```
-Configure the host with the supplied configuration
+Configure this host according to the supplied configuration
 
 Usage: gurp apply [OPTIONS] [HOST_CONFIG_FILE]
 
@@ -23,7 +23,9 @@ Options:
       --destroy-everything-you-touch  Turn all ensures into removes. Use with extreme caution
   -e, --exec <EXEC>                   Execute a literal snippet of Janet config
       --no-lock                       Do not check for or use a lockfile
-  -h, --help
+      --remove-first                  Run remove actions BEFORE ensure actions
+      --only <ONLY>                   Only apply resources whose IDs match this regex
+  -h, --help                          Print help
 ```
 
 `apply` aligns the state of a host with that defined host configuration. That
@@ -72,6 +74,10 @@ There are options:
 - `--no-lock` makes Gurp not check for, create, or remove its runtime lock file.
 - `--exec` lets you apply a literal string of Janet config to the local host.
   (Assuming you have permission to do so!)
+- `--remove-first` Normally Gurp runs all `ensure` resources, then all `remove`
+  resources. With this flag, that order is reversed.
+- `-O, --only <REGEX>` Makes Gurp only apply resources whose IDs match the given
+  Rust regex.
 
 Gurp uses the [Tracing framework](https://crates.io/crates/tracing) for logging.
 This means you can control the log level through the `RUST_LOG` environment

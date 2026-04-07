@@ -28,10 +28,11 @@ use crate::vlan::{GurpVlanEnsure, GurpVlanRemove};
 use crate::vnic::{GurpVnicEnsure, GurpVnicRemove};
 use crate::zfs::{GurpZfsEnsure, GurpZfsRemove};
 use crate::zone::{GurpZoneEnsure, GurpZoneRemove};
-use anyhow::bail;
+use anyhow::{Context, bail};
 use bytesize::ByteSize;
 use colored::Colorize;
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
 use std::collections::BTreeSet;
@@ -254,6 +255,14 @@ fn apply_resources<'a, T: Apply>(resources: &'a [T], opts: &'a ApplyOpts) -> App
 
     for (i, resource) in resources.iter().enumerate() {
         let id = resource.id();
+
+        if let Some(only) = opts.only.as_ref() {
+            let rx = Regex::new(only).context("failed to generate ID filter regex")?;
+
+            if !rx.is_match(id) {
+                continue;
+            }
+        }
 
         if std::env::var("GURP_RSS_STATS").is_ok()
             && let Some(rss) = runtime_stats::rss_bytes()

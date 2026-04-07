@@ -21,16 +21,17 @@ Items marked [*] are breaking changes.
 - Add `repl` command, which opens a Janet REPL with the Gurp library loaded into
   the root environment.
 - Add `--destroy-everything-you-touch` to `apply` command.
-- Add `--as-json` option to apply command, for old compile-on-server behaviour.
-- Add `--remove-first` option to act on remove resources first.
+- Add `--as-json` option to `apply` command, for old compile-on-server behaviour.
+- Add `--remove-first` option to `apply`, to act on remove resources first.
+- Add `--only <REGEX>` option to `apply`, to apply only resources whose IDs
+  match the given Rust regex.
+- Add `--exec` to `apply`, which compiles and applies a string of Janet config.
+- Add `--no-lock` to `apply`, which stops Gurp checking, creating, or removing
+  a lock file.
 - `describe` command gives more information, and its layout adjusts for the
   terminal width.
 - `describe` and `doers` will not use ANSI colouring if `gurp` is part of a
   pipeline, or if the user specifies `-C`.
-- `apply` has a new `--exec` option which compiles and applies a string of
-  Janet config.
-- `apply` has a new `--no-lock` option which stops Gurp checking, creating, or
-  removing a lock file.
 
 ### Doers
 
@@ -52,6 +53,9 @@ Items marked [*] are breaking changes.
   than having their own. [*] 
 - Add `force-link` to `link` doer, which can turn regular files into links.
 - Doer documentation is machine-generated from definition files.
+- When running in client/server mode, the `file` doer is now able to ask the
+  server for the Blake3 hash of a file, only retrieving it if needs to. This
+  reduces memory usage on the client, and network traffic.
 - `file` and `directory` doers now accept numeric IDs for `:owner` and `:group`.
 - File backups now work, and the whole `file` doer has been refactored to make
   it easier to work on and expand.
@@ -75,6 +79,8 @@ Items marked [*] are breaking changes.
 - Remove the internal concept of a "noop". Things either happen or they don't.
 - Wherever possible, avoid loading files into memory. This improves client and
   server memory usage.
+- Added context to errors throughout the codebase. As most errors end up being
+  seen by the user, this is very helpful.
 
 ## v 1.4.0 (2025-11-22)
 

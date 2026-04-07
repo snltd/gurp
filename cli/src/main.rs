@@ -61,6 +61,9 @@ enum Commands {
         /// Run remove actions BEFORE ensure actions
         #[arg(long = "remove-first")]
         remove_first: bool,
+        /// Only apply resources whose IDs match this regex
+        #[arg(long = "only")]
+        only: Option<String>,
         /// Host configuration file
         #[arg(
             required_unless_present = "server",
@@ -150,6 +153,7 @@ fn main() -> ExitCode {
             as_json,
             no_lock,
             remove_first,
+            only,
         } => {
             let opts = ApplyOpts {
                 noop,
@@ -170,6 +174,7 @@ fn main() -> ExitCode {
                 as_json,
                 no_lock,
                 remove_first,
+                only,
             };
             commands::apply::init::run(host_config_file.as_ref(), &opts)
         }
