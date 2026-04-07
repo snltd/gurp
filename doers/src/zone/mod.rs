@@ -1,14 +1,18 @@
 #[macro_use]
 pub mod config_macros;
 
-pub use crate::zone::doer::GurpZoneEnsure;
-pub use crate::zone::doer::GurpZoneRemove;
+pub use crate::zone::ensure::GurpZoneEnsure;
+pub use crate::zone::remove::GurpZoneRemove;
 
 pub mod bhyve;
 pub mod cloudinit;
 pub mod config;
 pub mod constants;
+pub mod container;
 pub mod control;
-pub mod doer;
+pub mod ensure;
+pub mod helpers;
 pub mod illumos;
 pub mod lx;
+pub mod remove;
+pub mod types;

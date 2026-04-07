@@ -2,23 +2,52 @@ use crate::zone::bhyve;
 use camino::Utf8PathBuf;
 use serde::Deserialize;
 use serde_json::Value;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
 use uuid::Uuid;
 
+pub type CopyInFiles = HashMap<Utf8PathBuf, String>;
+
+#[derive(Deserialize, Debug, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum Brand {
+    Bhyve,
+    Illumos,
+    Ipkg,
+    Lipkg,
+    Lx,
+    Sparse,
+}
+
+impl fmt::Display for Brand {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Brand::Bhyve => "bhyve",
+                Brand::Illumos => "illumos",
+                Brand::Ipkg => "ipkg",
+                Brand::Lipkg => "lipkg",
+                Brand::Lx => "lx",
+                Brand::Sparse => "sparse",
+            }
+        )
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpZoneConfig {
+pub struct ZoneConfig {
     pub attr: Option<GurpZoneAttrs>,
     pub autoboot: bool,
     pub bhyve: Option<GurpZoneBhyve>,
     pub boot_after_install: bool,
-    pub bootstrap: Option<GurpZoneBootstrap>,
-    pub brand: String,
+    pub bootstrap: Option<BootstrapConf>,
+    pub brand: Brand,
     pub capped_memory: Option<GurpZoneCappedMemory>,
     pub clone_from: Option<String>,
-    pub copy_in: Option<HashMap<Utf8PathBuf, String>>,
+    pub copy_in: Option<CopyInFiles>,
     pub datasets: Option<Vec<String>>,
     pub dns: Option<GurpZoneDns>,
     pub exec_in: Option<Vec<String>>,
@@ -33,13 +62,11 @@ pub struct GurpZoneConfig {
     pub rctl: Option<GurpZoneRctls>,
     pub recreate: u8,
     pub zonepath: Utf8PathBuf,
-    pub uuid: RefCell<Option<String>>,
-    pub cloudinit_iso_file: RefCell<Option<Utf8PathBuf>>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpZoneBootstrap {
+pub struct BootstrapConf {
     pub server: Option<String>,
     pub file: Option<String>,
     pub hostname: Option<String>,
@@ -52,11 +79,11 @@ pub struct GurpZoneBhyve {
     pub cloudinit_files: Option<Vec<Utf8PathBuf>>,
     pub cloudinit_struct: Option<Value>,
     pub image_format: Option<String>,
-    pub image_url: Option<String>,
-    pub image_path: Option<Utf8PathBuf>,
     pub ram: String,
     pub vcpus: u8,
     pub wait_for_boot: bool,
+    pub acpi: bool,
+    pub boot_rom: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -139,8 +166,8 @@ impl GurpZoneBhyve {
     }
 }
 
-impl GurpZoneConfig {
-    pub fn to_zonecfg(&self) -> String {
+impl ZoneConfig {
+    pub fn to_zonecfg(&self, uuid: &Uuid) -> String {
         let mut ret = "create -b\n".to_owned();
 
         ret.push_str(&format!("set brand={}\n", &self.brand));
@@ -200,18 +227,7 @@ impl GurpZoneConfig {
         }
 
         if let Some(bhyve_config) = &self.bhyve {
-            let uuid = Uuid::new_v4();
-            *self.uuid.borrow_mut() = Some(uuid.to_string());
-            let iso_path = iso_path(&uuid);
-
-            let iso_path = if bhyve_config.has_cloudinit() {
-                Some(iso_path)
-            } else {
-                None
-            };
-
-            *self.cloudinit_iso_file.borrow_mut() = iso_path.clone();
-            ret.push_str(&bhyve::zone_config(bhyve_config, iso_path));
+            ret.push_str(&bhyve::zone_config(bhyve_config, uuid));
         }
 
         ret
@@ -243,23 +259,13 @@ impl GurpZoneConfig {
     }
 }
 
-pub fn iso_path(uuid: &Uuid) -> Utf8PathBuf {
-    let tmp_dir = Utf8PathBuf::from("/tmp");
-
-    loop {
-        let path = tmp_dir.join(format!("{uuid}.iso"));
-        if !path.exists() {
-            return path;
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use crate::zone::GurpZoneEnsure;
     use indoc::indoc;
     use pretty_assertions::assert_eq;
     use tester::janet2json;
+    use uuid::Uuid;
 
     #[test]
     fn test_config() {
@@ -346,6 +352,6 @@ mod test {
 
         let sut: GurpZoneEnsure = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(expected_conf, sut.config.to_zonecfg());
+        assert_eq!(expected_conf, sut.config.to_zonecfg(&Uuid::new_v4()));
     }
 }

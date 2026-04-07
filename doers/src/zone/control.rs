@@ -104,6 +104,13 @@ pub fn halt_zone(zone: &str) -> anyhow::Result<()> {
     wait_for_state(zone, ZoneState::Installed)
 }
 
+pub fn boot_zone(zone: &str) -> anyhow::Result<()> {
+    tracing::debug!("zone {}: booting", zone);
+    cmd_output!(ZONEADM_BIN, "-z", zone, "boot")
+        .with_context(|| format!("failed to boot zone {zone}"))?;
+    Ok(())
+}
+
 pub fn reboot_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: rebooting", zone);
     cmd_output!(ZONEADM_BIN, "-z", zone, "reboot")
