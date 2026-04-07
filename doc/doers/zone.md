@@ -12,15 +12,16 @@ Zone name (`:string`)
 (zone/ensure "bhyve-zone"
              :brand "bhyve"
              :autoboot false
+             :image "/var/tmp/noble-server-cloudimg-amd64.img.raw"
              (zone/network "bhyve0"
                            :allowed-address "192.168.1.102/24"
                            :global-nic "auto")
              (zone/bhyve
                :ram "4G"
                :vcpus 4
-               :image-path "/var/tmp/noble-server-cloudimg-amd64.img.raw"
                :boot-volume "tank/bhyve/test"
                :cloudinit-struct {:network {:version 2}})
+
              :dns {:domain "lan.id264.net"
                    :nameservers ["192.168.1.53"
                                  "192.168.1.1"]})
@@ -151,7 +152,6 @@ This helpers does not accept a name
 (zone/bhyve
   :vcpus 4
   :ram "8G"
-  :image-url "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
   :image-format "qcow2"
   :boot-volume "tank/byhve/example-boot"
   :cloudinit-files [(config-file "cloud-init/user-data")]
@@ -187,13 +187,12 @@ This helpers does not accept a name
 | `:cloudinit-struct` | `struct` | Generate a Cloudinit file from the given struct. Top level keys map to files, e.g. 'user-data' |  |
 | `:image-format` | `string` | Specify the format of the image pointed to by :image-url |  |
 | `:image-path` | `string` | Path to install image - must be raw format |  |
-| `:image-url` | `string` | URL of remote install image |  |
 | `:wait-for-boot` | `boolean` | Wait for boot, or detach immediately | `true` |
 
 ## Notes
 
-- If your image is a .zst, Gurp will create the `:boot-volume` automatically, clobbering it if it already exists. For any other image type, the `:boot-volume` must already exist.
-- You must supply exactly one of `:image-url` and `:image-path`
+- A bhyve zone must be built from an image. This can be a local path or a URL. Specify it with the `:image` key in the main zone config.
+- If your image is a .zst, Gurp will create the `:boot-volume` automatically, clobbering it if it already exists. For any other image type, it is the user's responsibility to create the `:boot-volume`.
 
 # zone/bootstrap
 
