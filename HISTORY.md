@@ -70,6 +70,8 @@ Items marked [*] are breaking changes.
 - Huge refactor of the front-end Janet. The old single library file is now fully
   modular, with improved code clarity, better test coverage, and all knots
   untangled. [*]
+- `indoc` is no longer a macro which binds a string to a name. It is now a
+  function which returns a string. [*]
 - Doer parameters, types, and behaviour are now defined in separate definition
   files. These are used to check properties are valid and of the correct types,
   and to generate documentation.
