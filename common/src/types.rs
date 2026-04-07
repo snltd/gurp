@@ -22,6 +22,7 @@ pub struct ApplyOpts {
     pub exec: Option<String>,
     pub no_lock: bool,
     pub remove_first: bool,
+    pub only: Option<String>,
 }
 
 #[derive(Debug, Default)]
