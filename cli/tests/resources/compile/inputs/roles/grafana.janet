@@ -5,15 +5,14 @@
 (def data-dir "/var/lib/grafana")
 (def grafana-init "/etc/init.d/grafana")
 
-(indoc cron-job ```
+(def cron-job (indoc `
          #!/bin/sh
 
          /var/tmp/gurp \
            apply \
            --metrics-to=metrics \
            /home/rob/work/my-gurp/zone-grafana.janet \
-         >/var/log/gurp.log 2>&1
-         ```)
+         >/var/log/gurp.log 2>&1`))
 
 (role grafana
       (def zfs-pool globals/fast-pool)
@@ -30,7 +29,7 @@
       # An LX Zone can see delegated datasets, but it won't mount them unless
       # it's told to.
       (section mount-zfs-filesystems
-               (indoc zfs-mount-script ```
+               (def zfs-mount-script (indoc `
                     #!/sbin/openrc-run
 
                     description="Mount delegated ZFS dataset"
@@ -47,7 +46,7 @@
                         ebegin "Mounting ZFS dataset"
                         /native/usr/sbin/zfs mount -a
                         eend $?
-                    }```)
+                    }`))
 
                (file/ensure zfs-mounter
                             :content zfs-mount-script

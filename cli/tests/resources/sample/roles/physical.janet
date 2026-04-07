@@ -1,9 +1,9 @@
-(indoc resolv.conf `
+(def resolv-conf (indoc `
   domain lan.id264.net
   nameserver 192.168.1.53
-  nameserver 192.168.1.1`)
+  nameserver 192.168.1.1`))
 
-(indoc ntp.conf `
+(def ntp-conf (indoc `
   statsdir /var/log/ntpstats
 
   restrict 127.0.0.1
@@ -13,19 +13,19 @@
   server 2.pool.ntp.org iburst
   server 3.pool.ntp.org iburst
 
-  driftfile /var/lib/ntp/drift`)
+  driftfile /var/lib/ntp/drift`))
 
 (role physical
       (zfs/ensure "rpool/zones/gurp/test"
                   :properties {:compression "on"
                                :devices "on"})
       (section "dns"
-               (file/ensure "/etc/resolv.conf" :content resolv.conf))
+               (file/ensure "/etc/resolv.conf" :content resolv-conf))
 
       (section "ntp"
                (pkg/ensure "service/network/ntp")
                (directory/ensure "/var/lib/ntp" :group "daemon")
-               (file/ensure "/etc/ntp.conf" :content ntp.conf :label "ntp-conf"))
+               (file/ensure "/etc/ntp.conf" :content ntp-conf :label "ntp-conf"))
       # (svc/ensure "svc:/network/ntp:default" :restarted-by (this "file" "ntp-conf")))
 
       (section "telemetry"
