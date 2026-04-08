@@ -16,6 +16,7 @@ pub enum Brand {
     Ipkg,
     Lipkg,
     Lx,
+    Pkgsrc,
     Sparse,
 }
 
@@ -30,6 +31,7 @@ impl fmt::Display for Brand {
                 Brand::Ipkg => "ipkg",
                 Brand::Lipkg => "lipkg",
                 Brand::Lx => "lx",
+                Brand::Pkgsrc => "pkgsrc",
                 Brand::Sparse => "sparse",
             }
         )
