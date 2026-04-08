@@ -109,12 +109,12 @@ fn set_user(
 ) -> anyhow::Result<()> {
     if let Some(uid) = uid {
         if let Some(gid) = gid {
-            tracing::info!("Setting user: group to {}:{}", uid, gid);
+            tracing::info!("{path}: setting user: group to {}:{}", uid, gid);
         } else {
-            tracing::info!("Setting user to {}", uid);
+            tracing::info!("{path}: setting user to {}", uid);
         }
     } else if let Some(gid) = gid {
-        tracing::info!("Setting group to {}", gid);
+        tracing::info!("{path}: setting group to {}", gid);
     } else {
         bail!("UID and GID both empty");
     }
@@ -133,7 +133,7 @@ fn set_mode(
     desired_mode: &str,
     opts: &ApplyOpts,
 ) -> anyhow::Result<()> {
-    tracing::info!("Changing mode {} -> {}", current_mode, desired_mode);
+    tracing::info!("{path}: changing mode {} -> {}", current_mode, desired_mode);
     let mode = u32::from_str_radix(desired_mode, 8)?;
 
     if !opts.noop {
