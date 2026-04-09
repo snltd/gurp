@@ -41,7 +41,7 @@ Janet, keywords are **prefixed** with a `:`.
 
 You can also guarantee that a resource is removed, if it makes sense for that
 resource to be removed. (For instance, you can `ensure` which class the
-scheduler uses, but you can't remove it.
+scheduler uses, but you can't remove it.)
 
 ```janet
 (file/remove "/that/old/file")
@@ -112,7 +112,7 @@ follow the general format
 
 If your resource is not part of a role, the first part is `NO-ROLE`. If your
 resource name contains slashes, as file and directory resources always will,
-they are converted to underscores. As this can become unwieldy, all resources
+they are converted to underscores. This can become unwieldy, so all resources
 accept a `:label` property. If you use this, the ID is of the form
 
 ```
@@ -121,9 +121,8 @@ accept a `:label` property. If you use this, the ID is of the form
 
 Gurp does not allow duplicate resource IDs.
 
-You only interact with resource IDs if you use `gurp apply --only <REGEX>`,
-which tells Gurp to only apply resources whose IDs match the Rust `REGEX`; or if
-you use references in your config.
+Resource IDs often show up in debug logs, and you use them to filter resources
+wlth `gurp apply --only <REGEX>`. Labels also let one Gurp resource refer to another.
 
 ## References
 
