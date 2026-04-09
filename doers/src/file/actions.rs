@@ -39,10 +39,6 @@ pub fn ensure_content(
             CompareMethod::Filter(pattern) => {
                 let filter = FileFilter::from(pattern)?;
 
-                println!("comparing");
-                println!("{:?}", &filter.string(new_content));
-                println!("{:?}", &filter.file(path)?);
-
                 if hash::of_string(&filter.string(new_content))
                     == hash::of_string(&filter.file(path)?)
                 {
