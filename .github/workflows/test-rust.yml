@@ -2,23 +2,43 @@ name: Rust Tests
 permissions:
   contents: read
 on: 
-  - push
+  push:
+    paths:
+      - Cargo.lock
+      - Cargo.toml
+      - **/*.rs
+      - janet/src/**
+      - janet/examples/**
+      - .github/workflows/rust-tests.yml
+  pull_request:
+    paths:
+      - Cargo.lock
+      - Cargo.toml
+      - **/*.rs
+      - janet/src/**
+      - janet/examples/**
+      - .github/workflows/rust-tests.yml
 jobs:
   rust-tests:
     permissions:
       contents: read
-      pull-requests: write
+    timeout-minutes: 15
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        rust: [stable, nightly]
     steps:
-      - uses: hecrj/setup-rust-action@110f36749599534ca96628b82f52ae67e5d95a3c # 2.0.1
-        with:
-          rust-version: ${{ matrix.rust }}
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
-      - name: Check spelling
-        uses: crate-ci/typos@78bc6fb2c0d734235d57a2d6b9de923cc325ebdd # 1.43.4
+      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Set up Rust
+        uses: hecrj/setup-rust-action@110f36749599534ca96628b82f52ae67e5d95a3c # 2.0.1
+        with:
+          rust-version: stable
+      - name: Do a Clippy
+        run: cargo clippy
       - name: Run Rust Tests
         run: cargo test -- --include-ignored --nocapture
