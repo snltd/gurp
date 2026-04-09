@@ -378,7 +378,13 @@ fn scan_output(
         *cr_sent = true;
     }
 
-    let login_patterns: &[&[u8]] = &[b" login:", b"login:", b"Login:", b"username:", b"Username:"];
+    let login_patterns: &[&[u8]] = &[
+        b"login:",
+        b"Login:",
+        b"username:",
+        b"Username:",
+        b"cloud-init is configuring this system",
+    ];
 
     for pattern in login_patterns {
         if find_pattern(window, pattern) && !*login_prompt_seen {

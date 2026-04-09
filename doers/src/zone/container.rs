@@ -33,15 +33,13 @@ pub fn build_zone(zone: &str, config: &ZoneConfig, opts: &ApplyOpts) -> anyhow::
     }
 
     if let Some(files) = &config.copy_in {
-        let zone_root = &config.zonepath;
-
         ensure!(
-            zone_root.exists(),
-            format!("cannot find zone root {zone_root}")
+            &config.zonepath.exists(),
+            format!("cannot find zone root {}", config.zonepath)
         );
 
         for (src, dest) in files {
-            copy_to_zone(zone_root, src, dest)?;
+            copy_to_zone(&config.zonepath, src, dest)?;
         }
     }
 
@@ -86,35 +84,38 @@ fn clone(zone: &str, source_zone: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn copy_to_zone(zone_root: &Utf8Path, src: &Utf8Path, dest: &str) -> anyhow::Result<()> {
+fn copy_to_zone(zonepath: &Utf8Path, src: &Utf8Path, dest: &str) -> anyhow::Result<()> {
+    let zone_root = zonepath.join("root");
     let relative_dest = dest.trim_matches('/');
-    let mut zone_dest = zone_root.join(relative_dest);
+    let dest_path = zone_root.join(relative_dest);
 
-    // If target is a directory, append the source's filename
-    // If target.parent() does not exist, make it
-    if dest.ends_with('/')
-        && let Some(fname) = src.file_name()
-    {
-        if !zone_dest.exists() {
-            fs::create_dir_all(&zone_dest)
-                .with_context(|| format!("failed to create zone dir {zone_dest}"))?;
-        }
+    // If target has a trailing slash, assume the user means a directory and append
+    // the source's filename.
 
-        zone_dest = zone_dest.join(fname);
+    let dest_dir = if dest.ends_with('/') || dest_path.exists() && dest_path.is_dir() {
+        &dest_path
+    } else {
+        dest_path.parent().context("cannot get target parent")?
+    };
+
+    if !dest_dir.exists() {
+        tracing::info!("creating {dest_dir}");
+        fs::create_dir_all(dest_dir)
+            .with_context(|| format!("failed to create dest_dir {dest_dir}"))?;
     }
 
-    tracing::info!("copying {} -> {}", src, zone_dest);
+    tracing::info!("copying {} -> {}", src, dest_path);
 
     if src.is_file() {
-        fs::copy(src, &zone_dest)
-            .with_context(|| format!("failed to copy from {src} to {zone_dest}"))?;
+        fs::copy(src, &dest_path)
+            .with_context(|| format!("failed to copy from {src} to {dest_path}"))?;
     } else if src.is_dir() {
         let mut options = CopyOptions::new();
         options.overwrite = true;
         options.copy_inside = true;
 
-        fs_extra::dir::copy(src, &zone_dest, &options)
-            .with_context(|| format!("failed to copy from {src} to {zone_dest}"))?;
+        fs_extra::dir::copy(src, &dest_path, &options)
+            .with_context(|| format!("failed to copy from {src} to {dest_path}"))?;
     } else {
         bail!("{} is neither a file nor a directory", src);
     }
@@ -179,7 +180,12 @@ fn bootstrap(zone: &str, conf: &ZoneConfig, opts: &ApplyOpts) -> anyhow::Result<
     };
 
     copy_to_zone(&conf.zonepath, &this_exec, bootstrap_bin)?;
-    exec_in(zone, &bootstrap_args.join(" "))?;
+    let bootstrap_cmd = bootstrap_args.join(" ");
+
+    exec_in(zone, &bootstrap_cmd).with_context(|| {
+        format!("in zone {zone}: failed to run bootstrap command: {bootstrap_cmd}")
+    })?;
+
     tracing::info!("END BOOTSTRAP {zone}");
 
     Ok(())
