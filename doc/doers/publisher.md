@@ -17,6 +17,7 @@ Publisher name (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
+| `:type` | `string` | Publisher type: one of "origin", "mirror" | `"origin"` |
 | `:uri` | `string` | Add a pkg publisher with this URI |  |
 
 ### Optional Properties
@@ -35,8 +36,7 @@ None
 
 ### Optional Properties
 
-None
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:mirror` | `string` | Remove the mirror with the given URI |  |
 
-## Notes
-
-- Only handles origins.
