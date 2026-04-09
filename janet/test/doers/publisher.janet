@@ -22,7 +22,7 @@
 (deftest publisher-error
   (test-error
     (publisher/remove "sysdef" :url "abc")
-    "In publisher/remove sysdef: unexpected property :url. Valid properties are :label")
+    "In publisher/remove sysdef: unexpected property :url. Valid properties are :mirror, :label")
 
   (test-error
     (publisher/ensure "sysdef"
