@@ -1,0 +1,16 @@
+name: Lint Tests
+permissions:
+  contents: read
+on: 
+  push:
+  pull_request:
+jobs:
+  typo-checks:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+      - name: Check for Typos
+        uses: crate-ci/typos@78bc6fb2c0d734235d57a2d6b9de923cc325ebdd # 1.43.4
