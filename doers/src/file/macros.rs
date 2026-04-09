@@ -8,13 +8,13 @@ macro_rules! log_no_change {
 
 macro_rules! log_updating {
     ($path:expr) => {
-        tracing::debug!("{}: updating content", $path);
+        tracing::info!("{}: updating content", $path);
     };
 }
 
 macro_rules! log_creating {
     ($path:expr) => {
-        tracing::debug!("{}: has ", $path);
+        tracing::debug!("{}: creating", $path);
     };
 }
 
