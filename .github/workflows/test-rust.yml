@@ -6,7 +6,7 @@ on:
     paths:
       - Cargo.lock
       - Cargo.toml
-      - **/*.rs
+      - /**/*.rs
       - janet/src/**
       - janet/examples/**
       - .github/workflows/rust-tests.yml
@@ -14,7 +14,7 @@ on:
     paths:
       - Cargo.lock
       - Cargo.toml
-      - **/*.rs
+      - /**/*.rs
       - janet/src/**
       - janet/examples/**
       - .github/workflows/rust-tests.yml
