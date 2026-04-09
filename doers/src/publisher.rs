@@ -13,8 +13,7 @@ const PKG_PUBLISHER_FIELDS: usize = 5;
 type PublisherName = String;
 type PublisherUri = String;
 
-#[derive(Deserialize, Debug)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum PublisherType {
     Origin,
@@ -41,14 +40,22 @@ pub struct GurpPublisherRemove {
     pub mirror: Option<PublisherUri>,
 }
 
-// We don't care about anything else, for now at least
 struct Publisher {
     name: PublisherName,
     uri: PublisherUri,
+    publisher_type: PublisherType,
 }
 
 impl GurpPublisherEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        match &self.publisher_type {
+            PublisherType::Origin => self.ensure_origin(opts),
+            PublisherType::Mirror => self.ensure_mirror(opts),
+        }
+    }
+
+    fn ensure_origin(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        let mut changed = false;
         let current_publishers = &CURRENT_PKG_OUTPUT;
 
         let desired_uri = if self.uri.ends_with("/") {
@@ -57,70 +64,117 @@ impl GurpPublisherEnsure {
             &format!("{}/", self.uri)
         };
 
-        if let Some(existing) = &current_publishers.iter().find(|p| p.name == self.name) {
+        if let Some(existing) = &current_publishers
+            .iter()
+            .find(|p| p.name == self.name && p.publisher_type == PublisherType::Origin)
+        {
             if &existing.uri == desired_uri {
                 tracing::debug!("no change to {} publisher", &self.name);
-                return Ok(ONE_RESOURCE_NO_CHANGE);
+            } else {
+                tracing::info!(
+                    "change {} publisher URI: {} -> {desired_uri}",
+                    self.name,
+                    existing.uri,
+                );
+                changed = true;
             }
-
-            tracing::info!(
-                "change {} publisher URI: {} -> {}",
-                self.name,
-                existing.uri,
-                desired_uri,
-            );
         } else {
-            tracing::info!("add publisher {}", self.name,);
+            tracing::info!("create {} publisher {desired_uri}", self.name);
+            changed = true;
         }
 
-        let type_flag = match self.publisher_type {
-            PublisherType::Origin => "-g",
-            PublisherType::Mirror => "-m",
+        if changed {
+            cmd_change_or_noop!(
+                opts,
+                PKG_BIN,
+                "set-publisher",
+                "-g",
+                &desired_uri,
+                &self.name
+            )
+            .with_context(|| format!("failed to set publisher {} -> {desired_uri}", self.name))
+        } else {
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        }
+    }
+
+    fn ensure_mirror(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        let mut changed = false;
+        let current_publishers = &CURRENT_PKG_OUTPUT;
+
+        let desired_uri = if self.uri.ends_with("/") {
+            &self.uri
+        } else {
+            &format!("{}/", self.uri)
         };
-        cmd_change_or_noop!(
-            opts,
-            PKG_BIN,
-            "set-publisher",
-            type_flag,
-            &desired_uri,
-            &self.name
-        )
-        .with_context(|| format!("failed to set publisher {} -> {desired_uri}", self.name))
+
+        if let Some(existing) = &current_publishers
+            .iter()
+            .find(|p| p.name == self.name && p.publisher_type == PublisherType::Mirror)
+        {
+            if &existing.uri == desired_uri {
+                tracing::debug!("no change to {} publisher", &self.name);
+            } else {
+                tracing::info!(
+                    "change {} publisher mirror URI: {} -> {desired_uri}",
+                    self.name,
+                    existing.uri,
+                );
+                changed = true;
+            }
+        } else {
+            tracing::info!("create {} publisher mirror {desired_uri}", self.name);
+            changed = true;
+        }
+
+        if changed {
+            cmd_change_or_noop!(
+                opts,
+                PKG_BIN,
+                "set-publisher",
+                "-m",
+                &desired_uri,
+                &self.name
+            )
+            .with_context(|| {
+                format!(
+                    "failed to set publisher {} mirror -> {desired_uri}",
+                    self.name
+                )
+            })
+        } else {
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        }
     }
 }
 
 impl GurpPublisherRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if let Some(mirror) = &self.mirror {
-            // Remove the mirror from the publisher
+            //Remove the mirror
             if publisher_exists(&self.name)? {
                 if publisher_has_mirror(&self.name, mirror)? {
-                    let mut cmd = cmd!(
+                    cmd_change_or_noop!(
+                        opts,
                         PKG_BIN,
                         "set-publisher",
                         "--remove-mirror",
                         mirror,
                         &self.name
-                    );
-                    return_if_noop!(opts);
-
-        if current_publishers.iter().any(|p| p.name == self.name) {
-            cmd_change_or_noop!(opts, PKG_BIN, "unset-publisher", &self.name)
-                .with_context(|| format!("failed to unset publisher {}", self.name))
-                    one_change_or_stderr!(
-                        cmd,
+                    )
+                    .with_context(|| {
                         format!(
-                            "error removing mirror '{mirror}' from publisher {}",
+                            "failed to remove mirror {mirror} from publisher {}",
                             self.name
                         )
-                    )
+                    })
                 } else {
-                    tracing::debug!("publisher {} has no mirror {}", self.name, mirror);
+                    tracing::debug!("publisher {} does not have mirror {mirror}", self.name);
                     Ok(ONE_RESOURCE_NO_CHANGE)
                 }
             } else {
                 tracing::warn!(
-                    "publisher {} does not exist, so cannot remove mirror",
+                    "publisher {} does not exist, so cannot remove mirror {mirror}",
                     self.name
                 );
                 Ok(ONE_RESOURCE_NO_CHANGE)
@@ -128,10 +182,8 @@ impl GurpPublisherRemove {
         } else {
             // Remove the publisher
             if publisher_exists(&self.name)? {
-                let mut cmd = cmd!(PKG_BIN, "unset-publisher", &self.name);
-                return_if_noop!(opts);
-
-                one_change_or_stderr!(cmd, format!("error unsetting '{}'; publisher", self.name))
+                cmd_change_or_noop!(opts, PKG_BIN, "unset-publisher", &self.name)
+                    .with_context(|| format!("failed to unset publisher {}", self.name))
             } else {
                 tracing::debug!("publisher {} does not exist", self.name);
                 Ok(ONE_RESOURCE_NO_CHANGE)
@@ -165,13 +217,20 @@ fn parse_publisher_list(output: &str) -> Vec<Publisher> {
 
             if bits.len() != PKG_PUBLISHER_FIELDS {
                 None
-            } else if bits[1] == "origin" {
-                Some(Publisher {
-                    name: bits[0].to_string(),
-                    uri: bits[4].to_string(),
-                })
             } else {
-                None
+                match bits[1] {
+                    "origin" => Some(Publisher {
+                        name: bits[0].to_string(),
+                        uri: bits[4].to_string(),
+                        publisher_type: PublisherType::Origin,
+                    }),
+                    "mirror" => Some(Publisher {
+                        name: bits[0].to_string(),
+                        uri: bits[4].to_string(),
+                        publisher_type: PublisherType::Mirror,
+                    }),
+                    _ => None,
+                }
             }
         })
         .collect()
