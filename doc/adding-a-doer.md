@@ -7,12 +7,14 @@ Gurp's front-end, like the user's config definitions, is written in
 doer.
 
 The front-end's job is to take a bunch of user resource descriptions and turn
-them into a single Janet structure called the "collector". To add a new doer,
-you first have to define the properties a resource expects to have, and to write
-a function to turn them into a structure of the expected type. Gurp provides the
-logic to take care of most of that for you.
+them into a single Janet structure stored in a global variable called the
+"collector".
 
-### Create a Doer Description
+### 1. Define and Document the Interface
+
+First you must define the properties a resource expects to have, and write a
+function to turn them into a structure of the expected type. Gurp provides the
+logic to take care of most of that for you.
 
 Create a new Janet doer description in `janet/src/doers`. Find something of a
 reasonably similar shape, copy it and edit the copy. The files are pretty
@@ -26,8 +28,8 @@ You must define (with `def` statements):
   namespace, and should match the filename. e.g. the `directory` doer is in
   `doers/directory.janet`, has a `doer` binding of `:directory`, and its
   functions are accessed like `directory/ensure`.
-- `description`: A description. This is used by the `gurp doers` and
-  `gurp describe`.
+- `description`: A description. This is used by `gurp doers` and `gurp describe`
+  commands.
 - `name-is`: A description of the resource's name property, If there isn't one,
   say so.
 - `mandatory-props-ensure`: A struct of properties where they key is the
@@ -36,8 +38,8 @@ You must define (with `def` statements):
   description of that property. Gurp will throw an error if the user does not
   provide each of these properties in a resource `ensure` definition, or if any
   of them are of the wrong types. (It does this _after_ merging user-supplied
-  properties with any default ones.) The `:help` is shown by the `describe`
-  command.
+  properties with any default ones.) The `:help` is shown by `gurp describe`,
+  and also used to generate the contents of `/doc`.
 
   Lisp favours kebab-case, so use that for your property names,
 
@@ -56,6 +58,14 @@ You must define (with `def` statements):
   take priority.
 - `defaults-remove`: Just like `defaults-ensure`, but for `remove` resources.
 
+If the doer needs documentation beyond that provided in the property structs,
+add it to a `notes` binding. This should be an array of strings.
+
+You can see how your documentation will look with the `describe-docs.janet`,
+`doers.janet`, and `markdown-docs.janet` scripts in `janet/bin`.
+
+### 2. Implement the Interface
+
 Now you need an `ensure` function, and probably a `remove`. Here is the simplest
 (and most common) example.
 
@@ -71,7 +81,7 @@ expected values you defined earlier, and put an `ensure` resource in the
 collector struct, which aggregates resources.
 
 If you need to perform some actions on the spec, perhaps to validate it or to
-modify properties, this is a good pattern to follow. It is pretty much what you
+modify properties, here is a good pattern to follow. It is pretty much what you
 see if you expand the `make-ensure-resource` macro.
 
 ```janet
@@ -91,18 +101,45 @@ see if you expand the `make-ensure-resource` macro.
 
 It is best not to validate user input too much. If Gurp will end up calling an
 OS tool which accepts only some range of a particular property, let that tool
-error. The valid range may change, and we don't want to try to keep Gurp in-sync
-with a whole operating system.
+fail: back-end will pass the error through to the user.
 
-### Make Some Tests
+If you have mutually exclusive properties, such as the `file` doer's `:from` and
+`:content`, `has-exactly-one-of?` is convenient.
+
+```janet
+(pinpoint-error
+  :ensure
+  (if-not (has-exactly-one-of? [:content :from] spec)
+    (error "Provide exactly one of :content, :from ")))
+```
+
+This also shows the `pinpoint-error` macro, which wraps errors with the doer and
+resource name. Your users will thank you.
+
+Finally, add a line for your doer to `janet/src/doers.janet`.
+
+```janet
+(import ./doers/thing :export true)
+```
+
+Without this, Gurp cannot expose your doer.
+
+### 3. Make Examples
+
+In `janet/examples`, make a new subdirectory and create examples of how to use
+your doer. These examples will be used as documentation, as test fixtures for
+front- and back-end, and likely as fixtures for the Merp acceptance testing
+suite.
+
+### 4. Test the Interface
 
 You should, of course, test `ensure` and `remove` produce the correct output,
-particularly if you are following the second pattern and applying custom logic.
+particularly if you are applying custom logic.
 
 Make a file in `janet/test/doers`, with the same name as your doer definition.
-We use [Judge](https://github.com/ianthehenry/judge) for testing, so
-`(use judge)`. It is customary to check the resource goes into the collector, so
-`(use ../../src/collector)` as well. Finally,
+We use [Judge](https://github.com/ianthehenry/judge) for testing, which means
+you must `(use judge)`. It is customary to check the resource goes into the
+collector, so `(use ../../src/collector)` as well. Finally,
 `(import ../../src/doers/<filename>)` to access your doer file.
 
 Tests are defined inside a `(deftest)`. Here's a sample:
@@ -111,6 +148,8 @@ Tests are defined inside a `(deftest)`. Here's a sample:
 (deftest bridge
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
+
+  (import-tests "bridge" (curenv))
 
   (bridge/ensure "test_a")
 
@@ -121,6 +160,8 @@ Tests are defined inside a `(deftest)`. Here's a sample:
 
   (bridge/remove "test_c")
 ```
+
+Note the call to `import-tests`. This turns your examples into test fixtures.
 
 Run `judge <filename>` and Judge will show you what your code produces:
 
@@ -155,45 +196,23 @@ e.g.
 
 Again, use `judge -a` to commit the values.
 
-### Link the Doer
-
-Add a line for your doer in `janet/src/doers.janet`.
-
-```janet
-(import ./doers/thing :export true)
-```
-
-If you don't do this, the functions you defined will not be found.
-
-Also add a line to the `list-doers` `descriptions` in
-`janet/src/commands.janet`. Without this, your doer will not be listed when the
-user runs `gurp doers`.
-
-```janet
-["thing" thing/description]
-```
-
-That's the front-end part taken care of.
-
-## Back-End
+## 5. Implement the Doer
 
 Now we have to write some Rust. This is more involved than the front-end work,
 and mostly takes place in `doers/src`.
 
 We will assume your doer has `ensure` and `remove`. Obviously, if you have no
-remove, simply omit those parts.
+`remove`, simply omit those parts.
 
-### Write Doer
+Most doers are contained in their own file. If your doer is called `thing`, add
+`pub mod thing;` to `doers/src/lib.rs` and open a new file `doers/src/thing.rs`.
 
-Each doer has its own file. If your doer is called `thing`, add `pub mod thing;`
-to `doers/src/lib.rs` and open a new file `doers/src/thing.rs`.
+The bridge between the front and back ends is a Rust function, called from
+Janet, that turns the collector struct into a JSON object.
 
-When Gurp runs, it internally turns the collector Janet struct into a single
-JSON object.
-
-The first thing our doer will do is deserialize the relevant parts of that
-object into structs, using Serde. For our thing doer we'd call these
-`GurpThingEnsure` and `GurpThingRemove`, and they would look like this:
+A doer must first deserialize the relevant parts of that object into structs,
+using Serde. For our thing doer we'd call these `GurpThingEnsure` and
+`GurpThingRemove`, and they would look like this:
 
 ```rust
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -206,48 +225,82 @@ pub struct GurpThingEnsure{
 ```
 
 The `serde(rename_all)` automatically turns all your `kebab-case` property names
-into `snake_case`.
+into `snake_case`. If you've used property names which are Rust reserved words
+(`:type` is common), rename them like the `id`.
 
 Any properties you defined in the doer need to be added to this struct. Optional
-properties likely are `Option<>` types.
+properties likely are `Option<>` types, though sometimes it's simpler to let an
+optional bool default to `false`.
 
-Gurp expects those structs to implement `apply`:
+Gurp expects the `.*Ensure` and `.*Remove` structs to implement `apply`, and the
+common interface is to pass in a reference to an `ApplyOpts` struct, which is
+generated by Clap from command-line flags.
+
+You must return `anyhow::Result<ApplySummary>`, where an `ApplySummary` looks
+like:
+
+```rust
+pub struct ApplySummary {
+    pub resources: u32,
+    pub changes: u32,
+}
+```
+
+Usually `apply()` and `remove()` deal with a single resource, so we have the
+`ONE_RESOURCE_ONE_CHANGE` and `ONE_RESOURCE_NO_CHANGE` constants to save on
+typing.
 
 ```rust
 impl GurpThingEnsure {
   pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-  // The logic that aligns the system with the state defined in self. Typically:
-  //
-  // if resource_exists {
-  //   if current_state == desired_state {
-  //      Ok(ONE_RESOURCE_NO_CHANGE)
-  //   } else {
-  //      align_current_state_with_desired_state
-  //      Ok(ONE_RESOURCE_ONE_CHANGE)
-  // } else {
-  //   create_resource_with_desired_state
-  //   Ok(ONE_RESOURCE_ONE_CHANGE
-  // }
+    if resource_exists {
+      if current_state == desired_state {
+         tracing::debug!("no change required");
+         Ok(ONE_RESOURCE_NO_CHANGE)
+      } else {
+         tracing::info!("changing thing properties");
+         align_current_state_with_desired_state()
+         Ok(ONE_RESOURCE_ONE_CHANGE)
+    } else {
+      tracing::info!("creating new thing");
+      create_resource_with_desired_state()
+      Ok(ONE_RESOURCE_ONE_CHANGE
+    }
 }
 ```
 
-You usually have a top-level "does thing exist?" function called by the `Ensure`
-and `Remove` impls.
+It's generally fine to let errors bubble up. Gurp will display them as a chain
+and you almost always want the user to see the raw error, particularly when
+shelling out.
 
-### Add Types
+### 6. Test the Doer
+
+For a start, make sure your examples deserialize correctly. There's a
+`deserialized_example()` function to help you with this. Here's a very simple
+example from the `apk` doer.
+
+```rust
+#[test]
+fn test_deserialize_apk_ensure_rust_package() {
+    assert_eq!(
+        GurpApkEnsure {
+            id: "/NO-ROLE/apk/rust".to_owned(),
+            name: "rust".to_owned(),
+        },
+        deserialized_example("apk/ensure-rust-package.janet")
+    );
+}
+```
+
+If your doer shells out, or requires root privileges, or does illumos-specific
+things, (and most of them do all three of those), further testing might be
+tricky. Don't sweat it too much: kick it down the road for Merp.
+
+### 7. Call the Doer
 
 In `doers/src/types.rs` add a
 `use crate::thing::{GurpThingEnsure, GurpThingRemove};` line. Then add those
 types to the `EnsureResources` and `RemoveResources` structs.
 
-### Call Doers
-
-Finally, add two calls to the `apply_resources!` macro in `doers/src/host.rs`.
-(One for ensure and one for remove.) Think carefully where it needs to go: any
-resource types your resource depends on need to exist.
-
-## Documentation
-
-Describe the doer in `doc/doers.md`. It will closely resemble your doer
-definition from the first step. If there is anything a user might not expects,
-such unsupported properties or other limitations, note it here.
+Finally, in the same file, call the `accumulate()` method from `apply_ensure()`
+and `apply_remove()`. Think carefully about ordering!
