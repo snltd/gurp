@@ -16,12 +16,12 @@
 (def defaults-remove {})
 
 (defn ensure
-  "Given a VNIC name ans spec, put an ensure struct in the collector"
+  "Given a VLAN name and spec, put an ensure struct in the collector"
   [name & spec]
   (collector/push :ensure doer (make-ensure-resource)))
 
 (defn remove
-  "Given a VNIC name ans spec, put a remove struct in the collector"
+  "Given a VLAN name and spec, put a remove struct in the collector"
   [name & spec]
   (collector/push :remove doer (make-remove-resource)))
 

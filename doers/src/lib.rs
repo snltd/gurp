@@ -25,6 +25,7 @@ pub mod route;
 pub mod smf;
 pub mod svc;
 pub mod svcprop;
+pub mod system_cert;
 pub mod types;
 pub mod user;
 pub mod vlan;

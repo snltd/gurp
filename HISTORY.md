@@ -45,6 +45,7 @@ Items marked [*] are breaking changes.
 - Add `ipnat` doer.
 - Add `network-flow` doer.
 - Add `vlan` doer.
+- Add `system-cert` doer.
 - Add `limitpriv`, `hostid`, `ip-type`, `pool` , `acpi` and `boot-rom` to
   `zone` doer.
 - `zone` doer now supports illumos branded zones.

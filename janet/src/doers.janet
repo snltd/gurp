@@ -25,6 +25,7 @@
 (import ./doers/smf :export true)
 (import ./doers/svc :export true)
 (import ./doers/svcprop :export true)
+(import ./doers/system-cert :export true)
 (import ./doers/user :export true)
 (import ./doers/vlan :export true)
 (import ./doers/vnic :export true)
