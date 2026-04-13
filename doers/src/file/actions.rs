@@ -70,7 +70,7 @@ pub fn ensure_content(
 }
 
 /// Blat a string to disk
-fn write_text_file(
+pub fn write_text_file(
     path: &Utf8Path,
     content: &str,
     backup_suffix: Option<&str>,

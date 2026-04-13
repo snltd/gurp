@@ -23,6 +23,7 @@ use crate::route::{GurpRouteEnsure, GurpRouteRemove};
 use crate::smf::{GurpSmfEnsure, GurpSmfRemove};
 use crate::svc::GurpSvcEnsure;
 use crate::svcprop::{GurpSvcpropEnsure, GurpSvcpropRemove};
+use crate::system_cert::{GurpSystemCertEnsure, GurpSystemCertRemove};
 use crate::user::{GurpUserEnsure, GurpUserRemove};
 use crate::vlan::{GurpVlanEnsure, GurpVlanRemove};
 use crate::vnic::{GurpVnicEnsure, GurpVnicRemove};
@@ -116,6 +117,8 @@ pub struct EnsureResources {
     #[serde(default)]
     pub svc: Vec<GurpSvcEnsure>,
     #[serde(default)]
+    pub system_cert: Vec<GurpSystemCertEnsure>,
+    #[serde(default)]
     pub user: Vec<GurpUserEnsure>,
     #[serde(default)]
     pub vlan: Vec<GurpVlanEnsure>,
@@ -173,6 +176,8 @@ pub struct RemoveResources {
     #[serde(default)]
     pub svcprop: Vec<GurpSvcpropRemove>,
     #[serde(default)]
+    pub system_cert: Vec<GurpSystemCertRemove>,
+    #[serde(default)]
     pub user: Vec<GurpUserRemove>,
     #[serde(default)]
     pub vlan: Vec<GurpVlanRemove>,
@@ -215,6 +220,7 @@ impl_apply!(
     GurpRouteEnsure,
     GurpSvcpropEnsure,
     GurpSmfEnsure,
+    GurpSystemCertEnsure,
     GurpUserEnsure,
     GurpVlanEnsure,
     GurpVnicEnsure,
@@ -237,6 +243,7 @@ impl_apply!(
     GurpRouteRemove,
     GurpSmfRemove,
     GurpSvcpropRemove,
+    GurpSystemCertRemove,
     GurpUserRemove,
     GurpVlanRemove,
     GurpVnicRemove,
@@ -378,6 +385,7 @@ impl Applicator {
         self.accumulate(&mut sum, &mut ids, apply_resources(&res.link, opts))?;
         self.accumulate(&mut sum, &mut ids, apply_resources(&res.svcprop, opts))?;
         self.accumulate(&mut sum, &mut ids, apply_resources(&res.smf, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.system_cert, opts))?;
         self.accumulate(&mut sum, &mut ids, apply_resources(&res.misc, opts))?;
 
         Ok((sum, ids))
@@ -389,6 +397,7 @@ impl Applicator {
         let mut ids = ChangedIds::new();
 
         self.accumulate(&mut sum, &mut ids, apply_resources(&res.link, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.system_cert, opts))?;
         self.accumulate(&mut sum, &mut ids, apply_resources(&res.file_line, opts))?;
         self.accumulate(&mut sum, &mut ids, apply_resources(&res.file, opts))?;
         self.accumulate(&mut sum, &mut ids, apply_resources(&res.directory, opts))?;

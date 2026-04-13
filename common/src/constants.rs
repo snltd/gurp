@@ -22,6 +22,7 @@ pub const IPFSTAT_BIN: &str = "/usr/sbin/ipfstat";
 pub const IPNAT_BIN: &str = "/usr/sbin/ipnat";
 pub const MKISOFS_BIN: &str = "/bin/mkisofs";
 pub const NETSTAT_BIN: &str = "/bin/netstat";
+pub const OPENSSL_BIN: &str = "/bin/openssl";
 pub const PKG_BIN: &str = "/bin/pkg";
 pub const PKGIN_BIN: &str = "/opt/local/bin/pkgin";
 pub const PROFILES_BIN: &str = "/bin/profiles";
