@@ -1,3 +1,5 @@
+(use ./lib)
+
 # Functions mostly exposed to the user and also used internally.
 
 (defmacro host
@@ -34,24 +36,18 @@
 (defn pathcat
   "Joins tokens to make a path"
   [& chunks]
-  (->
-    (map |(string/trim $ "/") (tuple "" ;chunks))
-    (string/join "/")))
+  (-> (map |(string/trim $ "/") (tuple "" ;chunks))
+      (string/join "/")))
 
 (defn zfscat
   "Joins tokens to make a ZFS dataset name"
   [& chunks]
   (if (nil? chunks)
     (error "zfscat called with a nil"))
-  (->
-    (map |(string/trim $ "/") (tuple ;chunks))
-    (string/join "/")
-    (string/trim "/")))
 
-(defn compact
-  "Remove empty elements from an array"
-  [vector]
-  (filter |(not (empty? $)) vector))
+  (-> (map |(string/trim $ "/") (tuple ;chunks))
+      (string/join "/")
+      (string/trim "/")))
 
 (defn qualified-path?
   "Returns true if the argument looks like a fully qualified path"
@@ -69,10 +65,9 @@
     file-name
     (do
       (if (nil? (dyn :gurp-config-root))
-        (error
-          (string "cannot qualify path for "
-                  file-name
-                  ": gurp-config-root is not set")))
+        (error (string "cannot qualify path for "
+                       file-name
+                       ": gurp-config-root is not set")))
       (pathcat (dyn :gurp-config-root) "files" file-name))))
 
 (defn parent
@@ -84,6 +79,14 @@
   (array/pop components)
   (string "/" (string/join components "/")))
 
+(defn lines
+  "Returns an array of the lines in the given string. Each is trimmed."
+  [arg]
+  (->> arg
+       (string/trim)
+       (string/split "\n")
+       (map string/trim)))
+
 (defn fields
   "Returns an array of the whitespace-separated elements in a string"
   [str]
@@ -92,9 +95,11 @@
 (defn labelise
   "Turns tokens into a safe label"
   [& chunks]
-  (string/replace-all "/"
-                      "_"
-                      (string/join (map string (flatten chunks)) "-")))
+  (as-> chunks _
+        (flatten _)
+        (map string _)
+        (string/join _ "-")
+        (string/replace-all "/" "_" _)))
 
 (defn this-host
   "Returns the name of the host, which is set by a dyn in the host macro"
@@ -125,17 +130,11 @@
   "Given a string (usually hostname) and an interval in minutes, return the
   minutes past the hour at which gurp should run, as a comma-separated string"
   [seed-string interval]
-
   (if-not (= (% 60 interval) 0)
     (error (string interval " is not a divisor of 60")))
 
   (def seed (% (apply + (seq [c :in seed-string] c)) interval))
   (string/join (map string (seq [i :range [seed 60 interval]] i)) ","))
-
-(defn- values-as-tuple
-  "Returns a flat array of values, whatever type of values it's given"
-  [values]
-  (flatten (array values)))
 
 (defn repeated-line-file
   "Produces a string, with a trailing newline, created by mapping the given
@@ -143,10 +142,9 @@
   If format-values is an array of arrays, each value of the inner array is used
   in the format string"
   [format-string format-values]
-  (->>
-    format-values
-    (map |(string/format (string format-string "\n") ;(values-as-tuple $)))
-    (string/join)))
+  (->> format-values
+       (map |(string/format (string format-string "\n") ;(values-as-tuple $)))
+       (string/join)))
 
 (defn indoc
   "Removes common leading spaces from multiline strings, adding a newline at the
@@ -158,12 +156,11 @@
   (def lines (string/split "\n" str))
 
   (def leader-to-remove
-    (->>
-      lines
-      (filter |(not (empty? (string/trim $))))
-      (map |(peg/find :S $))
-      (min-of)
-      (string/repeat " ")))
+    (->> lines
+         (filter |(not (empty? (string/trim $))))
+         (map |(peg/find :S $))
+         (min-of)
+         (string/repeat " ")))
 
   (def outdented-lines
     (if (empty? leader-to-remove)
@@ -178,7 +175,7 @@
 
 (defn template-out
   "Takes a template with vars in {{ brackets }} and a table of vars to values.
-  Returns a string or an error"
+   Returns a string or an error"
   [template vars]
 
   (def peg
@@ -243,3 +240,30 @@
   "Returns a cloudinit meta-data struct for the given hostname"
   [hostname]
   {:instance-id hostname :local-hostname hostname})
+
+(defn tabular-rows->struct
+  [rows &opt key-column]
+  (default key-column 0)
+  (def struct-keys (->> rows (first) (fields) (map ->key)))
+  (def data (map fields (slice rows 1)))
+
+  (defn- substruct
+    [values]
+    [(get values key-column)
+     (table/to-struct
+       (zipcoll (drop-element struct-keys key-column)
+                (map parsed-value (drop-element values key-column))))])
+
+  (->> data
+       (map substruct)
+       (tabular-data->struct)))
+
+(defn tabular-output->struct
+  "Takes a table like dladm and ipadm output, and turns it into a struct. Keys
+  are the column identified by 'key-column', which defaults to 0; values are
+  structs whose keys are the table headers, lowercased and as keywords, and
+  whose values are the values in the table. If any of those values can be safely
+  converted into numbers, they are."
+  [tabular-output &opt key-column]
+  (default key-column 0)
+  (tabular-rows->struct (lines tabular-output) key-column))

@@ -5,3 +5,4 @@
 (import ./commands :prefix "" :export true)
 (import ./doers :prefix "" :export true)
 (import ./dsl :prefix "" :export true)
+(import ./facts :prefix "" :export true)

@@ -4,6 +4,7 @@
 (use ./lib)
 (use ./formatting)
 (use ../command-lib)
+(use ../lib)
 (import ../dsl :prefix "" :only [compact])
 (import ../doers :prefix "")
 
@@ -14,11 +15,11 @@
     0
     (max (splice (map length list)))))
 
-(defn flatten-types
+(defn- flatten-types
   [types]
   (string "[" (string/join (map |(string/format "%p" $) types) " ") "]"))
 
-(defn type-list
+(defn- type-list
   [types]
   (map flatten-types types))
 

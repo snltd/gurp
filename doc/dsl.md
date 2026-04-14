@@ -52,7 +52,15 @@ gives you a few convenience functions and macros.
 - `(compact arr)` removes nil elements from an array or tuple.
 - `(qualified-path?` path)` returns true if the argument looks like a qualified
   path.
-- `
+- `(defn cloudinit-meta-data)` returns a cloudinit metadata struct for the given
+hostname.
+- `(defn tabular-output->struct)`
+  Takes as its first argument a string table, like the output of `dladm show-link`, or `zoneadm list -cv`, and turns it into a struct. The keys of that struct
+  are the column identified by an optional second argument, which defaults to 0; the values are
+  structs whose keys are the table headers (the first row of the string), lowercased and as keywords, and
+  whose values are the values in the table. If any of those values can be safely
+  converted into numbers, they are.
+
 
 ### Dynamic Bindings
 
