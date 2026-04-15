@@ -8,7 +8,7 @@
   (test (drop-element [10 11 12 13 14 15] 6) [10 11 12 13 14 15]))
 
 
-(deftest tablular-data->struct
+(deftest tabular-data->struct
   (test (tabular-data->struct
           [:key1 {:a 1 :b 2} :key2 {:a 10 :b 20}])
     {:key1 {:a 1 :b 2} :key2 {:a 10 :b 20}}))
