@@ -60,15 +60,15 @@ impl GurpSystemCertEnsure {
         };
 
         if target_path.exists() {
-            changed = true;
-            tracing::info!("creating new cert at {target_path}");
-        } else {
             if hash::of_string(&source_str) == hash::of_file(&target_path)? {
                 tracing::debug!("no change to system-cert at {target_path}");
             } else {
                 changed = true;
                 tracing::info!("updating content of system-cert at {target_path}");
             }
+        } else {
+            changed = true;
+            tracing::info!("creating new cert at {target_path}");
         }
 
         if changed {
@@ -116,7 +116,7 @@ impl GurpSystemCertRemove {
 }
 
 fn rehash_cert_dir(opts: &ApplyOpts) -> anyhow::Result<()> {
-    cmd_change_or_noop!(opts, OPENSSL_BIN).context("failed to run openssl rehash")?;
+    cmd_change_or_noop!(opts, OPENSSL_BIN, "rehash").context("failed to run openssl rehash")?;
     Ok(())
 }
 
