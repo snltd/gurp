@@ -17,9 +17,9 @@
        (struct)))
 
 (defn ->key
-  "turn a string into a downcased keyword"
+  "turn a string into a downcased keyword, and remove #s"
   [key]
-  (-> key (string/ascii-lower) (keyword)))
+  (->> key (string/replace "#" "") (string/ascii-lower) (keyword)))
 
 (defn parsed-value
   "If value is a number, return it as a :number, otherwise, return as-is"

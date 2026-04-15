@@ -30,8 +30,8 @@ NumCPU = 4`)
      :machine "i86pc"
      :node "serv-build"
      :numcpu 4
-     :oem# 0
-     :origin# 1
+     :oem 0
+     :origin 1
      :release 5.11
      :serial "<unknown>"
      :system "SunOS"
@@ -45,14 +45,14 @@ NumCPU = 4`)
 lo0/v4            static   ok           127.0.0.1/8
 build_net0/_a     from-gz  ok           192.168.1.23/24
 lo0/v6            static   ok           ::1/128`)
-    {"build_net0/_a" {:addr "192.168.1.23/24"
-                      :state "ok"
-                      :type "from-gz"}})
+        {"build_net0/_a" {:addr "192.168.1.23/24"
+                          :state "ok"
+                          :type "from-gz"}})
 
   (test (ip-no-loopback `IFNAME     CLASS     STATE    CURRENT      PERSISTENT
 lo0        VIRTUAL   ok       -m-v------46 ---
 build_net0 IP        ok       bm-------Z4- -4-`)
-    {"build_net0" {:class "IP"
-                   :current "bm-------Z4-"
-                   :persistent "-4-"
-                   :state "ok"}}))
+        {"build_net0" {:class "IP"
+                       :current "bm-------Z4-"
+                       :persistent "-4-"
+                       :state "ok"}}))
