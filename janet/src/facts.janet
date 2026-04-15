@@ -15,19 +15,18 @@
   [fields]
   [(-> fields (first) (->key)) (parsed-value (last fields))])
 
-(defn- uname-as-struct
+(defn uname-x->struct
   "Return a struct representation of the output of uname -X"
-  []
-  (->> (run-cmd "/bin/uname -X")
+  [raw]
+  (->> raw
        (lines)
        (map fields)
        (map fields->tuple)
        (tabular-data->struct)))
 
-(defn- ip-no-loopback
-  [cmd]
-  (->> cmd
-       (run-cmd)
+(defn ip-no-loopback
+  [raw]
+  (->> raw
        (lines)
        (filter |(not (string/has-prefix? "lo" $)))
        (tabular-rows->struct)))
@@ -38,11 +37,11 @@
     (match (keyword name)
       :hostname (run-cmd "/bin/uname -n")
       :zonename (run-cmd "/bin/zonename")
-      :uname (uname-as-struct)
+      :uname (-> "bin/uname -X" (run-cmd) (uname-x->struct))
       :zones (-> "/usr/sbin/zoneadm list -cv" (run-cmd) (tabular-output->struct 1))
       :links (-> "/usr/sbin/dladm show-link" (run-cmd) (tabular-output->struct))
-      :ip-interfaces (ip-no-loopback "/usr/sbin/ipadm show-if")
-      :ip-addresses (ip-no-loopback "/usr/sbin/ipadm show-addr")
+      :ip-interfaces (-> "/usr/sbin/ipadm show-if" (run-cmd) ip-no-loopback)
+      :ip-addresses (-> "/usr/sbin/ipadm show-addr" (run-cmd) ip-no-loopback)
       _ (error (string "unknown fact: " name))))
   (set (*fact-cache* name) value))
 
