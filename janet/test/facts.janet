@@ -13,7 +13,8 @@
   (test (= (fact :hostname) test-hostname) true))
 
 (deftest uname
-  (test (type (fact :uname)) :struct))
+  (if (= (os/which) :illumos)
+    (test (type (fact :uname)) :struct)))
 
 (deftest unknown-fact
   (test-error (fact "wat") "unknown fact: wat"))
