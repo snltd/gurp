@@ -202,12 +202,11 @@
   (def temp-spec-table
     (checked-spec (make-spec-struct ;spec) mandatory-props optional-props))
 
-  (def parts (->>
-               temp-spec-table
-               (table->flat-tuple)
-               (partition 2)
-               (partition-by |(has-value? ip-protocols (first $)))
-               (map flatten)))
+  (def parts (->> temp-spec-table
+                  (table->flat-tuple)
+                  (partition 2)
+                  (partition-by |(has-value? ip-protocols (first $)))
+                  (map flatten)))
 
   (def spec-table (table ;(get parts 1 [])))
 

@@ -135,3 +135,173 @@
   (test
     (qualify-from-path "some/path")
     "/test/root/files/some/path"))
+
+(deftest tabular-output->struct
+  (test (tabular-output->struct
+          `
+ADDROBJ           TYPE     STATE        ADDR
+lo0/v4            static   ok           127.0.0.1/8
+build_net0/_a     from-gz  ok           192.168.1.23/24
+lo0/v6            static   ok           ::1/128
+`)
+        {"build_net0/_a" {:addr "192.168.1.23/24"
+                          :state "ok"
+                          :type "from-gz"}
+         "lo0/v4" {:addr "127.0.0.1/8"
+                   :state "ok"
+                   :type "static"}
+         "lo0/v6" {:addr "::1/128"
+                   :state "ok"
+                   :type "static"}})
+
+  (test (tabular-output->struct
+          `LINK        CLASS     MTU    STATE    BRIDGE     OVER
+e1000g0     phys      1500   up       --         --
+serv_merp0  vnic      1500   up       --         e1000g0
+gurp_net0   vnic      1500   up       --         e1000g0
+build_net0  vnic      1500   up       --         e1000g0
+mariadb_net0 vnic     1500   up       --         e1000g0
+pkg_net0    vnic      1500   up       --         e1000g0
+records_net0 vnic     1500   up       --         e1000g0`)
+        {"build_net0" {:bridge "--"
+                       :class "vnic"
+                       :mtu 1500
+                       :over "e1000g0"
+                       :state "up"}
+         "e1000g0" {:bridge "--"
+                    :class "phys"
+                    :mtu 1500
+                    :over "--"
+                    :state "up"}
+         "gurp_net0" {:bridge "--"
+                      :class "vnic"
+                      :mtu 1500
+                      :over "e1000g0"
+                      :state "up"}
+         "mariadb_net0" {:bridge "--"
+                         :class "vnic"
+                         :mtu 1500
+                         :over "e1000g0"
+                         :state "up"}
+         "pkg_net0" {:bridge "--"
+                     :class "vnic"
+                     :mtu 1500
+                     :over "e1000g0"
+                     :state "up"}
+         "records_net0" {:bridge "--"
+                         :class "vnic"
+                         :mtu 1500
+                         :over "e1000g0"
+                         :state "up"}
+         "serv_merp0" {:bridge "--"
+                       :class "vnic"
+                       :mtu 1500
+                       :over "e1000g0"
+                       :state "up"}})
+
+  (test (tabular-output->struct
+          `ID NAME             STATUS     PATH                           BRAND    IP
+   0 global           running    /                              ipkg     shared
+   1 serv-proxy       running    /zones/serv-proxy              lipkg    excl
+   2 serv-grafana     running    /zones/serv-grafana            lx       excl
+   3 serv-dns         running    /zones/serv-dns                lipkg    excl
+   4 serv-gurp        running    /zones/serv-gurp               lipkg    excl
+   5 serv-pkg         running    /zones/serv-pkg                lipkg    excl
+   6 serv-backup      running    /zones/serv-backup             lipkg    excl
+   7 serv-cron        running    /zones/serv-cron               lipkg    excl
+   8 serv-metrics     running    /zones/serv-metrics            lipkg    excl
+   9 serv-build       running    /zones/serv-build              lipkg    excl
+  10 illumos-test     running    /zones/illumos-test            sparse   excl
+  11 serv-records     running    /zones/serv-records            pkgsrc   excl
+  12 serv-ws          running    /zones/serv-ws                 lipkg    excl
+  14 serv-media       running    /zones/serv-media              lipkg    excl
+  13 serv-mariadb     running    /zones/serv-mariadb            lipkg    excl
+   - lipkg-green      installed  /zones/lipkg-green             lipkg    excl
+   - serv-fs          installed  /zones/serv-fs                 lipkg    excl`
+          1)
+        {"global" {:brand "ipkg"
+                   :id 0
+                   :ip "shared"
+                   :path "/"
+                   :status "running"}
+         "illumos-test" {:brand "sparse"
+                         :id 10
+                         :ip "excl"
+                         :path "/zones/illumos-test"
+                         :status "running"}
+         "lipkg-green" {:brand "lipkg"
+                        :id "-"
+                        :ip "excl"
+                        :path "/zones/lipkg-green"
+                        :status "installed"}
+         "serv-backup" {:brand "lipkg"
+                        :id 6
+                        :ip "excl"
+                        :path "/zones/serv-backup"
+                        :status "running"}
+         "serv-build" {:brand "lipkg"
+                       :id 9
+                       :ip "excl"
+                       :path "/zones/serv-build"
+                       :status "running"}
+         "serv-cron" {:brand "lipkg"
+                      :id 7
+                      :ip "excl"
+                      :path "/zones/serv-cron"
+                      :status "running"}
+         "serv-dns" {:brand "lipkg"
+                     :id 3
+                     :ip "excl"
+                     :path "/zones/serv-dns"
+                     :status "running"}
+         "serv-fs" {:brand "lipkg"
+                    :id "-"
+                    :ip "excl"
+                    :path "/zones/serv-fs"
+                    :status "installed"}
+         "serv-grafana" {:brand "lx"
+                         :id 2
+                         :ip "excl"
+                         :path "/zones/serv-grafana"
+                         :status "running"}
+         "serv-gurp" {:brand "lipkg"
+                      :id 4
+                      :ip "excl"
+                      :path "/zones/serv-gurp"
+                      :status "running"}
+         "serv-mariadb" {:brand "lipkg"
+                         :id 13
+                         :ip "excl"
+                         :path "/zones/serv-mariadb"
+                         :status "running"}
+         "serv-media" {:brand "lipkg"
+                       :id 14
+                       :ip "excl"
+                       :path "/zones/serv-media"
+                       :status "running"}
+         "serv-metrics" {:brand "lipkg"
+                         :id 8
+                         :ip "excl"
+                         :path "/zones/serv-metrics"
+                         :status "running"}
+         "serv-pkg" {:brand "lipkg"
+                     :id 5
+                     :ip "excl"
+                     :path "/zones/serv-pkg"
+                     :status "running"}
+         "serv-proxy" {:brand "lipkg"
+                       :id 1
+                       :ip "excl"
+                       :path "/zones/serv-proxy"
+                       :status "running"}
+         "serv-records" {:brand "pkgsrc"
+                         :id 11
+                         :ip "excl"
+                         :path "/zones/serv-records"
+                         :status "running"}
+         "serv-ws" {:brand "lipkg"
+                    :id 12
+                    :ip "excl"
+                    :path "/zones/serv-ws"
+                    :status "running"}}))
+

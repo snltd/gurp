@@ -21,13 +21,14 @@ Items marked [*] are breaking changes.
 - Add `repl` command, which opens a Janet REPL with the Gurp library loaded into
   the root environment.
 - Add `--destroy-everything-you-touch` to `apply` command.
-- Add `--as-json` option to `apply` command, for old compile-on-server behaviour.
+- Add `--as-json` option to `apply` command, for old compile-on-server
+  behaviour.
 - Add `--remove-first` option to `apply`, to act on remove resources first.
 - Add `--only <REGEX>` option to `apply`, to apply only resources whose IDs
   match the given Rust regex.
 - Add `--exec` to `apply`, which compiles and applies a string of Janet config.
-- Add `--no-lock` to `apply`, which stops Gurp checking, creating, or removing
-  a lock file.
+- Add `--no-lock` to `apply`, which stops Gurp checking, creating, or removing a
+  lock file.
 - `describe` command gives more information, and its layout adjusts for the
   terminal width.
 - `describe` and `doers` will not use ANSI colouring if `gurp` is part of a
@@ -38,20 +39,20 @@ Items marked [*] are breaking changes.
 - Replace `symlink` doer with `link`, which also handles hard links. [*]
 - Changed syntax of `ip-address/ensure`, `ip-properties/ensure`, and
   `ip-interface/ensure` to make them all consistent. [*]
-- Helpers like `zone-fs` or `smf-method` are now referred to as `zone/fs`
-  and `smf/method`. [*]
+- Helpers like `zone-fs` or `smf-method` are now referred to as `zone/fs` and
+  `smf/method`. [*]
 - Add `bridge` doer.
 - Add `ipfilter` doer.
 - Add `ipnat` doer.
 - Add `network-flow` doer.
 - Add `vlan` doer.
 - Add `system-cert` doer.
-- Add `limitpriv`, `hostid`, `ip-type`, `pool` , `acpi` and `boot-rom` to
-  `zone` doer.
+- Add `limitpriv`, `hostid`, `ip-type`, `pool` , `acpi` and `boot-rom` to `zone`
+  doer.
 - `zone` doer now supports illumos branded zones.
 - `zone` doer supports ZST images for bhyve zones (and has been refactored).
 - All brands which require an image now use the top-level `:image` key, rather
-  than having their own. [*] 
+  than having their own. [*]
 - Add `force-link` to `link` doer, which can turn regular files into links.
 - Doer documentation is machine-generated from definition files.
 - When running in client/server mode, the `file` doer is now able to ask the
@@ -60,11 +61,19 @@ Items marked [*] are breaking changes.
 - `file` and `directory` doers now accept numeric IDs for `:owner` and `:group`.
 - File backups now work, and the whole `file` doer has been refactored to make
   it easier to work on and expand.
-- `file` and `directory` doers now error with a meaningful message if you try
-  to ensure a path which already exists, but is of a different type.
+- `file` and `directory` doers now error with a meaningful message if you try to
+  ensure a path which already exists, but is of a different type.
 - `smf` doer now lets you set service properties.
 - Fix bug where removing a service property always produced an error.
 - Fix bug where APK packages were never removed.
+
+### DSL
+
+- Remove the `(hostname)` function. Use `(fact :hostname)` instead. [*]
+- Add `facts` function, which gives
+  [a small amount of system information](/doc/facts.md).
+- Add `tabular-output->struct` function, which converts tabular command output
+  such as that produced by `zoneadm list` or `ipadm` into Janet structs.
 
 ### Internals
 
