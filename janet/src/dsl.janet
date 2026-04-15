@@ -223,14 +223,6 @@
     (error (string/trim (:read (proc :err) :all)))
     (string/trim stdout)))
 
-(defn hostname
-  "Returns the name of the current host, or the name of the calling host if Gurp
-  is running as in server mode"
-  []
-  (if-let [hostname (dyn :client-name)]
-    hostname
-    (run-cmd "uname -n")))
-
 (defn config-file
   "Returns the actual path of a file in ../files"
   [path]

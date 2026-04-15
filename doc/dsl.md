@@ -10,8 +10,6 @@ gives you a few convenience functions and macros.
   `(host)` declaration, **not** the result of `(uname -n)`.
 - `(this-host-k)` is the output of `(this-host)`, but as a Janet keyword, which
   makes it more convenient for struct/table lookups.
-- `(hostname)` returns the hostname of the box on which your Janet is compiled,
-  via `uname -n`.
 - `(this-role)` returns the name of the enclosing role.
 - `(this-role-k)` as above, but a keyword.
 - `(this resource-type resource-name resource-property)` is a convenient way to
@@ -53,14 +51,14 @@ gives you a few convenience functions and macros.
 - `(qualified-path?` path)` returns true if the argument looks like a qualified
   path.
 - `(defn cloudinit-meta-data)` returns a cloudinit metadata struct for the given
-hostname.
-- `(defn tabular-output->struct)`
-  Takes as its first argument a string table, like the output of `dladm show-link`, or `zoneadm list -cv`, and turns it into a struct. The keys of that struct
-  are the column identified by an optional second argument, which defaults to 0; the values are
-  structs whose keys are the table headers (the first row of the string), lowercased and as keywords, and
-  whose values are the values in the table. If any of those values can be safely
-  converted into numbers, they are.
-
+  hostname.
+- `(defn tabular-output->struct)` Takes as its first argument a string table,
+  like the output of `dladm show-link`, or `zoneadm list -cv`, and turns it into
+  a struct. The keys of that struct are the column identified by an optional
+  second argument, which defaults to 0; the values are structs whose keys are
+  the table headers (the first row of the string), lowercased and as keywords,
+  and whose values are the values in the table. If any of those values can be
+  safely converted into numbers, they are.
 
 ### Dynamic Bindings
 
