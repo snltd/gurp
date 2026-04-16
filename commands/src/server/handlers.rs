@@ -8,6 +8,7 @@ use common::constants::GURP_VERSION;
 use common::types::{ApplyOpts, ServerOpts};
 use embed::compiler;
 use mime_guess::from_path;
+use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
 use tokio::fs::File;
@@ -26,6 +27,11 @@ pub struct FilterHashQuery {
     pattern: String,
 }
 
+#[derive(Serialize)]
+struct ErrorBody {
+    errors: Vec<String>,
+}
+
 pub async fn status() -> &'static str {
     tracing::debug!("received status request");
     "ok"
@@ -37,6 +43,15 @@ pub async fn version() -> Json<serde_json::Value> {
     "version": GURP_VERSION,
     "sha": *info::BUILD_HASH,
     }))
+}
+
+fn error_response(e: anyhow::Error) -> Response<Body> {
+    let chain: Vec<String> = e.chain().map(|c| c.to_string()).collect();
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(ErrorBody { errors: chain }),
+    )
+        .into_response()
 }
 
 pub async fn config(
@@ -76,7 +91,7 @@ pub async fn config(
                         remote_host = remote_host_name.to_string(),
                         message = e.to_string()
                     );
-                    (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {e}")).into_response()
+                    error_response(e)
                 }
             },
             "json" => match compiler::local_janet_to_json(&host_file, &opts) {
@@ -90,7 +105,7 @@ pub async fn config(
                         remote_host = remote_host_name.to_string(),
                         message = e.to_string()
                     );
-                    (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {e}")).into_response()
+                    error_response(e)
                 }
             },
             other => {
