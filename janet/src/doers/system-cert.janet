@@ -30,7 +30,7 @@
       (error "Provide exactly one of :content, :from, :from-url")))
 
   (def spec-table
-    (expand-froms (struct/to-table (make-spec-struct ;spec))))
+    (expand-from-value (struct/to-table (make-spec-struct ;spec))))
 
   (def all-specs (spec-with-defaults defaults-ensure spec-table))
 

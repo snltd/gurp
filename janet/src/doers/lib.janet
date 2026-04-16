@@ -224,7 +224,7 @@
   [server-name from-path]
   (string "http://" server-name "/" client-api-version "/file/" from-path))
 
-(defn expand-froms
+(defn expand-from-value
   "Used by any resource that takes a :from. e.g. file and system-cert. Give it
   a spec table, and it will turn relative :from paths into fully qualified paths
   or server references, depending on the current execution environment. Returns
