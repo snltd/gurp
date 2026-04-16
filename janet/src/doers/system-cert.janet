@@ -12,6 +12,9 @@
    :content
    {:types [:string]
     :help "Use this literal string as the cert"}
+   :url-is-server
+   {:types [:boolean]
+    :help "Used internally to identify Gurp server URLs"}
    :from-url
    {:types [:string]
     :help "Fetch cert from the given URL"}})
