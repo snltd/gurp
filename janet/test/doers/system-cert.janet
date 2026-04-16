@@ -13,7 +13,7 @@
 
   (test *collector*
     @{:ensure @{:system-cert @[{:_id "/NO-ROLE/system-cert/from-file"
-                                :from "/dir/ca/example"
+                                :from "/gurpdir/files/ca/example"
                                 :name "from-file"
                                 :role "NO-ROLE"}
                                {:_id "/NO-ROLE/system-cert/from-url"

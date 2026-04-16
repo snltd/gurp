@@ -58,11 +58,14 @@ pub fn janet2json(janet_defn: &str) -> String {
     }
 }
 
-pub fn deserialized_example<T: serde::de::DeserializeOwned>(relative_path: &str) -> T {
+pub fn raw_example(relative_path: &str) -> String {
     let example_file = repo_root().join("janet/examples").join(relative_path);
-    let example_code = fs::read_to_string(&example_file)
-        .unwrap_or_else(|_| panic!("cannot find Janet example: {}", example_file));
+    fs::read_to_string(&example_file)
+        .unwrap_or_else(|_| panic!("cannot find Janet example: {}", example_file))
+}
 
+pub fn deserialized_example<T: serde::de::DeserializeOwned>(relative_path: &str) -> T {
+    let example_code = raw_example(relative_path);
     let example_json = janet2json(&example_code);
     serde_json::from_str(&example_json)
         .unwrap_or_else(|e| panic!("could not deserialize json: {}\nError: {}", example_json, e))

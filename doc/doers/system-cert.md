@@ -10,7 +10,7 @@ File certificate will have in /etc/ssl/certs (`:string`)
 
 ```janet
 (system-cert/ensure "from-file"
-  :from "/dir/ca/example")
+  :from "ca/example")
 ```
 
 ```janet
@@ -29,6 +29,7 @@ None
 | `:content` | `string` | Use this literal string as the cert |  |
 | `:from-url` | `string` | Fetch cert from the given URL |  |
 | `:from` | `string` | Copy cert content from this file. If relative, looks in ../files |  |
+| `:url-is-server` | `boolean` | Used internally to identify Gurp server URLs |  |
 
 ## system-cert/remove
 

@@ -20,6 +20,8 @@ pub struct GurpSystemCertEnsure {
     pub from: Option<Utf8PathBuf>,
     pub from_url: Option<String>,
     pub content: Option<String>,
+    #[serde(default)]
+    pub url_is_server: bool,
 }
 
 #[derive(Deserialize, Debug)]
@@ -125,20 +127,29 @@ mod test {
     use super::*;
     use camino::Utf8PathBuf;
     use pretty_assertions::assert_eq;
-    use tester::{defopts, deserialized_example};
+    use tester::{defopts, deserialized_example, janet2json, raw_example};
 
     #[test]
     fn test_deserialize_system_cert_from_file() {
-        assert_eq!(
-            GurpSystemCertEnsure {
-                id: "/NO-ROLE/system-cert/from-file".to_owned(),
-                name: "from-file".to_owned(),
-                from: Some(Utf8PathBuf::from("/dir/ca/example")),
-                from_url: None,
-                content: None,
-            },
-            deserialized_example("system-cert/ensure-from-file.janet")
-        );
+        let expected = GurpSystemCertEnsure {
+            id: "/NO-ROLE/system-cert/from-file".to_owned(),
+            name: "from-file".to_owned(),
+            from: Some(Utf8PathBuf::from("/example/dir/files/ca/example")),
+            from_url: None,
+            content: None,
+            url_is_server: false,
+        };
+
+        let json = janet2json(&indoc::formatdoc! { r#"
+            (do
+                (setdyn :gurp-config-root "/example/dir")
+                {})
+            "#,
+            raw_example("system-cert/ensure-from-file.janet"),
+        });
+
+        let actual = serde_json::from_str(&json).unwrap();
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -150,6 +161,7 @@ mod test {
                 from: None,
                 from_url: Some("https://cert-service/api".to_owned()),
                 content: None,
+                url_is_server: false,
             },
             deserialized_example("system-cert/ensure-from-url.janet")
         );
@@ -174,6 +186,7 @@ mod test {
             from: Some(Utf8PathBuf::from("/dir/ca/example")),
             from_url: Some("https://cert-service/api".to_owned()),
             content: None,
+            url_is_server: false,
         };
 
         assert!(file_and_url.apply(&defopts()).is_err());
@@ -184,6 +197,7 @@ mod test {
             from: Some(Utf8PathBuf::from("/dir/ca/example")),
             from_url: None,
             content: Some(r"---BEGIN CERT---\nblah blah\---END CERT---".to_owned()),
+            url_is_server: false,
         };
 
         assert!(file_and_content.apply(&defopts()).is_err());
@@ -194,6 +208,7 @@ mod test {
             from: None,
             from_url: None,
             content: None,
+            url_is_server: false,
         };
 
         assert!(no_source.apply(&defopts()).is_err());
