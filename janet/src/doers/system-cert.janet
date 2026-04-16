@@ -29,11 +29,8 @@
     (if-not (has-exactly-one-of? [:content :from :from-url] spec)
       (error "Provide exactly one of :content, :from, :from-url")))
 
-  (def spec-table (struct/to-table (make-spec-struct ;spec)))
-
-  (if-let [from-path (spec-table :from)]
-    (set (spec-table :from)
-         (qualify-from-path from-path)))
+  (def spec-table
+    (expand-froms (struct/to-table (make-spec-struct ;spec))))
 
   (def all-specs (spec-with-defaults defaults-ensure spec-table))
 

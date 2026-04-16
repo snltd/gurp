@@ -1,6 +1,10 @@
 #
 # Functions and bindings required by the doer modules in this directory.
 # 
+(import ../dsl :only [qualify-from-path])
+
+(def client-api-version "v1")
+
 (def ip-protocols
   "Protocols supported by ipadm"
   [:ip :ipv4 :ipv6 :icmp :tcp :sctp :udp])
@@ -215,3 +219,28 @@
     (set (spec-table :protocols) protocol-table))
 
   spec-table)
+
+(defn- server-url
+  [server-name from-path]
+  (string "http://" server-name "/" client-api-version "/file/" from-path))
+
+(defn expand-froms
+  "Used by any resource that takes a :from. e.g. file and system-cert. Give it
+  a spec table, and it will turn relative :from paths into fully qualified paths
+  or server references, depending on the current execution environment. Returns
+  a modified spec-table."
+  [spec-table]
+  (if-let [from-path (spec-table :from)]
+    (if-let [server-name (dyn :server-name)]
+      (do
+        (set (spec-table :from) nil)
+        (set (spec-table :from-url) (server-url server-name from-path))
+        (set (spec-table :url-is-server) true))
+      (let [url-or-qualified-path
+            (if (string/find "://" from-path)
+              from-path
+              (dsl/qualify-from-path from-path))]
+        (set (spec-table :from) url-or-qualified-path))))
+
+  spec-table)
+
