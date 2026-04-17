@@ -31,6 +31,7 @@ uuid = { version = "1", features = ["v4"] }
 camino-tempfile-ext = "0.3.3"
 httpmock = "0.8"
 pretty_assertions = "1.4.1"
+tempfile = "3.27.0"
 tester = { path = "../tester" }
 
 [build-dependencies]
