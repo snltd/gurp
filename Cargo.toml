@@ -12,3 +12,6 @@ members = [
   "tester",
   "util",
 ]
+
+[patch.crates-io]
+evil-janet = { git = "https://github.com/snltd/evil-janet", branch = "janet-1.41.2" }
