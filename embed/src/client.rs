@@ -18,8 +18,35 @@ pub fn gurp() -> anyhow::Result<JanetClient> {
     ));
     client.add_c_fn(CFunOptions::new(c"to-json", janet_cfuncs::to_json_c));
 
-    let janet_instructions =
-        r#"(merge-module (fiber/getenv (fiber/root)) (load-image (gurp-library)) "" true)"#;
+    let mut janet_instructions =
+        r#"(merge-module (fiber/getenv (fiber/root)) (load-image (gurp-library)) "" true)"#
+            .to_owned();
+
+    janet_instructions.push_str(
+        "\n(sandbox 
+:chroot
+:ffi
+:ffi-define
+:ffi-jit
+:ffi-use
+:fs-temp
+:fs-write
+:hrtime
+:modules
+:net
+:net-connect
+:net-listen
+:sandbox
+:signal
+:subprocess
+:threads
+:unmarshal
+        )",
+    );
+    // :compile
+    // :fs
+    // :fs-read
+    // :env
 
     tracing::debug!("creating Janet client with Gurp environment");
     client.run(janet_instructions)?;
