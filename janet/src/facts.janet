@@ -62,5 +62,5 @@
     (fetch-and-cache name)))
 
 # Stub functions so the library compiles as a module
-(defn- run-safe-cmd [cmd] nil)
-(defn- run-cmd [cmd &opt args] nil)
+(defn- run-safe-cmd [cmd] "stub")
+(defn- run-cmd [cmd &opt args] "stub")
