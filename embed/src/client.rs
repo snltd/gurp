@@ -1,4 +1,5 @@
 use crate::janet_cfuncs;
+use common::constants::SANDBOX_FORBIDDEN_CAPABILITIES;
 use janetrs::client::JanetClient;
 use janetrs::env::CFunOptions;
 
@@ -9,7 +10,7 @@ pub fn vanilla() -> JanetClient {
 }
 
 /// Returns a Janet client with the Gurp library in the root environment. Also includes
-/// (to-json) which turns any suitable Janet object into Json.
+/// (to-json) which turns any suitable Janet object into JSON.
 pub fn gurp() -> anyhow::Result<JanetClient> {
     let mut client = vanilla();
     client.add_c_fn(CFunOptions::new(
@@ -22,31 +23,16 @@ pub fn gurp() -> anyhow::Result<JanetClient> {
         r#"(merge-module (fiber/getenv (fiber/root)) (load-image (gurp-library)) "" true)"#
             .to_owned();
 
-    janet_instructions.push_str(
-        "\n(sandbox 
-:chroot
-:ffi
-:ffi-define
-:ffi-jit
-:ffi-use
-:fs-temp
-:fs-write
-:hrtime
-:modules
-:net
-:net-connect
-:net-listen
-:sandbox
-:signal
-:subprocess
-:threads
-:unmarshal
-        )",
-    );
-    // :compile
-    // :fs
-    // :fs-read
-    // :env
+    client.add_c_fn(CFunOptions::new(
+        c"run-safe-cmd",
+        janet_cfuncs::run_safe_cmd_c,
+    ));
+    client.add_c_fn(CFunOptions::new(c"run-cmd", janet_cfuncs::run_cmd_c));
+
+    janet_instructions.push_str(&format!(
+        "\n(sandbox {})\n",
+        SANDBOX_FORBIDDEN_CAPABILITIES.join(" ")
+    ));
 
     tracing::debug!("creating Janet client with Gurp environment");
     client.run(janet_instructions)?;

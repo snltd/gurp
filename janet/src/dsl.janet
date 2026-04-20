@@ -213,8 +213,9 @@
                           (string/join (keys vars) ", "))))
   result)
 
-(defn run-cmd
-  "Returns stdout of the given command, or an error containing stderr"
+(defn run-any-cmd
+  "Returns stdout of the given command, or an error containing stderr. Only
+   works if allowed by sandbox settings"
   [cmd]
   (def proc (os/spawn (fields cmd) :p {:out :pipe :err :pipe}))
   (:wait proc)

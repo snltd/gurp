@@ -70,6 +70,10 @@ Items marked [*] are breaking changes.
 ### DSL
 
 - Remove the `(hostname)` function. Use `(fact :hostname)` instead. [*]
+- Change `run-cmd` so it only allows execution of certain allowed commands [*]
+- Add `run-safe-cmd` which allows execution of exactly specified commands.
+- Add `run-any-cmd` which allows execution of any command in the compilation
+  phase unless disallowed by sandboxing rules.
 - Add `facts` function, which gives
   [a small amount of system information](/doc/facts.md).
 - Add `tabular-output->struct` function, which converts tabular command output
@@ -82,6 +86,8 @@ Items marked [*] are breaking changes.
   untangled. [*]
 - `indoc` is no longer a macro which binds a string to a name. It is now a
   function which returns a string. [*]
+- Run the embedded Janet interpreter with sandboxing. This severely limits the
+  actions the Janet code can take when it is evaluated. [*]
 - Doer parameters, types, and behaviour are now defined in separate definition
   files. These are used to check properties are valid and of the correct types,
   and to generate documentation.

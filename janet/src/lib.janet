@@ -1,5 +1,5 @@
 # Internal functions 
- 
+
 (defn drop-element
   "Return the given array without the given element. Like a non-destructive
    array/remove"
