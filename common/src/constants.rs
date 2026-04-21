@@ -3,6 +3,101 @@ use camino::Utf8PathBuf;
 use std::sync::LazyLock;
 use std::time::Duration;
 
+//--- Filesystem locations
+pub const IMG_CACHE_DIR: &str = "/var/tmp";
+pub const MANIFEST_DIR: &str = "/opt/site/lib/smf/manifest";
+pub const GEM_BIN_DIR: &str = "/opt/ooce/bin";
+pub const APPLY_LOCKFILE: &str = "/var/run/gurp.lock";
+
+//--- Sandbox configuration
+// Sandboxing disables certain features from the embedded Janet interpreter. Once the
+// sandbox function is called, it cannot be called again.
+//
+// Capabilities in this list are forbidden. Don't forget the :, cos they're Janet keywords.
+// For even a basic config to compile :compile, :fs, :fs-read, and :unmarshall must be enabled.
+// The capabilities list has changed in the past. We are currently pinned to an embedded
+// Janet interpreter v1.41.2. (doc sandbox) in the REPL lists capabilities.
+pub const SANDBOX_FORBIDDEN_CAPABILITIES: &[&str] = &[
+    ":asm",
+    ":chroot",
+    ":ffi",
+    ":ffi-define",
+    ":ffi-jit",
+    ":ffi-use",
+    ":fs-temp",
+    ":fs-write",
+    ":hrtime",
+    ":modules",
+    ":net",
+    ":net-connect",
+    ":net-listen",
+    ":sandbox",
+    ":signal",
+    ":subprocess",
+    ":threads",
+];
+
+// --- Compile-time command execution
+// RUN_SAFE_CMDS can be executed through run-safe-cmd. Only commands which exactly match
+// will be executed. This is used for facts.
+pub const RUN_SAFE_CMDS: &[&str] = &[
+    "/bin/uname -n",
+    "/bin/uname -X",
+    "/bin/zonename",
+    "/usr/sbin/dladm show-link",
+    "/usr/sbin/ipadm show-addr",
+    "/usr/sbin/ipadm show-if",
+    "/usr/sbin/zoneadm list -cv",
+];
+
+// RUN_CMDS can be called though run-cmd. If the command matches, that's good enough: it will
+// be run with whatever arguments the user gave. Think carefully!
+pub const RUN_CMDS: &[&str] = &["/bin/ls"];
+
+//--- Protected Resources
+// Anything PROTECTED cannot be removed. But it can be changed.
+pub static PROTECTED_DIRS: LazyLock<Vec<Utf8PathBuf>> = LazyLock::new(|| {
+    vec![
+        Utf8PathBuf::from("/"),
+        Utf8PathBuf::from("/bin"),
+        Utf8PathBuf::from("/etc"),
+        Utf8PathBuf::from("/lib"),
+        Utf8PathBuf::from("/sbin"),
+        Utf8PathBuf::from("/usr"),
+        Utf8PathBuf::from("/usr/lib"),
+    ]
+});
+
+pub static PROTECTED_FILES: LazyLock<Vec<Utf8PathBuf>> = LazyLock::new(|| {
+    vec![
+        Utf8PathBuf::from("/bin/ps"),
+        Utf8PathBuf::from("/etc/shadow"),
+        Utf8PathBuf::from("/etc/passwd"),
+        Utf8PathBuf::from("/etc/group"),
+    ]
+});
+
+pub static PROTECTED_USERS: &[&str] = &[
+    "root", "daemon", "bin", "sys", "adm", "lp", "uucp", "nuucp", "dladm", "netadm", "netcfg",
+    "listen", "gdm", "unknown", "nobody", "noaccess", "nobody4", "pkg5srv",
+];
+
+pub static PROTECTED_GROUPS: &[&str] = &["root", "other", "bin", "sys", "adm", "tty", "daemon"];
+
+//--- Client/server things
+pub const CLIENT_API_VERSION: &str = "v1";
+pub const SERVER_PORT: u16 = 1867;
+pub const SERVER_METRICS_INTERVAL: Duration = Duration::from_secs(10);
+
+//--- Service-related things
+pub const IPF_SVC: &str = "svc:/network/ipfilter:default";
+pub const SVC_WAIT_INTERVAL: Duration = Duration::from_secs(1);
+pub const SVC_WAIT_TIMEOUT: Duration = Duration::from_secs(20);
+
+//--- Miscellany
+pub const DEFAULT_TERM_WIDTH: usize = 80;
+
+//--- It is unlikely you would change anything south of here.
 pub const GURP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 // Binaries gurp is allowed to run
@@ -45,22 +140,6 @@ pub const ZONEADM_BIN: &str = "/usr/sbin/zoneadm";
 pub const ZONECFG_BIN: &str = "/usr/sbin/zonecfg";
 pub const ZSTD_BIN: &str = "/bin/zstd";
 
-// Filesystem locations
-pub const IMG_CACHE_DIR: &str = "/var/tmp";
-pub const MANIFEST_DIR: &str = "/opt/site/lib/smf/manifest";
-pub const GEM_BIN_DIR: &str = "/opt/ooce/bin";
-pub const APPLY_LOCKFILE: &str = "/var/run/gurp.lock";
-
-// Client/server things
-pub const CLIENT_API_VERSION: &str = "v1";
-pub const SERVER_PORT: u16 = 1867;
-pub const SERVER_METRICS_INTERVAL: Duration = Duration::from_secs(10);
-
-// Service-related things
-pub const IPF_SVC: &str = "svc:/network/ipfilter:default";
-pub const SVC_WAIT_INTERVAL: Duration = Duration::from_secs(1);
-pub const SVC_WAIT_TIMEOUT: Duration = Duration::from_secs(20);
-
 // Shorthands for resources changes
 pub const ONE_RESOURCE_ONE_CHANGE: ApplySummary = ApplySummary {
     resources: 1,
@@ -76,38 +155,3 @@ pub const NO_RESOURCES_TO_CHANGE: ApplySummary = ApplySummary {
     resources: 0,
     changes: 0,
 };
-
-// Anything PROTECTED cannot be removed. But it can be changed.
-pub static PROTECTED_DIRS: LazyLock<Vec<Utf8PathBuf>> = LazyLock::new(|| {
-    vec![
-        Utf8PathBuf::from("/"),
-        Utf8PathBuf::from("/bin"),
-        Utf8PathBuf::from("/etc"),
-        Utf8PathBuf::from("/lib"),
-        Utf8PathBuf::from("/sbin"),
-        Utf8PathBuf::from("/usr"),
-        Utf8PathBuf::from("/usr/lib"),
-    ]
-});
-
-pub static PROTECTED_FILES: LazyLock<Vec<Utf8PathBuf>> = LazyLock::new(|| {
-    vec![
-        Utf8PathBuf::from("/bin/ps"),
-        Utf8PathBuf::from("/etc/shadow"),
-        Utf8PathBuf::from("/etc/passwd"),
-        Utf8PathBuf::from("/etc/group"),
-    ]
-});
-
-pub static PROTECTED_USERS: LazyLock<Vec<&str>> = LazyLock::new(|| {
-    vec![
-        "root", "daemon", "bin", "sys", "adm", "lp", "uucp", "nuucp", "dladm", "netadm", "netcfg",
-        "listen", "gdm", "unknown", "nobody", "noaccess", "nobody4", "pkg5srv",
-    ]
-});
-
-pub static PROTECTED_GROUPS: LazyLock<Vec<&str>> =
-    LazyLock::new(|| vec!["root", "other", "bin", "sys", "adm", "tty", "daemon"]);
-
-// Miscellany
-pub const DEFAULT_TERM_WIDTH: usize = 80;
