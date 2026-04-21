@@ -383,8 +383,8 @@ impl Applicator {
         self.accumulate(&mut sum, &mut ids, apply_resources(&res.file, opts))?;
         self.accumulate(&mut sum, &mut ids, apply_resources(&res.file_line, opts))?;
         self.accumulate(&mut sum, &mut ids, apply_resources(&res.link, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.svcprop, opts))?;
         self.accumulate(&mut sum, &mut ids, apply_resources(&res.smf, opts))?;
+        self.accumulate(&mut sum, &mut ids, apply_resources(&res.svcprop, opts))?;
         self.accumulate(&mut sum, &mut ids, apply_resources(&res.system_cert, opts))?;
         self.accumulate(&mut sum, &mut ids, apply_resources(&res.misc, opts))?;
 
