@@ -1,9 +1,9 @@
 use crate::client;
 use anyhow::{Context, bail, ensure};
-use camino::Utf8PathBuf;
+use camino::Utf8Path;
 use common::constants::{CLIENT_API_VERSION, SERVER_PORT};
 use common::info;
-use common::types::{ApplyOpts, JsonConfig};
+use common::types::{ApplyOpts, CompileError, JsonConfig};
 use janetrs::env::DefOptions;
 use janetrs::{Janet, JanetString, TaggedJanet};
 use std::time::Duration;
@@ -20,18 +20,22 @@ use util::{http, info as util_info, json};
 // In cases 3 and 5 it's the responsibility of this code to fetch the file before applying it.
 //
 pub fn compile_to_json(
-    host_file: Option<&Utf8PathBuf>,
+    host_file: Option<&Utf8Path>,
     opts: &ApplyOpts,
-) -> anyhow::Result<String> {
+) -> Result<String, CompileError> {
     let ret = if opts.image {
         tracing::debug!("applying precompiled jimage config");
         // case 4
-        let image_file = host_file.context("No host file specified")?;
+        let image_file = host_file
+            .context("No host file specified")
+            .map_err(CompileError::Other)?;
         local_jimage_to_json(image_file, opts)?
     } else if opts.precompiled {
         tracing::debug!("applying precompiled JSON config");
         // case 2
-        let host_file = host_file.context("No host file specified")?;
+        let host_file = host_file
+            .context("No host file specified")
+            .map_err(CompileError::Other)?;
         local_json_to_json(host_file)?
     } else if let Some(server) = opts.server.as_ref() {
         if opts.as_json {
@@ -48,53 +52,69 @@ pub fn compile_to_json(
         // case 1
         local_janet_to_json(host_file, opts)?
     } else {
-        bail!("No configuration file specified")
+        unreachable!("no configuration file specified")
     };
 
     Ok(ret)
 }
 
 // Get a JSON string from a Janet image on disk
-pub fn local_jimage_to_json(path: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<JsonConfig> {
-    ensure!(path.exists(), "Cannot find image file at {}", path);
+pub fn local_jimage_to_json(path: &Utf8Path, opts: &ApplyOpts) -> Result<JsonConfig, CompileError> {
+    if !path.exists() {
+        return Err(CompileError::FileNotFound(path.to_owned()));
+    }
 
-    jimage_to_json(&fs::read(path)?, None, opts)
+    jimage_to_json(
+        &fs::read(path).map_err(|e| CompileError::Other(e.into()))?,
+        None,
+        opts,
+    )
 }
 
-// Get a JSON string from a Janet image from a remote server
-fn remote_jimage_to_json(server: &str, opts: &ApplyOpts) -> anyhow::Result<JsonConfig> {
+// Make a JSON string from a Janet image fetched from a remote server
+fn remote_jimage_to_json(server: &str, opts: &ApplyOpts) -> Result<JsonConfig, CompileError> {
     let hostname = opts
         .hostname
         .clone()
-        .map_or_else(util_info::my_hostname, Ok)?;
+        .map_or_else(util_info::my_hostname, Ok)
+        .map_err(CompileError::Other)?;
 
     jimage_to_json(
-        &fetch_from_server(server, &hostname, "jimage")?,
+        &fetch_from_server(server, &hostname, "jimage")
+            .with_context(|| format!("failed to fetch jimage for {hostname} from {server}"))
+            .map_err(CompileError::Network)?,
         Some(server),
         opts,
     )
 }
 
 // Get a JSON string from a pre-compiled file on disk
-fn local_json_to_json(path: &Utf8PathBuf) -> anyhow::Result<JsonConfig> {
-    ensure!(path.exists(), "Cannot find JSON file at {}", path);
-    Ok(fs::read_to_string(path)?)
+
+fn local_json_to_json(path: &Utf8Path) -> Result<JsonConfig, CompileError> {
+    if !path.exists() {
+        return Err(CompileError::FileNotFound(path.to_owned()));
+    }
+
+    fs::read_to_string(path).map_err(|e| CompileError::Other(e.into()))
 }
 
 // Get a JSON string from a remote server
-fn remote_json_to_json(server: &str, opts: &ApplyOpts) -> anyhow::Result<JsonConfig> {
+fn remote_json_to_json(server: &str, opts: &ApplyOpts) -> Result<JsonConfig, CompileError> {
     let hostname = opts
         .hostname
         .clone()
-        .map_or_else(util_info::my_hostname, Ok)?;
+        .map_or_else(util_info::my_hostname, Ok)
+        .map_err(CompileError::Other)?;
 
     let host_config = String::from_utf8(
         fetch_from_server(server, &hostname, "json")
-            .with_context(|| format!("failed to fetch JSON config for {hostname} from {server}"))?,
-    )?;
+            .with_context(|| format!("failed to fetch JSON config for {hostname} from {server}"))
+            .map_err(CompileError::Network)?,
+    )
+    .map_err(|e| CompileError::Other(e.into()))?;
 
     if opts.dump_config {
-        let formatted_json = json::pretty(&host_config)?;
+        let formatted_json = json::pretty(&host_config).map_err(CompileError::Other)?;
 
         println!(
             "{}",
@@ -106,13 +126,13 @@ fn remote_json_to_json(server: &str, opts: &ApplyOpts) -> anyhow::Result<JsonCon
 }
 
 pub fn local_janet_to_json(
-    host_file: &Utf8PathBuf,
+    host_file: &Utf8Path,
     opts: &ApplyOpts,
-) -> anyhow::Result<JsonConfig> {
+) -> Result<JsonConfig, CompileError> {
     local_janet(host_file, opts, "(to-json (machine-config))")
 }
 
-pub fn local_janet_to_janet(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<String> {
+pub fn local_janet_to_janet(host_file: &Utf8Path, opts: &ApplyOpts) -> anyhow::Result<String> {
     let format = if opts.colour { "%M" } else { "%m" };
     let compiled_janet = local_janet(
         host_file,
@@ -159,25 +179,25 @@ pub fn raw_janet_to_json(janet_snippet: &str, opts: &ApplyOpts) -> anyhow::Resul
 
 // Get a string by compiling a local Janet file (and its dependencies)
 pub fn local_janet(
-    host_file: &Utf8PathBuf,
+    path: &Utf8Path,
     opts: &ApplyOpts,
     final_cmd: &str,
-) -> anyhow::Result<JsonConfig> {
-    ensure!(
-        host_file.exists(),
-        "Cannot find host config file at {}",
-        host_file
-    );
+) -> Result<JsonConfig, CompileError> {
+    if !path.exists() {
+        return Err(CompileError::FileNotFound(path.to_owned()));
+    }
 
-    let host_file = host_file
+    let host_file = path
         .canonicalize_utf8()
-        .with_context(|| format!("failed to canonicalize {host_file}"))?;
+        .with_context(|| format!("failed to canonicalize {path}"))
+        .map_err(CompileError::Other)?;
 
     let config_dir = host_file
         .parent()
-        .context("cannot get parent of config file")?;
+        .context("cannot get parent of config file")
+        .map_err(CompileError::Other)?;
 
-    let client = client::gurp()?;
+    let client = client::gurp().map_err(CompileError::Compile)?;
 
     let destroyer = if opts.destroy {
         "(setdyn :destroy-everything-you-touch true)"
@@ -202,7 +222,8 @@ pub fn local_janet(
 
     let janet_result = client
         .run(janet_instructions)
-        .with_context(|| "failed to compile local Janet config")?;
+        .with_context(|| "failed to compile local Janet config")
+        .map_err(CompileError::Compile)?;
 
     Ok(janet_result.unwrap().to_string())
 }
@@ -221,8 +242,8 @@ pub fn jimage_to_json(
     raw_image: &[u8],
     server: Option<&str>,
     opts: &ApplyOpts,
-) -> anyhow::Result<JsonConfig> {
-    let mut client = client::gurp()?;
+) -> Result<JsonConfig, CompileError> {
+    let mut client = client::gurp().map_err(CompileError::ClientCreate)?;
     let jstr = JanetString::new(raw_image);
     let janet_val = Janet::string(jstr);
     client.add_def(DefOptions::new("*user-image*", janet_val));
@@ -244,16 +265,18 @@ pub fn jimage_to_json(
 
     let janet_result = client
         .run(janet_instructions)
-        .with_context(|| "failed to compile jimage config")?;
+        .map_err(|e| CompileError::Compile(e.into()))?;
 
     Ok(janet_result.unwrap().to_string())
 }
 
-fn fetch_from_server(server: &str, hostname: &str, format: &str) -> anyhow::Result<Vec<u8>> {
+fn fetch_from_server(server: &str, hostname: &str, format: &str) -> Result<Vec<u8>, CompileError> {
     let mut tries = 1;
+    let mut err: Option<anyhow::Error> = None;
 
     while tries < 5 {
-        tracing::debug!("try {tries} of 5");
+        tracing::debug!("try {tries}/5");
+
         match fetch_precompiled_file(server, hostname, format) {
             Ok(resp) => {
                 return Ok(resp);
@@ -263,15 +286,16 @@ fn fetch_from_server(server: &str, hostname: &str, format: &str) -> anyhow::Resu
                 tracing::info!("sleeping for retry");
                 thread::sleep(Duration::from_secs(tries * tries));
                 tries += 1;
+                err = Some(e);
             }
         }
     }
 
-    bail!("failed to get config from server");
+    Err(CompileError::Network(err.unwrap()))
 }
 
 /// Returns a Janet jimage of the user's config
-pub fn local_janet_to_jimage(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<Vec<u8>> {
+pub fn local_janet_to_jimage(host_file: &Utf8Path, opts: &ApplyOpts) -> anyhow::Result<Vec<u8>> {
     ensure!(
         host_file.exists(),
         "Cannot find host config file at {}",

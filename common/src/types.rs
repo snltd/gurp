@@ -65,6 +65,20 @@ impl AddAssign for ApplySummary {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum CompileError {
+    #[error("compilation error: {0}")]
+    Compile(#[source] anyhow::Error),
+    #[error("network error: {0}")]
+    Network(#[source] anyhow::Error),
+    #[error("missing file error: {0}")]
+    FileNotFound(Utf8PathBuf),
+    #[error("client create error: {0}")]
+    ClientCreate(#[source] anyhow::Error),
+    #[error("compile error: {0}")]
+    Other(#[source] anyhow::Error),
+}
+
 pub type JsonConfig = String;
 
 pub type VlanID = u16;

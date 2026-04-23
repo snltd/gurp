@@ -105,7 +105,7 @@ pub async fn config(
                         remote_host = remote_host_name.to_string(),
                         message = e.to_string()
                     );
-                    error_response(e)
+                    error_response(e.into())
                 }
             },
             other => {
