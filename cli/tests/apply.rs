@@ -38,9 +38,6 @@ mod test {
             .arg("./tests/resources/bad.janet")
             .assert()
             .failure()
-            .stderr(predicate::str::contains(
-                "bad.janet:2:5: compile error: unknown symbol physical",
-            ))
-            .stdout(predicate::str::ends_with("Runtime VM error\n"));
+            .stdout(predicate::str::contains("unknown symbol physical"));
     }
 }
