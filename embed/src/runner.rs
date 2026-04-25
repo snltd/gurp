@@ -1,7 +1,8 @@
-use crate::{client, janet_cfuncs};
-use anyhow::{Context, bail};
-use janetrs::TaggedJanet;
-use janetrs::env::CFunOptions;
+use crate::client;
+// use crate::{client, janet_cfuncs};
+// use anyhow::{Context, bail};
+// use janetrs::TaggedJanet;
+// use janetrs::env::CFunOptions;
 use std::process::ExitCode;
 
 pub fn run_command_and_exit(janet_command: &str) -> ExitCode {
@@ -20,6 +21,7 @@ pub fn run_command_and_exit(janet_command: &str) -> ExitCode {
     }
 }
 
+/*
 pub fn run_config(host_config: &str) -> anyhow::Result<String> {
     let mut client = client::vanilla();
     client.add_c_fn(CFunOptions::new(c"to_json", janet_cfuncs::to_json_c));
@@ -35,3 +37,4 @@ pub fn run_config(host_config: &str) -> anyhow::Result<String> {
 
     Ok(json)
 }
+*/

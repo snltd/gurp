@@ -34,6 +34,7 @@ impl From<&CompileError> for FailPhase {
             CompileError::ClientCreate(_) => FailPhase::Compile,
             CompileError::Compile(_) => FailPhase::Compile,
             CompileError::Other(_) => FailPhase::Compile,
+            CompileError::Io(_) => FailPhase::Compile,
         }
     }
 }

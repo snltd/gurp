@@ -91,7 +91,7 @@ pub async fn config(
                         remote_host = remote_host_name.to_string(),
                         message = e.to_string()
                     );
-                    error_response(e)
+                    error_response(e.into())
                 }
             },
             "json" => match compiler::local_janet_to_json(&host_file, &opts) {

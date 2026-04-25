@@ -71,6 +71,8 @@ pub enum CompileError {
     Compile(#[source] anyhow::Error),
     #[error("network error: {0}")]
     Network(#[source] anyhow::Error),
+    #[error("I/O error: {0}")]
+    Io(#[source] std::io::Error),
     #[error("missing file error: {0}")]
     FileNotFound(Utf8PathBuf),
     #[error("client create error: {0}")]

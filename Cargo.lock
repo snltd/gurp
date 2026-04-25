@@ -601,7 +601,6 @@ dependencies = [
  "indoc",
  "mime_guess",
  "opentelemetry",
- "pretty_assertions",
  "serde",
  "serde_json",
  "sysinfo 0.38.4",

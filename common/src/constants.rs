@@ -85,6 +85,7 @@ pub static PROTECTED_USERS: &[&str] = &[
 pub static PROTECTED_GROUPS: &[&str] = &["root", "other", "bin", "sys", "adm", "tty", "daemon"];
 
 //--- Client/server things
+pub const CLIENT_RETRIES: u64 = 5;
 pub const CLIENT_API_VERSION: &str = "v1";
 pub const SERVER_PORT: u16 = 1867;
 pub const SERVER_METRICS_INTERVAL: Duration = Duration::from_secs(10);
