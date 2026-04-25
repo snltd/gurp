@@ -37,9 +37,14 @@ impl ClientMetrics {
         }
     }
 
-    pub fn record_apply_duration(&self, result: &str, elapsed_ms: u64) {
-        self.apply_duration
-            .record(elapsed_ms, &[KeyValue::new("status", result.to_owned())]);
+    pub fn record_apply_duration(&self, result: &str, elapsed_ms: u64, phase: Option<&str>) {
+        let mut tags = vec![KeyValue::new("status", result.to_owned())];
+
+        if let Some(phase) = phase {
+            tags.push(KeyValue::new("phase", phase.to_owned()));
+        }
+
+        self.apply_duration.record(elapsed_ms, &tags);
     }
 
     pub fn record_apply_resources(&self, n: u64) {

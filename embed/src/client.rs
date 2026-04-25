@@ -36,6 +36,7 @@ pub fn gurp() -> anyhow::Result<JanetClient> {
 
     tracing::debug!("creating Janet client with Gurp environment");
     client.run(janet_instructions)?;
+    tracing::debug!("successfully created Gurp client");
 
     Ok(client)
 }

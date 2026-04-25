@@ -75,8 +75,8 @@ mod test {
             .arg("/no/such/file.janet")
             .assert()
             .failure()
-            .stdout(predicate::str::ends_with(
-                "Cannot find host config file at /no/such/file.janet\n",
+            .stdout(predicate::str::contains(
+                "missing file error: /no/such/file.janet",
             ));
     }
 
@@ -89,7 +89,7 @@ mod test {
             .arg("tests/resources/bad.janet")
             .assert()
             .failure()
-            .stderr(predicate::str::contains(
+            .stdout(predicate::str::contains(
                 "compile error: unknown symbol physical",
             ));
     }

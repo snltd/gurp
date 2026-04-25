@@ -176,7 +176,7 @@ fn main() -> ExitCode {
                 remove_first,
                 only,
             };
-            commands::apply::init::run(host_config_file.as_ref(), &opts)
+            commands::apply::init::run(host_config_file.as_deref(), &opts)
         }
         Commands::Compile {
             line_no,

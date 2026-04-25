@@ -1,14 +1,29 @@
 use crate::client;
-use anyhow::{Context, bail, ensure};
-use camino::Utf8PathBuf;
-use common::constants::{CLIENT_API_VERSION, SERVER_PORT};
+use anyhow::Context;
+use camino::Utf8Path;
+use common::constants::{CLIENT_API_VERSION, CLIENT_RETRIES, SERVER_PORT};
 use common::info;
-use common::types::{ApplyOpts, JsonConfig};
+use common::types::{ApplyOpts, CompileError, JsonConfig};
+use janetrs::client::JanetClient;
 use janetrs::env::DefOptions;
 use janetrs::{Janet, JanetString, TaggedJanet};
 use std::time::Duration;
 use std::{env, fs, thread};
 use util::{http, info as util_info, json};
+
+// When Janet compilation fails, perhaps because of a missing module or syntax error, the
+// embedded interpreter issues a Janet panic. janetrs does not offer any way to catch this,
+// so the error message is dumped to stderr. We would prefer to capture it and log it properly.
+//
+// To do this, we wrap fallible Janet function calls in (protect). From the docs:
+// (protect & body)
+// Evaluate expressions, while capturing any errors. Evaluates to a tuple
+// of two elements. The first element is true if successful, false if an
+// error, and the second is the return value or error.
+//
+// It's a bit messy, but I think it's the best we can do for the time being. A side effect is
+// that we lose the stack trace, but I generally find it only muddies the waters in this
+// situation, so that's fine.
 
 // Config comes in various forms. It can be:
 //   1. a local Janet config which is compiled to Janet using Gurp's built-in library.
@@ -20,18 +35,22 @@ use util::{http, info as util_info, json};
 // In cases 3 and 5 it's the responsibility of this code to fetch the file before applying it.
 //
 pub fn compile_to_json(
-    host_file: Option<&Utf8PathBuf>,
+    host_file: Option<&Utf8Path>,
     opts: &ApplyOpts,
-) -> anyhow::Result<String> {
+) -> Result<String, CompileError> {
     let ret = if opts.image {
         tracing::debug!("applying precompiled jimage config");
         // case 4
-        let image_file = host_file.context("No host file specified")?;
+        let image_file = host_file
+            .context("No host file specified")
+            .map_err(CompileError::Other)?;
         local_jimage_to_json(image_file, opts)?
     } else if opts.precompiled {
         tracing::debug!("applying precompiled JSON config");
         // case 2
-        let host_file = host_file.context("No host file specified")?;
+        let host_file = host_file
+            .context("No host file specified")
+            .map_err(CompileError::Other)?;
         local_json_to_json(host_file)?
     } else if let Some(server) = opts.server.as_ref() {
         if opts.as_json {
@@ -48,53 +67,68 @@ pub fn compile_to_json(
         // case 1
         local_janet_to_json(host_file, opts)?
     } else {
-        bail!("No configuration file specified")
+        unreachable!("no configuration file specified")
     };
 
     Ok(ret)
 }
 
 // Get a JSON string from a Janet image on disk
-pub fn local_jimage_to_json(path: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<JsonConfig> {
-    ensure!(path.exists(), "Cannot find image file at {}", path);
-
-    jimage_to_json(&fs::read(path)?, None, opts)
+pub fn local_jimage_to_json(path: &Utf8Path, opts: &ApplyOpts) -> Result<JsonConfig, CompileError> {
+    if path.exists() {
+        jimage_to_json(
+            &fs::read(path).map_err(|e| CompileError::Other(e.into()))?,
+            None,
+            opts,
+        )
+    } else {
+        Err(CompileError::FileNotFound(path.to_owned()))
+    }
 }
 
-// Get a JSON string from a Janet image from a remote server
-fn remote_jimage_to_json(server: &str, opts: &ApplyOpts) -> anyhow::Result<JsonConfig> {
+// Make a JSON string from a Janet image fetched from a remote server
+fn remote_jimage_to_json(server: &str, opts: &ApplyOpts) -> Result<JsonConfig, CompileError> {
     let hostname = opts
         .hostname
         .clone()
-        .map_or_else(util_info::my_hostname, Ok)?;
+        .map_or_else(util_info::my_hostname, Ok)
+        .map_err(CompileError::Other)?;
 
     jimage_to_json(
-        &fetch_from_server(server, &hostname, "jimage")?,
+        &fetch_from_server(server, &hostname, "jimage")
+            .with_context(|| format!("failed to fetch jimage for {hostname} from {server}"))
+            .map_err(CompileError::Network)?,
         Some(server),
         opts,
     )
 }
 
 // Get a JSON string from a pre-compiled file on disk
-fn local_json_to_json(path: &Utf8PathBuf) -> anyhow::Result<JsonConfig> {
-    ensure!(path.exists(), "Cannot find JSON file at {}", path);
-    Ok(fs::read_to_string(path)?)
+fn local_json_to_json(path: &Utf8Path) -> Result<JsonConfig, CompileError> {
+    if !path.exists() {
+        return Err(CompileError::FileNotFound(path.to_owned()));
+    }
+
+    fs::read_to_string(path).map_err(|e| CompileError::Other(e.into()))
 }
 
 // Get a JSON string from a remote server
-fn remote_json_to_json(server: &str, opts: &ApplyOpts) -> anyhow::Result<JsonConfig> {
+fn remote_json_to_json(server: &str, opts: &ApplyOpts) -> Result<JsonConfig, CompileError> {
     let hostname = opts
         .hostname
         .clone()
-        .map_or_else(util_info::my_hostname, Ok)?;
+        .map_or_else(util_info::my_hostname, Ok)
+        .map_err(CompileError::Other)?;
 
     let host_config = String::from_utf8(
         fetch_from_server(server, &hostname, "json")
-            .with_context(|| format!("failed to fetch JSON config for {hostname} from {server}"))?,
-    )?;
+            .with_context(|| format!("failed to fetch JSON config for {hostname} from {server}"))
+            .map_err(CompileError::Network)?,
+    )
+    .map_err(|e| CompileError::Other(e.into()))?;
 
     if opts.dump_config {
-        let formatted_json = json::pretty(&host_config)?;
+        let formatted_json = json::pretty(&host_config).map_err(CompileError::Other)?;
 
         println!(
             "{}",
@@ -106,43 +140,58 @@ fn remote_json_to_json(server: &str, opts: &ApplyOpts) -> anyhow::Result<JsonCon
 }
 
 pub fn local_janet_to_json(
-    host_file: &Utf8PathBuf,
+    host_file: &Utf8Path,
     opts: &ApplyOpts,
-) -> anyhow::Result<JsonConfig> {
-    local_janet(host_file, opts, "(to-json (machine-config))")
+) -> Result<JsonConfig, CompileError> {
+    local_janet(
+        host_file,
+        opts,
+        indoc::indoc! { r#"
+          (def cmd-result (protect (eval '(machine-config))))
+
+          (if (cmd-result 0)
+            (to-json (cmd-result 1))
+            (buffer/push (buffer "ERR:") (string (cmd-result 1))))"#,
+        },
+    )
 }
 
-pub fn local_janet_to_janet(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<String> {
+pub fn local_janet_to_janet(
+    host_file: &Utf8Path,
+    opts: &ApplyOpts,
+) -> Result<String, CompileError> {
     let format = if opts.colour { "%M" } else { "%m" };
     let compiled_janet = local_janet(
         host_file,
         opts,
         &format!(r#"(string/format "{format}" (machine-config))"#),
-    )
-    .with_context(|| "failed to compile to Janet")?;
+    )?;
 
     Ok(info::dump_config(&compiled_janet, None, opts))
 }
 
 // Get a string by compiling a snippet of Janet
-pub fn raw_janet_to_json(janet_snippet: &str, opts: &ApplyOpts) -> anyhow::Result<JsonConfig> {
-    let client = client::gurp()?;
-    let cwd = env::current_dir()?.to_string_lossy().to_string();
+pub fn raw_janet_to_json(
+    janet_snippet: &str,
+    opts: &ApplyOpts,
+) -> Result<JsonConfig, CompileError> {
+    let client = client::gurp().map_err(CompileError::ClientCreate)?;
+    let cwd = env::current_dir()
+        .map_err(CompileError::Io)?
+        .to_string_lossy()
+        .to_string();
 
-    let destroyer = if opts.destroy {
-        "(setdyn :destroy-everything-you-touch true)"
-    } else {
-        ""
-    };
+    let destroyer = destroyer_string(opts);
 
     let janet_instructions = indoc::formatdoc! { r#"
             (setdyn *syspath* "{cwd}")
             (setdyn :gurp-config-root "{cwd}")
             {destroyer}
+
             (host "gurp-runner"
-            {janet_snippet})
-            (to-json (machine-config))
-        "#};
+                {janet_snippet})
+
+            (to-json (machine-config))"#};
 
     if opts.dump_config {
         println!(
@@ -151,47 +200,45 @@ pub fn raw_janet_to_json(janet_snippet: &str, opts: &ApplyOpts) -> anyhow::Resul
         );
     }
 
-    let janet_result = client
-        .run(janet_instructions)
-        .with_context(|| "failed to compile raw Janet config")?;
-    Ok(janet_result.unwrap().to_string())
+    compile_to_string(&client, &janet_instructions, false)
 }
 
 // Get a string by compiling a local Janet file (and its dependencies)
 pub fn local_janet(
-    host_file: &Utf8PathBuf,
+    path: &Utf8Path,
     opts: &ApplyOpts,
     final_cmd: &str,
-) -> anyhow::Result<JsonConfig> {
-    ensure!(
-        host_file.exists(),
-        "Cannot find host config file at {}",
-        host_file
-    );
+) -> Result<JsonConfig, CompileError> {
+    if !path.exists() {
+        return Err(CompileError::FileNotFound(path.to_owned()));
+    }
 
-    let host_file = host_file
+    let host_file = path
         .canonicalize_utf8()
-        .with_context(|| format!("failed to canonicalize {host_file}"))?;
+        .with_context(|| format!("failed to canonicalize {path}"))
+        .map_err(CompileError::Other)?;
 
     let config_dir = host_file
         .parent()
-        .context("cannot get parent of config file")?;
+        .context("cannot get parent of config file")
+        .map_err(CompileError::Other)?;
 
-    let client = client::gurp()?;
-
-    let destroyer = if opts.destroy {
-        "(setdyn :destroy-everything-you-touch true)"
-    } else {
-        ""
-    };
+    let client = client::gurp().map_err(CompileError::ClientCreate)?;
+    let destroyer = destroyer_string(opts);
 
     let janet_instructions = indoc::formatdoc! { r#"
-            (setdyn *syspath* "{config_dir}")
-            (setdyn :gurp-config-root "{config_dir}")
-            {destroyer}
-            (merge-module (curenv) (dofile "{host_file}" :env (curenv)) "" true)
-            {final_cmd}
-        "#};
+        (setdyn *syspath* "{config_dir}")
+        (setdyn :gurp-config-root "{config_dir}")
+        {destroyer}
+
+        (def load-result
+          (protect
+            (merge-module (curenv) (dofile "{host_file}" :env (curenv)) "" true)))
+
+        (if (load-result 0)
+          (do
+            {final_cmd})
+          (buffer/push (buffer "ERR:") (string (load-result 1))))"#};
 
     if opts.dump_config {
         println!(
@@ -200,60 +247,143 @@ pub fn local_janet(
         );
     }
 
-    let janet_result = client
-        .run(janet_instructions)
-        .with_context(|| "failed to compile local Janet config")?;
-
-    Ok(janet_result.unwrap().to_string())
-}
-
-// We tell the server what we think it's called so it can build file resources we can find. This
-// lets us use a raw IP address, DNS name, whatever.
-fn fetch_precompiled_file(server: &str, hostname: &str, format: &str) -> anyhow::Result<Vec<u8>> {
-    let url = format!(
-        "http://{server}:{SERVER_PORT}/{CLIENT_API_VERSION}/config/{hostname}?server_name={server}&format={format}"
-    );
-    tracing::info!("fetching config from {url}");
-    http::remote_file_to_memory(&url)
+    compile_to_string(&client, &janet_instructions, true)
 }
 
 pub fn jimage_to_json(
     raw_image: &[u8],
     server: Option<&str>,
     opts: &ApplyOpts,
-) -> anyhow::Result<JsonConfig> {
-    let mut client = client::gurp()?;
+) -> Result<JsonConfig, CompileError> {
+    let mut client = client::gurp().map_err(CompileError::ClientCreate)?;
     let jstr = JanetString::new(raw_image);
     let janet_val = Janet::string(jstr);
     client.add_def(DefOptions::new("*user-image*", janet_val));
-    let mut janet_instructions = String::new();
 
-    janet_instructions.push_str(r#"(merge-module (curenv) (load-image *user-image*) "" true)"#);
+    let destroyer = destroyer_string(opts);
 
-    if opts.destroy {
-        janet_instructions.push_str("\n(setdyn :destroy-everything-you-touch true)");
-    }
+    let server = if let Some(server) = server {
+        format!("\n(setdyn :server-name \"{server}:{SERVER_PORT}\")")
+    } else {
+        String::new()
+    };
 
-    if let Some(server) = server {
-        janet_instructions.push_str(&format!(
-            "\n(setdyn :server-name \"{server}:{SERVER_PORT}\")"
-        ));
-    }
+    let janet_instructions = indoc::formatdoc! { r#"
+        (merge-module (curenv) (load-image *user-image*) "" true)
+        {destroyer}
+        {server}
+        (to-json (eval '(machine-config)))
+    "#};
 
-    janet_instructions.push_str("\n(to-json (machine-config))");
-
-    let janet_result = client
-        .run(janet_instructions)
-        .with_context(|| "failed to compile jimage config")?;
-
-    Ok(janet_result.unwrap().to_string())
+    compile_to_string(&client, &janet_instructions, true)
 }
 
-fn fetch_from_server(server: &str, hostname: &str, format: &str) -> anyhow::Result<Vec<u8>> {
-    let mut tries = 1;
+/// Returns a Janet jimage of the user's config
+pub fn local_janet_to_jimage(path: &Utf8Path, opts: &ApplyOpts) -> Result<Vec<u8>, CompileError> {
+    if !path.exists() {
+        return Err(CompileError::FileNotFound(path.to_owned()));
+    }
 
-    while tries < 5 {
-        tracing::debug!("try {tries} of 5");
+    let host_file = path.canonicalize_utf8().map_err(CompileError::Io)?;
+    let host_config_dir = host_file
+        .parent()
+        .context("cannot get host config dir")
+        .map_err(CompileError::Other)?;
+    let client = client::gurp().map_err(CompileError::ClientCreate)?;
+
+    let janet_instructions = indoc::formatdoc! { r#"
+        (def build-env (make-env (fiber/getenv (fiber/root))))
+        (set (build-env *syspath*) "{host_config_dir}")
+        (setdyn :gurp-config-root "{host_config_dir}")
+
+        (def load-result
+          (protect
+            (merge-module build-env (dofile "{host_file}" :env build-env) "" true)))
+
+        (if (load-result 0)
+          (make-image build-env)
+          (buffer/push (buffer "ERR:") (string (load-result 1))))"#};
+
+    if opts.dump_config {
+        println!(
+            "{}",
+            info::dump_config(&janet_instructions, Some("Janet to compile image"), opts)
+        );
+    }
+
+    compile(&client, &janet_instructions, true)
+}
+
+// Compile to a Vec<u8>, which can hold a jimage or be converted to a string, which we do
+// if we expect JSON output.
+fn compile(client: &JanetClient, code: &str, wrap: bool) -> Result<Vec<u8>, CompileError> {
+    tracing::debug!("evaluating Janet config");
+
+    // A Janet panic in the run phase will dump the error to stderr. We'd prefer to capture
+    // it and write it to the logs, hence the protect, which catches errors and converts into
+    // true/false.
+    //
+    let to_run = if wrap {
+        &indoc::formatdoc! {
+        "(match
+            (protect (do
+                {code}))
+            [true result] result
+            [false err] (buffer (string err)))"
+        }
+    } else {
+        code
+    };
+
+    match client.run(to_run) {
+        Ok(buf) => match buf.unwrap() {
+            TaggedJanet::String(s) => Ok(s.bytes().collect()),
+            TaggedJanet::Buffer(buf) => {
+                let bytes = buf.as_bytes();
+                if bytes.starts_with(b"ERR:") {
+                    let msg = String::from_utf8_lossy(&bytes[4..]).into_owned();
+                    Err(CompileError::Compile(anyhow::anyhow!(msg)))
+                } else {
+                    Ok(bytes.to_vec())
+                }
+            } //
+            _ => Err(CompileError::Compile(anyhow::anyhow!(
+                "Janet eval returned unexpected type: expected Buffer, got {buf:?}"
+            ))),
+        },
+        Err(e) => {
+            let err_desc = match e {
+                janetrs::client::Error::AlreadyInit => "AlreadyInit",
+                janetrs::client::Error::CompileError => "CompileError",
+                janetrs::client::Error::EnvNotInit => "EnvNotInit",
+                janetrs::client::Error::ParseError => "ParseError",
+                janetrs::client::Error::RunError => "RunError",
+                _ => "<UNKNOWN>", // Should be impossible
+            };
+
+            tracing::error!("error compiling Janet config: {err_desc}");
+            Err(CompileError::Compile(e.into()))
+        }
+    }
+}
+
+// Wrapper for compile() for when we want to get a JSON string
+fn compile_to_string(
+    client: &JanetClient,
+    code: &str,
+    wrap: bool,
+) -> Result<JsonConfig, CompileError> {
+    compile(client, code, wrap)
+        .and_then(|bytes| String::from_utf8(bytes).map_err(|e| CompileError::Compile(e.into())))
+}
+
+fn fetch_from_server(server: &str, hostname: &str, format: &str) -> Result<Vec<u8>, CompileError> {
+    let mut tries = 1;
+    let mut err: Option<anyhow::Error> = None;
+
+    while tries < CLIENT_RETRIES {
+        tracing::debug!("try {tries}/{CLIENT_RETRIES}");
+
         match fetch_precompiled_file(server, hostname, format) {
             Ok(resp) => {
                 return Ok(resp);
@@ -263,48 +393,35 @@ fn fetch_from_server(server: &str, hostname: &str, format: &str) -> anyhow::Resu
                 tracing::info!("sleeping for retry");
                 thread::sleep(Duration::from_secs(tries * tries));
                 tries += 1;
+                err = Some(e.into());
             }
         }
     }
 
-    bail!("failed to get config from server");
+    Err(CompileError::Network(err.unwrap()))
 }
 
-/// Returns a Janet jimage of the user's config
-pub fn local_janet_to_jimage(host_file: &Utf8PathBuf, opts: &ApplyOpts) -> anyhow::Result<Vec<u8>> {
-    ensure!(
-        host_file.exists(),
-        "Cannot find host config file at {}",
-        host_file
+fn destroyer_string(opts: &ApplyOpts) -> String {
+    if opts.destroy {
+        tracing::debug!("enabling destroy-everything-you-touch");
+        "(setdyn :destroy-everything-you-touch true)".to_owned()
+    } else {
+        String::new()
+    }
+}
+
+// We tell the server what we think it's called so it can build file resources we can find. This
+// lets us use a raw IP address, DNS name, whatever.
+fn fetch_precompiled_file(
+    server: &str,
+    hostname: &str,
+    format: &str,
+) -> Result<Vec<u8>, CompileError> {
+    let url = format!(
+        "http://{server}:{SERVER_PORT}/{CLIENT_API_VERSION}/config/{hostname}?server_name={server}&format={format}"
     );
-
-    let host_file = host_file.canonicalize_utf8()?;
-    let host_config_dir = host_file.parent().context("cannot get host config dir")?;
-    let client = client::gurp()?;
-
-    let janet_instructions = indoc::formatdoc! { r#"
-            (def build-env (make-env (fiber/getenv (fiber/root))))
-            (set (build-env *syspath*) "{host_config_dir}")
-            (setdyn :gurp-config-root "{host_config_dir}")
-            (merge-module build-env (dofile "{host_file}" :env build-env) "" true)
-            (make-image build-env)
-        "#};
-
-    if opts.dump_config {
-        println!(
-            "{}",
-            info::dump_config(&janet_instructions, Some("Janet to compile image"), opts)
-        );
-    }
-
-    let result = client
-        .run(janet_instructions)
-        .with_context(|| "failed to compile local janet to jimage")?;
-
-    match result.unwrap() {
-        TaggedJanet::Buffer(buf) => Ok(buf.as_bytes().to_vec()),
-        _ => bail!("did not get image buffer"),
-    }
+    tracing::info!("fetching config from {url}");
+    http::remote_file_to_memory(&url).map_err(CompileError::Network)
 }
 
 #[cfg(test)]
