@@ -219,7 +219,7 @@ mod test {
             run(
                 None,
                 &ApplyOpts {
-                    exec: Some(r#"(etherstub/ensure "xyz0")"#.to_owned()),
+                    exec: Some(r#"(directory/ensure "/tmp/test")"#.to_owned()),
                     noop: true,
                     ..Default::default()
                 }
