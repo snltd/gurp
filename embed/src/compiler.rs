@@ -11,6 +11,20 @@ use std::time::Duration;
 use std::{env, fs, thread};
 use util::{http, info as util_info, json};
 
+// When Janet compilation fails, perhaps because of a missing module or syntax error, the
+// embedded interpreter issues a Janet panic. janetrs does not offer any way to catch this,
+// so the error message is dumped to stderr. We would prefer to capture it and log it properly.
+//
+// To do this, we wrap fallible Janet function calls in (protect). From the docs:
+// (protect & body)
+// Evaluate expressions, while capturing any errors. Evaluates to a tuple
+// of two elements. The first element is true if successful, false if an
+// error, and the second is the return value or error.
+//
+// It's a bit messy, but I think it's the best we can do for the time being. A side effect is
+// that we lose the stack trace, but I generally find it only muddies the waters in this
+// situation, so that's fine.
+
 // Config comes in various forms. It can be:
 //   1. a local Janet config which is compiled to Janet using Gurp's built-in library.
 //   2. a local JSON file compiled by this, or some other Gurp instance.
@@ -61,15 +75,15 @@ pub fn compile_to_json(
 
 // Get a JSON string from a Janet image on disk
 pub fn local_jimage_to_json(path: &Utf8Path, opts: &ApplyOpts) -> Result<JsonConfig, CompileError> {
-    if !path.exists() {
-        return Err(CompileError::FileNotFound(path.to_owned()));
+    if path.exists() {
+        jimage_to_json(
+            &fs::read(path).map_err(|e| CompileError::Other(e.into()))?,
+            None,
+            opts,
+        )
+    } else {
+        Err(CompileError::FileNotFound(path.to_owned()))
     }
-
-    jimage_to_json(
-        &fs::read(path).map_err(|e| CompileError::Other(e.into()))?,
-        None,
-        opts,
-    )
 }
 
 // Make a JSON string from a Janet image fetched from a remote server
@@ -90,7 +104,6 @@ fn remote_jimage_to_json(server: &str, opts: &ApplyOpts) -> Result<JsonConfig, C
 }
 
 // Get a JSON string from a pre-compiled file on disk
-
 fn local_json_to_json(path: &Utf8Path) -> Result<JsonConfig, CompileError> {
     if !path.exists() {
         return Err(CompileError::FileNotFound(path.to_owned()));
@@ -133,10 +146,13 @@ pub fn local_janet_to_json(
     local_janet(
         host_file,
         opts,
-        "(def cmd-result (protect (eval '(machine-config))))
-     (if (cmd-result 0)
-       (to-json (cmd-result 1))
-       (buffer/push (buffer \"ERR:\") (string (cmd-result 1))))",
+        indoc::indoc! { r#"
+          (def cmd-result (protect (eval '(machine-config))))
+
+          (if (cmd-result 0)
+            (to-json (cmd-result 1))
+            (buffer/push (buffer "ERR:") (string (cmd-result 1))))"#,
+        },
     )
 }
 
@@ -171,10 +187,11 @@ pub fn raw_janet_to_json(
             (setdyn *syspath* "{cwd}")
             (setdyn :gurp-config-root "{cwd}")
             {destroyer}
+
             (host "gurp-runner"
-            {janet_snippet})
-            (to-json (machine-config))
-        "#};
+                {janet_snippet})
+
+            (to-json (machine-config))"#};
 
     if opts.dump_config {
         println!(
@@ -183,7 +200,7 @@ pub fn raw_janet_to_json(
         );
     }
 
-    compile_to_string(&client, &janet_instructions)
+    compile_to_string(&client, &janet_instructions, false)
 }
 
 // Get a string by compiling a local Janet file (and its dependencies)
@@ -210,17 +227,18 @@ pub fn local_janet(
     let destroyer = destroyer_string(opts);
 
     let janet_instructions = indoc::formatdoc! { r#"
-            (setdyn *syspath* "{config_dir}")
-            (setdyn :gurp-config-root "{config_dir}")
-            {destroyer}
-            (def load-result
-    (protect
-        (merge-module (curenv) (dofile "{host_file}" :env (curenv)) "" true)))
-(if (not (load-result 0))
-  (buffer/push (buffer "ERR:") (string (load-result 1)))
-  (do
-    {final_cmd}))
-        "#};
+        (setdyn *syspath* "{config_dir}")
+        (setdyn :gurp-config-root "{config_dir}")
+        {destroyer}
+
+        (def load-result
+          (protect
+            (merge-module (curenv) (dofile "{host_file}" :env (curenv)) "" true)))
+
+        (if (load-result 0)
+          (do
+            {final_cmd})
+          (buffer/push (buffer "ERR:") (string (load-result 1))))"#};
 
     if opts.dump_config {
         println!(
@@ -229,7 +247,7 @@ pub fn local_janet(
         );
     }
 
-    compile_to_string(&client, &janet_instructions)
+    compile_to_string(&client, &janet_instructions, true)
 }
 
 pub fn jimage_to_json(
@@ -254,24 +272,19 @@ pub fn jimage_to_json(
         (merge-module (curenv) (load-image *user-image*) "" true)
         {destroyer}
         {server}
-        (to-json (machine-config))
+        (to-json (eval '(machine-config)))
     "#};
 
-    compile_to_string(&client, &janet_instructions)
+    compile_to_string(&client, &janet_instructions, true)
 }
 
 /// Returns a Janet jimage of the user's config
-pub fn local_janet_to_jimage(
-    host_file: &Utf8Path,
-    opts: &ApplyOpts,
-) -> Result<Vec<u8>, CompileError> {
-    // ensure!(
-    //     host_file.exists(),
-    //     "Cannot find host config file at {}",
-    //     host_file
-    // );
+pub fn local_janet_to_jimage(path: &Utf8Path, opts: &ApplyOpts) -> Result<Vec<u8>, CompileError> {
+    if !path.exists() {
+        return Err(CompileError::FileNotFound(path.to_owned()));
+    }
 
-    let host_file = host_file.canonicalize_utf8().map_err(CompileError::Io)?;
+    let host_file = path.canonicalize_utf8().map_err(CompileError::Io)?;
     let host_config_dir = host_file
         .parent()
         .context("cannot get host config dir")
@@ -279,12 +292,17 @@ pub fn local_janet_to_jimage(
     let client = client::gurp().map_err(CompileError::ClientCreate)?;
 
     let janet_instructions = indoc::formatdoc! { r#"
-            (def build-env (make-env (fiber/getenv (fiber/root))))
-            (set (build-env *syspath*) "{host_config_dir}")
-            (setdyn :gurp-config-root "{host_config_dir}")
-            (merge-module build-env (cdofile "{host_file}" :env build-env) "" true)
-            (make-image build-env)
-        "#};
+        (def build-env (make-env (fiber/getenv (fiber/root))))
+        (set (build-env *syspath*) "{host_config_dir}")
+        (setdyn :gurp-config-root "{host_config_dir}")
+
+        (def load-result
+          (protect
+            (merge-module build-env (dofile "{host_file}" :env build-env) "" true)))
+
+        (if (load-result 0)
+          (make-image build-env)
+          (buffer/push (buffer "ERR:") (string (load-result 1))))"#};
 
     if opts.dump_config {
         println!(
@@ -293,25 +311,31 @@ pub fn local_janet_to_jimage(
         );
     }
 
-    compile(&client, &janet_instructions)
+    compile(&client, &janet_instructions, true)
 }
 
 // Compile to a Vec<u8>, which can hold a jimage or be converted to a string, which we do
 // if we expect JSON output.
-fn compile(client: &JanetClient, code: &str) -> Result<Vec<u8>, CompileError> {
+fn compile(client: &JanetClient, code: &str, wrap: bool) -> Result<Vec<u8>, CompileError> {
     tracing::debug!("evaluating Janet config");
 
-    let wrapped = format!(
-        "
-        (match
-            (protect
-                (do {code}))
+    // A Janet panic in the run phase will dump the error to stderr. We'd prefer to capture
+    // it and write it to the logs, hence the protect, which catches errors and converts into
+    // true/false.
+    //
+    let to_run = if wrap {
+        &indoc::formatdoc! {
+        "(match
+            (protect (do
+                {code}))
             [true result] result
-            [false err] (buffer (string err)))
-                "
-    );
+            [false err] (buffer (string err)))"
+        }
+    } else {
+        code
+    };
 
-    match client.run(&wrapped) {
+    match client.run(to_run) {
         Ok(buf) => match buf.unwrap() {
             TaggedJanet::String(s) => Ok(s.bytes().collect()),
             TaggedJanet::Buffer(buf) => {
@@ -323,7 +347,6 @@ fn compile(client: &JanetClient, code: &str) -> Result<Vec<u8>, CompileError> {
                     Ok(bytes.to_vec())
                 }
             } //
-            // TaggedJanet::Buffer(buf) => Ok(buf.as_bytes().to_vec()),
             _ => Err(CompileError::Compile(anyhow::anyhow!(
                 "Janet eval returned unexpected type: expected Buffer, got {buf:?}"
             ))),
@@ -345,8 +368,12 @@ fn compile(client: &JanetClient, code: &str) -> Result<Vec<u8>, CompileError> {
 }
 
 // Wrapper for compile() for when we want to get a JSON string
-fn compile_to_string(client: &JanetClient, code: &str) -> Result<JsonConfig, CompileError> {
-    compile(client, code)
+fn compile_to_string(
+    client: &JanetClient,
+    code: &str,
+    wrap: bool,
+) -> Result<JsonConfig, CompileError> {
+    compile(client, code, wrap)
         .and_then(|bytes| String::from_utf8(bytes).map_err(|e| CompileError::Compile(e.into())))
 }
 
@@ -366,7 +393,7 @@ fn fetch_from_server(server: &str, hostname: &str, format: &str) -> Result<Vec<u
                 tracing::info!("sleeping for retry");
                 thread::sleep(Duration::from_secs(tries * tries));
                 tries += 1;
-                err = Some(e);
+                err = Some(e.into());
             }
         }
     }
@@ -385,12 +412,16 @@ fn destroyer_string(opts: &ApplyOpts) -> String {
 
 // We tell the server what we think it's called so it can build file resources we can find. This
 // lets us use a raw IP address, DNS name, whatever.
-fn fetch_precompiled_file(server: &str, hostname: &str, format: &str) -> anyhow::Result<Vec<u8>> {
+fn fetch_precompiled_file(
+    server: &str,
+    hostname: &str,
+    format: &str,
+) -> Result<Vec<u8>, CompileError> {
     let url = format!(
         "http://{server}:{SERVER_PORT}/{CLIENT_API_VERSION}/config/{hostname}?server_name={server}&format={format}"
     );
     tracing::info!("fetching config from {url}");
-    http::remote_file_to_memory(&url)
+    http::remote_file_to_memory(&url).map_err(CompileError::Network)
 }
 
 #[cfg(test)]
@@ -398,14 +429,14 @@ mod test {
     use super::*;
     use crate::tester::fixture;
 
-    // #[test]
-    // fn test_local_janet_to_jimage() {
-    //     let image =
-    //         local_janet_to_jimage(&fixture("basic_config.janet"), &ApplyOpts::default()).unwrap();
-    //     println!("{}", image.len());
+    #[test]
+    fn test_local_janet_to_jimage() {
+        let image =
+            local_janet_to_jimage(&fixture("basic_config.janet"), &ApplyOpts::default()).unwrap();
+        println!("{}", image.len());
 
-    //     assert!(image.len() > 100); // if it fails it's 10b long
-    // }
+        assert!(image.len() > 100); // if it fails it's 10b long
+    }
 
     #[test]
     fn test_local_janet_to_json() {

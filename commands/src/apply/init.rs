@@ -205,7 +205,7 @@ mod test {
         );
 
         assert!(logs_contain(
-            "error compiling snippet: failed to compile raw Janet config: Failed to parse code"
+            "error compiling snippet: compilation error: Failed to parse code"
         ));
         assert!(logs_contain("sending fail metrics: compile"));
         assert!(!logs_contain("resources:"));
@@ -273,8 +273,9 @@ mod test {
             )
         );
 
-        assert!(logs_contain("failed to compile local Janet config"));
-        // assert!(logs_contain("unexpected property"));
+        assert!(logs_contain(
+            "ERROR file_does_not_compile: commands::apply::init: error compiling config: compilation error: In directory/ensure /tmp/testdir: unexpected property :bad-key. Valid properties are :owner, :group, :mode, :label"
+        ));
         assert!(logs_contain("sending fail metrics: compile"));
         assert!(!logs_contain("resources:"));
     }
