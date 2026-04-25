@@ -5,7 +5,6 @@
 # 
 (use ./lib)
 (use ./markdown-dsl)
-(use ../../test/doers/test-lib)
 (import ../dsl :prefix "" :only [pathcat])
 
 (def doc-dir (pathcat (repo-root) "/doc/doers"))
@@ -48,13 +47,6 @@
                        (doer-lookup ,doer
                                     (keyword "defaults-" ,action)))))))))))))
 
-(defn code-example
-  [doer action]
-  (string/join
-    (filter truthy?
-            (seq [file :in (sorted (os/dir (pathcat example-root doer)))]
-              (when (string/has-prefix? action file)
-                (code-block (slurp (pathcat example-root doer file))))))))
 
 (defn markdown-for-doer
   "Returns a multiline string of markdown for the given doer"
@@ -74,7 +66,7 @@
     "\n"
     (h2 (string doer "/ensure"))
     "\n"
-    (code-example doer :ensure)
+    (code-example code-block doer :ensure)
     (property-table doer :mandatory :ensure)
     "\n"
     (property-table doer :optional :ensure)
@@ -84,7 +76,7 @@
       (string
         (h2 (string doer "/remove"))
         "\n"
-        (code-example doer :remove)
+        (code-example code-block doer :remove)
         (property-table doer :mandatory :remove)
         "\n"
         (property-table doer :optional :remove)
@@ -113,7 +105,7 @@
       "This helpers does not accept a name")
     "\n"
     "\n"
-    (code-example doer helpers)
+    (code-example code-block doer helpers)
     (property-table doer :mandatory helpers)
     "\n"
     (property-table doer :optional helpers)

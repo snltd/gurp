@@ -5,8 +5,18 @@
 (use ./formatting)
 (use ../command-lib)
 (use ../lib)
-(import ../dsl :prefix "" :only [compact])
+(use ../../test/doers/test-lib)
+(import ../dsl :prefix "" :only [lines compact pathcat parent])
 (import ../doers :prefix "")
+
+(defn- indent [text]
+  (as-> text _
+    (string/split "\n" _)
+    (map (partial string "  ") _)
+    (string/join _ "\n")))
+
+(defn code-block [code]
+  (string "\n" (indent code)))
 
 (defn- field-width
   "Returns the width of a field which can accommodate the longest value in list"
@@ -100,7 +110,7 @@
     "\n"
     "\n"
     (bold "Optional properties")
-    "\n"
+  "\n"
     (format-properties (doer-lookup doer :optional-props-ensure))
     "\n"
     "\n"
@@ -121,7 +131,12 @@
       (string "There is no " doer "/remove action.\n"))
 
     (if-let [notes (doer-lookup doer :notes)]
-      (string "\n" (bold "Notes") "\n" (splice (map note notes))))))
+      (string "\n" (bold "Notes") "\n" (splice (map note notes))))
+
+    (bold "EXAMPLES")
+    "\n"
+    (code-example code-block doer :ensure)
+    (code-example code-block doer :remove)))
 
 (defn help-for-helpers
   "Returns a multiline string showing keys supported by the given helpers"
