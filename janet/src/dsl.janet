@@ -260,3 +260,10 @@
   [tabular-output &opt key-column]
   (default key-column 0)
   (tabular-rows->struct (lines tabular-output) key-column))
+
+(defn recreate?
+  "If GURP_RECREATE_ZONE is a zone name, recreate that zone. If it's ALL, do
+   them all"
+  [zone-name]
+  (def env-val (os/getenv "GURP_RECREATE_ZONE"))
+  (if (or (= env-val "ALL") (= env-val zone-name)) 1 200))
