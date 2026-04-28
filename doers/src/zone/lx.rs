@@ -15,14 +15,22 @@ pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &GurpZoneDns) -> anyhow::Res
     let resolv_path = zonepath.join("root").join("etc").join("resolv.conf");
     tracing::debug!("creating {}", resolv_path);
 
-    let mut content = format!("domain {}\n", dns_conf.domain);
+    let mut content = String::new();
 
-    for ns in &dns_conf.nameservers {
-        content.push_str(&format!("nameserver {ns}\n"));
+    if let Some(domain) = &dns_conf.domain {
+        content.push_str(&format!("domain {}\n", domain));
     }
 
-    fs::write(&resolv_path, content)
-        .with_context(|| format!("failed to write DNS config to {resolv_path}"))?;
+    if let Some(nameservers) = &dns_conf.nameservers {
+        for ns in nameservers {
+            content.push_str(&format!("nameserver {ns}\n"));
+        }
+    }
+
+    if !content.is_empty() {
+        fs::write(&resolv_path, content)
+            .with_context(|| format!("failed to write DNS config to {resolv_path}"))?;
+    }
 
     Ok(())
 }

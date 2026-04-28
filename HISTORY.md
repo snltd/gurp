@@ -51,6 +51,7 @@ Items marked [*] are breaking changes.
   doer.
 - `zone` doer now supports illumos branded zones.
 - `zone` doer supports ZST images for bhyve zones (and has been refactored).
+- Resolvers and domain now option in `lx` and native `zone` configs.
 - All brands which require an image now use the top-level `:image` key, rather
   than having their own. [*]
 - Add `force-link` to `link` doer, which can turn regular files into links.

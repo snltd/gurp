@@ -105,8 +105,8 @@ pub struct GurpZoneCappedMemory {
 
 #[derive(Debug, Deserialize)]
 pub struct GurpZoneDns {
-    pub domain: String,
-    pub nameservers: Vec<String>,
+    pub domain: Option<String>,
+    pub nameservers: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -236,11 +236,17 @@ impl ZoneConfig {
     }
 
     fn zone_dns(&self, conf: &GurpZoneDns) -> String {
-        format!(
-            "{}{}",
-            zone_attr!("dns-domain", "string", &conf.domain),
-            zone_attr!("resolvers", "string", &conf.nameservers.join(","))
-        )
+        let mut ret = String::new();
+
+        if let Some(domain) = &conf.domain {
+            ret.push_str(zone_attr!("dns-domain", "string", domain))
+        }
+
+        if let Some(nameservers) = &conf.nameservers {
+            ret.push_str(zone_attr!("resolvers", "string", nameservers.join(",")))
+        }
+
+        ret
     }
 
     fn zone_net(&self, conf: &GurpZoneNetwork) -> String {
