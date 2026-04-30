@@ -45,6 +45,7 @@ pub const RUN_SAFE_CMDS: &[&str] = &[
     "/bin/uname -X",
     "/bin/zonename",
     "/usr/sbin/dladm show-link",
+    "/usr/sbin/dladm show-phys",
     "/usr/sbin/ipadm show-addr",
     "/usr/sbin/ipadm show-if",
     "/usr/sbin/zoneadm list -cv",
