@@ -231,14 +231,8 @@ pub fn local_janet(
         (setdyn :gurp-config-root "{config_dir}")
         {destroyer}
 
-        (def load-result
-          (protect
-            (merge-module (curenv) (dofile "{host_file}" :env (curenv)) "" true)))
-
-        (if (load-result 0)
-          (do
-            {final_cmd})
-          (buffer/push (buffer "ERR:") (string (load-result 1))))"#};
+        (merge-module (curenv) (dofile "{host_file}" :env (curenv)) "" true)
+        {final_cmd}"#};
 
     if opts.dump_config {
         println!(
@@ -295,14 +289,9 @@ pub fn local_janet_to_jimage(path: &Utf8Path, opts: &ApplyOpts) -> Result<Vec<u8
         (def build-env (make-env (fiber/getenv (fiber/root))))
         (set (build-env *syspath*) "{host_config_dir}")
         (setdyn :gurp-config-root "{host_config_dir}")
-
-        (def load-result
-          (protect
-            (merge-module build-env (dofile "{host_file}" :env build-env) "" true)))
-
-        (if (load-result 0)
-          (make-image build-env)
-          (buffer/push (buffer "ERR:") (string (load-result 1))))"#};
+        (merge-module build-env (dofile "{host_file}" :env build-env) "" true)
+        (make-image build-env)
+        "#};
 
     if opts.dump_config {
         println!(
@@ -323,19 +312,19 @@ fn compile(client: &JanetClient, code: &str, wrap: bool) -> Result<Vec<u8>, Comp
     // it and write it to the logs, hence the protect, which catches errors and converts into
     // true/false.
     //
-    let to_run = if wrap {
-        &indoc::formatdoc! {
-        "(match
-            (protect (do
-                {code}))
-            [true result] result
-            [false err] (buffer (string err)))"
-        }
-    } else {
-        code
-    };
+    // let to_run = if wrap {
+    //     &indoc::formatdoc! {
+    //     "(match
+    //         (protect (do
+    //             {code}))
+    //         [true result] result
+    //         [false err] (buffer (string err)))"
+    //     }
+    // } else {
+    //     code
+    // };
 
-    match client.run(to_run) {
+    match client.run(code) {
         Ok(buf) => match buf.unwrap() {
             TaggedJanet::String(s) => Ok(s.bytes().collect()),
             TaggedJanet::Buffer(buf) => {
