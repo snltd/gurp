@@ -146,13 +146,14 @@ pub fn local_janet_to_json(
     local_janet(
         host_file,
         opts,
-        indoc::indoc! { r#"
-          (def cmd-result (protect (eval '(machine-config))))
+        "(to-json (machine-config))", // indoc::indoc! { r#"
+                                      //     (
+                                      //   (def cmd-result (protect (eval '(machine-config))))
 
-          (if (cmd-result 0)
-            (to-json (cmd-result 1))
-            (buffer/push (buffer "ERR:") (string (cmd-result 1))))"#,
-        },
+                                      //   (if (cmd-result 0)
+                                      //     (to-json (cmd-result 1))
+                                      //     (buffer/push (buffer "ERR:") (string (cmd-result 1))))"#,
+                                      // },
     )
 }
 
