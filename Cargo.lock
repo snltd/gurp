@@ -916,6 +916,7 @@ dependencies = [
  "common",
  "indoc",
  "janetrs",
+ "pretty_assertions",
  "serde_json",
  "tracing",
  "util",

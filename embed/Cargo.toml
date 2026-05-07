@@ -16,3 +16,6 @@ util = { path = "../util" }
 [build-dependencies]
 build_helper = { path = "../build_helper" }
 walkdir = "2.5.0"
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"
