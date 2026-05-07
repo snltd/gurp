@@ -33,14 +33,17 @@ enum Commands {
         /// Say what would happen, without actually doing it
         #[arg(short, long)]
         noop: bool,
+        /// Define a constant which can be accessed from config
+        #[arg(short = 'D', long = "define")]
+        define: Vec<String>,
         /// Dump intermediate config files to stdout
-        #[arg(short = 'd', long, alias = "dump-configs")]
+        #[arg(long, alias = "dump-config")]
         dump_configs: bool,
         /// When files change, dump diffs to stdout
-        #[arg(short = 'D', long, alias = "dump-diff")]
+        #[arg(long, alias = "dump-diff")]
         dump_diffs: bool,
         /// When dumping configs or diffs, use syntax colouring where supported
-        #[arg(short = 'C', long)]
+        #[arg(short = 'C', long, alias = "color")]
         colour: bool,
         /// When dumping configs, number lines
         #[arg(short = 'N', long)]
@@ -149,6 +152,7 @@ fn main() -> ExitCode {
             no_lock,
             remove_first,
             only,
+            define,
         } => {
             let opts = ApplyOpts {
                 noop,
