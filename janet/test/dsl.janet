@@ -15,6 +15,8 @@
 (deftest pathcat
   (def var1 "/opt/site")
   (def var2 "lib")
+  (test (pathcat 1 2 3) "/1/2/3")
+  (test (pathcat "a" "/b" "/" "/" "///c////") "/a/b/c")
   (test (pathcat var1 "/chunk-a" var2 "chunk-b" "file.tar")
         "/opt/site/chunk-a/lib/chunk-b/file.tar")
   (test (pathcat "/opt/site/chunk-a/lib/chunk-b/file.tar")
@@ -22,8 +24,10 @@
 
 (deftest zfscat
   (def big-pool "big")
-  (test (zfscat big-pool "export" "flac") "big/export/flac")
-  (test (zfscat big-pool "") "big"))
+  (test (zfscat big-pool "export" "/flac/") "big/export/flac")
+  (test (zfscat big-pool "") "big")
+  (test (zfscat big-pool "" "/" "simple/" "/" "") "big/simple")
+  (test (zfscat big-pool "year-data" 2026) "big/year-data/2026"))
 
 (deftest argcat
   (test (argcat "/bin/cat" "file1" "file2") "/bin/cat file1 file2")
@@ -297,4 +301,3 @@ records_net0 vnic     1500   up       --         e1000g0`)
                     :ip "excl"
                     :path "/zones/serv-ws"
                     :status "running"}}))
-

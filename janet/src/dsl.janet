@@ -33,21 +33,32 @@
   [& chunks]
   (string/join (tuple ;chunks) " "))
 
+(defn stripslash
+  "Removes leading and trailing slashes from a component"
+  [chunk]
+  (-> chunk
+      (string)
+      (string/trim "/")))
+
 (defn pathcat
   "Joins tokens to make a path"
   [& chunks]
-  (-> (map |(string/trim $ "/") (tuple "" ;chunks))
-      (string/join "/")))
+  (if (nil? chunks)
+    (error "pathcat called with a nil"))
+  (as-> chunks _
+        (map stripslash _)
+        (compact _)
+        (string/join _ "/")
+        (string "/" _)))
 
 (defn zfscat
   "Joins tokens to make a ZFS dataset name"
   [& chunks]
   (if (nil? chunks)
     (error "zfscat called with a nil"))
-
-  (-> (map |(string/trim $ "/") (tuple ;chunks))
-      (string/join "/")
-      (string/trim "/")))
+  (-> (map stripslash chunks)
+      (compact)
+      (string/join "/")))
 
 (defn qualified-path?
   "Returns true if the argument looks like a fully qualified path"
