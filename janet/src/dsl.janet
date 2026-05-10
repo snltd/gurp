@@ -33,21 +33,32 @@
   [& chunks]
   (string/join (tuple ;chunks) " "))
 
+(defn stripslash
+  "Removes leading and trailing slashes from a component"
+  [chunk]
+  (-> chunk
+      (string)
+      (string/trim "/")))
+
 (defn pathcat
   "Joins tokens to make a path"
   [& chunks]
-  (-> (map |(string/trim $ "/") (tuple "" ;chunks))
-      (string/join "/")))
+  (if (nil? chunks)
+    (error "pathcat called with a nil"))
+  (as-> chunks _
+        (map stripslash _)
+        (compact _)
+        (string/join _ "/")
+        (string "/" _)))
 
 (defn zfscat
   "Joins tokens to make a ZFS dataset name"
   [& chunks]
   (if (nil? chunks)
     (error "zfscat called with a nil"))
-
-  (-> (map |(string/trim $ "/") (tuple ;chunks))
-      (string/join "/")
-      (string/trim "/")))
+  (-> (map stripslash chunks)
+      (compact)
+      (string/join "/")))
 
 (defn qualified-path?
   "Returns true if the argument looks like a fully qualified path"
@@ -260,3 +271,10 @@
   [tabular-output &opt key-column]
   (default key-column 0)
   (tabular-rows->struct (lines tabular-output) key-column))
+
+(defn recreate?
+  "If GURP_RECREATE_ZONE is a zone name, recreate that zone. If it's ALL, do
+   them all"
+  [zone-name]
+  (def env-val (os/getenv "GURP_RECREATE_ZONE"))
+  (if (or (= env-val "ALL") (= env-val zone-name)) 1 200))

@@ -36,6 +36,7 @@
   [cmd]
   ((((fiber/getenv (fiber/root)) 'run-safe-cmd) :value) cmd))
 
+# Don't forget to update RUN_SAVE_CMDS in common/src/constants.rs
 (defn fetch-and-cache
   [name]
   (def value
@@ -45,6 +46,7 @@
       :uname (-> (run-wrapper "/bin/uname -X") (uname-x->struct))
       :zones (-> (run-wrapper "/usr/sbin/zoneadm list -cv") (tabular-output->struct 1))
       :links (-> (run-wrapper "/usr/sbin/dladm show-link") (tabular-output->struct))
+      :physical-links (-> (run-wrapper "/usr/sbin/dladm show-phys") (tabular-output->struct))
       :ip-interfaces (-> (run-wrapper "/usr/sbin/ipadm show-if") ip-no-loopback)
       :ip-addresses (-> (run-wrapper "/usr/sbin/ipadm show-addr") ip-no-loopback)
       _ (error (string "unknown fact: " name))))
