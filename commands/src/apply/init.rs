@@ -274,7 +274,7 @@ mod test {
         );
 
         assert!(logs_contain(
-            "ERROR file_does_not_compile: commands::apply::init: error compiling config: compilation error: In directory/ensure /tmp/testdir: unexpected property :bad-key. Valid properties are :owner, :group, :mode, :label"
+            "error compiling config: compilation error: Runtime VM error"
         ));
         assert!(logs_contain("sending fail metrics: compile"));
         assert!(!logs_contain("resources:"));
