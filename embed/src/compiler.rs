@@ -11,20 +11,6 @@ use std::time::Duration;
 use std::{env, fs, thread};
 use util::{http, info as util_info, json};
 
-// When Janet compilation fails, perhaps because of a missing module or syntax error, the
-// embedded interpreter issues a Janet panic. janetrs does not offer any way to catch this,
-// so the error message is dumped to stderr. We would prefer to capture it and log it properly.
-//
-// To do this, we wrap fallible Janet function calls in (protect). From the docs:
-// (protect & body)
-// Evaluate expressions, while capturing any errors. Evaluates to a tuple
-// of two elements. The first element is true if successful, false if an
-// error, and the second is the return value or error.
-//
-// It's a bit messy, but I think it's the best we can do for the time being. A side effect is
-// that we lose the stack trace, but I generally find it only muddies the waters in this
-// situation, so that's fine.
-
 // Config comes in various forms. It can be:
 //   1. a local Janet config which is compiled to Janet using Gurp's built-in library.
 //   2. a local JSON file compiled by this, or some other Gurp instance.
@@ -143,18 +129,7 @@ pub fn local_janet_to_json(
     host_file: &Utf8Path,
     opts: &ApplyOpts,
 ) -> Result<JsonConfig, CompileError> {
-    local_janet(
-        host_file,
-        opts,
-        "(to-json (machine-config))", // indoc::indoc! { r#"
-                                      //     (
-                                      //   (def cmd-result (protect (eval '(machine-config))))
-
-                                      //   (if (cmd-result 0)
-                                      //     (to-json (cmd-result 1))
-                                      //     (buffer/push (buffer "ERR:") (string (cmd-result 1))))"#,
-                                      // },
-    )
+    local_janet(host_file, opts, "(to-json (machine-config))")
 }
 
 pub fn local_janet_to_janet(
@@ -201,7 +176,7 @@ pub fn raw_janet_to_json(
         );
     }
 
-    compile_to_string(&client, &janet_instructions, false)
+    compile_to_string(&client, &janet_instructions)
 }
 
 // Get a string by compiling a local Janet file (and its dependencies)
@@ -242,7 +217,7 @@ pub fn local_janet(
         );
     }
 
-    compile_to_string(&client, &janet_instructions, true)
+    compile_to_string(&client, &janet_instructions)
 }
 
 pub fn jimage_to_json(
@@ -270,7 +245,7 @@ pub fn jimage_to_json(
         (to-json (eval '(machine-config)))
     "#};
 
-    compile_to_string(&client, &janet_instructions, true)
+    compile_to_string(&client, &janet_instructions)
 }
 
 /// Returns a Janet jimage of the user's config
@@ -301,29 +276,13 @@ pub fn local_janet_to_jimage(path: &Utf8Path, opts: &ApplyOpts) -> Result<Vec<u8
         );
     }
 
-    compile(&client, &janet_instructions, true)
+    compile(&client, &janet_instructions)
 }
 
 // Compile to a Vec<u8>, which can hold a jimage or be converted to a string, which we do
 // if we expect JSON output.
-fn compile(client: &JanetClient, code: &str, wrap: bool) -> Result<Vec<u8>, CompileError> {
+fn compile(client: &JanetClient, code: &str) -> Result<Vec<u8>, CompileError> {
     tracing::debug!("evaluating Janet config");
-
-    // A Janet panic in the run phase will dump the error to stderr. We'd prefer to capture
-    // it and write it to the logs, hence the protect, which catches errors and converts into
-    // true/false.
-    //
-    // let to_run = if wrap {
-    //     &indoc::formatdoc! {
-    //     "(match
-    //         (protect (do
-    //             {code}))
-    //         [true result] result
-    //         [false err] (buffer (string err)))"
-    //     }
-    // } else {
-    //     code
-    // };
 
     match client.run(code) {
         Ok(buf) => match buf.unwrap() {
@@ -358,12 +317,8 @@ fn compile(client: &JanetClient, code: &str, wrap: bool) -> Result<Vec<u8>, Comp
 }
 
 // Wrapper for compile() for when we want to get a JSON string
-fn compile_to_string(
-    client: &JanetClient,
-    code: &str,
-    wrap: bool,
-) -> Result<JsonConfig, CompileError> {
-    compile(client, code, wrap)
+fn compile_to_string(client: &JanetClient, code: &str) -> Result<JsonConfig, CompileError> {
+    compile(client, code)
         .and_then(|bytes| String::from_utf8(bytes).map_err(|e| CompileError::Compile(e.into())))
 }
 
