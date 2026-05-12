@@ -1,16 +1,25 @@
 name: "Audit Rust Dependencies"
+permissions:
+  contents: read
 on:
   schedule:
     - cron: '0 0 * * *'
 
+concurrency:
+  group: audit
+  cancel-in-progress: true
+
 jobs:
   audit:
+    name: Audit Rust Deps
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write
+      issues: write # to open issues for unsafe dependencies
     steps:
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+        with:
+          persist-credentials: false
       - name: Audit Rust Dependencies
         uses: actions-rust-lang/audit@72c09e02f132669d52284a3323acdb503cfc1a24 # 1.2.7
