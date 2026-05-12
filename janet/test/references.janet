@@ -102,7 +102,7 @@
                      :mode :/role-a/file/a1/wat
                      :content "blah-blah"))
 
-  (host "refereced-property-is-not-defined"
+  (host "referenced-property-is-not-defined"
         (role-a)
         (role-b))
 
