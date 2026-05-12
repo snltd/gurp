@@ -16,6 +16,8 @@ jobs:
   build-and-release:
     runs-on: ubuntu-latest
     name: Build and Release for OmniOS
+    permissions:
+      actions: write # To upload release
     steps:
     - name: Checkout Code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
@@ -49,8 +51,6 @@ jobs:
         echo "PACKAGE_PATH=release/$TAR_NAME" >>$GITHUB_ENV
 
     - name: Create GitHub Release and upload asset
-      permissions:
-        actions: write # To upload release
       run: |
         gh release create "${GITHUB_REF_NAME}" "${PACKAGE_PATH}" \
           --title "Release ${GITHUB_REF_NAME}" \
