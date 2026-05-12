@@ -11,7 +11,9 @@
         referenced-struct (find |(= resource-id (get $ :_id)) all-resources)]
 
     (if (nil? referenced-struct)
-      (error (string/format "reference not found: %s" resource-id)))
+      (error
+        (string/format "referenced resource not found: %s"
+                       (keyword resource-id))))
 
     (if (has-key? seen resource-id)
       (error (string/format "detected circular reference: [%q]" seen)))
@@ -21,15 +23,22 @@
 
     (if (keyword? referenced-val)
       (resolve-reference referenced-val all-resources seen)
-      referenced-val)))
+      (if (nil? referenced-val)
+        (error (string/format "referenced property is nil: %p" target-ref))
+        referenced-val))))
 
 (defn- resolve-references
   "Update any references in a resource with their final targets"
   [resource all-resources]
   (loop [[k v] :pairs resource]
-    (if (keyword? v)
+    (cond
+      (table? v)
+      (set (resource k) (resolve-references v all-resources))
+      (struct? v)
+      (set (resource k) (table/to-struct
+                          (resolve-references (struct/to-table v) all-resources)))
+      (keyword? v)
       (set (resource k) (resolve-reference v all-resources @{}))))
-
   resource)
 
 (defn resolve

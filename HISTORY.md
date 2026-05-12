@@ -79,6 +79,8 @@ Items marked [*] are breaking changes.
   [a small amount of system information](/doc/facts.md).
 - Add `tabular-output->struct` function, which converts tabular command output
   such as that produced by `zoneadm list` or `ipadm` into Janet structs.
+- References can be used in helpers like `smf/method`. (But you cannot reference
+  properties of helpers.)
 
 ### Internals
 
