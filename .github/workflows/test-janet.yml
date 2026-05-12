@@ -13,14 +13,21 @@ on:
       - janet/**
       - .github/workflows/janet-tests.yml
 
+concurrency:
+  group: test
+  cancel-in-progress: true
+
 jobs:
   janet-tests:
+    name: Run Janet Tests
     permissions:
       contents: read
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+        with:
+          persist-credentials: false
       - name: Build Docker Image
         run: docker build -t janet-tests ./janet
       - name: Run Janet Tests

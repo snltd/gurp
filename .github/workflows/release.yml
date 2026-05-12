@@ -6,25 +6,24 @@ on:
       - 'v*.*.*'
 
 permissions:
-  contents: write
-  packages: write
-  actions: write
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: true
 
 jobs:
   build-and-release:
-    permissions:
-      contents: write
-      pull-requests: write
-      packages: write
-      actions: write
     runs-on: ubuntu-latest
     name: Build and Release for OmniOS
     steps:
-    - uses: actions/checkout@v4
-
+    - name: Checkout Code
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+      with:
+        persist-credentials: false
     - name: Build in OmniOS VM
       id: test
-      uses: vmactions/omnios-vm@v1
+      uses: vmactions/omnios-vm@df424df5cba0f61cd5275cac0770fe1331ef2edb # 1.3.0
       with:
         usesh: true
         prepare: |
@@ -50,6 +49,8 @@ jobs:
         echo "PACKAGE_PATH=release/$TAR_NAME" >>$GITHUB_ENV
 
     - name: Create GitHub Release and upload asset
+      permissions:
+        actions: write # To upload release
       run: |
         gh release create "${GITHUB_REF_NAME}" "${PACKAGE_PATH}" \
           --title "Release ${GITHUB_REF_NAME}" \

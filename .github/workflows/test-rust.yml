@@ -20,8 +20,14 @@ on:
       - janet/src/**
       - janet/examples/**
       - .github/workflows/rust-tests.yml
+
+concurrency:
+  group: test
+  cancel-in-progress: true
+
 jobs:
   rust-tests:
+    name: Rust Tests
     permissions:
       contents: read
     timeout-minutes: 15
@@ -29,6 +35,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+        with:
+          persist-credentials: false
       - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
         with:
           path: |
