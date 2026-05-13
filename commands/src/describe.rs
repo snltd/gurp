@@ -1,3 +1,4 @@
+use common::types::ApplyVmOpts;
 use embed::runner;
 use std::io::IsTerminal;
 use std::process::ExitCode;
@@ -14,9 +15,12 @@ pub fn run(resource_type: &str, no_colour: bool) -> ExitCode {
         "identity"
     };
 
-    runner::run_command_and_exit(&indoc::formatdoc! { r#"
+    runner::run_command_and_exit(
+        &indoc::formatdoc! { r#"
         (setdyn :term-width {term_width})
         (print ({modifier} (help-for "{resource_type}")))
         "#
-    })
+        },
+        &ApplyVmOpts::default(),
+    )
 }

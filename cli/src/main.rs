@@ -109,7 +109,11 @@ enum Commands {
         no_colour: bool,
     },
     /// Open a Janet REPL with the Gurp library already loaded into the root environment
-    Repl {},
+    Repl {
+        /// Define a constant which can be accessed from the REPL
+        #[arg(short = 'D', long = "define")]
+        define: Vec<String>,
+    },
     /// Run Gurp in Server mode
     Server {
         /// Where to find host configuration files
@@ -196,7 +200,10 @@ fn main() -> ExitCode {
             no_colour,
         } => commands::describe::run(&resource, no_colour),
         Commands::Doers { no_colour } => commands::doers::run(no_colour),
-        Commands::Repl {} => commands::repl::run(),
+        Commands::Repl { define } => {
+            let opts = ApplyVmOpts { define };
+            commands::repl::run(&opts)
+        }
         Commands::Server {
             config_dir,
             metrics_to,

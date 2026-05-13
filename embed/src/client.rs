@@ -85,7 +85,7 @@ fn define_string(vmopts: &ApplyVmOpts) -> String {
     if bindings.is_empty() {
         String::new()
     } else {
-        format!("(defglobal gurp-user-defs (struct {bindings}))")
+        format!(r#"(defglobal "gurp-user-defs" (struct {bindings}))"#)
     }
 }
 
