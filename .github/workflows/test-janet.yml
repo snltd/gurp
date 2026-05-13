@@ -14,7 +14,7 @@ on:
       - .github/workflows/janet-tests.yml
 
 concurrency:
-  group: test
+  group: test-janet
   cancel-in-progress: true
 
 jobs:
