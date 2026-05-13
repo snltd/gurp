@@ -1,7 +1,11 @@
 use anyhow::Context;
 use camino::Utf8Path;
+use common::constants::{CLIENT_API_VERSION, CLIENT_RETRIES, SERVER_PORT};
+use common::types::CompileError;
 use std::fs::File;
 use std::io::{self, BufWriter};
+use std::thread;
+use std::time::Duration;
 
 // Downloads a file to disk
 pub fn remote_file_to_disk(url: &str, path: &Utf8Path) -> anyhow::Result<()> {
@@ -68,4 +72,46 @@ fn log_ureq_error(url: &str, e: &ureq::Error) {
         }
         _ => tracing::error!("unhandled error: {} on {}", e, url),
     }
+}
+
+pub fn config_from_server(
+    server: &str,
+    hostname: &str,
+    format: &str,
+) -> Result<Vec<u8>, CompileError> {
+    let mut tries = 1;
+    let mut err: Option<anyhow::Error> = None;
+
+    while tries < CLIENT_RETRIES {
+        tracing::debug!("try {tries}/{CLIENT_RETRIES}");
+
+        match fetch_precompiled_file(server, hostname, format) {
+            Ok(resp) => {
+                return Ok(resp);
+            }
+            Err(e) => {
+                tracing::error!("error calling remote server: {e}");
+                tracing::info!("sleeping for retry");
+                thread::sleep(Duration::from_secs(tries * tries));
+                tries += 1;
+                err = Some(e.into());
+            }
+        }
+    }
+
+    Err(CompileError::Network(err.unwrap()))
+}
+
+fn fetch_precompiled_file(
+    server: &str,
+    hostname: &str,
+    format: &str,
+) -> Result<Vec<u8>, CompileError> {
+    // We tell the server what we think it's called so it can build file resources we can find. This
+    // lets us use a raw IP address, DNS name, whatever.
+    let url = format!(
+        "http://{server}:{SERVER_PORT}/{CLIENT_API_VERSION}/config/{hostname}?server_name={server}&format={format}"
+    );
+    tracing::info!("fetching config from {url}");
+    remote_file_to_memory(&url).map_err(CompileError::Network)
 }

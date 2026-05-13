@@ -100,7 +100,7 @@ mod test {
     use super::*;
     use camino::Utf8PathBuf;
     use pretty_assertions::assert_eq;
-    use tester::{defopts, deserialized_example, fixture, my_group, my_user};
+    use tester::{deserialized_example, fixture, my_group, my_user};
     use util::file::NameOrId;
 
     #[test]
@@ -183,7 +183,7 @@ mod test {
             },
         };
 
-        assert!(file_and_url.apply(&defopts()).is_err());
+        assert!(file_and_url.apply(&ApplyOpts::default()).is_err());
 
         let file_and_content = GurpFileEnsure {
             id: "IRRELEVANT".to_owned(),
@@ -205,7 +205,7 @@ mod test {
             },
         };
 
-        assert!(file_and_content.apply(&defopts()).is_err());
+        assert!(file_and_content.apply(&ApplyOpts::default()).is_err());
 
         let no_source = GurpFileEnsure {
             id: "IRRELEVANT".to_owned(),
@@ -227,6 +227,6 @@ mod test {
             },
         };
 
-        assert!(no_source.apply(&defopts()).is_err());
+        assert!(no_source.apply(&ApplyOpts::default()).is_err());
     }
 }

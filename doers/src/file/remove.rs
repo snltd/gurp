@@ -45,7 +45,7 @@ mod test {
     use camino::Utf8PathBuf;
     use camino_tempfile_ext::prelude::*;
     use pretty_assertions::assert_eq;
-    use tester::{defopts, defopts_noop, deserialized_example, janet2json};
+    use tester::{deserialized_example, janet2json};
     #[test]
     fn test_deserialize_remove_file() {
         assert_eq!(
@@ -62,7 +62,10 @@ mod test {
         let json_def = janet2json(r#"(file/remove "/path/does/not/exist")"#);
         let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_NO_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
     }
 
     #[test]
@@ -70,7 +73,7 @@ mod test {
         let json_def = janet2json(r#"(file/remove "/bin/ps")"#);
         let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
 
-        assert!(sut.apply(&defopts()).is_err());
+        assert!(sut.apply(&ApplyOpts::default()).is_err());
     }
 
     #[test]
@@ -88,7 +91,10 @@ mod test {
         let json_def = janet2json(&format!("(file/remove \"{temp_file}\")"));
         let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert!(!temp_file.exists());
     }
 
@@ -107,7 +113,14 @@ mod test {
         let json_def = janet2json(&format!("(file/remove \"{temp_file}\")"));
         let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts {
+                noop: true,
+                ..Default::default()
+            })
+            .unwrap()
+        );
         assert!(temp_file.exists());
     }
 }

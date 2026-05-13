@@ -145,15 +145,15 @@ fn bootstrap(zone: &str, conf: &ZoneConfig, opts: &ApplyOpts) -> anyhow::Result<
     bootstrap_args.push(bootstrap_bin.to_owned());
     bootstrap_args.push("apply".to_owned());
 
-    if opts.dump_config {
+    if opts.output.dump_configs {
         bootstrap_args.push("--dump-config".to_owned());
     }
 
-    if opts.colour {
+    if opts.output.colour {
         bootstrap_args.push("--colour".to_owned());
     }
 
-    if opts.line_no {
+    if opts.output.line_no {
         bootstrap_args.push("--line-no".to_owned());
     }
 

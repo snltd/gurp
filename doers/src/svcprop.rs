@@ -115,10 +115,10 @@ impl GurpSvcpropEnsure {
         } else {
             tracing::debug!("{svc} svcprop: applying change file");
 
-            if opts.dump_config {
+            if opts.output.dump_configs {
                 println!(
                     "{}",
-                    info::dump_config(&svccfg_script, Some("svccfg script"), opts)
+                    info::dump_config(&svccfg_script, Some("svccfg script"), &opts.output)
                 );
             }
 

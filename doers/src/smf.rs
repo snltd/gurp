@@ -59,10 +59,10 @@ impl GurpSmfEnsure {
 
         tracing::debug!("rewriting manifest: {}", manifest_path);
 
-        if opts.dump_config {
+        if opts.output.dump_configs {
             println!(
                 "{}",
-                info::dump_config(&new_manifest, Some("SMF manifest"), opts)
+                info::dump_config(&new_manifest, Some("SMF manifest"), &opts.output)
             );
         }
 

@@ -40,10 +40,10 @@ impl GurpZoneEnsure {
 
         tracing::info!("Must create zone {zone}");
 
-        if opts.dump_config {
+        if opts.output.dump_configs {
             println!(
                 "{}",
-                info::dump_config(&config_input, Some("zonecfg config"), opts)
+                info::dump_config(&config_input, Some("zonecfg config"), &opts.output)
             );
         }
 

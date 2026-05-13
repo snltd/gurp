@@ -127,7 +127,7 @@ mod test {
     use super::*;
     use camino::Utf8PathBuf;
     use pretty_assertions::assert_eq;
-    use tester::{defopts, deserialized_example, janet2json, raw_example};
+    use tester::{deserialized_example, janet2json, raw_example};
 
     #[test]
     fn test_deserialize_system_cert_from_file() {
@@ -189,7 +189,7 @@ mod test {
             url_is_server: false,
         };
 
-        assert!(file_and_url.apply(&defopts()).is_err());
+        assert!(file_and_url.apply(&ApplyOpts::default()).is_err());
 
         let file_and_content = GurpSystemCertEnsure {
             id: "/NO-ROLE/system-cert/irrelevant".to_owned(),
@@ -200,7 +200,7 @@ mod test {
             url_is_server: false,
         };
 
-        assert!(file_and_content.apply(&defopts()).is_err());
+        assert!(file_and_content.apply(&ApplyOpts::default()).is_err());
 
         let no_source = GurpSystemCertEnsure {
             id: "IRRELEVANT".to_owned(),
@@ -211,6 +211,6 @@ mod test {
             url_is_server: false,
         };
 
-        assert!(no_source.apply(&defopts()).is_err());
+        assert!(no_source.apply(&ApplyOpts::default()).is_err());
     }
 }

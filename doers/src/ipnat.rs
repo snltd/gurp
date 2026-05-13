@@ -75,8 +75,8 @@ pub fn collect_and_ensure(nat_list: &EnsureList, opts: &ApplyOpts) -> ApplyResul
         changed_ids.insert(nat.id);
     }
 
-    if opts.dump_config {
-        info::dump_config(&desired_rules, Some("NAT rules"), opts);
+    if opts.output.dump_configs {
+        info::dump_config(&desired_rules, Some("NAT rules"), &opts.output);
     }
 
     let mut check_cmd = build_ipnat_cmd(true);
@@ -143,14 +143,14 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
     } else {
         tracing::info!("updating nat rules in {nat_file}");
 
-        if opts.dump_diffs {
+        if opts.output.dump_diffs {
             println!(
                 "{}",
                 &info::dump_diff(
                     &current_persistent_rules,
                     desired_rules,
                     Some(&format!("IP NAT rules [{nat_file}]")),
-                    opts.colour
+                    &opts.output
                 )
             );
         }
@@ -174,14 +174,14 @@ fn ensure_live_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Result<bo
         return Ok(false);
     }
 
-    if opts.dump_diffs {
+    if opts.output.dump_diffs {
         println!(
             "{}",
             &info::dump_diff(
                 &current_live_rules,
                 desired_rules,
                 Some("IP NAT rules [LIVE]"),
-                opts.colour
+                &opts.output
             )
         );
     }

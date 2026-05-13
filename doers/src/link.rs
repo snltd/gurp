@@ -236,7 +236,7 @@ mod test {
     use camino_tempfile_ext::prelude::*;
     use pretty_assertions::assert_eq;
     use std::os::unix;
-    use tester::{defopts, defopts_noop, deserialized_example, janet2json};
+    use tester::{deserialized_example, janet2json};
 
     #[test]
     fn test_deserialize_link_ensure_symlink_forced() {
@@ -295,7 +295,10 @@ mod test {
 
         assert!(!target_path.exists());
         let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert!(target_path.exists());
         assert!(target_path.is_symlink());
     }
@@ -318,7 +321,14 @@ mod test {
 
         assert!(!target_path.exists());
         let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts {
+                noop: true,
+                ..Default::default()
+            })
+            .unwrap()
+        );
         assert!(!target_path.exists());
     }
 
@@ -332,7 +342,10 @@ mod test {
         let json_def = janet2json(&format!(r#"(link/remove "{}")"#, target.as_path()));
         assert!(target.exists());
         let sut: GurpLinkRemove = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert!(!target.exists());
     }
 
@@ -346,7 +359,14 @@ mod test {
         let json_def = janet2json(&format!(r#"(link/remove "{}")"#, target.as_path()));
         assert!(target.exists());
         let sut: GurpLinkRemove = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts {
+                noop: true,
+                ..Default::default()
+            })
+            .unwrap()
+        );
         assert!(target.exists());
     }
 
@@ -354,7 +374,14 @@ mod test {
     fn test_symlink_remove_missing() {
         let json_def = janet2json(r#"(link/remove "/no/such/file")"#);
         let sut: GurpLinkRemove = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_NO_CHANGE,
+            sut.apply(&ApplyOpts {
+                noop: true,
+                ..Default::default()
+            })
+            .unwrap()
+        );
     }
 
     #[test]
@@ -375,7 +402,10 @@ mod test {
 
         assert!(!target_path.exists());
         let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert!(target_path.exists());
         use std::os::unix::fs::MetadataExt;
         let source_meta = std::fs::metadata(source_path.as_path()).unwrap();
@@ -402,7 +432,10 @@ mod test {
         });
 
         let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_NO_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
 
         use std::os::unix::fs::MetadataExt;
         let source_meta = std::fs::metadata(source_path.as_path()).unwrap();
@@ -437,7 +470,10 @@ mod test {
         });
 
         let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
 
         let new_meta = std::fs::metadata(new_source_path.as_path()).unwrap();
         let target_meta_after = std::fs::metadata(target_path.as_path()).unwrap();
@@ -469,7 +505,10 @@ mod test {
         });
 
         let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert!(target_file.exists());
         assert!(target_file.is_symlink());
         assert_eq!(
@@ -499,7 +538,7 @@ mod test {
 
         let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
         assert!(
-            sut.apply(&defopts())
+            sut.apply(&ApplyOpts::default())
                 .unwrap_err()
                 .to_string()
                 .contains("target exists, is a directory and force-link is not set")
@@ -517,7 +556,10 @@ mod test {
         });
 
         let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert!(target_dir.exists());
         assert!(target_dir.is_symlink());
     }
@@ -543,7 +585,7 @@ mod test {
 
         let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
         assert!(
-            sut.apply(&defopts())
+            sut.apply(&ApplyOpts::default())
                 .unwrap_err()
                 .to_string()
                 .contains("is a file, and force-link is not set")

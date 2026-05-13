@@ -1,8 +1,8 @@
 use crate::constants::DEFAULT_TERM_WIDTH;
-use crate::types::ApplyOpts;
+use crate::types::ApplyOutputOpts;
 use colored::Colorize;
 
-pub fn dump_config(code: &str, description: Option<&str>, opts: &ApplyOpts) -> String {
+pub fn dump_config(code: &str, description: Option<&str>, opts: &ApplyOutputOpts) -> String {
     let mut ret = String::new();
 
     if let Some(description) = description {
@@ -23,7 +23,12 @@ pub fn dump_config(code: &str, description: Option<&str>, opts: &ApplyOpts) -> S
     ret
 }
 
-pub fn dump_diff(existing: &str, desired: &str, description: Option<&str>, colour: bool) -> String {
+pub fn dump_diff(
+    existing: &str,
+    desired: &str,
+    description: Option<&str>,
+    opts: &ApplyOutputOpts,
+) -> String {
     let mut ret = String::new();
 
     if let Some(description) = description {
@@ -32,10 +37,10 @@ pub fn dump_diff(existing: &str, desired: &str, description: Option<&str>, colou
 
     for diff in diff::lines(existing, desired) {
         match diff {
-            diff::Result::Left(l) if colour => ret.push_str(&format!("-{}\n", l.red())),
+            diff::Result::Left(l) if opts.colour => ret.push_str(&format!("-{}\n", l.red())),
             diff::Result::Left(l) => ret.push_str(&format!("-{l}\n")),
             diff::Result::Both(_, _) => (),
-            diff::Result::Right(r) if colour => ret.push_str(&format!("+{}\n", r.green())),
+            diff::Result::Right(r) if opts.colour => ret.push_str(&format!("+{}\n", r.green())),
             diff::Result::Right(r) => ret.push_str(&format!("+{r}\n")),
         }
     }

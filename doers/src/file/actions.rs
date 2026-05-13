@@ -82,7 +82,7 @@ pub fn write_text_file(
         back_up(path, suffix, opts)?;
     }
 
-    if opts.dump_diffs {
+    if opts.output.dump_diffs {
         let existing_content = if path.exists() {
             fs::read_to_string(path).with_context(|| format!("failed to read from {path}"))?
         } else {
@@ -91,7 +91,12 @@ pub fn write_text_file(
 
         println!(
             "{}",
-            &info::dump_diff(&existing_content, content, Some(path.as_str()), opts.colour)
+            &info::dump_diff(
+                &existing_content,
+                content,
+                Some(path.as_str()),
+                &opts.output
+            )
         );
     }
 

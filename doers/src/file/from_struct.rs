@@ -126,11 +126,12 @@ mod test {
     use camino::Utf8PathBuf;
     use camino_tempfile_ext::prelude::*;
     use common::constants::ONE_RESOURCE_ONE_CHANGE;
+    use common::types::ApplyOpts;
     use indoc::{formatdoc, indoc};
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
-    use tester::{defopts, janet2json, my_group, my_user};
+    use tester::{janet2json, my_group, my_user};
 
     #[test]
     fn test_file_create_json_from_struct() {
@@ -158,7 +159,10 @@ mod test {
                 }"#};
 
         let sut: GurpFileEnsure = serde_json::from_str(&sample_struct(&temp_file, "json")).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert!(temp_file.exists());
         let metadata = fs::metadata(&temp_file).unwrap();
         assert_eq!(metadata.permissions().mode() & 0o7777, 0o600);
@@ -187,7 +191,10 @@ mod test {
           "#};
 
         let sut: GurpFileEnsure = serde_json::from_str(&sample_struct(&temp_file, "yaml")).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert!(temp_file.exists());
         let metadata = fs::metadata(&temp_file).unwrap();
         assert_eq!(metadata.permissions().mode() & 0o7777, 0o600);
@@ -238,7 +245,10 @@ mod test {
         "#};
 
         let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert!(temp_file.exists());
         let metadata = fs::metadata(&temp_file).unwrap();
         assert_eq!(metadata.permissions().mode() & 0o7777, 0o600);
@@ -249,7 +259,7 @@ mod test {
     fn test_file_create_ini_from_struct_errors() {
         let sut: GurpFileEnsure =
             serde_json::from_str(&sample_struct(&Utf8PathBuf::from("/tmp/file"), "ini")).unwrap();
-        assert!(sut.apply(&defopts()).is_err());
+        assert!(sut.apply(&ApplyOpts::default()).is_err());
     }
 
     fn sample_struct(path: &Utf8PathBuf, format: &str) -> String {

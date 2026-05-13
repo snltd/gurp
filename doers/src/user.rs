@@ -367,7 +367,7 @@ fn user_exists(username: &str) -> anyhow::Result<bool> {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
-    use tester::{defopts, deserialized_example};
+    use tester::deserialized_example;
 
     #[test]
     fn test_deserialize_user_ensure_gurpuser() {
@@ -423,7 +423,7 @@ mod tests {
             ..deserialized_example("user/ensure-user-gurpuser.janet")
         };
 
-        g.update_shadow(&path, "gurpuser", "NEWHASH", &defopts())
+        g.update_shadow(&path, "gurpuser", "NEWHASH", &ApplyOpts::default())
             .unwrap();
         assert_eq!(expected_shadow, fs::read_to_string(&path).unwrap());
     }

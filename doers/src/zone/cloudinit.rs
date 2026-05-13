@@ -95,13 +95,13 @@ fn struct_to_file(
         yaml
     };
 
-    if opts.dump_config {
+    if opts.output.dump_configs {
         println!(
             "{}",
             dump_config(
                 &cloudinit_content,
                 Some(&format!("cloudinit YAML: {file_name}")),
-                opts
+                &opts.output
             )
         );
     }
