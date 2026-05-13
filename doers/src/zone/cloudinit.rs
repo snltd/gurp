@@ -95,11 +95,7 @@ fn struct_to_file(
         yaml
     };
 
-<<<<<<< Updated upstream
-    if opts.dump_config {
-=======
     if opts.output.dump_configs {
->>>>>>> Stashed changes
         println!(
             "{}",
             dump_config(

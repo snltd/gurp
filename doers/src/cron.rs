@@ -67,11 +67,7 @@ impl GurpCronEnsure {
             Some(new_crontab) => {
                 tracing::info!("changing job '{}'", self.name);
 
-<<<<<<< Updated upstream
-                if opts.dump_config {
-=======
                 if opts.output.dump_configs {
->>>>>>> Stashed changes
                     println!(
                         "{}",
                         info::dump_config(&new_crontab, Some(&description), &opts.output)
@@ -146,11 +142,7 @@ impl GurpCronRemove {
                     tracing::debug!("new {} crontab is empty: removing", self.user);
                     self.empty_crontab(opts)
                 } else {
-<<<<<<< Updated upstream
-                    if opts.dump_config {
-=======
                     if opts.output.dump_configs {
->>>>>>> Stashed changes
                         println!(
                             "{}",
                             info::dump_config(

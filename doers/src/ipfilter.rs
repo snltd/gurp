@@ -81,13 +81,8 @@ pub fn collect_and_ensure(filter_list: &EnsureList, opts: &ApplyOpts) -> ApplyRe
         changed_ids.insert(filter.id);
     }
 
-<<<<<<< Updated upstream
-    if opts.dump_config {
-        info::dump_config(&desired_rules, Some("ipfilter rules"), opts);
-=======
     if opts.output.dump_configs {
         info::dump_config(&desired_rules, Some("ipfilter rules"), &opts.output);
->>>>>>> Stashed changes
     }
 
     check_filter_rules_are_valid(&desired_rules)?;

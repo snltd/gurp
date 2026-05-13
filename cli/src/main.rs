@@ -35,7 +35,7 @@ enum Commands {
         noop: bool,
         /// Dump intermediate config files to stdout
         #[arg(short = 'd', long, alias = "dump-configs")]
-        dump_config: bool,
+        dump_configs: bool,
         /// When files change, dump diffs to stdout
         #[arg(short = 'D', long, alias = "dump-diff")]
         dump_diffs: bool,
@@ -135,7 +135,7 @@ fn main() -> ExitCode {
         Commands::Apply {
             host_config_file,
             noop,
-            dump_config,
+            dump_configs,
             dump_diffs,
             colour,
             line_no,
@@ -152,13 +152,6 @@ fn main() -> ExitCode {
         } => {
             let opts = ApplyOpts {
                 noop,
-<<<<<<< Updated upstream
-                dump_config,
-                dump_diffs,
-                colour,
-                line_no,
-=======
->>>>>>> Stashed changes
                 metrics_to,
                 precompiled,
                 exec,
@@ -167,8 +160,6 @@ fn main() -> ExitCode {
                 no_lock,
                 remove_first,
                 only,
-<<<<<<< Updated upstream
-=======
                 output: ApplyOutputOpts {
                     colour,
                     line_no,
@@ -177,7 +168,6 @@ fn main() -> ExitCode {
                 },
                 vm: ApplyVmOpts { define },
                 client: ApplyClientOpts { server, hostname },
->>>>>>> Stashed changes
             };
             commands::apply::init::run(host_config_file.as_deref(), &opts)
         }
@@ -190,16 +180,6 @@ fn main() -> ExitCode {
         } => {
             let opts = CompileOpts {
                 line_no,
-<<<<<<< Updated upstream
-                compile_only: true,
-                colour,
-                dump_config,
-                ..Default::default()
-            };
-
-            let compile_opts = CompileOpts {
-=======
->>>>>>> Stashed changes
                 format,
                 output_file,
                 colour,

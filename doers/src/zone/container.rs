@@ -145,11 +145,7 @@ fn bootstrap(zone: &str, conf: &ZoneConfig, opts: &ApplyOpts) -> anyhow::Result<
     bootstrap_args.push(bootstrap_bin.to_owned());
     bootstrap_args.push("apply".to_owned());
 
-<<<<<<< Updated upstream
-    if opts.dump_config {
-=======
     if opts.output.dump_configs {
->>>>>>> Stashed changes
         bootstrap_args.push("--dump-config".to_owned());
     }
 

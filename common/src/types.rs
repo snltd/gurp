@@ -8,14 +8,6 @@ use std::ops::{Add, AddAssign};
 #[derive(Debug, Default)]
 pub struct ApplyOpts {
     pub noop: bool,
-<<<<<<< Updated upstream
-    pub colour: bool,
-    pub line_no: bool,
-    pub dump_config: bool,
-    pub dump_diffs: bool,
-    pub compile_only: bool,
-=======
->>>>>>> Stashed changes
     pub metrics_to: Option<String>,
     pub precompiled: bool,
     pub image: bool,
@@ -24,8 +16,6 @@ pub struct ApplyOpts {
     pub no_lock: bool,
     pub remove_first: bool,
     pub only: Option<String>,
-<<<<<<< Updated upstream
-=======
     pub output: ApplyOutputOpts,
     pub vm: ApplyVmOpts,
     pub client: ApplyClientOpts,
@@ -44,7 +34,6 @@ pub struct ApplyOutputOpts {
 #[derive(Clone, Debug, Default)]
 pub struct ApplyVmOpts {
     pub define: Vec<String>,
->>>>>>> Stashed changes
 }
 
 /// User-supplied flags which affect behaviour in client mode

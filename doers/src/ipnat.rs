@@ -75,13 +75,8 @@ pub fn collect_and_ensure(nat_list: &EnsureList, opts: &ApplyOpts) -> ApplyResul
         changed_ids.insert(nat.id);
     }
 
-<<<<<<< Updated upstream
-    if opts.dump_config {
-        info::dump_config(&desired_rules, Some("NAT rules"), opts);
-=======
     if opts.output.dump_configs {
         info::dump_config(&desired_rules, Some("NAT rules"), &opts.output);
->>>>>>> Stashed changes
     }
 
     let mut check_cmd = build_ipnat_cmd(true);
