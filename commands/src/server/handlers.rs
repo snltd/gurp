@@ -5,7 +5,7 @@ use axum::http::{Response, StatusCode};
 use axum::response::IntoResponse;
 use camino::{Utf8Path, Utf8PathBuf};
 use common::constants::GURP_VERSION;
-use common::types::{ApplyOpts, ServerOpts};
+use common::types::{ApplyOutputOpts, ApplyVmOpts, ServerOpts};
 use embed::compiler;
 use mime_guess::from_path;
 use serde::Serialize;
@@ -18,7 +18,6 @@ use util::{hash, info};
 
 #[derive(serde::Deserialize)]
 pub struct ConfigQuery {
-    server_name: String,
     format: String,
 }
 
@@ -65,12 +64,6 @@ pub async fn config(
     let host_file = opts.config_dir.join(&host_filename);
 
     if host_file.exists() {
-        let opts = ApplyOpts {
-            server_name: Some(params.server_name),
-            client_name: Some(remote_host_name.clone()),
-            ..Default::default()
-        };
-
         tracing::info!(
             "received request for {} as {}",
             remote_host_name,
@@ -78,36 +71,52 @@ pub async fn config(
         );
 
         match params.format.as_str() {
-            "jimage" => match compiler::local_janet_to_jimage(&host_file, &opts) {
-                Ok(body) => {
-                    // jimage is a vec<u8> so it's automatically application/octet-stream
-                    let bytes = body.len();
-                    let ret = (StatusCode::OK, body).into_response();
-                    tracing::info!("sent {bytes}b image config generated from {host_file}");
-                    ret
+            "jimage" => {
+                match compiler::to_jimage(&host_file) {
+                    Ok(body) => {
+                        // jimage is a vec<u8> so it's automatically application/octet-stream
+                        let bytes = body.len();
+                        let ret = (StatusCode::OK, body).into_response();
+                        tracing::info!("sent {bytes}b image config generated from {host_file}");
+                        ret
+                    }
+                    Err(e) => {
+                        tracing::error!(
+                            remote_host = remote_host_name.to_string(),
+                            message = e.to_string()
+                        );
+                        error_response(e.into())
+                    }
                 }
-                Err(e) => {
-                    tracing::error!(
-                        remote_host = remote_host_name.to_string(),
-                        message = e.to_string()
-                    );
-                    error_response(e.into())
+            }
+            "json" => {
+                let compiler = match compiler::ConfigCompiler::new(
+                    &ApplyVmOpts::default(),
+                    false,
+                    ApplyOutputOpts::default(),
+                ) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        tracing::error!("cannot create ConfigCompiler");
+                        return error_response(e.into());
+                    }
+                };
+
+                match compiler.janet_file(&host_file, true) {
+                    Ok(config) => {
+                        let ret = (StatusCode::OK, Json(config)).into_response();
+                        tracing::info!("sent JSON config from {host_file}");
+                        ret
+                    }
+                    Err(e) => {
+                        tracing::error!(
+                            remote_host = remote_host_name.to_string(),
+                            message = e.to_string()
+                        );
+                        error_response(e.into())
+                    }
                 }
-            },
-            "json" => match compiler::local_janet_to_json(&host_file, &opts) {
-                Ok(body) => {
-                    let ret = (StatusCode::OK, Json(body)).into_response();
-                    tracing::info!("sent JSON config from {host_file}");
-                    ret
-                }
-                Err(e) => {
-                    tracing::error!(
-                        remote_host = remote_host_name.to_string(),
-                        message = e.to_string()
-                    );
-                    error_response(e.into())
-                }
-            },
+            }
             other => {
                 tracing::error!("unsupported format: {other}");
                 (

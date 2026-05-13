@@ -1,10 +1,55 @@
+use super::metrics;
+use crate::apply::types::{ApplyStatus, FailPhase};
 use anyhow::Context;
 use camino::Utf8PathBuf;
+use common::constants::APPLY_LOCKFILE;
+use common::types::ApplyOpts;
 use std::fs;
+use std::time::Instant;
 use sysinfo::{Pid, System};
 
 pub struct ApplyLock {
     pub path: Utf8PathBuf,
+}
+
+pub fn acquire(opts: &ApplyOpts) -> Option<ApplyLock> {
+    if opts.no_lock || opts.exec.is_some() {
+        None
+    } else {
+        Some(ApplyLock::from(APPLY_LOCKFILE))
+    }
+}
+
+pub fn release(lock: Option<ApplyLock>) {
+    if let Some(lock) = lock
+        && let Err(e) = lock.remove()
+    {
+        tracing::warn!("could not remove lock file at {}: {e:#}", lock.path);
+    }
+}
+
+pub fn is_on(start_time: &Instant, lock: &Option<ApplyLock>) -> bool {
+    if let Some(lock) = &lock {
+        match lock.is_locked() {
+            Ok(false) => (),
+            Ok(true) => {
+                tracing::info!("execution blocked by lockfile");
+                metrics::send(ApplyStatus::Fail(FailPhase::Locked), &start_time.elapsed());
+                return true; // is that a fail?
+            }
+            Err(e) => {
+                tracing::error!("error checking lockfile: {e:#}");
+                metrics::send(ApplyStatus::Fail(FailPhase::Locked), &start_time.elapsed());
+                return true;
+            }
+        }
+
+        if let Err(e) = lock.create() {
+            tracing::warn!("could not create lock file at {}: {e:#}", lock.path);
+        }
+    }
+
+    false
 }
 
 impl ApplyLock {

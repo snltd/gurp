@@ -144,11 +144,12 @@ mod test {
     use crate::file::ensure::GurpFileEnsure;
     use camino_tempfile_ext::prelude::*;
     use common::constants::ONE_RESOURCE_ONE_CHANGE;
+    use common::types::ApplyOpts;
     use httpmock::prelude::*;
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
-    use tester::{defopts, janet2json, load_fixture, my_group, my_user};
+    use tester::{janet2json, load_fixture, my_group, my_user};
 
     #[test]
     fn test_file_create_from_url() {
@@ -182,7 +183,10 @@ mod test {
 
         let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert!(temp_file.exists());
         conf_mock.assert();
 
@@ -217,7 +221,7 @@ mod test {
         });
 
         let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
-        assert!(sut.apply(&defopts()).is_err());
+        assert!(sut.apply(&ApplyOpts::default()).is_err());
         conf_mock.assert();
     }
 
@@ -246,7 +250,7 @@ mod test {
         });
 
         let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
-        let err = sut.apply(&defopts()).unwrap_err();
+        let err = sut.apply(&ApplyOpts::default()).unwrap_err();
 
         assert_eq!(
             err.to_string(),

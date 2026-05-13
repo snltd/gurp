@@ -81,8 +81,13 @@ pub fn collect_and_ensure(filter_list: &EnsureList, opts: &ApplyOpts) -> ApplyRe
         changed_ids.insert(filter.id);
     }
 
+<<<<<<< Updated upstream
     if opts.dump_config {
         info::dump_config(&desired_rules, Some("ipfilter rules"), opts);
+=======
+    if opts.output.dump_configs {
+        info::dump_config(&desired_rules, Some("ipfilter rules"), &opts.output);
+>>>>>>> Stashed changes
     }
 
     check_filter_rules_are_valid(&desired_rules)?;
@@ -198,14 +203,14 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
     } else {
         tracing::info!("updating ipfilter rules in {filter_file}");
 
-        if opts.dump_diffs {
+        if opts.output.dump_diffs {
             println!(
                 "{}",
                 &info::dump_diff(
                     &current_persistent_rules,
                     desired_rules,
                     Some(&format!("IP filter rules [{filter_file}]")),
-                    opts.colour
+                    &opts.output
                 )
             );
         }

@@ -117,7 +117,7 @@ mod test {
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use std::os::unix::fs::PermissionsExt;
-    use tester::{defopts, defopts_noop, deserialized_example, janet2json, my_group, my_user};
+    use tester::{deserialized_example, janet2json, my_group, my_user};
 
     #[test]
     fn test_deserialize_ensure_directory_defaults() {
@@ -186,7 +186,14 @@ mod test {
         let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert!(!dir.exists());
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts {
+                noop: true,
+                ..Default::default()
+            })
+            .unwrap()
+        );
         assert!(!dir.exists());
     }
 
@@ -212,7 +219,14 @@ mod test {
 
         let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_NO_CHANGE,
+            sut.apply(&ApplyOpts {
+                noop: true,
+                ..Default::default()
+            })
+            .unwrap()
+        );
         assert!(dir.exists());
     }
 
@@ -238,7 +252,10 @@ mod test {
 
         let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert!(dir.exists());
 
         let metadata = fs::metadata(&dir).unwrap();
@@ -250,14 +267,17 @@ mod test {
     fn test_directory_remove_apply_does_not_exist() {
         let json_def = janet2json(r#"(directory/remove "/no/such/dir")"#);
         let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_NO_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
     }
 
     #[test]
     fn test_directory_remove_apply_not_allowed() {
         let json_def = janet2json(r#"(directory/remove "/usr")"#);
         let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
-        assert!(sut.apply(&defopts()).is_err());
+        assert!(sut.apply(&ApplyOpts::default()).is_err());
     }
 
     #[test]
@@ -270,7 +290,10 @@ mod test {
         let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
 
         assert!(dir.exists());
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert!(!dir.exists());
     }
 
@@ -284,7 +307,14 @@ mod test {
         let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
 
         assert!(dir.exists());
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts {
+                noop: true,
+                ..Default::default()
+            })
+            .unwrap()
+        );
         assert!(dir.exists());
     }
 }

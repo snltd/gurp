@@ -1,6 +1,8 @@
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
-use common::types::{ApplyOpts, CompileOpts, ServerOpts};
+use common::types::{
+    ApplyClientOpts, ApplyOpts, ApplyOutputOpts, ApplyVmOpts, CompileOpts, ServerOpts,
+};
 use std::io::IsTerminal;
 use std::process::ExitCode;
 use tracing_subscriber::EnvFilter;
@@ -19,14 +21,11 @@ enum Commands {
         /// Get config from a Gurp server
         #[arg(short = 's', long = "server")]
         server: Option<String>,
-        /// When getting server configuration, request it in JSON format, compiled on the server
-        #[arg(short = 'J', long = "as-json", requires = "server")]
-        as_json: bool,
         /// Hostname to use when fetching config from server
         #[arg(short = 'H', long = "hostname", requires = "server")]
         hostname: Option<String>,
-        /// Use a pre-compiled JSON config
-        #[arg(short = 'p', long = "precompiled", conflicts_with = "server")]
+        /// Use a pre-compiled JSON config, which may be local or remote
+        #[arg(short = 'p', long = "precompiled")]
         precompiled: bool,
         /// Use a local pre-compiled Janet jimage as config
         #[arg(short = 'i', long = "image", conflicts_with = "server")]
@@ -81,9 +80,6 @@ enum Commands {
         /// When displaying compile Janet, use syntax colouring
         #[arg(short = 'C', long)]
         colour: bool,
-        /// Dump intermediate config files to stdout
-        #[arg(short = 'd', long, alias = "dump-configs")]
-        dump_config: bool,
         /// Output in the given format: 'jimage', 'janet', or 'json'
         #[arg(short, long, required = true, default_value = "json")]
         format: String,
@@ -150,31 +146,38 @@ fn main() -> ExitCode {
             exec,
             destroy_everything_you_touch,
             image,
-            as_json,
             no_lock,
             remove_first,
             only,
         } => {
             let opts = ApplyOpts {
                 noop,
+<<<<<<< Updated upstream
                 dump_config,
                 dump_diffs,
                 colour,
                 line_no,
+=======
+>>>>>>> Stashed changes
                 metrics_to,
                 precompiled,
-                server,
-                hostname,
                 exec,
-                compile_only: false,
-                server_name: None,
-                client_name: None,
                 destroy: destroy_everything_you_touch,
                 image,
-                as_json,
                 no_lock,
                 remove_first,
                 only,
+<<<<<<< Updated upstream
+=======
+                output: ApplyOutputOpts {
+                    colour,
+                    line_no,
+                    dump_configs,
+                    dump_diffs,
+                },
+                vm: ApplyVmOpts { define },
+                client: ApplyClientOpts { server, hostname },
+>>>>>>> Stashed changes
             };
             commands::apply::init::run(host_config_file.as_deref(), &opts)
         }
@@ -184,11 +187,10 @@ fn main() -> ExitCode {
             format,
             output_file,
             colour,
-            dump_config,
         } => {
-            // Compile is the first part of run's code path, so we'll fake the apply options
-            let apply_opts = ApplyOpts {
+            let opts = CompileOpts {
                 line_no,
+<<<<<<< Updated upstream
                 compile_only: true,
                 colour,
                 dump_config,
@@ -196,11 +198,14 @@ fn main() -> ExitCode {
             };
 
             let compile_opts = CompileOpts {
+=======
+>>>>>>> Stashed changes
                 format,
                 output_file,
+                colour,
             };
 
-            commands::compile::run(&host_config_file, &compile_opts, &apply_opts)
+            commands::compile::run(&host_config_file, &opts)
         }
         Commands::Describe {
             resource,

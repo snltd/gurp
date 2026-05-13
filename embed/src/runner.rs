@@ -1,12 +1,17 @@
+<<<<<<< Updated upstream
 use crate::client;
 // use crate::{client, janet_cfuncs};
 // use anyhow::{Context, bail};
 // use janetrs::TaggedJanet;
 // use janetrs::env::CFunOptions;
+=======
+use super::client;
+use common::types::ApplyVmOpts;
+>>>>>>> Stashed changes
 use std::process::ExitCode;
 
 pub fn run_command_and_exit(janet_command: &str) -> ExitCode {
-    match client::gurp() {
+    match client::gurp(&ApplyVmOpts::default(), false) {
         Ok(client) => match client.run(janet_command) {
             Ok(_) => ExitCode::SUCCESS,
             Err(e) => {

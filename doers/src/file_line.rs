@@ -296,7 +296,7 @@ mod test {
     use camino_tempfile_ext::prelude::*;
     use indoc::{formatdoc, indoc};
     use pretty_assertions::assert_eq;
-    use tester::{defopts, defopts_noop, deserialized_example, janet2json};
+    use tester::{deserialized_example, janet2json};
 
     #[test]
     fn test_deserialize_file_line_ensure_line() {
@@ -364,7 +364,7 @@ mod test {
                 "#});
 
         let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
-        assert!(sut.apply(&defopts()).is_err());
+        assert!(sut.apply(&ApplyOpts::default()).is_err());
     }
 
     #[test]
@@ -377,7 +377,10 @@ mod test {
 
         let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert_eq!(
             "line_1\nline_2\nline_3\nline_4\n\n".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
@@ -394,7 +397,10 @@ mod test {
 
         let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert_eq!(
             "new line\nline_1\nline_2\nline_3\n".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
@@ -411,7 +417,10 @@ mod test {
 
         let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert_eq!(
             "line_1\nline_2\nline_3\nnew line\n".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
@@ -428,7 +437,14 @@ mod test {
 
         let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts {
+                noop: true,
+                ..Default::default()
+            })
+            .unwrap()
+        );
         assert_eq!(
             "line_1\nline_2\nline_3".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
@@ -445,7 +461,10 @@ mod test {
 
         let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_NO_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert_eq!(
             "line_1\nline_2\nline_3".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
@@ -489,7 +508,10 @@ mod test {
 
         let sut: GurpFileLineRemove = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert_eq!(
             "line_1\nline_3\n".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()
@@ -515,7 +537,14 @@ mod test {
 
         let sut: GurpFileLineRemove = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts_noop()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_NO_CHANGE,
+            sut.apply(&ApplyOpts {
+                noop: true,
+                ..Default::default()
+            })
+            .unwrap()
+        );
         assert_eq!(
             "line_1\nline_2\nline_3".to_owned(),
             fs::read_to_string(&file_to_modify).unwrap()

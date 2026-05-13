@@ -1,5 +1,5 @@
 use camino::Utf8PathBuf;
-use common::types::ApplyOpts;
+use common::types::ApplyVmOpts;
 use embed::client;
 use janetrs::TaggedJanet;
 use nix::unistd::{Group, User, getgid, getuid};
@@ -19,17 +19,6 @@ pub fn load_fixture(file: &str) -> String {
     fs::read_to_string(&fixture).unwrap_or_else(|_| panic!("Did not find {fixture}"))
 }
 
-pub fn defopts() -> ApplyOpts {
-    ApplyOpts::default()
-}
-
-pub fn defopts_noop() -> ApplyOpts {
-    ApplyOpts {
-        noop: true,
-        ..Default::default()
-    }
-}
-
 pub fn my_user() -> String {
     User::from_uid(getuid()).unwrap().unwrap().name
 }
@@ -39,7 +28,8 @@ pub fn my_group() -> String {
 }
 
 pub fn janet2json(janet_defn: &str) -> String {
-    let client = client::gurp().expect("janet2json failed to create gurp client");
+    let client = client::gurp(&ApplyVmOpts::default(), false)
+        .expect("janet2json failed to create gurp client");
     let janet_instructions = format!("(to-json {janet_defn})");
 
     let ret = match client.run(&janet_instructions) {

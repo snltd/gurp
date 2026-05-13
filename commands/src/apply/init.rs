@@ -1,130 +1,65 @@
-use crate::apply::lockfile::ApplyLock;
+use super::{config, lockfile, metrics};
 use crate::apply::types::{ApplyStatus, FailPhase};
 use camino::Utf8Path;
-use common::constants::APPLY_LOCKFILE;
 use common::types::ApplyOpts;
 use doers::types::Applicator;
-use embed::compiler;
 use std::process::ExitCode;
-use std::time::{Duration, Instant};
-use util::metrics::client::ClientMetrics;
+use std::time::Instant;
 use util::metrics::init;
-use util::runtime_stats;
-
-macro_rules! clean_up_lock {
-    ($lock: expr) => {
-        if let Some(lock) = $lock
-            && let Err(e) = lock.remove()
-        {
-            tracing::warn!("could not remove lock file at {}: {e:#}", lock.path);
-        }
-    };
-}
 
 pub fn run(host_file: Option<&Utf8Path>, opts: &ApplyOpts) -> ExitCode {
     let start_time = Instant::now();
 
-    if let Some(file) = host_file
-        && !file.exists()
-    {
-        tracing::error!("config file not found: {file}");
+    let metrics_provider =
+        init::init_metrics(opts.metrics_to.as_deref(), "gurp").unwrap_or_else(|e| {
+            tracing::warn!("could not set up metrics: {e:#}");
+            None
+        });
 
-        do_metrics(
-            ApplyStatus::Fail(FailPhase::FileNotFound),
-            &start_time.elapsed(),
-        );
+    let json_config = match config::compile(host_file, opts) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            tracing::error!("could not compile config: {e:#}");
+            metrics::send(ApplyStatus::Fail(e.into()), &start_time.elapsed());
+            return ExitCode::FAILURE;
+        }
+    };
 
+    let lock = lockfile::acquire(opts);
+
+    if lockfile::is_on(&start_time, &lock) {
         return ExitCode::FAILURE;
     }
 
-    let provider = init::init_metrics(opts.metrics_to.as_deref(), "gurp").unwrap_or_else(|e| {
-        tracing::warn!("could not set up metrics: {e:#}");
-        None
-    });
-
-    let lock = if opts.no_lock || opts.exec.is_some() {
-        None
-    } else {
-        Some(ApplyLock::from(APPLY_LOCKFILE))
-    };
-
-    if let Some(lock) = &lock {
-        match lock.is_locked() {
-            Ok(false) => (),
-            Ok(true) => {
-                tracing::info!("execution blocked by lockfile");
-                do_metrics(ApplyStatus::Fail(FailPhase::Locked), &start_time.elapsed());
-                return ExitCode::FAILURE; // is that a fail?
-            }
-            Err(e) => {
-                tracing::error!("error checking lockfile: {e:#}");
-                do_metrics(ApplyStatus::Fail(FailPhase::Locked), &start_time.elapsed());
-                return ExitCode::FAILURE;
-            }
-        }
-
-        if let Err(e) = lock.create() {
-            tracing::warn!("could not create lock file at {}: {e:#}", lock.path);
-        }
-    }
-
-    let json_config = if let Some(janet_snippet) = &opts.exec {
-        match compiler::raw_janet_to_json(janet_snippet, opts) {
-            Ok(config) => config,
-            Err(e) => {
-                tracing::error!("error compiling snippet: {e:#}");
-                do_metrics(ApplyStatus::Fail(FailPhase::Compile), &start_time.elapsed());
-                clean_up_lock!(lock);
-                return ExitCode::FAILURE;
-            }
-        }
-    } else {
-        match compiler::compile_to_json(host_file, opts) {
-            Ok(config) => config,
-            Err(e) => {
-                tracing::error!("error compiling config: {e:#}");
-
-                do_metrics(
-                    ApplyStatus::Fail(FailPhase::from(&e)),
-                    &start_time.elapsed(),
-                );
-
-                clean_up_lock!(lock);
-                return ExitCode::FAILURE;
-            }
-        }
-    };
-
     let run_result = Applicator::from(json_config).run(opts);
     let elapsed_time = start_time.elapsed();
-    let mut exit = ExitCode::SUCCESS;
-
     tracing::info!("Run time: {:.3?}", elapsed_time);
 
-    match run_result {
+    let exit_code = match run_result {
         Ok(apply_summary) => {
             tracing::info!(
                 "resources: {}  changes: {}",
                 apply_summary.resources,
                 apply_summary.changes,
             );
-            do_metrics(ApplyStatus::Ok(apply_summary), &elapsed_time);
+            metrics::send(ApplyStatus::Ok(apply_summary), &elapsed_time);
+            ExitCode::SUCCESS
         }
         Err(e) => {
-            if let Some(host_file) = host_file {
-                tracing::error!("apply error on {host_file}: {e:#}");
+            if let Some(path) = host_file {
+                tracing::error!("apply error on {path}: {e:#}");
             } else {
                 tracing::error!("apply error: {e:#}");
             }
 
-            do_metrics(ApplyStatus::Fail(FailPhase::Apply), &elapsed_time);
-            exit = ExitCode::FAILURE;
+            metrics::send(ApplyStatus::Fail(FailPhase::Apply), &elapsed_time);
+            ExitCode::FAILURE
         }
-    }
+    };
 
-    clean_up_lock!(lock);
+    lockfile::release(lock);
 
-    if let Some(p) = provider {
+    if let Some(p) = metrics_provider {
         if let Err(e) = p.force_flush() {
             tracing::warn!("failed to flush metrics: {e:#}");
         }
@@ -134,39 +69,7 @@ pub fn run(host_file: Option<&Utf8Path>, opts: &ApplyOpts) -> ExitCode {
         }
     }
 
-    exit
-}
-
-fn do_metrics(status: ApplyStatus, elapsed_time: &Duration) {
-    let metrics_handle = ClientMetrics::new();
-    let elapsed_ms = elapsed_time.as_millis();
-
-    match status {
-        ApplyStatus::Ok(summary) => {
-            metrics_handle.record_apply_duration("ok", elapsed_ms as u64, None);
-            metrics_handle.record_apply_changes(summary.changes as u64);
-            metrics_handle.record_apply_resources(summary.resources as u64);
-            #[cfg(test)]
-            tracing::info!(
-                "sending success metrics: {}/{}",
-                summary.changes,
-                summary.resources
-            );
-        }
-        ApplyStatus::Fail(phase) => {
-            metrics_handle.record_apply_duration(
-                "fail",
-                elapsed_ms as u64,
-                Some(&phase.to_string()),
-            );
-            #[cfg(test)]
-            tracing::info!("sending fail metrics: {phase}",);
-        }
-    }
-
-    if let Some(rss) = runtime_stats::rss_bytes() {
-        metrics_handle.record_apply_rss("ok", rss as u64);
-    }
+    exit_code
 }
 
 #[cfg(test)]
@@ -174,7 +77,6 @@ mod test {
     use super::*;
     use camino::Utf8PathBuf;
     use camino_tempfile_ext::prelude::*;
-    use tester::defopts;
     use tracing_test::traced_test;
 
     #[test]
@@ -182,10 +84,15 @@ mod test {
     fn test_run_no_file() {
         assert_eq!(
             ExitCode::FAILURE,
-            run(Some(&Utf8PathBuf::from("/no/such/file")), &defopts())
+            run(
+                Some(&Utf8PathBuf::from("/no/such/file")),
+                &ApplyOpts::default()
+            )
         );
 
-        assert!(logs_contain("config file not found"));
+        assert!(logs_contain(
+            "could not compile config: missing file error: /no/such/file"
+        ));
         assert!(logs_contain("sending fail metrics: fileNotFound"));
         assert!(!logs_contain("resources:"));
     }
@@ -205,7 +112,7 @@ mod test {
         );
 
         assert!(logs_contain(
-            "error compiling snippet: compilation error: Failed to parse code"
+            "could not compile config: compilation error: Failed to parse code"
         ));
         assert!(logs_contain("sending fail metrics: compile"));
         assert!(!logs_contain("resources:"));
@@ -264,17 +171,11 @@ mod test {
 
         assert_eq!(
             ExitCode::FAILURE,
-            run(
-                Some(file.as_path()),
-                &ApplyOpts {
-                    no_lock: true,
-                    ..Default::default()
-                }
-            )
+            run(Some(file.as_path()), &ApplyOpts::default())
         );
 
         assert!(logs_contain(
-            "error compiling config: compilation error: Runtime VM error"
+            "could not compile config: compilation error: Runtime VM error"
         ));
         assert!(logs_contain("sending fail metrics: compile"));
         assert!(!logs_contain("resources:"));
@@ -284,7 +185,7 @@ mod test {
     #[traced_test]
     fn file_works() {
         let temp = Utf8TempDir::new().unwrap();
-        let file = temp.child("bad-test.janet");
+        let file = temp.child("good-test.janet");
         file.write_str(indoc::indoc! {
         r#"(host "good-janet"
              (directory/remove "/this/does/not/exist"))"#
@@ -293,13 +194,7 @@ mod test {
 
         assert_eq!(
             ExitCode::SUCCESS,
-            run(
-                Some(file.as_path()),
-                &ApplyOpts {
-                    no_lock: true,
-                    ..Default::default()
-                }
-            )
+            run(Some(file.as_path()), &ApplyOpts::default())
         );
 
         assert!(logs_contain("sending success metrics: 0/1"));

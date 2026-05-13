@@ -74,11 +74,12 @@ mod test {
     use crate::file::types::DesiredFileState;
     use camino_tempfile_ext::prelude::*;
     use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+    use common::types::ApplyOpts;
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
-    use tester::{defopts, fixture, janet2json, my_group, my_user};
+    use tester::{fixture, janet2json, my_group, my_user};
     use util::file::NameOrId;
 
     #[test]
@@ -108,7 +109,10 @@ mod test {
             },
         };
 
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert!(temp_file.exists());
     }
 
@@ -139,7 +143,10 @@ mod test {
             },
         };
 
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
 
         let metadata = fs::metadata(&temp_file).unwrap();
 
@@ -176,7 +183,10 @@ mod test {
         });
 
         let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
-        assert_eq!(ONE_RESOURCE_ONE_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
 
         assert!(temp_file.exists());
         assert_eq!(
@@ -215,7 +225,10 @@ mod test {
 
         let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
 
-        assert_eq!(ONE_RESOURCE_NO_CHANGE, sut.apply(&defopts()).unwrap());
+        assert_eq!(
+            ONE_RESOURCE_NO_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
         assert_eq!(content, fs::read_to_string(&temp_file).unwrap());
     }
 }
