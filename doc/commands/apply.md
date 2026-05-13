@@ -15,8 +15,9 @@ Options:
   -p, --precompiled                   Use a pre-compiled JSON config
   -i, --image                         Use a local pre-compiled Janet jimage as config
   -n, --noop                          Say what would happen, without actually doing it
-  -d, --dump-config                   Dump intermediate config files to stdout
-  -D, --dump-diffs                    When files change, dump diffs to stdout
+  -D, --define <DEFINE>               Define a constant which can be accessed from config
+      --dump-configs                  Dump intermediate config files to stdout
+      --dump-diffs                    When files change, dump diffs to stdout
   -C, --colour                        When dumping configs or diffs, use syntax colouring where supported
   -N, --line-no                       When dumping configs, number lines
   -M, --metrics-to <METRICS_TO>       HTTP POST InfluxDB metrics to this host
@@ -58,11 +59,11 @@ There are options:
 - `-n, --noop` Say what would happen, without actually doing it. Because Gurp
   does not include a doer for arbitrary commands, it can make a meaningful dry
   run. All logging is the same as if you were doing a real apply.
-- `-d, --dump-config` Gurp turns its input into various other formats, such as
+- `--dump-configs` Gurp turns its input into various other formats, such as
   JSON, XML, YAML, INI files, `zonecfg` config and so-on. With this flag, it
   will dump all those configs to standard out. This is independent of the log
   level, but can be very useful when debugging.
-- `-D --dump-diffs` When the content of a text file changes, output a diff.
+- `--dump-diffs` When the content of a text file changes, output a diff.
 - `-C, --colour` When dumping configs, use syntax colouring where possible.
 - `-N, --line-no` When dumping configs, number the lines.
 - `-M, --metrics-to <METRICS_TO>` HTTP POST InfluxDB-format metrics to this
@@ -78,6 +79,8 @@ There are options:
   resources. With this flag, that order is reversed.
 - `-O, --only <REGEX>` Makes Gurp only apply resources whose IDs match the given
   Rust regex.
+- `-D, --define <DEFINE>` Can be used multiple time, with the values used to build a Janet struct, `gurp-user-defs` with global scope, visible during the compile phase.
+If `DEFINE` is of the form `key=value`, the struct gets `key` as a symbol and `value` as a string. If `DEFINE` is `key` only, the struct gets `key` as a symbol, with a value of boolean `true`.
 
 Gurp uses the [Tracing framework](https://crates.io/crates/tracing) for logging.
 This means you can control the log level through the `RUST_LOG` environment

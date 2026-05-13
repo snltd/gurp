@@ -33,14 +33,17 @@ enum Commands {
         /// Say what would happen, without actually doing it
         #[arg(short, long)]
         noop: bool,
+        /// Define a constant which can be accessed from config
+        #[arg(short = 'D', long = "define")]
+        define: Vec<String>,
         /// Dump intermediate config files to stdout
-        #[arg(short = 'd', long, alias = "dump-configs")]
+        #[arg(long, alias = "dump-config")]
         dump_configs: bool,
         /// When files change, dump diffs to stdout
-        #[arg(short = 'D', long, alias = "dump-diff")]
+        #[arg(long, alias = "dump-diff")]
         dump_diffs: bool,
         /// When dumping configs or diffs, use syntax colouring where supported
-        #[arg(short = 'C', long)]
+        #[arg(short = 'C', long, alias = "color")]
         colour: bool,
         /// When dumping configs, number lines
         #[arg(short = 'N', long)]
@@ -106,7 +109,11 @@ enum Commands {
         no_colour: bool,
     },
     /// Open a Janet REPL with the Gurp library already loaded into the root environment
-    Repl {},
+    Repl {
+        /// Define a constant which can be accessed from the REPL
+        #[arg(short = 'D', long = "define")]
+        define: Vec<String>,
+    },
     /// Run Gurp in Server mode
     Server {
         /// Where to find host configuration files
@@ -149,6 +156,7 @@ fn main() -> ExitCode {
             no_lock,
             remove_first,
             only,
+            define,
         } => {
             let opts = ApplyOpts {
                 noop,
@@ -192,7 +200,10 @@ fn main() -> ExitCode {
             no_colour,
         } => commands::describe::run(&resource, no_colour),
         Commands::Doers { no_colour } => commands::doers::run(no_colour),
-        Commands::Repl {} => commands::repl::run(),
+        Commands::Repl { define } => {
+            let opts = ApplyVmOpts { define };
+            commands::repl::run(&opts)
+        }
         Commands::Server {
             config_dir,
             metrics_to,

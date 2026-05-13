@@ -22,7 +22,7 @@ on:
       - .github/workflows/rust-tests.yml
 
 concurrency:
-  group: test
+  group: test-rust
   cancel-in-progress: true
 
 jobs:

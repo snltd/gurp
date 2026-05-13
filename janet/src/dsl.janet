@@ -273,8 +273,15 @@
   (tabular-rows->struct (lines tabular-output) key-column))
 
 (defn recreate?
-  "If GURP_RECREATE_ZONE is a zone name, recreate that zone. If it's ALL, do
-   them all"
+  "Returns 1 (true) or 0 (false) depending on whether the user has defined
+  :recreate-zone-<name> or :recreate-all-zones. To be used in conjunction with
+  the zone :recreate property"
   [zone-name]
-  (def env-val (os/getenv "GURP_RECREATE_ZONE"))
-  (if (or (= env-val "ALL") (= env-val zone-name)) 1 200))
+  (let [user-defs (get (curenv) 'gurp-user-defs)]
+    (if (not user-defs)
+      0
+      (if (or
+        ((user-defs :value) (keyword "recreate-all-zones"))
+        ((user-defs :value) (keyword "recreate-zone-" zone-name)))
+        1
+        0))))
