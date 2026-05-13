@@ -277,8 +277,11 @@
   :recreate-zone-<name> or :recreate-all-zones. To be used in conjunction with
   the zone :recreate property"
   [zone-name]
-  (if (or
-    (gurp-user-defs (keyword "recreate-all-zones"))
-    (gurp-user-defs (keyword "recreate-zone-" zone-name)))
-    1
-    0))
+  (let [user-defs (get (curenv) 'gurp-user-defs)]
+    (if (not user-defs)
+      0
+      (if (or
+        ((user-defs :value) (keyword "recreate-all-zones"))
+        ((user-defs :value) (keyword "recreate-zone-" zone-name)))
+        1
+        0))))
