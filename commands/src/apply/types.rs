@@ -1,4 +1,4 @@
-use common::types::{ApplySummary, CompileError};
+use common::types::{ApplySummary, CompileError, NetworkError};
 
 pub(crate) enum ApplyStatus {
     Ok(ApplySummary),
@@ -11,7 +11,7 @@ pub(crate) enum FailPhase {
     Compile,
     FileNotFound,
     Locked,
-    Network,
+    Network(String),
 }
 
 impl std::fmt::Display for FailPhase {
@@ -22,7 +22,7 @@ impl std::fmt::Display for FailPhase {
             FailPhase::Compile => "compile",
             FailPhase::FileNotFound => "fileNotFound",
             FailPhase::Locked => "locked",
-            FailPhase::Network => "connect",
+            FailPhase::Network(s) => &format!("network-{s}"),
         };
         write!(f, "{}", s)
     }
@@ -31,7 +31,10 @@ impl std::fmt::Display for FailPhase {
 impl From<CompileError> for FailPhase {
     fn from(e: CompileError) -> Self {
         match e {
-            CompileError::Network(_) => FailPhase::Network,
+            CompileError::Network(e) => match e {
+                NetworkError::Http(code) => FailPhase::Network(code.to_string()),
+                NetworkError::Transport(_) => FailPhase::Network("transport error".to_string()),
+            },
             CompileError::FileNotFound(_) => FailPhase::FileNotFound,
             CompileError::ClientCreate(_) => FailPhase::Client,
             CompileError::Compile(_) => FailPhase::Compile,

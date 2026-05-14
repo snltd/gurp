@@ -16,48 +16,51 @@ pub fn run(host_file: Option<&Utf8Path>, opts: &ApplyOpts) -> ExitCode {
             None
         });
 
-    let json_config = match config::compile(host_file, opts) {
-        Ok(cfg) => cfg,
-        Err(e) => {
-            tracing::error!("could not compile config: {e:#}");
-            metrics::send(ApplyStatus::Fail(e.into()), &start_time.elapsed());
-            return ExitCode::FAILURE;
-        }
-    };
+    let exit_code = match config::compile(host_file, opts) {
+        Ok(cfg) => {
+            let lock = lockfile::acquire(opts);
 
-    let lock = lockfile::acquire(opts);
-
-    if lockfile::is_on(&start_time, &lock) {
-        return ExitCode::FAILURE;
-    }
-
-    let run_result = Applicator::from(json_config).run(opts);
-    let elapsed_time = start_time.elapsed();
-    tracing::info!("Run time: {:.3?}", elapsed_time);
-
-    let exit_code = match run_result {
-        Ok(apply_summary) => {
-            tracing::info!(
-                "resources: {}  changes: {}",
-                apply_summary.resources,
-                apply_summary.changes,
-            );
-            metrics::send(ApplyStatus::Ok(apply_summary), &elapsed_time);
-            ExitCode::SUCCESS
-        }
-        Err(e) => {
-            if let Some(path) = host_file {
-                tracing::error!("apply error on {path}: {e:#}");
+            if lockfile::is_on(&start_time, &lock) {
+                ExitCode::FAILURE
             } else {
-                tracing::error!("apply error: {e:#}");
-            }
+                let run_result = Applicator::from(cfg).run(opts);
+                let elapsed_time = start_time.elapsed();
+                tracing::info!("Run time: {:.3?}", elapsed_time);
 
-            metrics::send(ApplyStatus::Fail(FailPhase::Apply), &elapsed_time);
+                let run_exit_code = match run_result {
+                    Ok(apply_summary) => {
+                        tracing::info!(
+                            "resources: {}  changes: {}",
+                            apply_summary.resources,
+                            apply_summary.changes,
+                        );
+                        metrics::send(ApplyStatus::Ok(apply_summary), &elapsed_time);
+                        ExitCode::SUCCESS
+                    }
+                    Err(e) => {
+                        tracing::error!("FAILED TO APPLY CONFIG");
+                        if let Some(path) = host_file {
+                            tracing::error!("apply error on {path}: {e:#}");
+                        } else {
+                            tracing::error!("apply error: {e:#}");
+                        }
+
+                        metrics::send(ApplyStatus::Fail(FailPhase::Apply), &elapsed_time);
+                        ExitCode::FAILURE
+                    }
+                };
+
+                lockfile::release(lock);
+                run_exit_code
+            }
+        }
+
+        Err(e) => {
+            tracing::error!("could not generate config: {e:#}");
+            metrics::send(ApplyStatus::Fail(e.into()), &start_time.elapsed());
             ExitCode::FAILURE
         }
     };
-
-    lockfile::release(lock);
 
     if let Some(p) = metrics_provider {
         if let Err(e) = p.force_flush() {
@@ -67,6 +70,8 @@ pub fn run(host_file: Option<&Utf8Path>, opts: &ApplyOpts) -> ExitCode {
         if let Err(e) = p.shutdown() {
             tracing::warn!("failed to shut down OTEL provider: {e:#}");
         }
+    } else {
+        tracing::debug!("no metrics provider, so not sending metrics");
     }
 
     exit_code

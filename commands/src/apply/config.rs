@@ -68,16 +68,15 @@ pub(crate) fn compile(
             compiler::ConfigCompiler::new(&opts.vm, opts.destroy, opts.output.clone())?;
 
         if let Some(path) = path {
+            // local Janet config
             json_compiler.janet_file(path, true)
-        } else if opts.image {
-            let raw = load(path, &opts.client, "jimage")?;
-            json_compiler.janet_image(&raw, opts.client.server.as_deref())
         } else if let Some(snippet) = &opts.exec {
+            // local snippet
             json_compiler.janet_snippet(&from_snippet(snippet)?)
         } else {
-            Err(CompileError::Other(anyhow::anyhow!(
-                "fell through all apply config options"
-            )))
+            // local or remote Janet image
+            let raw = load(path, &opts.client, "jimage")?;
+            json_compiler.janet_image(&raw, opts.client.server.as_deref())
         }
     }?;
 
