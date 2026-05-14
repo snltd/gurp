@@ -96,7 +96,7 @@ mod test {
         );
 
         assert!(logs_contain(
-            "could not compile config: missing file error: /no/such/file"
+            "could not generate config: missing file error: /no/such/file"
         ));
         assert!(logs_contain("sending fail metrics: fileNotFound"));
         assert!(!logs_contain("resources:"));
@@ -117,7 +117,7 @@ mod test {
         );
 
         assert!(logs_contain(
-            "could not compile config: compilation error: Failed to parse code"
+            "could not generate config: compilation error: Failed to parse code"
         ));
         assert!(logs_contain("sending fail metrics: compile"));
         assert!(!logs_contain("resources:"));
@@ -180,7 +180,7 @@ mod test {
         );
 
         assert!(logs_contain(
-            "could not compile config: compilation error: Runtime VM error"
+            "could not generate config: compilation error: Runtime VM error"
         ));
         assert!(logs_contain("sending fail metrics: compile"));
         assert!(!logs_contain("resources:"));
