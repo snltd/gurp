@@ -25,7 +25,7 @@ mod test {
             .assert()
             .failure()
             .stdout(predicate::str::contains(
-                "could not compile config: missing file error: /no/such/file.janet",
+                "could not generate config: missing file error: /no/such/file.janet",
             ));
     }
 

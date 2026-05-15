@@ -51,6 +51,8 @@ pub fn init_metrics(
         .with_resource(resource)
         .build();
 
+    tracing::debug!("set up metrics provider for {endpoint}");
+
     global::set_meter_provider(provider.clone());
 
     Ok(Some(provider))

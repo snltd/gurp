@@ -90,7 +90,7 @@ pub enum CompileError {
     #[error("compilation error: {0}")]
     Compile(#[source] anyhow::Error),
     #[error("network error: {0}")]
-    Network(#[source] anyhow::Error),
+    Network(#[source] NetworkError),
     #[error("I/O error: {0}")]
     Io(#[source] std::io::Error),
     #[error("missing file error: {0}")]
@@ -99,6 +99,32 @@ pub enum CompileError {
     ClientCreate(#[source] anyhow::Error),
     #[error("compile error: {0}")]
     Other(#[source] anyhow::Error),
+}
+
+impl CompileError {
+    pub fn is_retryable(&self) -> bool {
+        match self {
+            CompileError::Network(e) => e.is_retryable(),
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum NetworkError {
+    #[error("HTTP error: {0}")]
+    Http(u16),
+    #[error("transport error: {0}")]
+    Transport(String),
+}
+
+impl NetworkError {
+    pub fn is_retryable(&self) -> bool {
+        match self {
+            NetworkError::Http(code) => matches!(code, 429 | 503 | 504),
+            NetworkError::Transport(_) => true,
+        }
+    }
 }
 
 /// Specific types for ApplySummary
