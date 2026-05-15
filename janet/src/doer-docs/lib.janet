@@ -61,10 +61,3 @@
   [str]
   (peg/replace-all '(* (some :s)) " " str))
 
-(defn code-example
-  [code-block-fn doer action]
-  (string/join
-    (filter truthy?
-            (seq [file :in (sorted (os/dir (pathcat example-root doer)))]
-              (when (string/has-prefix? action file)
-                (code-block-fn (slurp (pathcat example-root doer file))))))))
