@@ -11,9 +11,9 @@
 
 (defn- indent [text]
   (as-> text _
-    (string/split "\n" _)
-    (map (partial string "  ") _)
-    (string/join _ "\n")))
+        (string/split "\n" _)
+        (map (partial string "  ") _)
+        (string/join _ "\n")))
 
 (defn code-block [code]
   (string "\n" (indent code)))
@@ -86,6 +86,49 @@
   [note]
   (string (join-lines (lay-out-help "" note 2 (term-width))) "\n\n"))
 
+(defn basename
+  [path]
+  (last (string/split "/" path)))
+
+(defn files-in
+  "Returns a list of files in dir, including the path to dir. Optionally, files
+  can be of type `kind`"
+  [dir &opt kind]
+
+  (def filter-fn (if kind
+                   (fn [path] (= ((os/stat path) :mode) kind))
+                   identity))
+
+  (->> dir
+       (string)
+       (os/dir)
+       (map (partial pathcat dir))
+       (filter filter-fn)
+       (sort)))
+
+(defn- examples-as-map
+  [dir]
+  (struct ;(flatten (map |(tuple (basename $) (slurp $)) (files-in dir :file)))))
+
+(def code-examples
+  "This def pulls the examples into the Gurp Janet image"
+  (do
+    (def doer-dirs (files-in example-root :directory))
+
+    (def doers (map basename doer-dirs))
+    (def examples (map examples-as-map doer-dirs))
+
+    (zipcoll doers examples)))
+
+(defn code-example
+  [code-block-fn doer action]
+  (string/join
+    (when-let [examples (get code-examples (string doer))]
+      (keep
+        (fn [[k v]]
+          (when (string/has-prefix? (code-block-fn action) k) v))
+        (pairs examples)))))
+
 (defn help-for-doer
   "Returns a multiline string showing keys supported by the given doer"
   [doer]
@@ -110,7 +153,7 @@
     "\n"
     "\n"
     (bold "Optional properties")
-  "\n"
+    "\n"
     (format-properties (doer-lookup doer :optional-props-ensure))
     "\n"
     "\n"
