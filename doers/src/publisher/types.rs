@@ -13,8 +13,6 @@ pub struct OriginOrMirror {
     #[serde(rename = "name")]
     pub uri: PublisherUri,
     pub proxy: Option<PublisherUri>,
-    pub ssl_key: Option<String>,
-    pub ssl_cert: Option<String>,
 }
 
 pub type Origin = OriginOrMirror;

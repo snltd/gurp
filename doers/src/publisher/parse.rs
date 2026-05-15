@@ -48,12 +48,6 @@ pub(crate) fn parse_publisher(raw: &str) -> Publisher {
                     ParseState::InMirror
                 };
             }
-            "SSL Key" if state != ParseState::None && value != "None" => {
-                in_play.ssl_key = Some(value.to_owned())
-            }
-            "SSL Cert" if state != ParseState::None && value != "None" => {
-                in_play.ssl_cert = Some(value.to_owned())
-            }
             "Proxy" if state != ParseState::None => in_play.proxy = Some(value.to_owned()),
             _ => {}
         }
@@ -86,8 +80,8 @@ mod test {
                      SSL Cert: None
                    Mirror URI: https://omnios.lan.id264.net/r151056/core/
                    Mirror Status: Online
-                      SSL Key: ExampleKey
-                     SSL Cert: ExampleCert
+                      SSL Key: None
+                     SSL Cert: None
                    Mirror URI: https://us-west.mirror.omnios.org/r151056/core/
                    Mirror Status: Online
                       SSL Key: None
@@ -104,21 +98,15 @@ mod test {
             origins: vec![Origin {
                 uri: "https://pkg.omnios.org/r151056/core/".to_owned(),
                 proxy: Some("http://10.2.0.20:3128".to_owned()),
-                ssl_key: None,
-                ssl_cert: None,
             }],
             mirrors: vec![
                 Mirror {
                     uri: "https://omnios.lan.id264.net/r151056/core/".to_owned(),
                     proxy: None,
-                    ssl_key: Some("ExampleKey".to_owned()),
-                    ssl_cert: Some("ExampleCert".to_owned()),
                 },
                 Mirror {
                     uri: "https://us-west.mirror.omnios.org/r151056/core/".to_owned(),
                     proxy: None,
-                    ssl_key: None,
-                    ssl_cert: None,
                 },
             ],
         };

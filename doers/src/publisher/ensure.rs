@@ -1,9 +1,11 @@
 use crate::publisher::types::{Mirror, Origin, Publisher, PublisherName};
 use crate::publisher::{functions, parse};
 use anyhow::Context;
+use common::cmd;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PKG_BIN};
 use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
+use std::process::Command;
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -34,54 +36,78 @@ impl GurpPublisherEnsure {
         }
     }
 
-    fn align_publisher(
-        &self,
-        current: &Publisher,
-        opts: &ApplyOpts,
-    ) -> anyhow::Result<ApplySummary> {
-        todo!()
-    }
-
     fn create_publisher(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         tracing::info!("creating publisher {}", self.name);
 
+        let mut cmd = Command::new(PKG_BIN);
+        cmd.arg("set-publisher");
+
         for origin in &self.desired_state.origins {
-            self.add_origin(origin, opts)?;
+            cmd.args(["-g", &origin.uri]);
         }
 
         for mirror in &self.desired_state.mirrors {
-            self.add_origin(mirror, opts)?;
+            cmd.args(["-m", &mirror.uri]);
+        }
+
+        cmd.arg(&self.name);
+
+        tracing::debug!(command = cmd::to_string(&cmd));
+
+        if !opts.noop {
+            run_cmd!(cmd).with_context(|| format!("failed to create publisher {}", self.name))?;
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
-    fn add_origin(&self, origin: &Origin, opts: &ApplyOpts) -> anyhow::Result<bool> {
-        tracing::debug!("publisher {}: adding origin {}", self.name, origin.uri);
-        todo!()
-    }
+    fn align_publisher(
+        &self,
+        current: &Publisher,
+        opts: &ApplyOpts,
+    ) -> anyhow::Result<ApplySummary> {
+        tracing::info!("modifying publisher {}", self.name);
 
-    fn align_origin(&self, origin: &Origin, opts: &ApplyOpts) -> anyhow::Result<bool> {
-        todo!()
-    }
+        let mut cmd = Command::new(PKG_BIN);
+        cmd.arg("set-publisher");
 
-    fn remove_origin(&self, origin: &Origin, opts: &ApplyOpts) -> anyhow::Result<bool> {
-        tracing::debug!("publisher {}: removing origin {}", self.name, origin.uri);
-        todo!()
-    }
+        for origin in &self.desired_state.origins {
+            if !current.origins.contains(origin) {
+                tracing::info!("publisher {}: adding origin {}", self.name, origin.uri);
+                cmd.args(["-g", &origin.uri]);
+            }
+        }
 
-    fn add_mirror(&self, mirror: &Mirror, opts: &ApplyOpts) -> anyhow::Result<bool> {
-        tracing::debug!("publisher {}: adding mirror {}", self.name, mirror.uri);
-        todo!()
-    }
+        for mirror in &self.desired_state.mirrors {
+            if !current.mirrors.contains(mirror) {
+                tracing::info!("publisher {}: adding mirror {}", self.name, mirror.uri);
+                cmd.args(["-m", &mirror.uri]);
+            }
+        }
 
-    fn align_origin(&self, mirror: &Mirror, opts: &ApplyOpts) -> anyhow::Result<bool> {
-        todo!()
-    }
+        for origin in &current.origins {
+            if !self.desired_state.origins.contains(origin) {
+                tracing::info!("publisher {}: removing origin {}", self.name, origin.uri);
+                cmd.args(["-G", &origin.uri]);
+            }
+        }
 
-    fn remove_mirror(&self, mirror: &Mirror, opts: &ApplyOpts) -> anyhow::Result<bool> {
-        tracing::debug!("publisher {}: removing mirror {}", self.name, mirror.uri);
-        todo!()
+        for mirror in &current.mirrors {
+            if !self.desired_state.mirrors.contains(mirror) {
+                tracing::info!("publisher {}: removing mirror {}", self.name, mirror.uri);
+                cmd.args(["-M", &mirror.uri]);
+            }
+        }
+
+        cmd.arg(&self.name);
+
+        tracing::debug!(command = cmd::to_string(&cmd));
+
+        if !opts.noop {
+            run_cmd!(cmd).with_context(|| format!("failed to create publisher {}", self.name))?;
+        }
+
+        Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 }
 
@@ -102,14 +128,10 @@ mod test {
                     origins: vec![Origin {
                         uri: "http://pkg.lan.id264.net".to_owned(),
                         proxy: Some("http://10.2.0.20/1837".to_owned()),
-                        ssl_key: None,
-                        ssl_cert: None,
                     }],
                     mirrors: vec![Mirror {
                         uri: "http://mirror.lan.id264.net".to_owned(),
                         proxy: None,
-                        ssl_key: None,
-                        ssl_cert: None,
                     }],
                 }
             },
