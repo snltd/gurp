@@ -1,6 +1,6 @@
 name: Janet Tests
 permissions:
-  contents: read
+  contents: write
 on:
   push:
     branches:
