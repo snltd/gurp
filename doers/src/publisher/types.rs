@@ -5,7 +5,7 @@ pub struct Publisher {
     #[serde(rename = "origin")]
     pub origins: Vec<OriginOrMirror>,
     #[serde(rename = "mirror")]
-    pub mirrors: Vec<OriginOrMirror>,
+    pub mirrors: Option<Vec<OriginOrMirror>>,
 }
 
 #[derive(PartialEq, Default, Deserialize, Debug)]

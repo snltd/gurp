@@ -59,7 +59,14 @@ pub(crate) fn parse_publisher(raw: &str) -> Publisher {
         mirrors.push(in_play);
     }
 
-    Publisher { origins, mirrors }
+    Publisher {
+        origins,
+        mirrors: if mirrors.is_empty() {
+            None
+        } else {
+            Some(mirrors)
+        },
+    }
 }
 
 #[cfg(test)]
@@ -99,7 +106,7 @@ mod test {
                 uri: "https://pkg.omnios.org/r151056/core/".to_owned(),
                 proxy: Some("http://10.2.0.20:3128".to_owned()),
             }],
-            mirrors: vec![
+            mirrors: Some(vec![
                 Mirror {
                     uri: "https://omnios.lan.id264.net/r151056/core/".to_owned(),
                     proxy: None,
@@ -108,7 +115,7 @@ mod test {
                     uri: "https://us-west.mirror.omnios.org/r151056/core/".to_owned(),
                     proxy: None,
                 },
-            ],
+            ]),
         };
 
         assert_eq!(parse_publisher(raw), expected);

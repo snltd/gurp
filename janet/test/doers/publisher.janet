@@ -26,9 +26,7 @@
     "In publisher/remove sysdef: unexpected property :url. Valid properties are :label")
 
   (test-error
-    (publisher/ensure "sysdef"
-      :uri "http://pkg.lan.id264.net"
-      :type "gibbus")
+    (publisher/ensure "sysdef" :uri "http://pkg.lan.id264.net")
     "In publisher/ensure sysdef: did not find mandatory property :origin. Mandatory properties are :origin")
 
   (test-error

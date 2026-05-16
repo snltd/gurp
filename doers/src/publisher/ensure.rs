@@ -1,4 +1,4 @@
-use crate::publisher::types::{Mirror, Origin, Publisher, PublisherName};
+use crate::publisher::types::{Publisher, PublisherName};
 use crate::publisher::{functions, parse};
 use anyhow::Context;
 use common::cmd;
@@ -46,7 +46,7 @@ impl GurpPublisherEnsure {
             cmd.args(["-g", &origin.uri]);
         }
 
-        for mirror in &self.desired_state.mirrors {
+        for mirror in self.desired_state.mirrors.iter().flatten() {
             cmd.args(["-m", &mirror.uri]);
         }
 
@@ -78,8 +78,8 @@ impl GurpPublisherEnsure {
             }
         }
 
-        for mirror in &self.desired_state.mirrors {
-            if !current.mirrors.contains(mirror) {
+        for mirror in self.desired_state.mirrors.iter().flatten() {
+            if !current.mirrors.as_ref().is_some_and(|m| m.contains(mirror)) {
                 tracing::info!("publisher {}: adding mirror {}", self.name, mirror.uri);
                 cmd.args(["-m", &mirror.uri]);
             }
@@ -92,8 +92,13 @@ impl GurpPublisherEnsure {
             }
         }
 
-        for mirror in &current.mirrors {
-            if !self.desired_state.mirrors.contains(mirror) {
+        for mirror in current.mirrors.iter().flatten() {
+            if !self
+                .desired_state
+                .mirrors
+                .as_ref()
+                .is_some_and(|m| m.contains(mirror))
+            {
                 tracing::info!("publisher {}: removing mirror {}", self.name, mirror.uri);
                 cmd.args(["-M", &mirror.uri]);
             }
@@ -129,10 +134,10 @@ mod test {
                         uri: "http://pkg.lan.id264.net".to_owned(),
                         proxy: Some("http://10.2.0.20/1837".to_owned()),
                     }],
-                    mirrors: vec![Mirror {
+                    mirrors: Some(vec![Mirror {
                         uri: "http://mirror.lan.id264.net".to_owned(),
                         proxy: None,
-                    }],
+                    }]),
                 }
             },
             deserialized_example("publisher/ensure-new-publisher.janet")
