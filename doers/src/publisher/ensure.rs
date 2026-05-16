@@ -44,10 +44,26 @@ impl GurpPublisherEnsure {
 
         for origin in &self.desired_state.origins {
             cmd.args(["-g", &origin.uri]);
+            if let Some(proxy) = &origin.proxy {
+                tracing::info!(
+                    "publisher {} origin {}: adding proxy {proxy}",
+                    self.name,
+                    origin.uri
+                );
+                cmd.args(["--proxy", proxy]);
+            }
         }
 
         for mirror in self.desired_state.mirrors.iter().flatten() {
             cmd.args(["-m", &mirror.uri]);
+            if let Some(proxy) = &mirror.proxy {
+                tracing::info!(
+                    "publisher {} mirror {}: adding proxy {proxy}",
+                    self.name,
+                    mirror.uri
+                );
+                cmd.args(["--proxy", proxy]);
+            }
         }
 
         cmd.arg(&self.name);
@@ -75,6 +91,14 @@ impl GurpPublisherEnsure {
             if !current.origins.contains(origin) {
                 tracing::info!("publisher {}: adding origin {}", self.name, origin.uri);
                 cmd.args(["-g", &origin.uri]);
+                if let Some(proxy) = &origin.proxy {
+                    tracing::info!(
+                        "publisher {} origin {}: adding proxy {proxy}",
+                        self.name,
+                        origin.uri
+                    );
+                    cmd.args(["--proxy", proxy]);
+                }
             }
         }
 
@@ -82,6 +106,14 @@ impl GurpPublisherEnsure {
             if !current.mirrors.as_ref().is_some_and(|m| m.contains(mirror)) {
                 tracing::info!("publisher {}: adding mirror {}", self.name, mirror.uri);
                 cmd.args(["-m", &mirror.uri]);
+                if let Some(proxy) = &mirror.proxy {
+                    tracing::info!(
+                        "publisher {} mirror {}: adding proxy {proxy}",
+                        self.name,
+                        mirror.uri
+                    );
+                    cmd.args(["--proxy", proxy]);
+                }
             }
         }
 

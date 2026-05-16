@@ -91,6 +91,7 @@ mod test {
                      SSL Cert: None
                    Mirror URI: https://us-west.mirror.omnios.org/r151056/core/
                    Mirror Status: Online
+                        Proxy: http://localhost:3128
                       SSL Key: None
                      SSL Cert: None
                   Client UUID: e2be96f4-4496-11f1-8073-94c691ae17bc
@@ -113,7 +114,7 @@ mod test {
                 },
                 Mirror {
                     uri: "https://us-west.mirror.omnios.org/r151056/core/".to_owned(),
-                    proxy: None,
+                    proxy: Some("http://localhost:3128".to_owned()),
                 },
             ]),
         };
