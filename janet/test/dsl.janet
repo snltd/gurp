@@ -33,6 +33,11 @@
   (test (argcat "/bin/cat" "file1" "file2") "/bin/cat file1 file2")
   (test (argcat "judge" "test.janet") "judge test.janet"))
 
+(deftest basename
+  (test (basename "/path/to/file") "file")
+  (test (basename "path/to/some/other/file") "file")
+  (test (basename "just-the-file") "just-the-file"))
+
 (deftest fields
   (test
     (fields "f1 f2 f3 f4    f5 ") @["f1" "f2" "f3" "f4" "f5"])
@@ -43,6 +48,7 @@
 
 (deftest parent
   (test (parent "/") "/")
+  (test (parent "/////crazy///slashes///") "/crazy")
   (test (parent "/path/to/file") "/path/to"))
 
 (deftest cron-minutes-from-name
