@@ -82,7 +82,7 @@
       (pathcat (dyn :gurp-config-root) "files" file-name))))
 
 (defn parent
-  "Returns the parent directory of the given path"
+  "Returns the parent directory of path"
   [path]
   (def components
     (peg/match ~{:main (some (choice (capture (some (if-not "/" 1))) 1))} path))
@@ -90,8 +90,27 @@
   (array/pop components)
   (string "/" (string/join components "/")))
 
+(defn basename
+  "Returns the final component of path"
+  [path]
+  (last (string/split "/" path)))
+
+(defn files-in
+  "Returns a list of files in dir, including the path to dir. Optionally, files
+  can be of type `kind`"
+  [dir &opt kind]
+  (def filter-fn (if kind
+                   (fn [path] (= ((os/stat path) :mode) kind))
+                   identity))
+
+  (->> (string dir)
+       (os/dir)
+       (map (partial pathcat dir))
+       (filter filter-fn)
+       (sort)))
+
 (defn lines
-  "Returns an array of the lines in the given string. Each is trimmed."
+  "Returns an array of the lines in the given string. Each is trimmed"
   [arg]
   (->> arg
        (string/trim)
@@ -281,7 +300,8 @@
     (if (not user-defs)
       0
       (if (or
-        ((user-defs :value) (keyword "recreate-all-zones"))
-        ((user-defs :value) (keyword "recreate-zone-" zone-name)))
+            ((user-defs :value) (keyword "recreate-all-zones"))
+            ((user-defs :value) (keyword "recreate-zone-" zone-name)))
         1
         0))))
+

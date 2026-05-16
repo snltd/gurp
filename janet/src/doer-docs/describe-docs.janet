@@ -6,14 +6,14 @@
 (use ../command-lib)
 (use ../lib)
 (use ../../test/doers/test-lib)
-(import ../dsl :prefix "" :only [lines compact pathcat parent])
+(import ../dsl :prefix "" :only [files-in basename lines compact pathcat parent])
 (import ../doers :prefix "")
 
 (defn- indent [text]
   (as-> text _
-    (string/split "\n" _)
-    (map (partial string "  ") _)
-    (string/join _ "\n")))
+        (string/split "\n" _)
+        (map (partial string "  ") _)
+        (string/join _ "\n")))
 
 (defn code-block [code]
   (string "\n" (indent code)))
@@ -86,6 +86,32 @@
   [note]
   (string (join-lines (lay-out-help "" note 2 (term-width))) "\n\n"))
 
+(defn- examples-as-map
+  [dir]
+  (struct ;(flatten (map |(tuple (basename $) (slurp $)) (files-in dir :file)))))
+
+(def code-examples
+  "This def pulls the examples into the Gurp Janet image"
+  (do
+    (def doer-dirs (files-in example-root :directory))
+    (def doers (map basename doer-dirs))
+    (def examples (map examples-as-map doer-dirs))
+    (zipcoll doers examples)))
+
+(defn- code-example
+  "Returns a string formetted for doer/action, formatted via code-bock-fn"
+  [code-block-fn doer action]
+
+  (defn example-filter
+    [[k v]]
+    (def prefix (string action "-"))
+    (when (string/has-prefix? prefix k) (code-block v)))
+
+  (string/join
+    (when-let [examples (get code-examples (string doer))]
+      (keep example-filter
+            (sort (pairs examples))))))
+
 (defn help-for-doer
   "Returns a multiline string showing keys supported by the given doer"
   [doer]
@@ -110,7 +136,7 @@
     "\n"
     "\n"
     (bold "Optional properties")
-  "\n"
+    "\n"
     (format-properties (doer-lookup doer :optional-props-ensure))
     "\n"
     "\n"
