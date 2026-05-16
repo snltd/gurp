@@ -13,7 +13,7 @@ pub struct ApplyLock {
 }
 
 pub fn acquire(opts: &ApplyOpts) -> Option<ApplyLock> {
-    if opts.no_lock || opts.exec.is_some() {
+    if opts.noop || opts.no_lock || opts.exec.is_some() {
         None
     } else {
         Some(ApplyLock::from(APPLY_LOCKFILE))
