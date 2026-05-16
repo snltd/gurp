@@ -32,16 +32,20 @@
     :help "See zone/bootstrap"}
    :bootstrap-from
    {:types [:table]
-    :help "Copy gurp into the zone, and apply the given file, relative to zone root"}
+    :help "Copy gurp into the zone, and apply the given file, relative to zone
+    root"}
    :capped-memory
    {:types [:struct]
-    :help "Set memory cap. Keys must be :physical and :swap, values are strings like '4G'"}
+    :help "Set memory cap. Keys must be :physical and :swap, values are strings
+           like '4G'"}
    :clone-from
    {:types [:string]
-    :help "Instead of installing, clone from the given zone, which must exist and be halted"}
+    :help "Instead of installing, clone from the given zone, which must exist
+           and be halted"}
    :copy-in
    {:types [:struct]
-    :help "Copy files into the zone. Key (keyword) is src, val is dest, relative to zone root. Unqualified src is assumed to be in ../files/"}
+    :help "Copy files into the zone. Key (keyword) is src, val is dest, relative
+           to zone root. Unqualified src is assumed to be in ../files/"}
    :datasets
    {:types [:tuple]
     :help "ZFS datasets (as strings) to be delegated to zone"}
