@@ -99,6 +99,7 @@
     (zipcoll doers examples)))
 
 (defn- code-example
+  "Returns a string formetted for doer/action, formatted via code-bock-fn"
   [code-block-fn doer action]
 
   (defn example-filter

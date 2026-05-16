@@ -6,6 +6,7 @@
 (use ./lib)
 (use ./markdown-dsl)
 (import ../dsl :prefix "" :only [pathcat])
+(use ../../test/doers/test-lib)
 
 (def doc-dir (pathcat (repo-root) "/doc/doers"))
 
@@ -47,6 +48,14 @@
                        (doer-lookup ,doer
                                     (keyword "defaults-" ,action)))))))))))))
 
+(defn code-example
+  "Returns a string formetted for doer/action, formatted via code-bock-fn"
+  [code-block-fn doer action]
+  (string/join
+    (filter truthy?
+            (seq [file :in (sorted (os/dir (pathcat example-root doer)))]
+              (when (string/has-prefix? action file)
+                (code-block-fn (slurp (pathcat example-root doer file))))))))
 
 (defn markdown-for-doer
   "Returns a multiline string of markdown for the given doer"
@@ -87,14 +96,6 @@
 
     (if-let [notes (doer-lookup doer :notes)]
       (string (h2 "Notes") "\n" (splice (map markdown-note notes))))))
-
-(defn code-example
-  [code-block-fn doer action]
-  (string/join
-    (filter truthy?
-            (seq [file :in (sorted (os/dir (pathcat example-root doer)))]
-              (when (string/has-prefix? action file)
-                (code-block-fn (slurp (pathcat example-root doer file))))))))
 
 (defn markdown-for-helpers
   "Returns a multiline string showing keys supported by the given helpers"
