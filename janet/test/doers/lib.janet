@@ -52,7 +52,7 @@
 
   (test-error
     (make-spec-struct :a 1 :b)
-    "unable to create struct from 3 arg(s):  (:a\n 1\n :b): expected even number of arguments"))
+    "unable to create struct from 3 arg(s):  (:a 1 :b): expected even number of arguments"))
 
 (deftest spec-with-defaults
   (test (spec-with-defaults {} {}) @{})
