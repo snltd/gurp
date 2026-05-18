@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::fmt::{self, Write};
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct Publisher {
@@ -23,7 +24,20 @@ pub type PublisherUri = String;
 
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "lowercase")]
-pub enum PublisherType {
+pub enum TargetType {
     Origin,
     Mirror,
+}
+
+impl fmt::Display for TargetType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                TargetType::Origin => "origin",
+                TargetType::Mirror => "mirror",
+            }
+        )
+    }
 }

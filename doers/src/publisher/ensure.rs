@@ -1,5 +1,5 @@
-use crate::publisher::types::{Publisher, PublisherName};
-use crate::publisher::{functions, parse};
+use super::types::{OriginOrMirror, Publisher, PublisherName, TargetType};
+use super::{functions, parse};
 use anyhow::Context;
 use common::cmd;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PKG_BIN};
@@ -77,6 +77,48 @@ impl GurpPublisherEnsure {
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
 
+    fn set_origin_or_mirror(
+        &self,
+        target_type: TargetType,
+        target: &OriginOrMirror,
+        opts: &ApplyOpts,
+    ) -> anyhow::Result<()> {
+        let mut cmd = Command::new(PKG_BIN);
+        cmd.arg("set-publisher");
+        tracing::info!(
+            "publisher {}: adding {} {}",
+            self.name,
+            target_type,
+            target.uri
+        );
+
+        match target_type {
+            TargetType::Origin => cmd.arg("-g"),
+            TargetType::Mirror => cmd.arg("-m"),
+        };
+
+        cmd.arg(&target.uri);
+
+        if let Some(proxy) = &target.proxy {
+            tracing::info!(
+                "publisher {} origin {}: adding proxy {proxy}",
+                self.name,
+                target.uri
+            );
+            cmd.args(["--proxy", proxy]);
+        }
+
+        cmd.arg(&self.name);
+
+        tracing::debug!(command = cmd::to_string(&cmd));
+
+        if !opts.noop {
+            run_cmd!(cmd).with_context(|| format!("failed to create publisher {}", self.name))?;
+        }
+
+        Ok(())
+    }
+
     fn align_publisher(
         &self,
         current: &Publisher,
@@ -84,43 +126,26 @@ impl GurpPublisherEnsure {
     ) -> anyhow::Result<ApplySummary> {
         tracing::info!("modifying publisher {}", self.name);
 
-        let mut cmd = Command::new(PKG_BIN);
-        cmd.arg("set-publisher");
-
+        // The pkg interface is a bit clunky, and though you can add an origin and one or more
+        // mirrors in the same command, you can only add one proxy per command. So, to be on the
+        // safe side, we'll issue separate commands for each action. Slow, but you probably only
+        // ever do it once per host.
         for origin in &self.desired_state.origins {
             if !current.origins.contains(origin) {
-                tracing::info!("publisher {}: adding origin {}", self.name, origin.uri);
-                cmd.args(["-g", &origin.uri]);
-                if let Some(proxy) = &origin.proxy {
-                    tracing::info!(
-                        "publisher {} origin {}: adding proxy {proxy}",
-                        self.name,
-                        origin.uri
-                    );
-                    cmd.args(["--proxy", proxy]);
-                }
+                self.set_origin_or_mirror(TargetType::Origin, origin, opts)?;
             }
         }
 
         for mirror in self.desired_state.mirrors.iter().flatten() {
             if !current.mirrors.as_ref().is_some_and(|m| m.contains(mirror)) {
-                tracing::info!("publisher {}: adding mirror {}", self.name, mirror.uri);
-                cmd.args(["-m", &mirror.uri]);
-                if let Some(proxy) = &mirror.proxy {
-                    tracing::info!(
-                        "publisher {} mirror {}: adding proxy {proxy}",
-                        self.name,
-                        mirror.uri
-                    );
-                    cmd.args(["--proxy", proxy]);
-                }
+                self.set_origin_or_mirror(TargetType::Mirror, mirror, opts)?;
             }
         }
 
         for origin in &current.origins {
             if !self.desired_state.origins.contains(origin) {
                 tracing::info!("publisher {}: removing origin {}", self.name, origin.uri);
-                cmd.args(["-G", &origin.uri]);
+                let _ = cmd_change_or_noop!(opts, PKG_BIN, "set-publisher", "-G", &origin.uri)?;
             }
         }
 
@@ -132,16 +157,8 @@ impl GurpPublisherEnsure {
                 .is_some_and(|m| m.contains(mirror))
             {
                 tracing::info!("publisher {}: removing mirror {}", self.name, mirror.uri);
-                cmd.args(["-M", &mirror.uri]);
+                let _ = cmd_change_or_noop!(opts, PKG_BIN, "set-publisher", "-M", &mirror.uri)?;
             }
-        }
-
-        cmd.arg(&self.name);
-
-        tracing::debug!(command = cmd::to_string(&cmd));
-
-        if !opts.noop {
-            run_cmd!(cmd).with_context(|| format!("failed to create publisher {}", self.name))?;
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
