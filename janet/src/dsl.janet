@@ -19,8 +19,9 @@
   "Holder for role definitions"
   [role-name & role-definition]
   ~(defn ,role-name
-     []
+     [& params]
      (setdyn :role-dyn (string ',role-name))
+     (def role-params (struct ;params))
      ,;role-definition))
 
 (defmacro section
@@ -304,4 +305,3 @@
             ((user-defs :value) (keyword "recreate-zone-" zone-name)))
         1
         0))))
-

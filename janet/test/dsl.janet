@@ -1,5 +1,46 @@
 (use judge)
+(use ../src/collector)
+(use ../src/doers)
 (use ../src/dsl)
+
+(deftest role-macro
+  (test-macro (role role-name)
+              (defn role-name
+                [& params]
+                (setdyn :role-dyn (string (quote role-name)))
+                (def role-params (struct (splice params))))))
+
+(deftest role-params
+  (set *collector* (new-collector))
+
+  (role test-role
+        (file/ensure "/tmp/test"
+                     :content (get role-params :content "default content")
+                     :owner (role-params :owner))) # will fall back to default
+
+
+  (test-role :owner "rob" :content "words and stuff")
+  (test *collector*
+        @{:ensure @{:file @[{:_id "/test-role/file/_tmp_test"
+                             :content "words and stuff"
+                             :group "root"
+                             :mode "0644"
+                             :name "/tmp/test"
+                             :owner "rob"
+                             :role "test-role"}]}
+          :remove @{}})
+
+  (set *collector* (new-collector))
+  (test-role)
+  (test *collector*
+        @{:ensure @{:file @[{:_id "/test-role/file/_tmp_test"
+                             :content "default content"
+                             :group "root"
+                             :mode "0644"
+                             :name "/tmp/test"
+                             :owner "root"
+                             :role "test-role"}]}
+          :remove @{}}))
 
 (deftest labelise
   (test (labelise "/some/file" 1 2 3) "_some_file-1-2-3")
