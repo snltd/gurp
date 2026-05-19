@@ -18,11 +18,26 @@
 (defmacro role
   "Holder for role definitions"
   [role-name & role-definition]
+  (def [required-keys body]
+    (if (and (not (empty? role-definition))
+             (tuple? (first role-definition))
+             (= (get (first role-definition) 0) 'requires))
+      [(slice (first role-definition) 1)
+       (slice role-definition 1)]
+      [[]
+       role-definition]))
+
   ~(defn ,role-name
      [& params]
      (setdyn :role-dyn (string ',role-name))
      (def role-params (struct ;params))
-     ,;role-definition))
+     ,;(map (fn [k]
+              ~(unless (has-key? role-params ,k)
+                 (errorf "role %s: missing required param :%s"
+                         ',role-name
+                         ',k)))
+            required-keys)
+     ,;body))
 
 (defmacro section
   "A no-op which might help you write readable definitions"
