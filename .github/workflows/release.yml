@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Release for OmniOS
     permissions:
-      actions: write # To upload release
+      contents: write # To upload release
     steps:
     - name: Checkout Code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2

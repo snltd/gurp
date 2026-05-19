@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::fmt::{self, Write};
+use std::fmt;
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct Publisher {
