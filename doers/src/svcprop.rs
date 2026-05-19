@@ -97,7 +97,7 @@ impl GurpSvcpropEnsure {
             }
 
             tracing::info!(
-                "setting {property} = {}: {}\n",
+                "setting {property} = {}: {}",
                 desired.prop_type,
                 desired.value
             );
