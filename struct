@@ -1,3 +1,0 @@
-janet/src/facts.janet:      :links (-> "/usr/sbin/dladm show-link" (run-cmd) (tabulate-output->struct))
-janet/src/facts.janet:      :ip-interfaces (-> "/usr/sbin/ipadm show-if" (run-cmd) (tabulate-output->struct))
-janet/src/facts.janet:      :ip-addresses (-> "/usr/sbin/ipadm show-addr" (run-cmd) (tabulate-output->struct))
