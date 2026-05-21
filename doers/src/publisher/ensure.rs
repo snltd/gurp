@@ -145,7 +145,14 @@ impl GurpPublisherEnsure {
         for origin in &current.origins {
             if !self.desired_state.origins.contains(origin) {
                 tracing::info!("publisher {}: removing origin {}", self.name, origin.uri);
-                let _ = cmd_change_or_noop!(opts, PKG_BIN, "set-publisher", "-G", &origin.uri)?;
+                let _ = cmd_change_or_noop!(
+                    opts,
+                    PKG_BIN,
+                    "set-publisher",
+                    "-G",
+                    &origin.uri,
+                    &self.name
+                )?;
             }
         }
 
@@ -157,7 +164,14 @@ impl GurpPublisherEnsure {
                 .is_some_and(|m| m.contains(mirror))
             {
                 tracing::info!("publisher {}: removing mirror {}", self.name, mirror.uri);
-                let _ = cmd_change_or_noop!(opts, PKG_BIN, "set-publisher", "-M", &mirror.uri)?;
+                let _ = cmd_change_or_noop!(
+                    opts,
+                    PKG_BIN,
+                    "set-publisher",
+                    "-M",
+                    &mirror.uri,
+                    &self.name
+                )?;
             }
         }
 

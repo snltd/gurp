@@ -1,4 +1,9 @@
-## v 2.0.0
+## v 2.0.1 (2025-05-21)
+
+- Fix bug in publisher doer which errored when removing origins or mirrors.
+
+
+## v 2.0.0 (2025-05-20)
 
 Items marked [*] are breaking changes.
 
