@@ -320,3 +320,8 @@
             ((user-defs :value) (keyword "recreate-zone-" zone-name)))
         1
         0))))
+
+(defn num-field-sort
+  "Sort a file when each line's first field is numeric"
+  [str]
+  (int/u64 (first (fields str))))

@@ -73,6 +73,8 @@ gives you a few convenience functions and macros.
 - `(recreate?)` used in conjunction with the `:recreate` key in a zone config.
   Write `:recreate (recreate? "my-zone")` and if you run `gurp` with
   `GURP_RECREATE_ZONE=my-zone` , `my-zone` will be recreated.
+- `(num-field-sort string)` sorts the lines in `string` based on the assumption
+  the first field of each is numeric.
 
 ### Dynamic Bindings
 
