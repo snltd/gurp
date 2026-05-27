@@ -30,7 +30,7 @@
   (var seen @{})
   (loop [id :in (map |($ :_id) resource-list)]
     (if (has-key? seen id)
-      (error (string "duplicate key: " id))
+      (errorf "duplicate key: %s" id)
       (set (seen id) true))))
 
 (defn- finalise-action

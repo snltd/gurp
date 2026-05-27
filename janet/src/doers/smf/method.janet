@@ -34,8 +34,7 @@
       :method
 
       (if-not (has-value? allowed-methods name)
-        (error
-          (string "smf/method name must be one of " (comma-sep allowed-methods))))
+        (errorf "smf/method name must be one of %s" (comma-sep allowed-methods)))
 
       (def spec-table
         (checked-spec

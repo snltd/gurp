@@ -48,14 +48,13 @@
     "remove"
     (if-let [match-val (spec-struct :match)]
       (if-not (has-value? match-allowed match-val)
-        (error
-          (string "match must be one of "
-                  (comma-sep match-allowed) " [Got '" match-val "']"))))
+        (errorf "match must be one of %s [Got '%s']"
+                (comma-sep match-allowed)
+                match-val)))
 
     (if-let [type-val (spec-struct :apply-to)]
       (if-not (has-value? apply-to-allowed type-val)
-        (error
-          (string "type must be one of " (comma-sep apply-to-allowed))))))
+        (errorf "type must be one of " (comma-sep apply-to-allowed)))))
 
   (def all-specs (spec-with-defaults defaults-remove spec-struct))
   (def safe-specs (checked-spec all-specs

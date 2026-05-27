@@ -92,9 +92,7 @@
     file-name
     (do
       (if (nil? (dyn :gurp-config-root))
-        (error (string "cannot qualify path for "
-                       file-name
-                       ": gurp-config-root is not set")))
+        (errorf "cannot qualify path for %s: gurp-config-root is not set" file-name))
       (pathcat (dyn :gurp-config-root) "files" file-name))))
 
 (defn parent
@@ -177,7 +175,7 @@
   minutes past the hour at which gurp should run, as a comma-separated string"
   [seed-string interval]
   (if-not (= (% 60 interval) 0)
-    (error (string interval " is not a divisor of 60")))
+    (errorf "%d is not a divisor of 60" interval))
 
   (def seed (% (apply + (seq [c :in seed-string] c)) interval))
   (string/join (map string (seq [i :range [seed 60 interval]] i)) ","))
@@ -197,7 +195,7 @@
   end if there isn't one already. Start the first line on a new line."
   [str]
   (if-not (string? str)
-    (error (string "indoc: expected a string literal, got " str)))
+    (errorf "indoc: expected a string literal, got %v" str))
 
   (def lines (string/split "\n" str))
 
@@ -240,8 +238,8 @@
   (def leftovers (peg/match peg result))
 
   (if-not (empty? leftovers)
-    (error (string "unpopulated fields in template: "
-                   (string/join (filter |(not (nil? $)) leftovers) ", "))))
+    (errorf "unpopulated fields in template: %s"
+            (string/join (filter |(not (nil? $)) leftovers) ", ")))
 
   (def patterns
     (map
@@ -252,11 +250,11 @@
     (filter |(not (has-value? patterns $)) (keys vars)))
 
   (if-not (empty? unused-vars)
-    (error (string/format "unused vars: expected %s: got %s"
+    (errorf "unused vars: expected %s: got %s"
                           (string/join
                             (map |(peg/replace-all '(set "{} \t\r\n\0\f\v") "" $)
                                  (keys find->replace)) ", ")
-                          (string/join (keys vars) ", "))))
+                          (string/join (keys vars) ", ")))
   result)
 
 (defn run-any-cmd
