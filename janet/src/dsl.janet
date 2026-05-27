@@ -12,7 +12,7 @@
        and finalising the *collector*"
        []
        ,;host-definition
-       {:metadata {:name ,host-name}
+       {:metadata (table/to-struct (merge-into @{:name ,host-name} *metadata*))
         :resources (finalise *collector*)})))
 
 (defmacro role
