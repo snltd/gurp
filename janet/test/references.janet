@@ -4,6 +4,7 @@
 (deftest references-should-all-resolve
   # These files should all end up with the same owner
   (set *collector* (new-collector))
+  (set *metadata* (new-metadata))
   (role role-a
         (file/ensure "/tmp/a1"
                      :group "sysadmin"
