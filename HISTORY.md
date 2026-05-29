@@ -1,4 +1,5 @@
 - Add `num-field-sort` function to DSL.
+- Add `completions` command to generate shell completions.
 
 ## v 2.0.1 (2025-05-21)
 

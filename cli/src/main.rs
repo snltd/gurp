@@ -1,5 +1,7 @@
 use camino::Utf8PathBuf;
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::generate;
+use clap_complete::shells::{Bash, Fish, Zsh};
 use common::types::{
     ApplyClientOpts, ApplyOpts, ApplyOutputOpts, ApplyVmOpts, CompileOpts, ServerOpts,
 };
@@ -92,6 +94,11 @@ enum Commands {
         /// Host configuration file
         #[arg(required = true)]
         host_config_file: Utf8PathBuf,
+    },
+    /// Generate shell completions
+    Completions {
+        #[arg(required = true)]
+        shell: String,
     },
     /// Describe a resource type
     Describe {
@@ -194,6 +201,24 @@ fn main() -> ExitCode {
             };
 
             commands::compile::run(&host_config_file, &opts)
+        }
+        Commands::Completions { shell } => {
+            match shell.as_str() {
+                "bash" => {
+                    generate(Bash, &mut Cli::command(), "gurp", &mut std::io::stdout());
+                }
+                "fish" => {
+                    generate(Fish, &mut Cli::command(), "gurp", &mut std::io::stdout());
+                }
+                "zsh" => {
+                    generate(Zsh, &mut Cli::command(), "gurp", &mut std::io::stdout());
+                }
+                _ => {
+                    eprintln!("unsupported shell");
+                    return ExitCode::FAILURE;
+                }
+            }
+            ExitCode::SUCCESS
         }
         Commands::Describe {
             resource,
