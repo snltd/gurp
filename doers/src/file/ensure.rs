@@ -1,4 +1,4 @@
-use crate::file::types::{CompareMethod, DesiredFileState, FileSource};
+use crate::file::types::{CompareMethod, ContentModifiers, DesiredFileState, FileSource};
 use crate::file::{from_content, from_file, from_struct, from_url};
 use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
@@ -52,8 +52,13 @@ impl FileEnsure {
 
         let source = self.source_type()?;
 
-        let compare = if let Some(pattern) = &self.desired_state.ignore_pattern {
-            CompareMethod::Filter(pattern)
+        let compare = if self.desired_state.ignore_pattern.is_some()
+            || self.desired_state.url_replacements.is_some()
+        {
+            CompareMethod::Modified(ContentModifiers {
+                Filter: self.desired_state.ignore_pattern.as_deref(),
+                UrlReplacements: self.desired_state.url_replacements.as_ref(),
+            })
         } else {
             CompareMethod::Hash
         };
@@ -126,6 +131,7 @@ mod test {
                     with_checksum: None,
                     only_fetch_from_url_once: false,
                     url_is_server: false,
+                    url_replacements: None,
                 }
             },
             deserialized_example("file/ensure-from-content.janet")
@@ -158,6 +164,7 @@ mod test {
                     to_format: None,
                     only_fetch_from_url_once: false,
                     url_is_server: false,
+                    url_replacements: None,
                 }
             },
             deserialized_example("file/ensure-from-url-with-checksum.janet")
@@ -183,6 +190,7 @@ mod test {
                 with_checksum: Some("abc123".to_owned()),
                 only_fetch_from_url_once: false,
                 url_is_server: false,
+                url_replacements: None,
             },
         };
 
@@ -205,6 +213,7 @@ mod test {
                 with_checksum: None,
                 only_fetch_from_url_once: false,
                 url_is_server: false,
+                url_replacements: None,
             },
         };
 
@@ -227,6 +236,7 @@ mod test {
                 with_checksum: None,
                 only_fetch_from_url_once: false,
                 url_is_server: false,
+                url_replacements: None,
             },
         };
 

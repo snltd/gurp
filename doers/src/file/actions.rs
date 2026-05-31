@@ -34,7 +34,7 @@ pub fn ensure_content(
                     )?;
                 }
             }
-            CompareMethod::Filter(pattern) => {
+            CompareMethod::Modified(pattern) => {
                 let filter = FileFilter::from(pattern)?;
 
                 if hash::of_string(&filter.string(new_content))

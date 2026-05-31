@@ -2,6 +2,7 @@ use camino::Utf8PathBuf;
 use os_types::FileMode;
 use serde::Deserialize;
 use serde_json::Value;
+use std::collections::HashMap;
 use std::fmt::Debug;
 use url::Url;
 use util::file::NameOrId;
@@ -25,6 +26,7 @@ pub struct DesiredFileState {
     pub only_fetch_from_url_once: bool,
     #[serde(default)]
     pub url_is_server: bool,
+    pub url_replacements: Option<UrlReplacements>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -48,5 +50,12 @@ pub enum FileSource {
 
 pub enum CompareMethod<'a> {
     Hash,
-    Filter(&'a str), // The user specified :ignore-pattern
+    Modified(ContentModifiers<'a>), // The user's :ignore-pattern and/or :url-replacements
 }
+
+pub struct ContentModifiers<'a> {
+    pub Filter: Option<&'a str>,
+    pub UrlReplacements: Option<&'a UrlReplacements>,
+}
+
+pub type UrlReplacements = HashMap<String, String>;

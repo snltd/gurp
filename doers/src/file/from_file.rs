@@ -117,6 +117,7 @@ mod test {
                 with_checksum: None,
                 only_fetch_from_url_once: false,
                 url_is_server: false,
+                url_replacements: None,
             },
         };
 
@@ -151,6 +152,7 @@ mod test {
                 with_checksum: None,
                 only_fetch_from_url_once: false,
                 url_is_server: false,
+                url_replacements: None,
             },
         };
 
