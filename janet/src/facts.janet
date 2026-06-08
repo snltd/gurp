@@ -15,6 +15,11 @@
   [fields]
   [(-> fields (first) (->key)) (parsed-value (last fields))])
 
+(defn- run-wrapper
+  "forces fetch-and-cache to use the run-safe-cmd cfunc rather than the stub"
+  [cmd]
+  ((((fiber/getenv (fiber/root)) 'run-safe-cmd) :value) cmd))
+
 (defn uname-x->struct
   "Return a struct representation of the output of uname -X"
   [raw]
@@ -31,10 +36,51 @@
        (filter |(not (string/has-prefix? "lo" $)))
        (tabular-rows->struct)))
 
-(defn- run-wrapper
-  "forces fetch-and-cache to use the run-safe-cmd cfunc rather than the stub"
-  [cmd]
-  ((((fiber/getenv (fiber/root)) 'run-safe-cmd) :value) cmd))
+(defn- zonename-fact []
+  (run-wrapper "/bin/zonename"))
+
+(defn- zones-fact []
+  (-> (run-wrapper "/usr/sbin/zoneadm list -cv") (tabular-output->struct 1)))
+
+(defn- type-of-native-zone
+  "Tries to work out what kind of zone it is in. Should only be called
+  on the assumption that this is a native zone. So far as I can tell, it's
+  impossible to tell the difference between ipkg and lipkg, so they both return
+  :native"
+  []
+  (if
+    (os/stat "/opt/local/bin/pkgin")
+    :pkgsrc
+    (do
+      (def mount-output (run-wrapper "/usr/sbin/mount"))
+
+      (cond
+        (string/find "\n/usr on /usr read only" mount-output)
+        :sparse
+        (peg/match
+          '(* "/ on rpool" (any (if-not "/ROOT/illumos" :S)) "/ROOT/illumos")
+          mount-output)
+        :illumos
+        :native))))
+
+(defn zone-brand-fact
+  "Returns the zone brand as a string, or nil if there isn't one."
+  []
+  # When Gurp makes a zone it creates a static fact. If that's there, use it.
+  (def zone-fact "/etc/gurp/zone-brand.fact")
+
+  (if (os/stat zone-fact)
+    (keyword (slurp zone-fact))
+    (do
+      (def zonename (zonename-fact))
+      # and if the fact isn't there, make an educated guess
+      (if (= zonename "global")
+        :global
+        (match (((zones-fact) zonename) :brand)
+          "native" (type-of-native-zone)
+          "lx" :lx
+          _ (nil))))))
+
 
 # Don't forget to update RUN_SAVE_CMDS in common/src/constants.rs
 (defn fetch-and-cache
@@ -42,15 +88,17 @@
   (def value
     (match (keyword name)
       :hostname (run-wrapper "/bin/uname -n")
-      :zonename (run-wrapper "/bin/zonename")
+      :zonename (zonename-fact)
+      :zone-brand (zone-brand-fact)
       :uname (-> (run-wrapper "/bin/uname -X") (uname-x->struct))
-      :zones (-> (run-wrapper "/usr/sbin/zoneadm list -cv") (tabular-output->struct 1))
+      :zones (zones-fact)
       :links (-> (run-wrapper "/usr/sbin/dladm show-link") (tabular-output->struct))
       :physical-links (-> (run-wrapper "/usr/sbin/dladm show-phys") (tabular-output->struct))
       :ip-interfaces (-> (run-wrapper "/usr/sbin/ipadm show-if") ip-no-loopback)
       :ip-addresses (-> (run-wrapper "/usr/sbin/ipadm show-addr") ip-no-loopback)
       _ (error (string "unknown fact: " name))))
   (set (*fact-cache* name) value))
+
 
 (defn fact
   "Return, if it exists, the built-in fact with the given name. Facts are

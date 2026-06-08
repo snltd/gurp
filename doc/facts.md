@@ -37,6 +37,9 @@ Current facts are:
   address name,
 - `:ip-interfaces` (struct) a struct of the output of `ipadm show-if`, keyed on
   address name,
+- `:zone-brand` (keyword) When Gurp creates a zone it installs a static fact
+  equal to the zone brand. If that fact exists, Gurp retrieves it; if not, Gurp
+  tries to work out the brand of the zone.
 
 Facts are cached on each Gurp run. To avoid the cache, pass `true` as a second
 argument to `fact`.
