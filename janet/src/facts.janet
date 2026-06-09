@@ -8,6 +8,16 @@
 # Yes, another GLOBAL VARIABLE! Used to cache lazily-evaluated facts.
 (def *fact-cache* (new-fact-cache))
 
+(defn- static-fact
+  "Returns the value of the given static fact, as a keyword, or nil if the
+  fact does not exist."
+  [fact-name]
+  (def fact-file (pathcat "/etc/gurp" (string/format "%s.fact" ,fact-name)))
+
+  (if (os/stat factfile)
+    (-> (slurp zone-fact) (string/trim) (keyword))
+    nil))
+
 (defn- fields->tuple
   "Takes an array of fields and returns a tuple in which the first field is a
   downcased keyword of @fields, and second is a number or string value of the
@@ -67,10 +77,8 @@
   "Returns the zone brand as a string, or nil if there isn't one."
   []
   # When Gurp makes a zone it creates a static fact. If that's there, use it.
-  (def zone-fact "/etc/gurp/zone-brand.fact")
-
-  (if (os/stat zone-fact)
-    (keyword (slurp zone-fact))
+  (if-let [brand (static-fact :zone-brand)]
+    brand
     (do
       (def zonename (zonename-fact))
       # and if the fact isn't there, make an educated guess
