@@ -12,10 +12,10 @@
   "Returns the value of the given static fact, as a keyword, or nil if the
   fact does not exist."
   [fact-name]
-  (def fact-file (pathcat "/etc/gurp" (string/format "%s.fact" ,fact-name)))
+  (def fact-file (pathcat "/etc/gurp" (string/format "%s.fact" fact-name)))
 
-  (if (os/stat factfile)
-    (-> (slurp zone-fact) (string/trim) (keyword))
+  (if (os/stat fact-file)
+    (-> (slurp fact-file) (string/trim) (keyword))
     nil))
 
 (defn- fields->tuple
