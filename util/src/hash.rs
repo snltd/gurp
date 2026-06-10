@@ -1,7 +1,9 @@
 use anyhow::Context;
 use blake3::Hash;
 use camino::Utf8Path;
-use std::fs;
+use sha2::{Digest, Sha256};
+use std::fs::{self, File};
+use std::io::Read;
 
 pub fn of_bytes(bytes: &[u8]) -> Hash {
     blake3::hash(bytes)
@@ -46,7 +48,19 @@ fn fetch_hash(hash_url: &str) -> anyhow::Result<String> {
 
 // Users supply SHA256 checksums
 pub fn sha256_of_file(path: &Utf8Path) -> anyhow::Result<String> {
-    sha256::try_digest(path).with_context(|| format!("failed to get SHA256 of {path}"))
+    let mut file = File::open(path).with_context(|| format!("failed to open {path} for SHA256"))?;
+    let mut hasher = Sha256::new();
+    let mut buf = [0u8; 8192];
+    loop {
+        let n = file
+            .read(&mut buf)
+            .with_context(|| format!("failed to read {path} for SHA256"))?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
+    Ok(hex::encode(hasher.finalize()))
 }
 
 #[cfg(test)]

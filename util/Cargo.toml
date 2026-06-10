@@ -20,7 +20,8 @@ xml-rs = "1.0.0"
 xmlwriter = "0.1.0"
 blake3 = "1.8.4"
 regex = "1.12.3"
-sha256 = "1.6.0"
+sha2 = "0.11.0"
+hex = "0.4.3"
 
 [dev-dependencies]
 indoc = "2.0.7"
@@ -28,4 +29,4 @@ pretty_assertions = "1.4.1"
 tester = { path = "../tester" }
 
 [build-dependencies]
-vergen-git2 = { version = "9.1.0", features = ["build", "cargo", "rustc", "si"] }
+vergen-git2 = { version = "10.0.0", features = ["build", "cargo", "rustc", "si"] }

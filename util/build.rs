@@ -1,9 +1,9 @@
-use vergen_git2::{BuildBuilder, CargoBuilder, Emitter, Git2Builder};
+use vergen_git2::{Build, Cargo, Emitter, Git2};
 
 fn main() {
-    let build = BuildBuilder::all_build().unwrap();
-    let cargo = CargoBuilder::all_cargo().unwrap();
-    let git = Git2Builder::all_git().unwrap();
+    let build = Build::all_build();
+    let cargo = Cargo::all_cargo();
+    let git = Git2::all_git();
 
     Emitter::default()
         .add_instructions(&build)
