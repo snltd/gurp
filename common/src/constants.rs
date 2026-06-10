@@ -48,6 +48,7 @@ pub const RUN_SAFE_CMDS: &[&str] = &[
     "/usr/sbin/dladm show-phys",
     "/usr/sbin/ipadm show-addr",
     "/usr/sbin/ipadm show-if",
+    "/usr/sbin/mount",
     "/usr/sbin/zoneadm list -cv",
 ];
 
