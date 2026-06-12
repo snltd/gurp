@@ -1,17 +1,11 @@
 use crate::server::http;
 use common::types::ServerOpts;
 use std::process::ExitCode;
-use util::metrics::init;
+use telemetry::types::TelemetryProviders;
 
-pub fn run(opts: ServerOpts) -> ExitCode {
+pub fn run(opts: ServerOpts, _providers: TelemetryProviders) -> ExitCode {
     if opts.config_dir.exists() {
         tracing::info!("starting Gurp in server mode");
-
-        let _provider = init::init_metrics(opts.metrics_to.as_deref(), "gurp.server")
-            .unwrap_or_else(|e| {
-                tracing::warn!("could not set up server metrics: {e:#}");
-                None
-            });
 
         match run_server(opts) {
             Ok(_) => ExitCode::SUCCESS,

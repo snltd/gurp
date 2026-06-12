@@ -9,6 +9,7 @@ members = [
   "doers",
   "embed",
   "macros",
+  "telemetry",
   "tester",
   "util",
 ]

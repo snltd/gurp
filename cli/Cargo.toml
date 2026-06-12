@@ -9,8 +9,7 @@ clap = { version = "4.3", features = ["derive"] }
 clap_complete = "4.6.5"
 commands = { path = "../commands" }
 common = { path = "../common" }
-tracing = "0.1.41"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+telemetry = { path = "../telemetry" }
 
 [dev-dependencies]
 assert_cmd = "2.0.17"

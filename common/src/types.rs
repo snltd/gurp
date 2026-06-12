@@ -4,11 +4,17 @@ use camino::Utf8PathBuf;
 use std::collections::BTreeSet;
 use std::ops::{Add, AddAssign};
 
+/// Global CLI options
+#[derive(Debug, Default)]
+pub struct GlobalOpts {
+    pub metrics_to: Option<String>,
+    pub logs_to: Option<String>,
+}
+
 /// CLI options for the apply command
 #[derive(Debug, Default)]
 pub struct ApplyOpts {
     pub noop: bool,
-    pub metrics_to: Option<String>,
     pub precompiled: bool,
     pub image: bool,
     pub destroy: bool,
@@ -19,6 +25,7 @@ pub struct ApplyOpts {
     pub output: ApplyOutputOpts,
     pub vm: ApplyVmOpts,
     pub client: ApplyClientOpts,
+    pub globals: GlobalOpts,
 }
 
 /// User-supplied flags which affect Gurp's output
@@ -56,7 +63,6 @@ pub struct CompileOpts {
 #[derive(Debug)]
 pub struct ServerOpts {
     pub config_dir: Utf8PathBuf,
-    pub metrics_to: Option<String>,
 }
 
 /// Every doer returns an ApplySummary. The apply command sums them for a report.

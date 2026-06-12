@@ -5,16 +5,14 @@ use common::types::ApplyOpts;
 use doers::types::Applicator;
 use std::process::ExitCode;
 use std::time::Instant;
-use util::metrics::init;
+use telemetry::{flush, types::TelemetryProviders};
 
-pub fn run(host_file: Option<&Utf8Path>, opts: &ApplyOpts) -> ExitCode {
+pub fn run(
+    host_file: Option<&Utf8Path>,
+    opts: &ApplyOpts,
+    providers: TelemetryProviders,
+) -> ExitCode {
     let start_time = Instant::now();
-
-    let metrics_provider =
-        init::init_metrics(opts.metrics_to.as_deref(), "gurp").unwrap_or_else(|e| {
-            tracing::warn!("could not set up metrics: {e:#}");
-            None
-        });
 
     let exit_code = match config::compile(host_file, opts) {
         Ok(cfg) => {
@@ -62,18 +60,7 @@ pub fn run(host_file: Option<&Utf8Path>, opts: &ApplyOpts) -> ExitCode {
         }
     };
 
-    if let Some(p) = metrics_provider {
-        if let Err(e) = p.force_flush() {
-            tracing::warn!("failed to flush metrics: {e:#}");
-        }
-
-        if let Err(e) = p.shutdown() {
-            tracing::warn!("failed to shut down OTEL provider: {e:#}");
-        }
-    } else {
-        tracing::debug!("no metrics provider, so not sending metrics");
-    }
-
+    flush::flush(providers);
     exit_code
 }
 
@@ -91,7 +78,8 @@ mod test {
             ExitCode::FAILURE,
             run(
                 Some(&Utf8PathBuf::from("/no/such/file")),
-                &ApplyOpts::default()
+                &ApplyOpts::default(),
+                TelemetryProviders::default(),
             )
         );
 
@@ -112,7 +100,8 @@ mod test {
                 &ApplyOpts {
                     exec: Some("(not valid janet".to_owned()),
                     ..Default::default()
-                }
+                },
+                TelemetryProviders::default(),
             )
         );
 
@@ -134,7 +123,8 @@ mod test {
                     exec: Some(r#"(directory/ensure "/tmp/test")"#.to_owned()),
                     noop: true,
                     ..Default::default()
-                }
+                },
+                TelemetryProviders::default(),
             )
         );
 
@@ -153,7 +143,8 @@ mod test {
                 &ApplyOpts {
                     exec: Some(r#"(file/ensure "/parent/does/not/exist" :content "x")"#.to_owned()),
                     ..Default::default()
-                }
+                },
+                TelemetryProviders::default(),
             )
         );
 
@@ -176,7 +167,11 @@ mod test {
 
         assert_eq!(
             ExitCode::FAILURE,
-            run(Some(file.as_path()), &ApplyOpts::default())
+            run(
+                Some(file.as_path()),
+                &ApplyOpts::default(),
+                TelemetryProviders::default(),
+            )
         );
 
         assert!(logs_contain(
@@ -199,7 +194,11 @@ mod test {
 
         assert_eq!(
             ExitCode::SUCCESS,
-            run(Some(file.as_path()), &ApplyOpts::default())
+            run(
+                Some(file.as_path()),
+                &ApplyOpts::default(),
+                TelemetryProviders::default(),
+            )
         );
 
         assert!(logs_contain("sending success metrics: 0/1"));

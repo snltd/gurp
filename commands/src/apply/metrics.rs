@@ -1,7 +1,7 @@
 use crate::apply::types::ApplyStatus;
 use std::time::Duration;
-use util::metrics::client::ClientMetrics;
-use util::runtime_stats;
+use telemetry::client::ClientMetrics;
+use telemetry::runtime_stats;
 
 pub(crate) fn send(status: ApplyStatus, elapsed_time: &Duration) {
     let metrics_handle = ClientMetrics::new();
