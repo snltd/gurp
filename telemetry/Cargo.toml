@@ -1,0 +1,15 @@
+[package]
+name = "telemetry"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.102"
+common = { path = "../common" }
+opentelemetry = "0.32.0"
+opentelemetry_sdk = { version = "0.32.0", features = ["rt-tokio", "metrics"]}
+opentelemetry-appender-tracing = "0.32.0"
+opentelemetry-otlp = { version = "0.32.0", features = ["metrics", "http-proto"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+util = { path = "../util" }

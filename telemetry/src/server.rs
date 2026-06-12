@@ -1,4 +1,4 @@
-use crate::metrics::names;
+use crate::names;
 use crate::runtime_stats;
 use opentelemetry::global;
 use opentelemetry::metrics::{Counter, Histogram, ObservableGauge};
