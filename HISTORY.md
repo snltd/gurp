@@ -1,3 +1,6 @@
+- Write JSON summary to `/var/log` at end of run.
+- Add `--logs-to` to `apply` and `server` commands to optionally send
+  OpenTelemetry logs,
 - Add `num-field-sort` function to DSL.
 - Add `completions` command to generate shell completions.
 - Add `zone-brand` fact.

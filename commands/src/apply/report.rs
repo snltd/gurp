@@ -1,0 +1,206 @@
+use super::types::FailPhase;
+use camino::{Utf8Path, Utf8PathBuf};
+use chrono::{DateTime, Utc};
+use common::constants::GURP_VERSION;
+use common::types::{ApplyOpts, ApplySummary};
+use serde::Serialize;
+use serde_json;
+use std::fs;
+use std::time::Duration;
+use util::info;
+
+// Makes a best-effort to write a run report. Swallows any errors.
+//
+#[derive(Serialize)]
+pub(crate) enum ReportStatus {
+    Success,
+    Fail,
+}
+
+impl std::fmt::Display for ReportStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let s = match self {
+            ReportStatus::Success => "SUCCESS",
+            ReportStatus::Fail => "FAIL",
+        };
+        write!(f, "{}", s)
+    }
+}
+
+pub(crate) struct ReportArgs<'a> {
+    pub status: ReportStatus,
+    pub fail_phase: Option<FailPhase>,
+    pub summary: Option<&'a ApplySummary>,
+    pub duration: &'a Duration,
+    pub t_start: DateTime<Utc>,
+    pub t_end: DateTime<Utc>,
+    pub host_file: Option<Utf8PathBuf>,
+    pub opts: &'a ApplyOpts,
+}
+
+#[derive(Serialize)]
+pub(crate) struct Report {
+    status: String,
+    hostname: String,
+    host_file: Option<Utf8PathBuf>,
+    resources: Option<u32>,
+    changes: Option<u32>,
+    t_start: DateTime<Utc>,
+    t_end: DateTime<Utc>,
+    duration: Duration,
+    gurp_version: String,
+    gurp_build: String,
+    server: Option<String>,
+    client_name: Option<String>,
+    precompiled: bool,
+    fail_phase: Option<FailPhase>,
+}
+
+impl Report {
+    pub(crate) fn from(args: ReportArgs) -> Self {
+        Self {
+            status: args.status.to_string(),
+            fail_phase: args.fail_phase,
+            hostname: info::my_hostname().unwrap_or("UNKNOWN".to_owned()),
+            host_file: args.host_file,
+            resources: args.summary.map(|s| s.resources),
+            changes: args.summary.map(|s| s.changes),
+            t_start: args.t_start,
+            t_end: args.t_end,
+            duration: args.duration.to_owned(),
+            gurp_version: GURP_VERSION.to_owned(),
+            gurp_build: info::BUILD_HASH.to_owned(),
+            server: args.opts.client.server.clone(),
+            client_name: args.opts.client.hostname.clone(),
+            precompiled: args.opts.precompiled,
+        }
+    }
+
+    pub fn write(&self, dir: &Utf8Path) {
+        let filename = if self.fail_phase.is_some() {
+            "gurp_last_fail.json"
+        } else {
+            "gurp_last_success.json"
+        };
+
+        let path = dir.join(filename);
+
+        match serde_json::to_string_pretty(&self) {
+            Ok(json) => {
+                println!("WRITING TO {path}");
+                if let Err(e) = fs::write(&path, json) {
+                    eprintln!("failed to write report to {path}: {e}");
+                } else {
+                    println!("WRIT!");
+                }
+            }
+            Err(e) => eprintln!("failed to create report JSON: {e}"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use camino_tempfile_ext::prelude::*;
+    use chrono::{TimeZone, Utc};
+    use common::types::ApplyOpts;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_success_report() {
+        let temp_dir = Utf8TempDir::new().unwrap();
+        let expected_file = temp_dir.path().join("gurp_last_success.json");
+
+        let t_start = Utc.with_ymd_and_hms(2026, 6, 14, 12, 0, 0).unwrap();
+        let t_end = Utc.with_ymd_and_hms(2026, 6, 14, 12, 0, 6).unwrap();
+
+        Report::from(ReportArgs {
+            status: ReportStatus::Success,
+            fail_phase: None,
+            summary: Some(&ApplySummary {
+                resources: 123,
+                changes: 45,
+            }),
+            duration: &Duration::from_millis(6789),
+            t_start,
+            t_end,
+            host_file: None,
+            opts: &ApplyOpts::default(),
+        })
+        .write(temp_dir.path());
+
+        println!("READING FROM {expected_file}");
+        assert_eq!(
+            indoc::indoc! { r#"
+                {
+                  "status": "SUCCESS",
+                  "hostname": "serv-build",
+                  "host_file": null,
+                  "resources": 123,
+                  "changes": 45,
+                  "t_start": "2026-06-14T12:00:00Z",
+                  "t_end": "2026-06-14T12:00:06Z",
+                  "duration": {
+                    "secs": 6,
+                    "nanos": 789000000
+                  },
+                  "gurp_version": "2.0.0",
+                  "gurp_build": "c9b83fe",
+                  "server": null,
+                  "client_name": null,
+                  "precompiled": false,
+                  "fail_phase": null
+                }"#
+            },
+            &fs::read_to_string(&expected_file).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_fail_report() {
+        let temp_dir = Utf8TempDir::new().unwrap();
+        let expected_file = temp_dir.path().join("gurp_last_fail.json");
+
+        let t_start = Utc.with_ymd_and_hms(2026, 6, 14, 12, 0, 0).unwrap();
+        let t_end = Utc.with_ymd_and_hms(2026, 6, 14, 12, 0, 6).unwrap();
+
+        Report::from(ReportArgs {
+            status: ReportStatus::Fail,
+            fail_phase: Some(FailPhase::Apply),
+            summary: None,
+            duration: &Duration::from_millis(6789),
+            t_start,
+            t_end,
+            host_file: None,
+            opts: &ApplyOpts::default(),
+        })
+        .write(temp_dir.path());
+
+        println!("READING FROM {expected_file}");
+        assert_eq!(
+            indoc::indoc! { r#"
+                {
+                  "status": "FAIL",
+                  "hostname": "serv-build",
+                  "host_file": null,
+                  "resources": null,
+                  "changes": null,
+                  "t_start": "2026-06-14T12:00:00Z",
+                  "t_end": "2026-06-14T12:00:06Z",
+                  "duration": {
+                    "secs": 6,
+                    "nanos": 789000000
+                  },
+                  "gurp_version": "2.0.0",
+                  "gurp_build": "c9b83fe",
+                  "server": null,
+                  "client_name": null,
+                  "precompiled": false,
+                  "fail_phase": "Apply"
+                }"#
+            },
+            &fs::read_to_string(&expected_file).unwrap()
+        );
+    }
+}

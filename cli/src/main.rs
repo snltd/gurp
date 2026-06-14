@@ -186,7 +186,7 @@ fn main() -> ExitCode {
                 }
             };
 
-            commands::apply::init::run(host_config_file.as_deref(), &opts, providers)
+            commands::apply::command::run(host_config_file.as_deref(), &opts, providers)
         }
         Commands::Compile {
             line_no,
@@ -241,7 +241,7 @@ fn main() -> ExitCode {
                 }
             };
 
-            commands::server::init::run(ServerOpts { config_dir }, providers)
+            commands::server::command::run(ServerOpts { config_dir }, providers)
         }
     }
 }
