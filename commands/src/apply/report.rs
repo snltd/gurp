@@ -87,11 +87,8 @@ impl Report {
 
         match serde_json::to_string_pretty(&self) {
             Ok(json) => {
-                println!("WRITING TO {path}");
                 if let Err(e) = fs::write(&path, json) {
                     eprintln!("failed to write report to {path}: {e}");
-                } else {
-                    println!("WRIT!");
                 }
             }
             Err(e) => eprintln!("failed to create report JSON: {e}"),
@@ -130,7 +127,6 @@ mod test {
         })
         .write(temp_dir.path());
 
-        println!("READING FROM {expected_file}");
         assert_eq!(
             indoc::indoc! { r#"
                 {
@@ -177,7 +173,6 @@ mod test {
         })
         .write(temp_dir.path());
 
-        println!("READING FROM {expected_file}");
         assert_eq!(
             indoc::indoc! { r#"
                 {
