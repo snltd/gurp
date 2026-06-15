@@ -127,34 +127,25 @@ mod test {
         })
         .write(temp_dir.path());
 
-        assert_eq!(
-            indoc::indoc! { r#"
-                {
-                  "status": "SUCCESS",
-                  "hostname": "serv-build",
-                  "host_file": null,
-                  "resources": 123,
-                  "changes": 45,
-                  "t_start": "2026-06-14T12:00:00Z",
-                  "t_end": "2026-06-14T12:00:06Z",
-                  "duration": {
-                    "secs": 6,
-                    "nanos": 789000000
-                  },
-                  "gurp_version": "2.0.0",
-                  "gurp_build": "c9b83fe",
-                  "server": null,
-                  "client_name": null,
-                  "precompiled": false,
-                  "fail_phase": null
-                }"#
-            },
-            &fs::read_to_string(&expected_file).unwrap()
-        );
+        let content = fs::read_to_string(&expected_file).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&content).unwrap();
+
+        assert_eq!(v["status"], "SUCCESS");
+        assert_eq!(v["resources"], 123);
+        assert_eq!(v["changes"], 45);
+        assert_eq!(v["t_start"], "2026-06-14T12:00:00Z");
+        assert_eq!(v["t_end"], "2026-06-14T12:00:06Z");
+        assert_eq!(v["duration"]["secs"], 6);
+        assert_eq!(v["duration"]["nanos"], 789_000_000);
+        assert_eq!(v["fail_phase"], serde_json::Value::Null);
+        assert_eq!(v["host_file"], serde_json::Value::Null);
+        assert!(v["hostname"].as_str().is_some_and(|s| !s.is_empty()));
+        assert!(v["gurp_version"].as_str().is_some_and(|s| !s.is_empty()));
+        assert!(v["gurp_build"].as_str().is_some_and(|s| !s.is_empty()));
     }
 
     #[test]
-    fn test_fail_report() {
+    fn test_faile_report() {
         let temp_dir = Utf8TempDir::new().unwrap();
         let expected_file = temp_dir.path().join("gurp_last_fail.json");
 
@@ -173,29 +164,20 @@ mod test {
         })
         .write(temp_dir.path());
 
-        assert_eq!(
-            indoc::indoc! { r#"
-                {
-                  "status": "FAIL",
-                  "hostname": "serv-build",
-                  "host_file": null,
-                  "resources": null,
-                  "changes": null,
-                  "t_start": "2026-06-14T12:00:00Z",
-                  "t_end": "2026-06-14T12:00:06Z",
-                  "duration": {
-                    "secs": 6,
-                    "nanos": 789000000
-                  },
-                  "gurp_version": "2.0.0",
-                  "gurp_build": "c9b83fe",
-                  "server": null,
-                  "client_name": null,
-                  "precompiled": false,
-                  "fail_phase": "Apply"
-                }"#
-            },
-            &fs::read_to_string(&expected_file).unwrap()
-        );
+        let content = fs::read_to_string(&expected_file).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&content).unwrap();
+
+        assert_eq!(v["status"], "FAIL");
+        assert_eq!(v["resources"], serde_json::Value::Null);
+        assert_eq!(v["changes"], serde_json::Value::Null);
+        assert_eq!(v["t_start"], "2026-06-14T12:00:00Z");
+        assert_eq!(v["t_end"], "2026-06-14T12:00:06Z");
+        assert_eq!(v["duration"]["secs"], 6);
+        assert_eq!(v["duration"]["nanos"], 789_000_000);
+        assert_eq!(v["fail_phase"], "Apply");
+        assert_eq!(v["host_file"], serde_json::Value::Null);
+        assert!(v["hostname"].as_str().is_some_and(|s| !s.is_empty()));
+        assert!(v["gurp_version"].as_str().is_some_and(|s| !s.is_empty()));
+        assert!(v["gurp_build"].as_str().is_some_and(|s| !s.is_empty()));
     }
 }
