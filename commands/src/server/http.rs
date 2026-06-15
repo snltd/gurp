@@ -10,8 +10,8 @@ use opentelemetry::KeyValue;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Instant;
+use telemetry::server::ServerMetrics;
 use util::info;
-use util::metrics::server::ServerMetrics;
 
 pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {
     let metrics = ServerMetrics::new();

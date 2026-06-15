@@ -3,15 +3,20 @@ use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::generate;
 use clap_complete::shells::{Bash, Fish, Zsh};
 use common::types::{
-    ApplyClientOpts, ApplyOpts, ApplyOutputOpts, ApplyVmOpts, CompileOpts, ServerOpts,
+    ApplyClientOpts, ApplyOpts, ApplyOutputOpts, ApplyVmOpts, CompileOpts, GlobalOpts, ServerOpts,
 };
-use std::io::IsTerminal;
 use std::process::ExitCode;
-use tracing_subscriber::EnvFilter;
+use telemetry::init;
 
 #[derive(Parser)]
 #[clap(version, about = "Gurp configures illumos systems", long_about = None)]
 struct Cli {
+    /// HTTP POST OpenTelemetry metrics to this host
+    #[arg(short = 'M', long, global = true)]
+    metrics_to: Option<String>,
+    /// HTTP POST OpenTelemetry logs to this host
+    #[arg(short = 'L', long, global = true)]
+    logs_to: Option<String>,
     #[command(subcommand)]
     command: Commands,
 }
@@ -50,9 +55,6 @@ enum Commands {
         /// When dumping configs, number lines
         #[arg(short = 'N', long)]
         line_no: bool,
-        /// HTTP POST InfluxDB metrics to this host
-        #[arg(short = 'M', long)]
-        metrics_to: Option<String>,
         /// Turn all ensures into removes. Use with extreme caution
         #[arg(long)]
         destroy_everything_you_touch: bool,
@@ -126,24 +128,16 @@ enum Commands {
         /// Where to find host configuration files
         #[arg(short, long, required = true)]
         config_dir: Utf8PathBuf,
-        /// HTTP POST InfluxDB metrics to this host
-        #[arg(short = 'M', long)]
-        metrics_to: Option<String>,
     },
 }
 
 fn main() -> ExitCode {
-    let use_colour =
-        std::io::stdout().is_terminal() && std::env::var_os("GURP_NO_COLOUR").is_none();
-
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
-        )
-        .with_ansi(use_colour)
-        .init();
-
     let cli = Cli::parse();
+
+    let global_opts = GlobalOpts {
+        metrics_to: cli.metrics_to,
+        logs_to: cli.logs_to,
+    };
 
     match cli.command {
         Commands::Apply {
@@ -153,7 +147,6 @@ fn main() -> ExitCode {
             dump_diffs,
             colour,
             line_no,
-            metrics_to,
             precompiled,
             server,
             hostname,
@@ -167,7 +160,6 @@ fn main() -> ExitCode {
         } => {
             let opts = ApplyOpts {
                 noop,
-                metrics_to,
                 precompiled,
                 exec,
                 destroy: destroy_everything_you_touch,
@@ -183,8 +175,18 @@ fn main() -> ExitCode {
                 },
                 vm: ApplyVmOpts { define },
                 client: ApplyClientOpts { server, hostname },
+                globals: global_opts,
             };
-            commands::apply::init::run(host_config_file.as_deref(), &opts)
+
+            let providers = match init::init_telemetry("gurp", &opts.globals) {
+                Ok(p) => p,
+                Err(e) => {
+                    eprintln!("error initialising telemetry: {e}");
+                    return ExitCode::FAILURE;
+                }
+            };
+
+            commands::apply::init::run(host_config_file.as_deref(), &opts, providers)
         }
         Commands::Compile {
             line_no,
@@ -200,6 +202,7 @@ fn main() -> ExitCode {
                 colour,
             };
 
+            init::init_stdout_logging();
             commands::compile::run(&host_config_file, &opts)
         }
         Commands::Completions { shell } => {
@@ -229,12 +232,16 @@ fn main() -> ExitCode {
             let opts = ApplyVmOpts { define };
             commands::repl::run(&opts)
         }
-        Commands::Server {
-            config_dir,
-            metrics_to,
-        } => commands::server::init::run(ServerOpts {
-            config_dir,
-            metrics_to,
-        }),
+        Commands::Server { config_dir } => {
+            let providers = match init::init_telemetry("gurp.server", &global_opts) {
+                Ok(p) => p,
+                Err(e) => {
+                    eprintln!("error initialising telemetry: {e}");
+                    return ExitCode::FAILURE;
+                }
+            };
+
+            commands::server::init::run(ServerOpts { config_dir }, providers)
+        }
     }
 }

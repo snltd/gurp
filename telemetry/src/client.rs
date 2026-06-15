@@ -1,4 +1,4 @@
-use crate::metrics::names;
+use crate::names;
 use opentelemetry::KeyValue;
 use opentelemetry::global;
 use opentelemetry::metrics::Gauge;

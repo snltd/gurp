@@ -8,25 +8,27 @@ anyhow = "1.0.99"
 axum = { version = "0.8.8", features = ["macros"] }
 axum-macros = "0.5.0"
 camino = "1.1.9"
+clap_complete = "4.6.5"
 common = { path = "../common"} 
 doers = { path = "../doers" }
 embed = { path = "../embed"} 
 indoc = "2.0.6"
 mime_guess = "2.0.5"
+opentelemetry = "0.32.0"
 serde = "1.0.228"
+serde_json = "1.0.149"
+sysinfo = "0.39.0"
 tabled = "0.21.0"
+telemetry = { path = "../telemetry" }
 terminal_size = "0.4.3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "signal"] }
 tokio-util = { version = "0.7.16", features = ["io"] }
 tracing = "0.1.41"
-util = { path = "../util" }
-sysinfo = "0.39.0"
-serde_json = "1.0.149"
-opentelemetry = "0.32.0"
 ureq = "3.1.0"
-clap_complete = "4.6.5"
+util = { path = "../util" }
 
 [dev-dependencies]
 camino-tempfile-ext = "0.3.3"
 tester = { path = "../tester" }
 tracing-test = "0.2.6"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

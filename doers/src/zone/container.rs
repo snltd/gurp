@@ -174,7 +174,7 @@ fn bootstrap(zone: &str, conf: &ZoneConfig, opts: &ApplyOpts) -> anyhow::Result<
         bootstrap_args.push("--line-no".to_owned());
     }
 
-    if let Some(metrics_host) = &opts.metrics_to {
+    if let Some(metrics_host) = &opts.globals.metrics_to {
         bootstrap_args.push(format!("--metrics-to={metrics_host}"));
     }
 
