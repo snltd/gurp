@@ -37,7 +37,7 @@ pub struct ApplyOutputOpts {
     pub dump_diffs: bool,
 }
 
-/// User-suppled flags which affect the behaviour of the Janet VM
+/// User-supplied flags which affect the behaviour of the Janet VM
 #[derive(Clone, Debug, Default)]
 pub struct ApplyVmOpts {
     pub define: Vec<String>,

@@ -145,7 +145,7 @@ mod test {
     }
 
     #[test]
-    fn test_faile_report() {
+    fn test_fail_report() {
         let temp_dir = Utf8TempDir::new().unwrap();
         let expected_file = temp_dir.path().join("gurp_last_fail.json");
 
