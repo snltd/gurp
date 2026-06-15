@@ -1,18 +1,23 @@
+use super::report::{Report, ReportArgs, ReportStatus};
 use super::{config, lockfile, metrics};
 use crate::apply::types::{ApplyStatus, FailPhase};
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
+use chrono::Utc;
 use common::types::ApplyOpts;
 use doers::types::Applicator;
 use std::process::ExitCode;
 use std::time::Instant;
 use telemetry::{flush, types::TelemetryProviders};
 
+const REPORT_DIR: &str = "/var/log";
+
 pub fn run(
     host_file: Option<&Utf8Path>,
     opts: &ApplyOpts,
     providers: TelemetryProviders,
 ) -> ExitCode {
-    let start_time = Instant::now();
+    let t_start = Utc::now(); // For the report
+    let start_time = Instant::now(); // For metrics
 
     let exit_code = match config::compile(host_file, opts) {
         Ok(cfg) => {
@@ -32,6 +37,17 @@ pub fn run(
                             apply_summary.resources,
                             apply_summary.changes,
                         );
+                        Report::from(ReportArgs {
+                            status: ReportStatus::Success,
+                            fail_phase: None,
+                            summary: Some(&apply_summary),
+                            duration: &elapsed_time,
+                            t_start,
+                            t_end: Utc::now(),
+                            host_file: host_file.map(|f| f.to_owned()),
+                            opts,
+                        })
+                        .write(&Utf8PathBuf::from(REPORT_DIR));
                         metrics::send(ApplyStatus::Ok(apply_summary), &elapsed_time);
                         ExitCode::SUCCESS
                     }
@@ -43,6 +59,17 @@ pub fn run(
                             tracing::error!("apply error: {e:#}");
                         }
 
+                        Report::from(ReportArgs {
+                            status: ReportStatus::Fail,
+                            fail_phase: Some(FailPhase::Apply),
+                            summary: None,
+                            duration: &elapsed_time,
+                            t_start,
+                            t_end: Utc::now(),
+                            host_file: host_file.map(|f| f.to_owned()),
+                            opts,
+                        })
+                        .write(&Utf8PathBuf::from(REPORT_DIR));
                         metrics::send(ApplyStatus::Fail(FailPhase::Apply), &elapsed_time);
                         ExitCode::FAILURE
                     }

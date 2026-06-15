@@ -1,10 +1,12 @@
 use common::types::{ApplySummary, CompileError, NetworkError};
+use serde::Serialize;
 
 pub(crate) enum ApplyStatus {
     Ok(ApplySummary),
     Fail(FailPhase),
 }
 
+#[derive(Serialize)]
 pub(crate) enum FailPhase {
     Apply,
     Client,

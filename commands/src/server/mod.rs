@@ -1,3 +1,3 @@
+pub mod command;
 pub mod handlers;
 pub mod http;
-pub mod init;
