@@ -1,0 +1,3 @@
+[advisories]
+# A false positive from an abandoned crate called "telemetry"
+ignore = ["RUSTSEC-2021-0046"]
