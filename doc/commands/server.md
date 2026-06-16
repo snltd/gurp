@@ -7,7 +7,8 @@ Usage: gurp server [OPTIONS] --config-dir <CONFIG_DIR>
 
 Options:
   -c, --config-dir <CONFIG_DIR>  Where to find host configuration files
-  -M, --metrics-to <METRICS_TO>  HTTP POST InfluxDB metrics to this host
+  -M, --metrics-to <METRICS_TO>  HTTP POST OpenTelemetry metrics to this host
+  -L, --logs-to <LOGS_TO>        HTTP POST OpenTelemetry logs to this host
   -h, --help                     Print help
 ```
 
