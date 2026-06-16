@@ -29,7 +29,7 @@ jobs:
       with:
         usesh: true
         prepare: |
-          pkg install developer/gcc14 developer/clang-19 system/header
+          pkg install developer/gcc14 developer/clang-19 system/header developer/versioning/git
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
