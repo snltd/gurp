@@ -9,10 +9,11 @@ Arguments:
   [HOST_CONFIG_FILE]  Host configuration file
 
 Options:
+  -M, --metrics-to <METRICS_TO>       HTTP POST OpenTelemetry metrics to this host
   -s, --server <SERVER>               Get config from a Gurp server
-  -J, --as-json                       When getting server configuration, request it in JSON format, compiled on the server
   -H, --hostname <HOSTNAME>           Hostname to use when fetching config from server
-  -p, --precompiled                   Use a pre-compiled JSON config
+  -L, --logs-to <LOGS_TO>             HTTP POST OpenTelemetry logs to this host
+  -p, --precompiled                   Use a pre-compiled JSON config, which may be local or remote
   -i, --image                         Use a local pre-compiled Janet jimage as config
   -n, --noop                          Say what would happen, without actually doing it
   -D, --define <DEFINE>               Define a constant which can be accessed from config
@@ -20,7 +21,6 @@ Options:
       --dump-diffs                    When files change, dump diffs to stdout
   -C, --colour                        When dumping configs or diffs, use syntax colouring where supported
   -N, --line-no                       When dumping configs, number lines
-  -M, --metrics-to <METRICS_TO>       HTTP POST InfluxDB metrics to this host
       --destroy-everything-you-touch  Turn all ensures into removes. Use with extreme caution
   -e, --exec <EXEC>                   Execute a literal snippet of Janet config
       --no-lock                       Do not check for or use a lockfile
@@ -66,9 +66,9 @@ There are options:
 - `--dump-diffs` When the content of a text file changes, output a diff.
 - `-C, --colour` When dumping configs, use syntax colouring where possible.
 - `-N, --line-no` When dumping configs, number the lines.
-- `-M, --metrics-to <METRICS_TO>` HTTP POST InfluxDB-format metrics to this
-  host. At the moment it sends the run duration, the number of resources, and
-  the number of changes.
+- `-M, --metrics-to <HOST>` HTTP POST OpenTelemetry metrics to `HOST`.
+- `-L, --logs-to <HOST>` HTTP POST OpenTelemetry logs to `HOST` with `gurp` as
+  the service name.
 - `--destroy-everything-you-touch` Turns all `ensure` resources into `remove`s.
   Useful for cleaning up during development, but should be used with extreme
   caution. It has no short value, so you can't type it by accident.
@@ -79,8 +79,11 @@ There are options:
   resources. With this flag, that order is reversed.
 - `-O, --only <REGEX>` Makes Gurp only apply resources whose IDs match the given
   Rust regex.
-- `-D, --define <DEFINE>` Can be used multiple time, with the values used to build a Janet struct, `gurp-user-defs` with global scope, visible during the compile phase.
-If `DEFINE` is of the form `key=value`, the struct gets `key` as a symbol and `value` as a string. If `DEFINE` is `key` only, the struct gets `key` as a symbol, with a value of boolean `true`.
+- `-D, --define <DEFINE>` Can be used multiple time, with the values used to
+  build a Janet struct, `gurp-user-defs` with global scope, visible during the
+  compile phase. If `DEFINE` is of the form `key=value`, the struct gets `key`
+  as a symbol and `value` as a string. If `DEFINE` is `key` only, the struct
+  gets `key` as a symbol, with a value of boolean `true`.
 
 Gurp uses the [Tracing framework](https://crates.io/crates/tracing) for logging.
 This means you can control the log level through the `RUST_LOG` environment

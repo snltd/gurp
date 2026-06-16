@@ -1,3 +1,5 @@
+# Observability
+
 ## Metrics
 
 Gurp uses the OpenTelemetry framework to send metrics in client and server mode.
@@ -21,3 +23,20 @@ hardcoded to `/opentelemetry/v1/metrics`. Transfer is over HTTP.
 | `gurp.server.rss_bytes`           | bytes | gauge                        |              | RSS memory used by server process, according to `/proc` |
 | `gurp.server.requests_total`      |       | counter                      |              | Number of requests served                               |
 | `gurp.server.request_duration_ms` |       | Time taken to serve requests |              |                                                         |
+
+## Logs
+
+Gurp logs through the [Tracing framework](https://crates.io/crates/tracing).
+This means you can control the log level through the `RUST_LOG` environment
+variable. e.g.
+
+```sh
+$ RUST_LOG=debug gurp apply file.janet
+```
+
+By default logs are written to standard out, and are coloured. Disable the latter
+by setting `GURP_NO_COLOUR`.
+
+In `apply` and `server` mode, logs can be shipped to an OpenTelemetry endpoint
+with `--logs-to`. The client (apply) uses `gurp` as its `service.name`, and the
+server uses `gurp.server`.

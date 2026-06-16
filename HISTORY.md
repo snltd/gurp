@@ -1,15 +1,16 @@
-- Write JSON summary to `/var/log` at end of run.
+## v2.1.0 (2026-06-16)
 - Add `--logs-to` to `apply` and `server` commands to optionally send
   OpenTelemetry logs,
-- Add `num-field-sort` function to DSL.
 - Add `completions` command to generate shell completions.
 - Add `zone-brand` fact.
+- Add `num-field-sort` function to DSL.
+- Write JSON summary to `/var/log` at end of run.
 
-## v 2.0.1 (2025-05-21)
+## v2.0.1 (2026-05-21)
 
 - Fix bug in publisher doer which errored when removing origins or mirrors.
 
-## v 2.0.0 (2025-05-20)
+## v2.0.0 (2026-05-20)
 
 Items marked [*] are breaking changes.
 
