@@ -32,6 +32,7 @@ jobs:
           pkg install developer/gcc14 developer/clang-19 system/header
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           . ${HOME}/.cargo/env 
           export CFLAGS="-std=c99 -D_XOPEN_SOURCE=700 -D__EXTENSIONS__"
           cd $GITHUB_WORKSPACE
