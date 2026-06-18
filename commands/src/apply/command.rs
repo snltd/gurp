@@ -37,17 +37,21 @@ pub fn run(
                             apply_summary.resources,
                             apply_summary.changes,
                         );
-                        Report::from(ReportArgs {
-                            status: ReportStatus::Success,
-                            fail_phase: None,
-                            summary: Some(&apply_summary),
-                            duration: &elapsed_time,
-                            t_start,
-                            t_end: Utc::now(),
-                            host_file: host_file.map(|f| f.to_owned()),
-                            opts,
-                        })
-                        .write(&Utf8PathBuf::from(REPORT_DIR));
+
+                        if !opts.no_report && opts.exec.is_none() {
+                            Report::from(ReportArgs {
+                                status: ReportStatus::Success,
+                                fail_phase: None,
+                                summary: Some(&apply_summary),
+                                duration: &elapsed_time,
+                                t_start,
+                                t_end: Utc::now(),
+                                host_file: host_file.map(|f| f.to_owned()),
+                                opts,
+                            })
+                            .write(&Utf8PathBuf::from(REPORT_DIR));
+                        }
+
                         metrics::send(ApplyStatus::Ok(apply_summary), &elapsed_time);
                         ExitCode::SUCCESS
                     }
@@ -59,17 +63,20 @@ pub fn run(
                             tracing::error!("apply error: {e:#}");
                         }
 
-                        Report::from(ReportArgs {
-                            status: ReportStatus::Fail,
-                            fail_phase: Some(FailPhase::Apply),
-                            summary: None,
-                            duration: &elapsed_time,
-                            t_start,
-                            t_end: Utc::now(),
-                            host_file: host_file.map(|f| f.to_owned()),
-                            opts,
-                        })
-                        .write(&Utf8PathBuf::from(REPORT_DIR));
+                        if !opts.no_report && opts.exec.is_none() {
+                            Report::from(ReportArgs {
+                                status: ReportStatus::Fail,
+                                fail_phase: Some(FailPhase::Apply),
+                                summary: None,
+                                duration: &elapsed_time,
+                                t_start,
+                                t_end: Utc::now(),
+                                host_file: host_file.map(|f| f.to_owned()),
+                                opts,
+                            })
+                            .write(&Utf8PathBuf::from(REPORT_DIR));
+                        }
+
                         metrics::send(ApplyStatus::Fail(FailPhase::Apply), &elapsed_time);
                         ExitCode::FAILURE
                     }
@@ -223,7 +230,10 @@ mod test {
             ExitCode::SUCCESS,
             run(
                 Some(file.as_path()),
-                &ApplyOpts::default(),
+                &ApplyOpts {
+                    no_report: true,
+                    ..Default::default()
+                },
                 TelemetryProviders::default(),
             )
         );

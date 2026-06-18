@@ -1,4 +1,7 @@
+- Add `(metadata)` function and supporting front-end code.
+
 ## v2.1.0 (2026-06-16)
+
 - Add `--logs-to` to `apply` and `server` commands to optionally send
   OpenTelemetry logs,
 - Add `completions` command to generate shell completions.

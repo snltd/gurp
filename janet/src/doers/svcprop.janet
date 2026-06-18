@@ -45,10 +45,9 @@
     (pinpoint-error
       :ensure
       (if-not (has-value? allowed-actions action)
-        (error
-          (string/format "on-change action must be one of %s [got '%s']"
-                         (string/join allowed-actions ", ")
-                         action)))))
+        (errorf "on-change action must be one of %s [got '%s']"
+                (string/join allowed-actions ", ")
+                action))))
 
   # Properties must be expanded
   (set (spec-table :properties)

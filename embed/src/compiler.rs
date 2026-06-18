@@ -203,7 +203,7 @@ mod test {
     #[test]
     fn test_janet_file() {
         assert_eq!(
-            r#"{"metadata":{"name":"test"},"resources":{"ensure":{"file":[{"_id":"/basenode/file/_tmp_tester","content":"blah","group":"root","mode":"0644","name":"/tmp/tester","owner":"root","role":"basenode"}]},"remove":{}}}"#,
+            r#"{"control-data":{},"metadata":{"name":"test"},"resources":{"ensure":{"file":[{"_id":"/basenode/file/_tmp_tester","content":"blah","group":"root","mode":"0644","name":"/tmp/tester","owner":"root","role":"basenode"}]},"remove":{}}}"#,
             test_compiler()
                 .janet_file(&fixture("basic_config.janet"), true)
                 .unwrap()
@@ -213,7 +213,7 @@ mod test {
     #[test]
     fn test_janet_snippet() {
         assert_eq!(
-            r#"{"metadata":{"name":"gurp-runner"},"resources":{"ensure":{"directory":[{"_id":"/NO-ROLE/directory/_tmp_test1","group":"root","mode":"0755","name":"/tmp/test1","owner":"root","role":"NO-ROLE"}]},"remove":{}}}"#,
+            r#"{"control-data":{},"metadata":{"name":"gurp-runner"},"resources":{"ensure":{"directory":[{"_id":"/NO-ROLE/directory/_tmp_test1","group":"root","mode":"0755","name":"/tmp/test1","owner":"root","role":"NO-ROLE"}]},"remove":{}}}"#,
             test_compiler()
                 .janet_snippet(r#"(directory/ensure "/tmp/test1")"#)
                 .unwrap()

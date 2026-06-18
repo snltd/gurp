@@ -27,11 +27,10 @@
   (def prop-type (type prop-value))
 
   (if-not (or (= prop-type :keyword) (has-value? allowed-types prop-type))
-    (error
-      (string/format "%s is of type %v. Allowed types %s"
-                     prop-name
-                     prop-type
-                     (comma-sep allowed-types)))))
+    (errorf "%s is of type %v. Allowed types %s"
+            prop-name
+            prop-type
+            (comma-sep allowed-types))))
 
 (defn make-spec-struct
   "Turn a list of property key/value pairs into a struct or, raise a more
@@ -40,9 +39,10 @@
   (try
     (struct ;spec)
     ([e]
-      (error
-        (string/format "unable to create struct from %d arg(s):  %p: %s"
-                       (length spec) spec e)))))
+      (errorf "unable to create struct from %d arg(s):  %p: %s"
+              (length spec)
+              spec
+              e))))
 
 (defn checked-spec
   "Compares a user's spec against what a resource definition expects. Raises
@@ -58,26 +58,20 @@
   (loop [[prop-name prop-spec] :pairs mandatory-props]
     (def prop-value (get spec-struct prop-name))
     (if (nil? prop-value)
-      (error
-        (string/format
-          "did not find mandatory property %p. Mandatory properties are %s"
-          prop-name
-          (comma-sep (keys mandatory-props))))
+      (errorf "did not find mandatory property %p. Mandatory properties are %s"
+              prop-name
+              (comma-sep (keys mandatory-props)))
       (check-key-type prop-name prop-value (prop-spec :types))))
 
   (loop [[prop-name prop-value] :pairs spec-struct]
     (if-not (has-key? mandatory-props prop-name) # we've already checked these
       (if-let [prop-spec (get optional-props prop-name)]
         (check-key-type prop-name prop-value (prop-spec :types))
-        (error
-          (string
-            (string/format "unexpected property %p. Valid properties are "
-                           prop-name)
-            (comma-sep
-              (array/concat @[]
-                            (keys mandatory-props)
-                            (keys optional-props))))))))
-
+        (errorf "unexpected property %p. Valid properties are %s"
+                prop-name
+                (comma-sep (array/concat @[]
+                                         (keys mandatory-props)
+                                         (keys optional-props)))))))
   spec-struct)
 
 (defn resource-id
@@ -114,8 +108,7 @@
        (do
          ,;body)
        ([$e]
-         (error
-           (string/format "In %s/%s %s: %s" doer ,action name $e))))))
+         (errorf "In %s/%s %s: %s" doer ,action name $e)))))
 
 (defmacro make-ensure-resource
   "Pulls together some boilerplate in doer ensure functions"
@@ -157,10 +150,10 @@
   [spec key acceptable-values]
   (if-let [given-value (get (struct ;spec) key)]
     (if-not (has-value? acceptable-values given-value)
-      (error (string/format "%q must be one of %s [got '%s']"
-                            key
-                            (comma-sep acceptable-values)
-                            given-value)))))
+      (errorf "%q must be one of %s [got '%s']"
+              key
+              (comma-sep acceptable-values)
+              given-value))))
 
 
 (defmacro table->flat-tuple
@@ -243,4 +236,3 @@
         (set (spec-table :from) url-or-qualified-path))))
 
   spec-table)
-

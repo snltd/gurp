@@ -75,6 +75,9 @@ gives you a few convenience functions and macros.
   `GURP_RECREATE_ZONE=my-zone` , `my-zone` will be recreated.
 - `(num-field-sort string)` sorts the lines in `string` based on the assumption
   the first field of each is numeric.
+- `(metadata :key value)` add a `:key` `value` pair to a global metadata struct.
+  Some keys (currently only `:host` are protected. Attempting to set duplicate
+  keys is an error.
 
 ### Dynamic Bindings
 

@@ -31,6 +31,7 @@ use crate::zfs::{GurpZfsEnsure, GurpZfsRemove};
 use crate::zone::{GurpZoneEnsure, GurpZoneRemove};
 use anyhow::{Context, bail};
 use bytesize::ByteSize;
+use camino::Utf8PathBuf;
 use colored::Colorize;
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
 use regex::Regex;
@@ -48,14 +49,26 @@ pub trait Apply {
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub struct HostConfig {
     pub metadata: HostMetadata,
+    pub control_data: HostControlData,
     pub resources: HostResources,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct HostMetadata {
     pub name: String,
+}
+
+/// This must reflect the struct in janet/src/control-data.janet
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct HostControlData {
+    pub splay_seconds: Option<u32>,
+    pub gem_path: Option<Utf8PathBuf>,
+    pub metrics_to: Option<String>,
+    pub logs_to: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]

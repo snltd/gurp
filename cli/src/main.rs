@@ -64,6 +64,9 @@ enum Commands {
         /// Do not check for or use a lockfile
         #[arg(long = "no-lock")]
         no_lock: bool,
+        /// Do not write a JSON report
+        #[arg(long = "report-lock")]
+        no_report: bool,
         /// Run remove actions BEFORE ensure actions
         #[arg(long = "remove-first")]
         remove_first: bool,
@@ -154,6 +157,7 @@ fn main() -> ExitCode {
             destroy_everything_you_touch,
             image,
             no_lock,
+            no_report,
             remove_first,
             only,
             define,
@@ -165,6 +169,7 @@ fn main() -> ExitCode {
                 destroy: destroy_everything_you_touch,
                 image,
                 no_lock,
+                no_report,
                 remove_first,
                 only,
                 output: ApplyOutputOpts {

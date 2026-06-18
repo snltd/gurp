@@ -104,7 +104,7 @@
       :physical-links (-> (run-wrapper "/usr/sbin/dladm show-phys") (tabular-output->struct))
       :ip-interfaces (-> (run-wrapper "/usr/sbin/ipadm show-if") ip-no-loopback)
       :ip-addresses (-> (run-wrapper "/usr/sbin/ipadm show-addr") ip-no-loopback)
-      _ (error (string "unknown fact: " name))))
+      _ (errorf  "unknown fact: %s" name)))
   (set (*fact-cache* name) value))
 
 

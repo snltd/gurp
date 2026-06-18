@@ -20,6 +20,7 @@ pub struct ApplyOpts {
     pub destroy: bool,
     pub exec: Option<String>,
     pub no_lock: bool,
+    pub no_report: bool,
     pub remove_first: bool,
     pub only: Option<String>,
     pub output: ApplyOutputOpts,

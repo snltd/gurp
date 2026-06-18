@@ -11,12 +11,10 @@
         referenced-struct (find |(= resource-id (get $ :_id)) all-resources)]
 
     (if (nil? referenced-struct)
-      (error
-        (string/format "referenced resource not found: %s"
-                       (keyword resource-id))))
+      (errorf "referenced resource not found: %s" (keyword resource-id)))
 
     (if (has-key? seen resource-id)
-      (error (string/format "detected circular reference: [%q]" seen)))
+      (errorf "detected circular reference: [%q]" seen))
 
     (set (seen resource-id) true)
     (def referenced-val (referenced-struct property)) # could be another ref
@@ -24,7 +22,7 @@
     (if (keyword? referenced-val)
       (resolve-reference referenced-val all-resources seen)
       (if (nil? referenced-val)
-        (error (string/format "referenced property is nil: %p" target-ref))
+        (errorf "referenced property is nil: %p" target-ref)
         referenced-val))))
 
 (defn- resolve-references
