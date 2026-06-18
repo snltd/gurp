@@ -9,7 +9,8 @@ use std::fs;
 use std::time::Duration;
 use util::info;
 
-// Makes a best-effort to write a run report. Swallows any errors.
+// Makes a best-effort to write a run report. Swallows any errors. No report is written
+// if we're execing a snippet.
 //
 #[derive(Serialize)]
 pub(crate) enum ReportStatus {
