@@ -44,7 +44,7 @@
     (doer-lib/join-lines
       (describe-docs/lay-out-help
         "\n"
-        "The control-data function is used to set predefined paramaters which
+        "The control-data function is used to set predefined parameters which
         affect the way a `gurp apply` behaves. Keys are defined as keywords.
         All keys are optional and may be defined anywhere in a Gurp config."
         0
