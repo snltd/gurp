@@ -3,7 +3,7 @@
 
 (deftest end-to-end-test
   (set *collector* (new-collector))
-  (set *metadata* (new-metadata))
+  (set *control-data* (new-control-data))
 
   (role devtools
         (pkg/ensure "ooce/developer/rust")
@@ -17,7 +17,7 @@
                      :content "git-config"))
 
   (role basenode
-        (metadata :extra-metadata "from-basenode")
+        (control-data :splay-seconds 25)
         (section packages
                  (pkg/ensure "ooce/editor/helix")
                  (pkg/ensure "shell/zsh")
@@ -35,14 +35,14 @@
         (directory/remove "/tmp/junk"))
 
   (host "end-to-end"
-        (metadata :just-a-test true)
+        (control-data :gem-path "/opt/local/bin/gem")
         (basenode)
         (devtools))
 
   (test (machine-config)
-    {:metadata {:extra-metadata "from-basenode"
-                :just-a-test true
-                :name "end-to-end"}
+    {:control-data {:gem-path "/opt/local/bin/gem"
+                    :splay-seconds 25}
+     :metadata {:name "end-to-end"}
      :resources {:ensure @{:directory @[{:_id "/basenode/directory/merp"
                                          :group "sysadmin"
                                          :label "merp"

@@ -4,7 +4,7 @@
 (deftest references-should-all-resolve
   # These files should all end up with the same owner
   (set *collector* (new-collector))
-  (set *metadata* (new-metadata))
+  (set *control-data* (new-control-data))
   (role role-a
         (file/ensure "/tmp/a1"
                      :group "sysadmin"
@@ -32,44 +32,45 @@
         (role-b))
 
   (test (machine-config)
-        {:metadata {:name "reference-test"}
-         :resources {:ensure @{:directory @[{:_id "/role-a/directory/_tmp_d1"
-                                             :group "root"
-                                             :mode "0755"
-                                             :name "/tmp/d1"
-                                             :owner "tester"
-                                             :role "role-a"}]
-                               :file @[{:_id "/role-a/file/a1"
-                                        :content "blah"
-                                        :group "sysadmin"
-                                        :label "a1"
-                                        :mode "0644"
-                                        :name "/tmp/a1"
-                                        :owner "tester"
-                                        :role "role-a"}
-                                       {:_id "/role-b/file/_tmp_b1"
-                                        :content "blah-blah"
-                                        :group "sysadmin"
-                                        :mode "0644"
-                                        :name "/tmp/b1"
-                                        :owner "tester"
-                                        :role "role-b"}
-                                       {:_id "/role-b/file/b2"
-                                        :content "blah-blah-blah"
-                                        :group "root"
-                                        :label "b2"
-                                        :mode "0644"
-                                        :name "/tmp/b2"
-                                        :owner "tester"
-                                        :role "role-b"}
-                                       {:_id "/role-b/file/_tmp_b3"
-                                        :content "blah-blah-blah"
-                                        :group "root"
-                                        :mode "0644"
-                                        :name "/tmp/b3"
-                                        :owner "tester"
-                                        :role "role-b"}]}
-                     :remove @{}}}))
+    {:control-data {}
+     :metadata {:name "reference-test"}
+     :resources {:ensure @{:directory @[{:_id "/role-a/directory/_tmp_d1"
+                                         :group "root"
+                                         :mode "0755"
+                                         :name "/tmp/d1"
+                                         :owner "tester"
+                                         :role "role-a"}]
+                           :file @[{:_id "/role-a/file/a1"
+                                    :content "blah"
+                                    :group "sysadmin"
+                                    :label "a1"
+                                    :mode "0644"
+                                    :name "/tmp/a1"
+                                    :owner "tester"
+                                    :role "role-a"}
+                                   {:_id "/role-b/file/_tmp_b1"
+                                    :content "blah-blah"
+                                    :group "sysadmin"
+                                    :mode "0644"
+                                    :name "/tmp/b1"
+                                    :owner "tester"
+                                    :role "role-b"}
+                                   {:_id "/role-b/file/b2"
+                                    :content "blah-blah-blah"
+                                    :group "root"
+                                    :label "b2"
+                                    :mode "0644"
+                                    :name "/tmp/b2"
+                                    :owner "tester"
+                                    :role "role-b"}
+                                   {:_id "/role-b/file/_tmp_b3"
+                                    :content "blah-blah-blah"
+                                    :group "root"
+                                    :mode "0644"
+                                    :name "/tmp/b3"
+                                    :owner "tester"
+                                    :role "role-b"}]}
+                 :remove @{}}}))
 
 (deftest reference-to-non-existent-resource-should-error
   (set *collector* (new-collector))
@@ -149,23 +150,24 @@
 
   (host "helper-refs" (ref-role))
   (test (machine-config)
-        {:metadata {:name "helper-refs"}
-         :resources {:ensure @{:directory @[{:_id "/ref-role/directory/d1"
-                                             :group "root"
-                                             :label "d1"
-                                             :mode "0755"
-                                             :name "/tmp/d"
-                                             :owner "tester"
-                                             :role "ref-role"}]
-                               :smf @[{:_id "/ref-role/smf/test-service"
-                                       :default-enabled true
-                                       :description "for reference testing"
-                                       :fmri "root"
-                                       :name "test-service"
-                                       :role "ref-role"
-                                       :single-instance true
-                                       :start-method @{:context {:group "daemon" :user "tester"}
-                                                       :exec "/app/method.sh"
-                                                       :timeout 60}
-                                       :stop-method {:exec ":kill" :timeout 10}}]}
-                     :remove @{}}}))
+    {:control-data {}
+     :metadata {:name "helper-refs"}
+     :resources {:ensure @{:directory @[{:_id "/ref-role/directory/d1"
+                                         :group "root"
+                                         :label "d1"
+                                         :mode "0755"
+                                         :name "/tmp/d"
+                                         :owner "tester"
+                                         :role "ref-role"}]
+                           :smf @[{:_id "/ref-role/smf/test-service"
+                                   :default-enabled true
+                                   :description "for reference testing"
+                                   :fmri "root"
+                                   :name "test-service"
+                                   :role "ref-role"
+                                   :single-instance true
+                                   :start-method @{:context {:group "daemon" :user "tester"}
+                                                   :exec "/app/method.sh"
+                                                   :timeout 60}
+                                   :stop-method {:exec ":kill" :timeout 10}}]}
+                 :remove @{}}}))

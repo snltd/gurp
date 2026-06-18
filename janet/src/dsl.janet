@@ -9,10 +9,11 @@
      (setdyn :host-dyn (string ,host-name))
      (defn machine-config
        "Calling this function evaluates a Janet machine description, populating
-       and finalising the *collector*"
+       and finalising the *collector* and *control-data*"
        []
        ,;host-definition
-       {:metadata (table/to-struct (merge-into @{:name ,host-name} *metadata*))
+       {:metadata {:name ,host-name}
+        :control-data (table/to-struct *control-data*)
         :resources (finalise *collector*)})))
 
 (defmacro role
@@ -251,10 +252,10 @@
 
   (if-not (empty? unused-vars)
     (errorf "unused vars: expected %s: got %s"
-                          (string/join
-                            (map |(peg/replace-all '(set "{} \t\r\n\0\f\v") "" $)
-                                 (keys find->replace)) ", ")
-                          (string/join (keys vars) ", ")))
+            (string/join
+              (map |(peg/replace-all '(set "{} \t\r\n\0\f\v") "" $)
+                   (keys find->replace)) ", ")
+            (string/join (keys vars) ", ")))
   result)
 
 (defn run-any-cmd

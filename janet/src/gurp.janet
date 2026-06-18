@@ -6,4 +6,4 @@
 (import ./doers :prefix "" :export true)
 (import ./dsl :prefix "" :export true)
 (import ./facts :prefix "" :export true)
-(import ./metadata :prefix "" :export true)
+(import ./control-data :prefix "" :export true)
