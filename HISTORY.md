@@ -1,4 +1,4 @@
-- Add `(metadata)` function and supporting front-end code.
+- Add `(control-data)` function.
 
 ## v2.1.0 (2026-06-16)
 
