@@ -1,6 +1,8 @@
 # Control data controls how Gurp runs.
 
 (import ./doers/lib :only [comma-sep] :prefix "")
+(import ./doer-docs/describe-docs :only [format-properties lay-out-help])
+(import ./doer-docs/lib :only [term-width join-lines] :as "doer-lib")
 
 (def control-keys
   "Permissible control keys"
@@ -36,3 +38,21 @@
     (errorf "unknown control-data key: %p. Keys are %s"
             key
             (comma-sep (keys control-keys)))))
+
+(defn describe []
+  (string
+    (doer-lib/join-lines
+      (describe-docs/lay-out-help
+        "\n"
+        "The control-data function is used to set predefined paramaters which
+        affect the way a `gurp apply` behaves. Keys are defined as keywords.
+        All keys are optional and may be defined anywhere in a Gurp config."
+        0
+        (doer-lib/term-width)))
+
+    "\n\n"
+    "Trying to set the same key twice causes a fatal error."
+    "\n\n"
+
+    (describe-docs/format-properties control-keys)
+    "\n"))
