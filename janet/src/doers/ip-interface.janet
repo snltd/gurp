@@ -16,12 +16,13 @@
   "Given an IP interface name and spec, put an ensure struct in the collector"
   [name & spec]
 
-  (def spec-table
-    (pinpoint-error
-      :ensure
-      (group-ip-properties mandatory-props-ensure optional-props-ensure ;spec)))
+  (let [spec-table (pinpoint-error
+                     :ensure
+                     (group-ip-properties mandatory-props-ensure
+                                          optional-props-ensure
+                                          ;spec))]
 
-  (collector/push :ensure doer (spec->resource doer name spec-table)))
+    (collector/push :ensure doer (spec->resource doer name spec-table))))
 
 (defn remove
   "Given an IP interface spec, put a remove struct in the collector"

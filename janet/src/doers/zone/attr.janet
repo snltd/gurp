@@ -19,23 +19,21 @@
 (defn attr
   "Given a spec, return a zone attr struct."
   [name & spec]
-  (def spec-struct (make-spec-struct :name name ;spec))
-  (def expanded-spec (spec-with-defaults defaults-attr spec-struct))
-  (def spec-table
-    (pinpoint-error :attr
-                    (checked-spec
-                      expanded-spec
-                      mandatory-props-attr
-                      optional-props-attr)))
+  (let [spec-struct (make-spec-struct :name name ;spec)
+        expanded-spec (spec-with-defaults defaults-attr spec-struct)
+        spec-table (pinpoint-error :attr
+                                   (checked-spec expanded-spec
+                                                 mandatory-props-attr
+                                                 optional-props-attr))]
 
-  (if-not (has-key? spec-table :type)
-    (set (spec-table :type)
-         (match (type (spec-table :value))
-           :number "uint"
-           :boolean "boolean"
-           _ "string")))
+    (if-not (has-key? spec-table :type)
+      (set (spec-table :type)
+           (match (type (spec-table :value))
+             :number "uint"
+             :boolean "boolean"
+             _ "string")))
 
-  (if (= "astring" (spec-table :type))
-    (set (spec-table :value) (string (spec-table :value))))
+    (if (= "astring" (spec-table :type))
+      (set (spec-table :value) (string (spec-table :value))))
 
-  (struct :attr spec-table))
+    (struct :attr spec-table)))

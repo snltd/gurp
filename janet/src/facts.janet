@@ -12,18 +12,18 @@
   "Returns the value of the given static fact, as a keyword, or nil if the
   fact does not exist."
   [fact-name]
-  (def fact-file (pathcat "/etc/gurp" (string/format "%s.fact" fact-name)))
-
-  (if (os/stat fact-file)
-    (-> (slurp fact-file) (string/trim) (keyword))
-    nil))
+  (let [fact-file (pathcat "/etc/gurp" (string/format "%s.fact" fact-name))]
+    (if (os/stat fact-file)
+      (-> (slurp fact-file) (string/trim) (keyword))
+      nil)))
 
 (defn- fields->tuple
   "Takes an array of fields and returns a tuple in which the first field is a
   downcased keyword of @fields, and second is a number or string value of the
   final value of @fields"
   [fields]
-  [(-> fields (first) (->key)) (parsed-value (last fields))])
+  [(-> fields (first) (->key))
+   (parsed-value (last fields))])
 
 (defn- run-wrapper
   "forces fetch-and-cache to use the run-safe-cmd cfunc rather than the stub"
@@ -79,8 +79,7 @@
   # When Gurp makes a zone it creates a static fact. If that's there, use it.
   (if-let [brand (static-fact :zone-brand)]
     brand
-    (do
-      (def zonename (zonename-fact))
+    (let [zonename (zonename-fact)]
       # and if the fact isn't there, make an educated guess
       (if (= zonename "global")
         :global
@@ -88,7 +87,6 @@
           "native" (type-of-native-zone)
           "lx" :lx
           _ (nil))))))
-
 
 # Don't forget to update RUN_SAVE_CMDS in common/src/constants.rs
 (defn fetch-and-cache
@@ -104,7 +102,7 @@
       :physical-links (-> (run-wrapper "/usr/sbin/dladm show-phys") (tabular-output->struct))
       :ip-interfaces (-> (run-wrapper "/usr/sbin/ipadm show-if") ip-no-loopback)
       :ip-addresses (-> (run-wrapper "/usr/sbin/ipadm show-addr") ip-no-loopback)
-      _ (errorf  "unknown fact: %s" name)))
+      _ (errorf "unknown fact: %s" name)))
   (set (*fact-cache* name) value))
 
 

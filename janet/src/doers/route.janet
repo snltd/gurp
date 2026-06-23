@@ -33,7 +33,6 @@
 (defn ensure
   "Given a route destination and spec, put an ensure struct in the collector"
   [name & spec]
-
   (if-not (has-exactly-one-of? [:gateway :interface] spec)
     (error "Provide exactly one of :gateway and :interface"))
 

@@ -20,28 +20,25 @@
 (defn ensure
   "Given a dataset name, put an ensure struct in the collector"
   [name & spec]
-  (def spec-table (struct/to-table (make-spec-struct ;spec)))
+  (let [spec-table (struct/to-table (make-spec-struct ;spec))]
+    (if-not (has-key? spec-table :properties)
+      (set (spec-table :properties) {}))
 
-  (if-not (has-key? spec-table :properties)
-    (set (spec-table :properties) {}))
+    (when
+      (and (not (has-key? spec-table :size))
+           (not (get-in spec-table [:properties :mountpoint])))
+      (set [spec-table :properties] (struct/to-table (spec-table :properties)))
+      (put-in spec-table [:properties :mountpoint] "none")
+      (set [spec-table :properties] (table/to-struct (spec-table :properties))))
 
-  (when
-    (and
-      (not (has-key? spec-table :size))
-      (not (get-in spec-table [:properties :mountpoint])))
-    (set [spec-table :properties] (struct/to-table (spec-table :properties)))
-    (put-in spec-table [:properties :mountpoint] "none")
-    (set [spec-table :properties] (table/to-struct (spec-table :properties))))
+    (let [all-specs (spec-with-defaults defaults-ensure spec-table)
+          safe-specs (pinpoint-error
+                       :ensure
+                       (checked-spec all-specs
+                                     mandatory-props-ensure
+                                     optional-props-ensure))]
 
-  (def all-specs (spec-with-defaults defaults-ensure spec-table))
-  (def safe-specs
-    (pinpoint-error
-      :ensure
-      (checked-spec all-specs
-                    mandatory-props-ensure
-                    optional-props-ensure)))
-
-  (collector/push :ensure doer (spec->resource doer name safe-specs)))
+      (collector/push :ensure doer (spec->resource doer name safe-specs)))))
 
 (defn remove
   "Given a dataset name, put a remove struct in the collector"

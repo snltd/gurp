@@ -107,28 +107,25 @@
   (expand-resource :bhyve :as-struct true)
   (expand-resource :bootstrap :as-struct true)
 
-  (def modified-spec-struct (make-spec-struct ;modified-spec))
+  (let [modified-spec-struct (make-spec-struct ;modified-spec)
+        spec-struct (pinpoint-error
+                      :ensure
+                      (checked-spec
+                        modified-spec-struct
+                        mandatory-props-ensure
+                        optional-props-ensure))
+        spec-table (spec-with-defaults defaults-ensure spec-struct)]
 
-  (def spec-struct
-    (pinpoint-error
-      :ensure
-      (checked-spec
-        modified-spec-struct
-        mandatory-props-ensure
-        optional-props-ensure)))
+    (if-let [copy-resource (get spec-table :copy-in)]
+      (set (spec-table :copy-in)
+           (zipcoll (map qualify-from-path (keys copy-resource))
+                    (values copy-resource))))
 
-  (def spec-table (spec-with-defaults defaults-ensure spec-struct))
+    # Fill-in the zone path if it hasn't been given
+    (if-not (has-key? spec-table :zonepath)
+      (set (spec-table :zonepath) (pathcat "/zones" name)))
 
-  (if-let [copy-resource (get spec-table :copy-in)]
-    (set (spec-table :copy-in)
-         (zipcoll (map qualify-from-path (keys copy-resource))
-                  (values copy-resource))))
-
-  # Fill-in the zone path if it hasn't been given
-  (if-not (has-key? spec-table :zonepath)
-    (set (spec-table :zonepath) (pathcat "/zones" name)))
-
-  (collector/push :ensure doer (spec->resource doer name spec-table)))
+    (collector/push :ensure doer (spec->resource doer name spec-table))))
 
 (defn remove
   "Given a zone name, put a remove struct in the collector"

@@ -42,26 +42,26 @@
 (defn remove
   "Given a path and specification, put a remove struct in the collector"
   [name & spec]
-  (def spec-struct (make-spec-struct ;spec))
+  (let [spec-struct (make-spec-struct ;spec)]
 
-  (pinpoint-error
-    "remove"
-    (if-let [match-val (spec-struct :match)]
-      (if-not (has-value? match-allowed match-val)
-        (errorf "match must be one of %s [Got '%s']"
-                (comma-sep match-allowed)
-                match-val)))
+    (pinpoint-error
+      "remove"
+      (if-let [match-val (spec-struct :match)]
+        (if-not (has-value? match-allowed match-val)
+          (errorf "match must be one of %s [Got '%s']"
+                  (comma-sep match-allowed)
+                  match-val)))
 
-    (if-let [type-val (spec-struct :apply-to)]
-      (if-not (has-value? apply-to-allowed type-val)
-        (errorf "type must be one of " (comma-sep apply-to-allowed)))))
+      (if-let [type-val (spec-struct :apply-to)]
+        (if-not (has-value? apply-to-allowed type-val)
+          (errorf "type must be one of " (comma-sep apply-to-allowed)))))
 
-  (def all-specs (spec-with-defaults defaults-remove spec-struct))
-  (def safe-specs (checked-spec all-specs
-                                mandatory-props-remove
-                                optional-props-remove))
+    (let [all-specs (spec-with-defaults defaults-remove spec-struct)
+          safe-specs (checked-spec all-specs
+                                   mandatory-props-remove
+                                   optional-props-remove)]
 
-  (collector/push :remove doer (spec->resource doer name safe-specs)))
+      (collector/push :remove doer (spec->resource doer name safe-specs)))))
 
 (def notes
   ["The file is not managed here. Use a file resource."

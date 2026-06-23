@@ -23,13 +23,14 @@
 (defn network
   "Given a spec, return a zone network struct."
   [physical & spec]
-  (def name "NO-NAME")
-  (def spec-struct (make-spec-struct :physical physical ;spec))
-  (def expanded-spec (spec-with-defaults defaults-network spec-struct))
-  (def spec-table
-    (pinpoint-error :network
-                    (checked-spec
-                      expanded-spec
-                      mandatory-props-network
-                      optional-props-network)))
-  (struct :net spec-table))
+  (let [name "NO-NAME"
+        spec-struct (make-spec-struct :physical physical ;spec)
+        expanded-spec (spec-with-defaults defaults-network spec-struct)
+        spec-table
+        (pinpoint-error :network
+                        (checked-spec
+                          expanded-spec
+                          mandatory-props-network
+                          optional-props-network))]
+
+    (struct :net spec-table)))

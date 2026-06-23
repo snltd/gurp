@@ -20,10 +20,11 @@
 (defn fs
   "Given a spec, return a zone fs struct."
   [name & spec]
-  (def spec-struct (make-spec-struct :dir name ;spec))
-  (def expanded-spec (spec-with-defaults defaults-fs spec-struct))
-  (def spec-table
-    (pinpoint-error
-      :fs
-      (checked-spec expanded-spec mandatory-props-fs optional-props-fs)))
-  (struct :fs spec-table))
+  (let [spec-struct (make-spec-struct :dir name ;spec)
+        expanded-spec (spec-with-defaults defaults-fs spec-struct)
+        spec-table (pinpoint-error :fs
+                                   (checked-spec expanded-spec
+                                                 mandatory-props-fs
+                                                 optional-props-fs))]
+
+    (struct :fs spec-table)))

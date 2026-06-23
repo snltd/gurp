@@ -48,7 +48,7 @@
 (defn argcat
   "Joins arguments to make a command"
   [& chunks]
-  (string/join (tuple ;chunks) " "))
+  (string/join (tuple ;(map string chunks)) " "))
 
 (defn stripslash
   "Removes leading and trailing slashes from a component"
@@ -64,7 +64,7 @@
     (error "pathcat called with a nil"))
   (as-> chunks _
         (map stripslash _)
-        (compact _)
+        (drop-empties _)
         (string/join _ "/")
         (string "/" _)))
 
@@ -74,7 +74,7 @@
   (if (nil? chunks)
     (error "zfscat called with a nil"))
   (-> (map stripslash chunks)
-      (compact)
+      (drop-empties)
       (string/join "/")))
 
 (defn qualified-path?
@@ -178,8 +178,8 @@
   (if-not (= (% 60 interval) 0)
     (errorf "%d is not a divisor of 60" interval))
 
-  (def seed (% (apply + (seq [c :in seed-string] c)) interval))
-  (string/join (map string (seq [i :range [seed 60 interval]] i)) ","))
+  (let [seed (% (apply + (seq [c :in seed-string] c)) interval)]
+    (string/join (map string (seq [i :range [seed 60 interval]] i)) ",")))
 
 (defn repeated-line-file
   "Produces a string, with a trailing newline, created by mapping the given

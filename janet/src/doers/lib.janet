@@ -24,13 +24,12 @@
   "Checks something is of a permissible type. Raises an error if it is not.
   Values can *always* be keywords, because they denote references."
   [prop-name prop-value allowed-types]
-  (def prop-type (type prop-value))
-
-  (if-not (or (= prop-type :keyword) (has-value? allowed-types prop-type))
-    (errorf "%s is of type %v. Allowed types %s"
-            prop-name
-            prop-type
-            (comma-sep allowed-types))))
+  (let [prop-type (type prop-value)]
+    (if-not (or (= prop-type :keyword) (has-value? allowed-types prop-type))
+      (errorf "%s is of type %v. Allowed types %s"
+              prop-name
+              prop-type
+              (comma-sep allowed-types)))))
 
 (defn make-spec-struct
   "Turn a list of property key/value pairs into a struct or, raise a more
@@ -56,12 +55,12 @@
            optional-props))
 
   (loop [[prop-name prop-spec] :pairs mandatory-props]
-    (def prop-value (get spec-struct prop-name))
-    (if (nil? prop-value)
-      (errorf "did not find mandatory property %p. Mandatory properties are %s"
-              prop-name
-              (comma-sep (keys mandatory-props)))
-      (check-key-type prop-name prop-value (prop-spec :types))))
+    (let [prop-value (get spec-struct prop-name)]
+      (if (nil? prop-value)
+        (errorf "did not find mandatory property %p. Mandatory properties are %s"
+                prop-name
+                (comma-sep (keys mandatory-props)))
+        (check-key-type prop-name prop-value (prop-spec :types)))))
 
   (loop [[prop-name prop-value] :pairs spec-struct]
     (if-not (has-key? mandatory-props prop-name) # we've already checked these
@@ -77,23 +76,23 @@
 (defn resource-id
   "Safely generate a resource ID"
   [resource-type role name]
-  (def name (if (nil? name)
-              "NO-NAME"
-              (string/replace-all "/" "_" name)))
+  (let [name (if (nil? name)
+               "NO-NAME"
+               (string/replace-all "/" "_" name))]
 
-  (string/format "/%s/%s/%s" role resource-type name))
+    (string/format "/%s/%s/%s" role resource-type name)))
 
 (defn spec->resource
   "Decorate a spec struct with everything it needs to become a resource."
   [resource-type resource-name spec-struct]
-  (def role (dyn :role-dyn "NO-ROLE"))
-  (def final-id-chunk (get spec-struct :label resource-name))
+  (let [role (dyn :role-dyn "NO-ROLE")
+        final-id-chunk (get spec-struct :label resource-name)]
 
-  (table/to-struct
-    (merge {:_id (resource-id resource-type role final-id-chunk)
-            :name resource-name
-            :role role}
-           spec-struct)))
+    (table/to-struct
+      (merge {:_id (resource-id resource-type role final-id-chunk)
+              :name resource-name
+              :role role}
+             spec-struct))))
 
 (defn spec-with-defaults
   "Merge defaults with user values. We don't use prototypes now"
@@ -116,34 +115,33 @@
   (with-syms [$e]
     ~(pinpoint-error
        :ensure
-       (def spec-struct (make-spec-struct ;spec))
-       (def all-specs (spec-with-defaults defaults-ensure spec-struct))
-       (def safe-specs (checked-spec all-specs
-                                     mandatory-props-ensure
-                                     optional-props-ensure))
+       (let [spec-struct (make-spec-struct ;spec)
+             all-specs (spec-with-defaults defaults-ensure spec-struct)
+             safe-specs (checked-spec all-specs
+                                      mandatory-props-ensure
+                                      optional-props-ensure)]
 
-       (spec->resource doer name safe-specs))))
+         (spec->resource doer name safe-specs)))))
 
 (defmacro make-remove-resource
   "Pulls together some boilerplate in doer remove functions"
   []
-  (with-syms [$e]
-    ~(pinpoint-error
-       :remove
-       (def spec-struct (make-spec-struct ;spec))
-       (def all-specs (spec-with-defaults defaults-remove spec-struct))
-       (def safe-specs (checked-spec all-specs
-                                     mandatory-props-remove
-                                     optional-props-remove))
+  ~(pinpoint-error
+     :remove
+     (let [spec-struct (make-spec-struct ;spec)
+           all-specs (spec-with-defaults defaults-remove spec-struct)
+           safe-specs (checked-spec all-specs
+                                    mandatory-props-remove
+                                    optional-props-remove)]
 
        (spec->resource doer name safe-specs))))
 
 (defn has-exactly-one-of?
   "Checks whether a spec contains exactly one of the required-keys"
   [required-keys spec]
-  (= 1
-     (length
-       (filter |(has-value? required-keys $) (keys (make-spec-struct ;spec))))))
+  (one?
+    (length
+      (filter |(has-value? required-keys $) (keys (make-spec-struct ;spec))))))
 
 (defn key-has-value?
   "Checks whether the given key has an acceptable value"
@@ -196,22 +194,21 @@
   "Move IP protocol properties into a separate :protocol property"
   [mandatory-props optional-props & spec]
 
-  (def temp-spec-table
-    (checked-spec (make-spec-struct ;spec) mandatory-props optional-props))
+  (let [spec-struct (make-spec-struct ;spec)
+        temp-spec-table (checked-spec spec-struct mandatory-props optional-props)
+        parts (->> temp-spec-table
+                   (table->flat-tuple)
+                   (partition 2)
+                   (partition-by |(has-value? ip-protocols (first $)))
+                   (map flatten))
 
-  (def parts (->> temp-spec-table
-                  (table->flat-tuple)
-                  (partition 2)
-                  (partition-by |(has-value? ip-protocols (first $)))
-                  (map flatten)))
+        spec-table (table ;(get parts 1 []))]
 
-  (def spec-table (table ;(get parts 1 [])))
+    (if-let [protocol-parts (get parts 0)
+             protocol-table (struct ;protocol-parts)]
+      (set (spec-table :protocols) protocol-table))
 
-  (if-let [protocol-parts (get parts 0)
-           protocol-table (struct ;protocol-parts)]
-    (set (spec-table :protocols) protocol-table))
-
-  spec-table)
+    spec-table))
 
 (defn- server-url
   [server-name from-path]

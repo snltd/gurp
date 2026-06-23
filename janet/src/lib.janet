@@ -28,10 +28,16 @@
 
 (defn values-as-tuple
   "Returns a flat array of values, whatever type of values it's given"
-  [values]
+  [& values]
   (flatten (array values)))
 
+(defn drop-empties
+  "Remove empty elements from an array. Errors if any element is not
+   lengthable?"
+  [arr]
+  (filter |(not (empty? $)) arr))
+
 (defn compact
-  "Remove empty elements from an array"
-  [vector]
-  (filter |(not (empty? $)) vector))
+  "Remove nil elements from an array"
+  [arr]
+  (filter |(not (nil? $)) arr))

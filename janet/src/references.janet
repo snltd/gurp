@@ -40,7 +40,7 @@
   resource)
 
 (defn resolve
-  "resource-list is a list of resources of the same type"
+  "Resolve a list of resources of the same type"
   [resource-list all-resources]
   (map
     |(table/to-struct (resolve-references (struct/to-table $) all-resources))

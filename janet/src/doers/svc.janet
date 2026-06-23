@@ -22,23 +22,21 @@
 (defn ensure
   "Given a name and state, put an ensure struct in the collector"
   [name & spec]
+  (let [spec-struct (make-spec-struct ;spec)
+        spec-table (spec-with-defaults defaults-ensure spec-struct)]
 
-  (def spec-struct (make-spec-struct ;spec))
-  (def spec-table (spec-with-defaults defaults-ensure spec-struct))
+    (if-let [restarters (spec-table :restarted-by)]
+      (set (spec-table :restarted-by) (map string restarters)))
 
-  (if-let [restarters (spec-table :restarted-by)]
-    (set (spec-table :restarted-by) (map string restarters)))
+    (if-let [reloaders (spec-table :reloaded-by)]
+      (set (spec-table :reloaded-by) (map string reloaders)))
 
-  (if-let [reloaders (spec-table :reloaded-by)]
-    (set (spec-table :reloaded-by) (map string reloaders)))
+    (let [safe-specs (pinpoint-error
+                       :ensure (checked-spec spec-table
+                                             mandatory-props-ensure
+                                             optional-props-ensure))]
 
-  (def safe-specs
-    (pinpoint-error
-      :ensure (checked-spec spec-table
-                            mandatory-props-ensure
-                            optional-props-ensure)))
-
-  (collector/push :ensure doer (spec->resource doer name safe-specs)))
+      (collector/push :ensure doer (spec->resource doer name safe-specs)))))
 
 (def notes
   ["Because Gurp ends up shelling out to `svcs` and `svcadm`, the service

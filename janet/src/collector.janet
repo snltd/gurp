@@ -2,7 +2,9 @@
 
 (defn new-collector
   "Returns an empty *collector*. In a function as most tests use it"
-  [] @{:ensure @{} :remove @{}})
+  []
+  @{:ensure @{}
+    :remove @{}})
 
 # Yes, a GLOBAL VARIABLE! It collects all the resources from the host we
 # are configuring. :ensure and :remove are tables whose keys are resource
@@ -15,14 +17,13 @@
   the collector. Returns the resource itself, which can be useful when 
   debugging with the REPL."
   [action resource-type resource]
-  (def action-struct (*collector* action))
+  (let [action-struct (*collector* action)]
+    (if-not (has-key? action-struct resource-type)
+      (set (action-struct resource-type) @[]))
 
-  (if-not (has-key? action-struct resource-type)
-    (set (action-struct resource-type) @[]))
-
-  (def resource-array (action-struct resource-type))
-  (array/concat resource-array resource)
-  resource)
+    (array/concat
+      (action-struct resource-type) resource)
+    resource))
 
 (defn check-unique-ids
   "If the given list contains any duplicate resource IDs, throw an error"
@@ -43,9 +44,9 @@
   (loop [[resource-type resource-list] :pairs resource-struct]
     (do
       (check-unique-ids resource-list)
-      (def resolved-resource-list (references/resolve resource-list all-resources))
-      (set (ret resource-type) resolved-resource-list)))
-
+      (set
+        (ret resource-type)
+        (references/resolve resource-list all-resources))))
   ret)
 
 (defn finalise
