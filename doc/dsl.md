@@ -57,6 +57,8 @@ gives you a few convenience functions and macros.
 - `(repeated-line-file format-string values)` returns a string, for use as a
   config file, where each of `values` is applied to a format string. Good for
   things like automount maps.
+- `(drop-empties arr)` returns a new version array or tuple with empty elements
+  removed.
 - `(compact arr)` returns a new version of an array or tuple with `nil` elements
   removed.
 - `(qualified-path?` path)` returns true if the argument looks like a qualified
