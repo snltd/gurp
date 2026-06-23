@@ -36,30 +36,29 @@
       (if-not (has-value? allowed-methods name)
         (errorf "smf/method name must be one of %s" (comma-sep allowed-methods)))
 
-      (def spec-table
-        (checked-spec
-          (spec-with-defaults defaults-method (make-spec-struct ;spec))
-          mandatory-props-method
-          optional-props-method))
-
       # We have to move context related properties (context-props) into a
       # :context struct
 
-      (var context-table @{})
+      (let [user-spec (make-spec-struct ;spec)
+            expanded-spec (spec-with-defaults defaults-method user-spec)
+            spec-table (checked-spec expanded-spec
+                                     mandatory-props-method
+                                     optional-props-method)
+            context-table @{}]
 
-      (loop [prop :in context-props]
-        (when-let [spec-value (get spec-table prop)]
-          (def value-to-move (if (= prop :privileges)
-                               (string/join spec-value ",")
-                               spec-value))
+        (loop [prop :in context-props]
+          (when-let [spec-value (get spec-table prop)]
+            (def value-to-move (if (= prop :privileges)
+                                 (string/join spec-value ",")
+                                 spec-value))
 
-          (set (context-table prop) value-to-move)
-          (set (spec-table prop) nil)))
+            (set (context-table prop) value-to-move)
+            (set (spec-table prop) nil)))
 
-      (if-not (empty? context-table)
-        (set (spec-table :context) (table/to-struct context-table)))
+        (if-not (empty? context-table)
+          (set (spec-table :context) (table/to-struct context-table)))
 
-      (struct (keyword (string name "-method")) spec-table))))
+        (struct (keyword (string name "-method")) spec-table)))))
 
 (def notes-method
   ["If you don't supply a `:stop-method` you get a standard `:kill` that times

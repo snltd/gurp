@@ -6,7 +6,7 @@
 (use ../command-lib)
 (use ../lib)
 (use ../../test/doers/test-lib)
-(import ../dsl :prefix "" :only [files-in basename lines compact pathcat parent])
+(import ../dsl :prefix "" :only [files-in basename lines drop-empties pathcat parent])
 (import ../doers :prefix "")
 
 (defn- indent [text]
@@ -41,7 +41,7 @@
 
   (let [pad (string/repeat " " pad-width)
         invisible (- (length leader) (length (strip-ansi leader)) 2)
-        raw-words (array ;(compact (string/split " " words)) nil)
+        raw-words (array ;(drop-empties (string/split " " words)) nil)
         lines @[]
         format-string (string "%" (+ pad-width invisible) "s ")]
 

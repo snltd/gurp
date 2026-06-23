@@ -12,12 +12,13 @@
   "Given a protocol and spec, put an ensure struct in the collector"
   [name & spec]
 
-  (def spec-table
-    (pinpoint-error
-      :ensure
-      (group-ip-properties mandatory-props-ensure optional-props-ensure ;spec)))
+  (let [spec-table (pinpoint-error
+                     :ensure
+                     (group-ip-properties mandatory-props-ensure
+                                          optional-props-ensure
+                                          ;spec))]
 
-  (collector/push :ensure doer (spec->resource doer name spec-table)))
+    (collector/push :ensure doer (spec->resource doer name spec-table))))
 
 (def notes
   ["Define `extra_priv_ports` as a comma-separated list."])

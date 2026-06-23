@@ -1,5 +1,3 @@
-(import ../dsl :as lib :only [compact])
-
 (defn underline
   "Underline the given string"
   [text]

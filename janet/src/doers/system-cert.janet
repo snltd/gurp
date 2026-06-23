@@ -32,19 +32,16 @@
     (if-not (has-exactly-one-of? [:content :from :from-url] spec)
       (error "Provide exactly one of :content, :from, :from-url")))
 
-  (def spec-table
-    (expand-from-value (struct/to-table (make-spec-struct ;spec))))
+  (let [spec-struct (make-spec-struct ;spec)
+        spec-table (expand-from-value (struct/to-table spec-struct))
+        all-specs (spec-with-defaults defaults-ensure spec-table)
+        safe-specs (pinpoint-error
+                     :ensure
+                     (checked-spec all-specs
+                                   mandatory-props-ensure
+                                   optional-props-ensure))]
 
-  (def all-specs (spec-with-defaults defaults-ensure spec-table))
-
-  (def safe-specs
-    (pinpoint-error
-      :ensure
-      (checked-spec all-specs
-                    mandatory-props-ensure
-                    optional-props-ensure)))
-
-  (collector/push :ensure doer (spec->resource doer name safe-specs)))
+    (collector/push :ensure doer (spec->resource doer name safe-specs))))
 
 (defn remove
   "Given a cert name, put a remove struct in the collector"

@@ -46,14 +46,15 @@
 (defn bhyve
   "Given a spec, return config for a bhyve zone"
   [& spec]
-  (def name "NO-NAME")
-  (def spec-struct (make-spec-struct ;spec))
-  (def expanded-spec (spec-with-defaults defaults-bhyve spec-struct))
-  (def spec-table
-    (pinpoint-error
-      :bhyve
-      (checked-spec expanded-spec mandatory-props-bhyve optional-props-bhyve)))
-  (struct :bhyve spec-table))
+  (let [name "NO-NAME"
+        spec-struct (make-spec-struct ;spec)
+        expanded-spec (spec-with-defaults defaults-bhyve spec-struct)
+        spec-table (pinpoint-error :bhyve
+                                   (checked-spec expanded-spec
+                                                 mandatory-props-bhyve
+                                                 optional-props-bhyve))]
+
+    (struct :bhyve spec-table)))
 
 (def notes-bhyve
   ["A bhyve zone must be built from an image. This can be a local path or a URL.

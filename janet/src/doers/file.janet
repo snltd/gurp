@@ -61,18 +61,16 @@
   "Given a file path and spec, put an ensure struct in the collector. If Gurp is
    running as a remote client, changes local file references into HTTP ones."
   [name & spec]
-  (def spec-table
-    (expand-from-value (struct/to-table (make-spec-struct ;spec))))
+  (let [user-table (struct/to-table (make-spec-struct ;spec))
+        spec-table (expand-from-value user-table)
+        all-specs (spec-with-defaults defaults-ensure spec-table)
+        safe-specs (pinpoint-error
+                     :ensure
+                     (checked-spec all-specs
+                                   mandatory-props-ensure
+                                   optional-props-ensure))]
 
-  (def all-specs (spec-with-defaults defaults-ensure spec-table))
-  (def safe-specs
-    (pinpoint-error
-      :ensure
-      (checked-spec all-specs
-                    mandatory-props-ensure
-                    optional-props-ensure)))
-
-  (collector/push :ensure doer (spec->resource doer name safe-specs)))
+    (collector/push :ensure doer (spec->resource doer name safe-specs))))
 
 (defn remove
   "Given a file path, put a remove struct in the collector"

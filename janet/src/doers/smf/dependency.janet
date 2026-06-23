@@ -24,17 +24,16 @@
 (defn dependency
   "A convenience function to help produce an SMF dependency"
   [name & spec]
-  (def spec-struct
-    (do
-    (def doer "smf")
-    (pinpoint-error
-      :dependency
-      (checked-spec (make-spec-struct :name name ;spec)
-                    mandatory-props-dependency
-                    optional-props-dependency))))
+  (let [doer "smf"
+        user-spec (make-spec-struct :name name ;spec)
+        spec-struct (pinpoint-error :dependency
+                                    (checked-spec user-spec
+                                                  mandatory-props-dependency
+                                                  optional-props-dependency))
 
-  (def all-specs (spec-with-defaults defaults-dependency spec-struct))
-  (struct :dependencies all-specs))
+        all-specs (spec-with-defaults defaults-dependency spec-struct)]
+
+    (struct :dependencies all-specs)))
 
 (def notes-dependency
   ["`network/physical` and `filesystem/local` are hard-coded dependencies."])

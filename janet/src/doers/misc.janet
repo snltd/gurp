@@ -18,8 +18,8 @@
 (defn ensure
   "Sets miscellaneous system properties"
   [& spec]
-  (def name (labelise spec))
-  (collector/push :ensure doer (make-ensure-resource)))
+  (let [name (labelise spec)]
+    (collector/push :ensure doer (make-ensure-resource))))
 
 (def notes
   ["The misc doer is a placeholder for what Gurp considers \"OS primitives\"

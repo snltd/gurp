@@ -24,14 +24,12 @@
 (defn dependent
   "A convenience function to help produce an SMF dependent"
   [name & spec]
-  (def spec-struct
-    (do
-      (def doer "smf")
-      (pinpoint-error
-        :dependent
-        (checked-spec (make-spec-struct :name name ;spec)
-                      mandatory-props-dependent
-                      optional-props-dependent))))
+  (let [doer "smf"
+        user-spec (make-spec-struct :name name ;spec)
+        spec-struct (pinpoint-error :dependent
+                                    (checked-spec user-spec
+                                                  mandatory-props-dependent
+                                                  optional-props-dependent))
+        all-specs (spec-with-defaults defaults-dependent spec-struct)]
 
-  (def all-specs (spec-with-defaults defaults-dependent spec-struct))
-  (struct :dependencies all-specs))
+    (struct :dependencies all-specs)))
