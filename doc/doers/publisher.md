@@ -44,7 +44,7 @@ None
 
 # publisher/mirror
 
-Define n mirror when managing a publisher.
+Define a mirror when managing a publisher.
 
 ## Name
 

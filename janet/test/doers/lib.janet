@@ -68,15 +68,31 @@
          :owner "rob"
          :role "NO-ROLE"}))
 
-(deftest doer-macro
-  (test-macro (defdoer "apk" :name-is "package name" :description "manage APK packages")
+(deftest defdoer
+  (test-macro
+    (defdoer :apk
+      "manage APK packages"
+      :name-is "package name")
     (upscope
       (def doer :apk)
+      (def description "manage APK packages")
+      (def mandatory-props-remove {})
+      (def optional-props-ensure {})
       (def defaults-ensure {})
       (def defaults-remove {})
       (def mandatory-props-ensure {})
-      (def mandatory-props-remove {})
-      (def optional-props-ensure {})
       (def name-is "package name")
-      (def optional-props-remove {})
-      (def description "manage APK packages"))))
+      (def optional-props-remove {}))))
+
+(deftest defhelper
+  (test-macro
+    (defhelper :smf :method
+      "manage SMF methods"
+      :timeout 50)
+    (upscope
+      (def doer :smf)
+      (def description-method "manage SMF methods")
+      (def defaults-method {})
+      (def mandatory-props-method {})
+      (def optional-props-method {})
+      (def timeout-method 50))))

@@ -1,9 +1,10 @@
 (use ./lib)
 (import ../collector)
 
-(defdoer "bridge"
-  :description "Create and modify ethernet bridges."
+(defdoer :bridge
+  "Create and modify ethernet bridges."
   :name-is "Any valid bridge name"
+
   :optional-props-ensure
   {:protect {:types [:string]
              :help "Protection method: defaults to stp"}
@@ -19,12 +20,14 @@
                     :help "MSTP forced maximum supported protocol"}
    :links {:types [:tuple :array]
            :help "Existing links which should be attached to the bridge"}}
-  :defaults-ensure {:priority 32768
-                    :protect "stp"
-                    :forward-delay 15
-                    :force-protocol 3
-                    :hello-time 2
-                    :max-age 20})
+
+  :defaults-ensure
+  {:priority 32768
+   :protect "stp"
+   :forward-delay 15
+   :force-protocol 3
+   :hello-time 2
+   :max-age 20})
 
 (defensure "bridge")
 (defremove "bridge")

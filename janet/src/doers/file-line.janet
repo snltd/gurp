@@ -1,11 +1,12 @@
 (use ./lib)
 (import ../collector)
 
-(defdoer "file-line"
-  :description "Ensure lines do or do not exist in the given file."
+(def match-allowed ["exact" "starts-with" "ends-with" "contains" "regex"])
+(def apply-to-allowed ["all" "first" "last"])
+
+(defdoer :file-line
+  "Ensure lines do or do not exist in the given file."
   :name-is "Fully qualified path to file"
-  :match-allowed ["exact" "starts-with" "ends-with" "contains" "regex"]
-  :apply-to-allowed ["all" "first" "last"]
 
   :optional-props-ensure
   {:insert-at {:types [:number]
@@ -28,15 +29,17 @@
    :apply-to {:types [:string]
               :help (string "Which matches to act on: " (comma-sep apply-to-allowed))}}
 
-  :defaults-remove {:match "exact"
-                    :apply-to "all"}
-  :notes ["The file is not managed here. Use a file resource."
-          "The doer reads the whole file into memory, so be mindful of file size."
-          "Appended lines have a newline at the beginning and end."
-          "Removing a line puts a newline on the end of the file if there wasn't one
-    already."
-          "Files are not backed up."])
+  :defaults-remove
+  {:match "exact"
+   :apply-to "all"}
 
+  :notes
+  ["The file is not managed here. Use a file resource."
+   "The doer reads the whole file into memory, so be mindful of file size."
+   "Appended lines have a newline at the beginning and end."
+   "Removing a line puts a newline on the end of the file if there wasn't one
+    already."
+   "Files are not backed up."])
 
 (defensure "file-line")
 

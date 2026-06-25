@@ -1,20 +1,18 @@
 (use ../lib)
 
-(def doer :zone)
-(def description-attr "Set attributes on a zone being created by the zone doer.")
-(def name-is-attr "Attribute name")
-(def optional-props-attr
-  {:type
-   {:types [:string]
-    :help "The type of the value. Gurp will take a pretty good guess though"}})
-(def mandatory-props-attr
-  {:value
-   {:types [:string :boolean :number]
-    :help "Attribute value"}
-   :name
-   {:types [:string]
-    :help "Attribute name. Derived from resource name"}})
-(def defaults-attr {})
+(defhelper :zone :attr
+  "Set attributes on a zone being created by the zone doer."
+  :name-is "Attribute name"
+
+  :optional-props
+  {:type {:types [:string]
+          :help "The type of the value. Gurp will take a pretty good guess though"}}
+
+  :mandatory-props
+  {:value {:types [:string :boolean :number]
+           :help "Attribute value"}
+   :name {:types [:string]
+          :help "Attribute name. Derived from resource name"}})
 
 (defn attr
   "Given a spec, return a zone attr struct."

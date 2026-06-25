@@ -1,17 +1,19 @@
 (use ../lib)
 
-(def doer :zone)
-(def description-bootstrap "Tells gurp how to bootstrap a newly created zone.")
-(def name-is-bootstrap nil)
-(def mandatory-props-bootstrap {})
-(def optional-props-bootstrap
+(defhelper :zone :bootstrap
+  "Tells gurp how to bootstrap a newly created zone."
+
+  :optional-props
   {:server {:types [:string]
             :help "hostname/IP address of server to install from"}
    :hostname {:types [:string]
               :help "hostname of client being bootstrapped"}
    :file {:types [:string]
-          :help "fully qualified path of file in zone which will be used to bootstrap"}})
-(def defaults-bootstrap {})
+          :help "fully qualified path of file in zone which will be used to
+                 bootstrap"}}
+
+  :notes
+  ["You must supply exactly one of `:file` and `:server`."])
 
 (defn bootstrap
   "Given a spec, return config to bootstrap a zone"
@@ -25,6 +27,3 @@
                                                  optional-props-bootstrap))]
 
     (struct :bootstrap spec-table)))
-
-(def notes-bootstrap
-  ["You must supply exactly one of `:file` and `:server`."])

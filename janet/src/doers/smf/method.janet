@@ -3,10 +3,11 @@
 (def allowed-methods ["start" "stop" "refresh" "reload"])
 (def context-props [:user :group :privileges :environment])
 
-(def description-method "Defines an SMF method to launch a service state")
-(def name-is-method (string "One of " (comma-sep allowed-methods)))
+(defhelper :smf :method
+  "Defines an SMF method to launch a service state"
+  :name-is-method (string "One of " (comma-sep allowed-methods))
 
-(def optional-props-method
+  :optional-props
   {:user {:types [:string]
           :help "User the method runs as"}
    :group {:types [:string]
@@ -14,16 +15,22 @@
    :privileges {:types [:tuple]
                 :help "Privileges the method has. Use ! to remove them"}
    :environment {:types [:struct :table]
-                 :help "Environment variables set inside context"}})
-(def mandatory-props-method
+                 :help "Environment variables set inside context"}}
+
+  :mandatory-props
   {:exec
    {:types [:string]
     :help "Method or command to execute"}
    :timeout
    {:types [:number]
-    :help "Seconds until method times out"}})
+    :help "Seconds until method times out"}}
 
-(def defaults-method {:timeout 60})
+  :defaults
+  {:timeout 60}
+
+  :notes
+  ["If you don't supply a `:stop-method` you get a standard `:kill` that times
+    out after ten seconds. Start timeouts default to 60 seconds."])
 
 (defn method
   "Produce an SMF exec_method, with a context"
@@ -59,7 +66,3 @@
           (set (spec-table :context) (table/to-struct context-table)))
 
         (struct (keyword (string name "-method")) spec-table)))))
-
-(def notes-method
-  ["If you don't supply a `:stop-method` you get a standard `:kill` that times
-    out after ten seconds. Start timeouts default to 60 seconds."])

@@ -1,38 +1,29 @@
 (use ./lib)
 (import ../collector)
 
-(def doer :gem)
-(def description "Install and uninstall Ruby gems.")
-(def name-is "Gem name")
-(def mandatory-props-ensure {})
-(def optional-props-ensure
+(defdoer :gem
+  "Install and uninstall Ruby gems."
+  :name-is "Gem name"
+
+  :optional-props-ensure
   {:gem-path {:types [:string]
               :help "Path to gem executable other than /opt/ooce/bin/gem"}
    :source {:types [:string]
             :help "Source other than RubyGems. Can contain tokens and usernames"}
    :version {:types [:string]
-             :help "Gem version"}})
-(def mandatory-props-remove {})
-(def optional-props-remove
+             :help "Gem version"}}
+
+  :optional-props-remove
   {:gem-path: {:types [:string]
                :help "Path to gem executable other than /opt/ooce/bin/gem"}
    :version {:types [:string]
-             :help "Gem version"}})
-(def defaults-ensure {})
-(def defaults-remove {})
+             :help "Gem version"}}
 
-(defn ensure
-  "Given a gem name and spec, put an ensure struct in the collector"
-  [name & spec]
-  (collector/push :ensure doer (make-ensure-resource)))
-
-(defn remove
-  "Given a gem name and spec, put a remove struct in the collector"
-  [name & spec]
-  (collector/push :remove doer (make-remove-resource)))
-
-(def notes
-  ["Tries to minimise the calls to `gem install` by grouping together installs
-    with similar parameters"
+  :notes
+  ["Tries to minimise the calls to `gem install` by grouping together
+           installs with similar parameters"
    "Only version numbers are supported, so `latest` won't work."
    "`gem/remove` takes no options, so removes all versions of the given gem."])
+
+(defensure "gem")
+(defremove "gem")

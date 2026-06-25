@@ -75,7 +75,7 @@ None
 - smf/remove stops the service and deletes it from the SMF registry.
 # smf/dependency
 
-Defines a dependency of an SMF service, inside an                            smf resource.
+Defines a dependency of an SMF service, inside an smf resource.
 
 ## Name
 
@@ -109,7 +109,7 @@ This helpers does not accept a name
 
 # smf/dependent
 
-Defines a dependent of an SMF service, inside an                            smf resource.
+Defines a dependent of an SMF service, inside an smf resource.
 
 ## Name
 
@@ -144,7 +144,7 @@ Defines an SMF method to launch a service state
 
 ## Name
 
-One of "start", "stop", "refresh", "reload" (`:string`)
+This helpers does not accept a name
 
 ```janet
 (smf/method "start"

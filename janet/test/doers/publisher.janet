@@ -11,10 +11,10 @@
 
   (test *collector*
     @{:ensure @{:publisher @[{:_id "/test-role/publisher/example"
-                              :mirror @[@{:name "http://mirror.lan.id264.net"}]
+                              :mirror @[{:name "http://mirror.lan.id264.net"}]
                               :name "example"
-                              :origin @[@{:name "http://pkg.lan.id264.net"
-                                          :proxy "http://10.2.0.20/1837"}]
+                              :origin @[{:name "http://pkg.lan.id264.net"
+                                         :proxy "http://10.2.0.20/1837"}]
                               :role "test-role"}]}
       :remove @{:publisher @[{:_id "/test-role/publisher/old_publisher"
                               :name "old_publisher"
