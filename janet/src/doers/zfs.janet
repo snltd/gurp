@@ -1,21 +1,24 @@
 (use ./lib)
 (import ../collector)
 
-(def doer :zfs)
-(def description "Create, destroy, and modify properties of ZFS filesystems.")
-(def name-is "ZFS dataset name")
-(def mandatory-props-ensure {})
-(def optional-props-ensure
-  {:properties
-   {:types [:struct]
-    :help "ZFS properties (:keyword) paired with desired value (:string)"}
-   :size
-   {:types [:string]
-    :help "If specified, creates a ZFS volume of given size (e.g. '10G')"}})
-(def mandatory-props-remove {})
-(def optional-props-remove {})
-(def defaults-ensure {})
-(def defaults-remove {})
+(defdoer :zfs
+  "Create, destroy, and modify properties of ZFS filesystems."
+  :name-is "ZFS dataset name"
+
+  :optional-props-ensure
+  {:properties {:types [:struct]
+                :help "ZFS properties (:keyword) paired with desired value (:string)"}
+   :size {:types [:string]
+          :help "If specified, creates a ZFS volume of given size (e.g. '10G')"}}
+
+  :notes
+  ["Gurp does not check parameters are valid, so if you get them wrong the
+    first you'll know about it is when you get an error from `zfs(8)`."
+   "If you do not set a mountpoint for a filesystem, Gurp will force it to
+    'none'."
+   "Gurp cannot change the size of an extant volume."
+   "zfs/destroy is recursive, and will remove all child filesystems and
+    snapshots without asking or telling."])
 
 (defn ensure
   "Given a dataset name, put an ensure struct in the collector"
@@ -40,16 +43,4 @@
 
       (collector/push :ensure doer (spec->resource doer name safe-specs)))))
 
-(defn remove
-  "Given a dataset name, put a remove struct in the collector"
-  [name & spec]
-  (collector/push :remove doer (make-remove-resource)))
-
-(def notes
-  ["Gurp does not check parameters are valid, so if you get them wrong the
-    first you'll know about it is when you get an error from `zfs(8)`."
-   "If you do not set a mountpoint for a filesystem, Gurp will force it to
-    'none'."
-   "Gurp cannot change the size of an extant volume."
-   "zfs/destroy is recursive, and will remove all child filesystems and
-    snapshots without asking or telling."])
+(defremove "zfs")

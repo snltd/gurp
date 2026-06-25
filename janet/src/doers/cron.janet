@@ -1,16 +1,17 @@
 (use ./lib)
 (import ../collector)
 
-(def doer :cron)
-(def description "Manage cron jobs. Crontab entries are prefixed with a
-                  machine-generated string.")
-(def name-is "Convenient name for job.")
-(def mandatory-props-ensure
+(defdoer :cron
+  "Manage cron jobs. Crontab entries are prefixed with a machine-generated string."
+  :name-is "Convenient name for job."
+
+  :mandatory-props-ensure
   {:command {:types [:string]
              :help "Command which runs"}
    :user {:types [:string]
-          :help "Username which runs job. Must already exist"}})
-(def optional-props-ensure
+          :help "Username which runs job. Must already exist"}}
+
+  :optional-props-ensure
   {:day-of-month {:types [:string :number]
                   :help "Day(s) of month on which job runs"}
    :day-of-week {:types [:string :number]
@@ -20,34 +21,24 @@
    :minute {:types [:string :number]
             :help "Minute(s) job runs at. Accepts divisions and ranges"}
    :month-of-year {:types [:string :number]
-                   :help "Month(s) in which job runs"}})
+                   :help "Month(s) in which job runs"}}
 
-(def mandatory-props-remove
+  :mandatory-props-remove
   {:user {:types [:string]
-          :help "Username which runs job. Must already exist"}})
-(def optional-props-remove {})
+          :help "Username which runs job. Must already exist"}}
 
-(def defaults-ensure
+  :defaults-ensure
   {:hour "*"
    :minute "*"
    :day-of-month "*"
    :day-of-week "*"
    :month-of-year "*"
-   :user "root"})
-(def defaults-remove
-  {:user "root"})
+   :user "root"}
 
-(defn ensure
-  "Given a cron job name and spec, put an ensure struct in the collector"
-  [name & spec]
-  (collector/push :ensure doer (make-ensure-resource)))
+  :defaults-remove
+  {:user "root"}
 
-(defn remove
-  "Given a cron job name, put a remove struct in the collector"
-  [name & spec]
-  (collector/push :remove doer (make-remove-resource)))
-
-(def notes
+  :notes
   ["Like other config management tools, Gurp precedes managed lines in the
     crontab with an identifying string. That string contains the resource ID
     which, includes the role, resource-type and identifying-name."
@@ -58,3 +49,6 @@
    "The doer does not include any kind of user or `cron.allow` management, so
     you'll have to use other methods to make sure your users are allowed to run
     the jobs you define."])
+
+(defensure "cron")
+(defremove "cron")

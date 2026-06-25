@@ -1,7 +1,8 @@
 #
-# Functions and bindings required by the doer modules in this directory.
+# Functions, macros, and bindings required by the doer modules in this directory.
 # 
 (import ../dsl :only [qualify-from-path])
+(import ../collector)
 
 (def client-api-version "v1")
 
@@ -233,3 +234,59 @@
         (set (spec-table :from) url-or-qualified-path))))
 
   spec-table)
+
+# A doer requires these properties, but we use a prototype struct so you don't
+# have to explicitly define them if they're empty.
+(def- doer-defaults {:mandatory-props-ensure {}
+                     :optional-props-ensure {}
+                     :mandatory-props-remove {}
+                     :optional-props-remove {}
+                     :defaults-ensure {}
+                     :defaults-remove {}})
+
+(defmacro defdoer
+  "Creates the defs required for a doer"
+  [doer-name description & spec]
+  (def spec-struct (->> ;spec
+                        (struct/with-proto doer-defaults)
+                        (struct/proto-flatten)))
+
+  ~(upscope
+     (def doer ,doer-name)
+     (def description ,description)
+     ,;(seq [[k v] :pairs spec-struct]
+         ~(def ,(symbol k) ,v))))
+
+# A helper requires certain properties. They are derived by adding -helper on
+# to the keys in this prototype struct
+(def- helper-defaults {:name-is nil
+                       :mandatory-props {}
+                       :optional-props {}
+                       :defaults {}})
+
+(defmacro defhelper
+  "Creates the defs required for a helper"
+  [doer-name helper-name description & spec]
+  (def spec-struct (->> ;spec
+                        (struct/with-proto helper-defaults)
+                        (struct/proto-flatten)))
+
+  ~(upscope
+     (def doer ,doer-name)
+     (def ,(symbol (string "description-" helper-name)) ,description)
+     ,;(seq [[k v] :pairs spec-struct]
+         ~(def ,(symbol (string k "-" helper-name)) ,v))))
+
+(defmacro defensure
+  "Generates a boilerplate ensure function"
+  [name]
+  ~(defn ensure
+     [name & spec]
+     (collector/push :ensure doer (make-ensure-resource))))
+
+(defmacro defremove
+  "Generates a boilerplate remove function"
+  [name]
+  ~(defn remove
+     [name & spec]
+     (collector/push :remove doer (make-remove-resource))))

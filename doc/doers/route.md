@@ -4,7 +4,7 @@ Manage routes. Note that default routes for zones should be handled by the zone'
 
 ## Resource Name
 
-The route destination, e.g. '10.10.0.0/16'. For a default route              specify 'default'. (`:string`)
+The route destination, e.g. '10.10.0.0/16'. For a default route            specify 'default'. (`:string`)
 
 ## route/ensure
 

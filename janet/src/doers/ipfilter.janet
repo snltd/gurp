@@ -1,42 +1,28 @@
 (use ./lib)
 (import ../collector)
 
-(def doer :ipfilter)
-(def description "Set or remove ipfilter rules.")
-(def name-is "Any convenient name: not used internally")
-(def mandatory-props-ensure
+(defdoer :ipfilter
+  "Set or remove ipfilter rules."
+  :name-is "Any convenient name: not used internally"
+
+  :mandatory-props-ensure
   {:priority {:types [:number]
               :help "rule resources are ordered by priority, lowest number first"}
    :always-reload {:types [:boolean]
                    :help "if any ipfilter/ensure resource sets this to true, then the
                     firewall rules will be reloaded every time Gurp runs,
-                    regardless of whether the aggregated ipf.conf file has changed"}})
-(def optional-props-ensure
+                    regardless of whether the aggregated ipf.conf file has changed"}}
+
+  :optional-props-ensure
   {:from {:types [:string]
           :help "Apply rules in the given file. If relative, looks in ../files"}
    :content {:types [:string]
-             :help "Apply these rules. Must have :content xor :from"}})
-(def mandatory-props-remove {})
-(def optional-props-remove {})
-(def defaults-ensure {:always-reload false})
-(def defaults-remove {})
+             :help "Apply these rules. Must have :content xor :from"}}
 
-(defn ensure
-  "Given rules or a path to a rules file, put an ensure struct in the collector"
-  [name & spec]
-  (if-not (has-exactly-one-of? [:content :from] spec)
-    (pinpoint-error
-      :ensure
-      (error "need exactly one of :content or :from")))
+  :defaults-ensure
+  {:always-reload false}
 
-  (collector/push :ensure doer (make-ensure-resource)))
-
-(defn remove
-  "Put a remove struct in the collector"
-  [name & spec]
-  (collector/push :remove doer (make-remove-resource)))
-
-(def notes
+  :notes
   ["We build a single big set of filter rules from multiple sources, check its
     validity, and ensure its contents align with those of `/etc/ipf/ipf.conf`.
     If the file has changed, or if any resource used to build the content has
@@ -47,3 +33,13 @@
    "Per-zone rules are not supported."
    "Using :always-reload means Gurp will always show a change to be made"
    "ipfilter/remove removes ALL filter rules"])
+
+(defn ensure
+  [name & spec]
+  (if (has-exactly-one-of? [:content :from] spec)
+    (collector/push :ensure doer (make-ensure-resource))
+    (pinpoint-error
+      :ensure
+      (error "need exactly one of :content or :from"))))
+
+(defremove "ipfilter")

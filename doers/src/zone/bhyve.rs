@@ -31,20 +31,18 @@ pub fn build_zone(
     uuid: &Uuid,
     opts: &ApplyOpts,
 ) -> anyhow::Result<()> {
-    let image_str = config
-        .image
-        .as_ref()
-        .context("bhyve zones must have an :image")?;
-
-    let image_path = image_path(image_str).context("cannot get image path")?;
     let bhyve_config = config.bhyve.as_ref().context("no bhyve config")?;
 
-    write_image(
-        &image_path,
-        &bhyve_config.boot_volume,
-        &bhyve_config.image_format,
-    )
-    .context("failed to write boot image")?;
+    if let Some(image_str) = &config.image {
+        let image_path = image_path(image_str).context("cannot get image path")?;
+
+        write_image(
+            &image_path,
+            &bhyve_config.boot_volume,
+            &bhyve_config.image_format,
+        )
+        .context("failed to write boot image")?;
+    }
 
     if bhyve_config.has_cloudinit() {
         cloudinit::setup(bhyve_config, &cloudinit::iso_path(uuid), opts)?;

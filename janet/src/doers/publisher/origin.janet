@@ -1,23 +1,23 @@
 (use ../lib)
 
-(def doer :publisher)
-(def description-origin "Define an origin when managing a publisher.")
-(def name-is-origin "The origin URI")
-(def mandatory-props-origin
+(defhelper :publisher :origin
+  "Define an origin when managing a publisher."
+  :name-is "The origin URI"
+
+  :mandatory-props
   {:name {:types [:string]
-          :help "URI of origin"}})
-(def optional-props-origin
+          :help "URI of origin"}}
+
+  :optional-props
   {:proxy {:types [:string]
            :help "Proxy URI for this origin"}})
-(def defaults-origin {})
 
 (defn origin
   "Given a spec, return a publisher origin struct."
   [name & spec]
   (let [spec-struct (make-spec-struct :name name ;spec)
-        expanded-spec (spec-with-defaults defaults-origin spec-struct)
         spec-table (pinpoint-error :origin
-                                   (checked-spec expanded-spec
+                                   (checked-spec spec-struct
                                                  mandatory-props-origin
                                                  optional-props-origin))]
 

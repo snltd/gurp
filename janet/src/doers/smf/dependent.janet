@@ -1,22 +1,24 @@
 (use ../lib)
 
-(def description-dependent "Defines a dependent of an SMF service, inside an
-                            smf resource.")
-(def name-dependent "Any convenient name - not used internally")
-(def optional-props-dependent
+(defhelper :smf :dependent
+  "Defines a dependent of an SMF service, inside an smf resource."
+  :name "Any convenient name - not used internally"
+
+  :optional-props
   {:restart-on {:types [:string]
                 :help "Policy for restarting this service if dependent restarts"}
    :grouping {:types [:string]
               :help "Which dependencies are required by this service"}
    :type {:types [:string]
-          :help "Type of dependent"}})
-(def mandatory-props-dependent
+          :help "Type of dependent"}}
+
+  :mandatory-props
   {:name {:types [:string]
           :help "Convenient name for dependent, derived from resource name"}
    :fmri {:types [:string]
-          :help "Dependent FMRI"}})
+          :help "Dependent FMRI"}}
 
-(def defaults-dependent
+  :defaults
   {:restart-on "none"
    :grouping "require_all"
    :type "service"})

@@ -70,7 +70,7 @@ Zone name (`:string`)
 | `:attr` | `array` | See zone/attr |  |
 | `:autoboot` | `boolean` | Boot the zone on system boot | `true` |
 | `:bhyve` | `table` | See zone/bhyve |  |
-| `:boot-after-install` | `string` | Boot the zone once it is installed | `true` |
+| `:boot-after-install` | `boolean` | Boot the zone once it is installed | `true` |
 | `:bootstrap-from` | `table` | Copy gurp into the zone, and apply the given file, relative to zone root |  |
 | `:bootstrap` | `table` | See zone/bootstrap |  |
 | `:capped-memory` | `struct` | Set memory cap. Keys must be :physical and :swap, values are strings like '4G' |  |

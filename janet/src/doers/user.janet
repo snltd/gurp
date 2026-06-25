@@ -1,10 +1,11 @@
 (use ./lib)
 (import ../collector)
 
-(def doer :user)
-(def description "Manage Unix users")
-(def name-is "User's username")
-(def mandatory-props-ensure
+(defdoer :user
+  "Manage Unix users"
+  :name-is "User's username"
+
+  :mandatory-props-ensure
   {:gecos {:types [:string]
            :help "User's name or description"}
    :home-dir {:types [:string]
@@ -14,32 +15,21 @@
    :shell {:types [:string]
            :help "User's shell"}
    :uid {:types [:number]
-         :help "UID of user"}})
-(def optional-props-ensure
+         :help "UID of user"}}
+
+  :optional-props-ensure
   {:other-groups {:types [:tuple]
                   :help "Group names (:string) or GIDs (:number) to which user belongs"}
    :password-hash {:types [:string]
                    :help "Hash to insert in /etc/shadow"}
    :profiles {:types [:tuple]
-              :help "List of existing profiles (:string)"}})
-(def mandatory-props-remove {})
-(def optional-props-remove {})
-(def defaults-ensure
+              :help "List of existing profiles (:string)"}}
+
+  :defaults-ensure
   {:shell "/bin/zsh"
-   :primary-group "staff"})
-(def defaults-remove {})
+   :primary-group "staff"}
 
-(defn ensure
-  "Given an apk package name, put an ensure struct in the collector"
-  [name & spec]
-  (collector/push :ensure doer (make-ensure-resource)))
-
-(defn remove
-  "Given an apk package name, put a remove struct in the collector"
-  [name & spec]
-  (collector/push :remove doer (make-remove-resource)))
-
-(def notes
+  :notes
   ["The actual user management is done via `useradd(8)`, `usermod(8)` and
     `userdel(8)`, so Gurp shares their limitations, such as disallowing
     modification of a logged in user."
@@ -49,3 +39,6 @@
    "To unlock an account, use a hash of `NP`."
    "You can create non-primary groups for a new user, but not change them for
     an existing one."])
+
+(defensure "user")
+(defremove "user")
