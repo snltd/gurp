@@ -61,9 +61,22 @@
 (deftest spec->resource
   (test (spec->resource
           :directory "/tmp/testdir" {:owner "rob" :group "sysadmin" :mode "0700"})
-    {:_id "/NO-ROLE/directory/_tmp_testdir"
-     :group "sysadmin"
-     :mode "0700"
-     :name "/tmp/testdir"
-     :owner "rob"
-     :role "NO-ROLE"}))
+        {:_id "/NO-ROLE/directory/_tmp_testdir"
+         :group "sysadmin"
+         :mode "0700"
+         :name "/tmp/testdir"
+         :owner "rob"
+         :role "NO-ROLE"}))
+
+(deftest doer-macro
+  (test-macro (defdoer "apk" :name-is "package name" :description "manage APK packages")
+    (upscope
+      (def doer :apk)
+      (def defaults-ensure {})
+      (def defaults-remove {})
+      (def mandatory-props-ensure {})
+      (def mandatory-props-remove {})
+      (def optional-props-ensure {})
+      (def name-is "package name")
+      (def optional-props-remove {})
+      (def description "manage APK packages"))))

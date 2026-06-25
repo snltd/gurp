@@ -1,7 +1,9 @@
 #
-# Functions and bindings required by the doer modules in this directory.
+# Functions, macros, and bindings required by the doer modules in this directory.
 # 
 (import ../dsl :only [qualify-from-path])
+(import ../collector)
+
 
 (def client-api-version "v1")
 
@@ -233,3 +235,35 @@
         (set (spec-table :from) url-or-qualified-path))))
 
   spec-table)
+
+(def- empty-defaults {:mandatory-props-ensure {}
+                      :optional-props-ensure {}
+                      :mandatory-props-remove {}
+                      :optional-props-remove {}
+                      :defaults-ensure {}
+                      :defaults-remove {}})
+
+(defmacro defdoer
+  [name & spec]
+  (def spec-struct (->> ;spec
+                        (struct/with-proto empty-defaults)
+                        (struct/proto-flatten)))
+  (def kname (keyword name))
+
+  ~(upscope
+     (def doer ,kname)
+     ,;(seq [[k v] :pairs spec-struct]
+         ~(def ,(symbol k) ,v))))
+
+(defmacro defensure
+  [name]
+  ~(defn ensure
+    [name & spec]
+    (collector/push :ensure doer (make-ensure-resource))))
+
+(defmacro defremove
+  [name]
+  ~(defn remove
+    [name & spec]
+    (collector/push :remove doer (make-remove-resource))))
+

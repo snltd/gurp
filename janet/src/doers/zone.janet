@@ -25,7 +25,7 @@
    {:types [:table]
     :help "See zone/bhyve"}
    :boot-after-install
-   {:types [:string]
+   {:types [:boolean]
     :help "Boot the zone once it is installed"}
    :bootstrap
    {:types [:table]
