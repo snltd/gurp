@@ -245,7 +245,7 @@
                      :defaults-remove {}})
 
 (defmacro defdoer
-  "Creates the defs reqiured to define a doer"
+  "Creates the defs required for a doer"
   [doer-name description & spec]
   (def spec-struct (->> ;spec
                         (struct/with-proto doer-defaults)
@@ -265,7 +265,7 @@
                        :defaults {}})
 
 (defmacro defhelper
-  "Creates the defs reqiured to define a helper"
+  "Creates the defs required for a helper"
   [doer-name helper-name description & spec]
   (def spec-struct (->> ;spec
                         (struct/with-proto helper-defaults)
