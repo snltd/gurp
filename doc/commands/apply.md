@@ -24,6 +24,7 @@ Options:
       --destroy-everything-you-touch  Turn all ensures into removes. Use with extreme caution
   -e, --exec <EXEC>                   Execute a literal snippet of Janet config
       --no-lock                       Do not check for or use a lockfile
+      --no-report                     Do not write a JSON report at the end of the run
       --remove-first                  Run remove actions BEFORE ensure actions
       --only <ONLY>                   Only apply resources whose IDs match this regex
   -h, --help                          Print help
@@ -45,9 +46,6 @@ There are options:
 - `-s, --server <SERVER>` Fetches configuration, over HTTP, from a Gurp server.
   Normally this is sent in a single jimage binary format which is executed on
   the client, producing the final configuration which is then applied.
-- `-J, --as-json` If this is provided with `--server`, the server will compile
-  the client's configuration itself, and send the finalised JSON, which the
-  client applies.
 - `-H, --hostname <HOSTNAME>` ordinarily an apply with `--server` will fetch
   configuration for a host matching the client's own hostname. This option lets
   you request config for a different host. It can be useful for applying the
@@ -66,13 +64,16 @@ There are options:
 - `--dump-diffs` When the content of a text file changes, output a diff.
 - `-C, --colour` When dumping configs, use syntax colouring where possible.
 - `-N, --line-no` When dumping configs, number the lines.
-- `-M, --metrics-to <HOST>` HTTP POST OpenTelemetry metrics to `HOST`.
+- `-M, --metrics-to <HOST>` HTTP POST OpenTelemetry metrics to `HOST`. If the
+  endpoint is not available, a warning will be logged but Gurp will not error.
 - `-L, --logs-to <HOST>` HTTP POST OpenTelemetry logs to `HOST` with `gurp` as
   the service name.
 - `--destroy-everything-you-touch` Turns all `ensure` resources into `remove`s.
   Useful for cleaning up during development, but should be used with extreme
   caution. It has no short value, so you can't type it by accident.
 - `--no-lock` makes Gurp not check for, create, or remove its runtime lock file.
+- `--no-report` Gurp normally writes a JSON report in `/var/log/` at the end
+  of a run. This option turns of that report.
 - `--exec` lets you apply a literal string of Janet config to the local host.
   (Assuming you have permission to do so!)
 - `--remove-first` Normally Gurp runs all `ensure` resources, then all `remove`
