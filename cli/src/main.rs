@@ -5,8 +5,8 @@ use clap_complete::shells::{Bash, Fish, Zsh};
 use common::types::{
     ApplyClientOpts, ApplyOpts, ApplyOutputOpts, ApplyVmOpts, CompileOpts, GlobalOpts, ServerOpts,
 };
+use gurptel::init;
 use std::process::ExitCode;
-use telemetry::init;
 
 #[derive(Parser)]
 #[clap(version, about = "Gurp configures illumos systems", long_about = None)]

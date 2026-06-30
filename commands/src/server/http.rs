@@ -10,7 +10,7 @@ use opentelemetry::KeyValue;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Instant;
-use telemetry::server::ServerMetrics;
+use gurptel::server::ServerMetrics;
 use util::info;
 
 pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {

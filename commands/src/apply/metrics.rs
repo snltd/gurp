@@ -1,7 +1,7 @@
 use crate::apply::types::ApplyStatus;
+use gurptel::client::ClientMetrics;
+use gurptel::runtime_stats;
 use std::time::Duration;
-use telemetry::client::ClientMetrics;
-use telemetry::runtime_stats;
 
 pub(crate) fn send(status: ApplyStatus, elapsed_time: &Duration) {
     let metrics_handle = ClientMetrics::new();

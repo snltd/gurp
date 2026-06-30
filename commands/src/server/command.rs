@@ -1,7 +1,7 @@
 use crate::server::http;
 use common::types::ServerOpts;
 use std::process::ExitCode;
-use telemetry::types::TelemetryProviders;
+use gurptel::types::TelemetryProviders;
 
 pub fn run(opts: ServerOpts, _providers: TelemetryProviders) -> ExitCode {
     if opts.config_dir.exists() {
