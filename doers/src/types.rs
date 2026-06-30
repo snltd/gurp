@@ -35,10 +35,13 @@ use camino::Utf8PathBuf;
 use colored::Colorize;
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
 use gurptel::runtime_stats;
+use rand::RngExt;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
 use std::collections::BTreeSet;
+use std::thread;
+use std::time::Duration;
 use util::{info, json};
 
 pub(crate) type ApplyResult = anyhow::Result<(ApplySummary, ChangedIds)>;
@@ -65,7 +68,7 @@ pub struct HostMetadata {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct HostControlData {
-    pub splay_seconds: Option<u32>,
+    pub splay_seconds: Option<u64>,
     pub gem_path: Option<Utf8PathBuf>,
     pub metrics_to: Option<String>,
     pub logs_to: Option<String>,
@@ -278,6 +281,15 @@ impl Applicator {
 
     pub fn run(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let config = self.json_to_hostconfig()?;
+        let mut splay = None;
+
+        if let Some(control_splay) = config.control_data.splay_seconds {
+            splay = Some(control_splay);
+        }
+
+        if let Some(cli_splay) = opts.splay {
+            splay = Some(cli_splay);
+        }
 
         if config.control_data.strict_hostname {
             tracing::debug!("Strict hostname checking requested: comparing");
@@ -290,6 +302,13 @@ impl Applicator {
                     config.metadata.name
                 )
             }
+        }
+
+        if let Some(max_splay) = splay {
+            let mut rng = rand::rng();
+            let time_to_wait = rng.random_range(..=max_splay);
+            tracing::info!("splay requested: pausing {time_to_wait} seconds...");
+            thread::sleep(Duration::from_secs(time_to_wait));
         }
 
         tracing::info!("Configuring host: {}", config.metadata.name);

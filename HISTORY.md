@@ -2,6 +2,9 @@
 - Add `:strict-hostname` control data to only apply config to named host.
 - Internal refactor of doer front-ends.
 - Rename telemetry crate.
+- Add `-S, --splay <SPLAY>` to `apply` command. Pauses a random number of
+  seconds up to a given maximum before applying. Splay can also be set via
+  control-data.
 
 ## v2.1.0 (2026-06-16)
 

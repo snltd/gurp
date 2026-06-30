@@ -27,6 +27,7 @@ Options:
       --no-report                     Do not write a JSON report at the end of the run
       --remove-first                  Run remove actions BEFORE ensure actions
       --only <ONLY>                   Only apply resources whose IDs match this regex
+  -S, --splay <SPLAY>                 Random delay with a maximum of this many seconds
   -h, --help                          Print help
 ```
 
@@ -85,6 +86,9 @@ There are options:
   compile phase. If `DEFINE` is of the form `key=value`, the struct gets `key`
   as a symbol and `value` as a string. If `DEFINE` is `key` only, the struct
   gets `key` as a symbol, with a value of boolean `true`.
+- `-S, --splay <SPLAY>` pauses for a random time up to a maximum of `SPLAY`
+  seconds prior to applying. A splay time can also be set via `control-data`,
+  but the command-line value takes precedence.
 
 Gurp uses the [Tracing framework](https://crates.io/crates/tracing) for logging.
 This means you can control the log level through the `RUST_LOG` environment
