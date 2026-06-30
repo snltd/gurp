@@ -19,7 +19,6 @@ opentelemetry = "0.32.0"
 serde = "1.0.228"
 serde_json = "1.0.149"
 sysinfo = "0.39.0"
-tabled = "0.21.0"
 gurptel = { path = "../gurptel" }
 terminal_size = "0.4.3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "signal"] }
