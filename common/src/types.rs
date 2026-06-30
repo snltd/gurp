@@ -27,6 +27,7 @@ pub struct ApplyOpts {
     pub vm: ApplyVmOpts,
     pub client: ApplyClientOpts,
     pub globals: GlobalOpts,
+    pub splay: Option<u64>,
 }
 
 /// User-supplied flags which affect Gurp's output

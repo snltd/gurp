@@ -73,6 +73,9 @@ enum Commands {
         /// Only apply resources whose IDs match this regex
         #[arg(long = "only")]
         only: Option<String>,
+        /// Random delay with a maximum of this many seconds
+        #[arg(short = 'S', long)]
+        splay: Option<u64>,
         /// Host configuration file
         #[arg(
             required_unless_present = "server",
@@ -160,6 +163,7 @@ fn main() -> ExitCode {
             no_report,
             remove_first,
             only,
+            splay,
             define,
         } => {
             let opts = ApplyOpts {
@@ -171,6 +175,7 @@ fn main() -> ExitCode {
                 no_lock,
                 no_report,
                 remove_first,
+                splay,
                 only,
                 output: ApplyOutputOpts {
                     colour,
