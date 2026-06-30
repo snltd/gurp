@@ -1,4 +1,7 @@
 - Add `(control-data)` function.
+- Add `:strict-hostname` control data to only apply config to named host.
+- Internal refactor of doer front-ends.
+- Rename telemetry crate.
 
 ## v2.1.0 (2026-06-16)
 

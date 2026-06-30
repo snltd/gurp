@@ -12,3 +12,4 @@ Trying to set the same key twice causes a fatal error.
 | `:metrics-to`    | [:string] | Send OpenTelemetry metrics to the given endpoint                                          |
 | `:gem-path`      | [:string] | Specify the gem binary used by the gem doer                                               |
 | `:logs-to`       | [:string] | Send OpenTelemetry logs to the given endpoint                                             |
+| `:strict-hostname` | [:boolean] | Gurp will only apply a config if the top-level `host` name matches the machine's actual hostname |
