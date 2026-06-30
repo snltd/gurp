@@ -34,12 +34,12 @@ use bytesize::ByteSize;
 use camino::Utf8PathBuf;
 use colored::Colorize;
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
+use gurptel::runtime_stats;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
 use std::collections::BTreeSet;
-use gurptel::runtime_stats;
-use util::json;
+use util::{info, json};
 
 pub(crate) type ApplyResult = anyhow::Result<(ApplySummary, ChangedIds)>;
 
@@ -69,6 +69,8 @@ pub struct HostControlData {
     pub gem_path: Option<Utf8PathBuf>,
     pub metrics_to: Option<String>,
     pub logs_to: Option<String>,
+    #[serde(default)]
+    pub strict_hostname: bool,
 }
 
 #[derive(Deserialize, Debug)]
@@ -269,55 +271,6 @@ pub struct Applicator {
     json_config: String,
 }
 
-fn apply_resources<'a, T: Apply>(resources: &'a [T], opts: &'a ApplyOpts) -> ApplyResult {
-    let total_count = resources.len();
-    let mut changed_ids: ChangedIds = BTreeSet::new();
-    let mut apply_summary = ApplySummary::default();
-
-    for (i, resource) in resources.iter().enumerate() {
-        let id = resource.id();
-
-        if let Some(only) = opts.only.as_ref() {
-            let rx = Regex::new(only).context("failed to generate ID filter regex")?;
-
-            if !rx.is_match(id) {
-                continue;
-            }
-        }
-
-        if std::env::var("GURP_RSS_STATS").is_ok()
-            && let Some(rss) = runtime_stats::rss_bytes()
-        {
-            tracing::info!("RSS before {id}: {}", ByteSize(rss as u64));
-        }
-
-        let chunks: Vec<_> = id.split("/").collect();
-
-        if chunks.len() >= 3 {
-            tracing::debug!("applying {} {}/{total_count}: {id}", chunks[1], i + 1,);
-        } else {
-            tracing::debug!("applying [{}/{total_count}]: {id}", i + 1);
-        }
-
-        let summary = match resource.apply(opts) {
-            Ok(summary) => summary,
-            Err(e) => {
-                tracing::error!("from {} doer: {}", chunks[2], e);
-                let err: anyhow::Error = e;
-                return Err(err.context(format!("failed to apply resource {id}")));
-            }
-        };
-
-        if summary.changes > 0 {
-            changed_ids.insert(id.to_owned());
-        }
-
-        apply_summary += summary;
-    }
-
-    Ok((apply_summary, changed_ids))
-}
-
 impl Applicator {
     pub fn from(json_config: String) -> Self {
         Self { json_config }
@@ -325,6 +278,19 @@ impl Applicator {
 
     pub fn run(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let config = self.json_to_hostconfig()?;
+
+        if config.control_data.strict_hostname {
+            tracing::debug!("Strict hostname checking requested: comparing");
+            let my_hostname = info::my_hostname().context("failed to get local hostname")?;
+
+            if config.metadata.name != my_hostname {
+                bail!(
+                    "Strict hostname check failed. This host is {}, config is for {}",
+                    my_hostname,
+                    config.metadata.name
+                )
+            }
+        }
 
         tracing::info!("Configuring host: {}", config.metadata.name);
         let ret = self.apply(&config, opts);
@@ -367,40 +333,93 @@ impl Applicator {
         Ok(())
     }
 
+    fn apply_resources<'a, T: Apply>(
+        &self,
+        resources: &'a [T],
+        opts: &'a ApplyOpts,
+    ) -> ApplyResult {
+        let total_count = resources.len();
+        let mut changed_ids: ChangedIds = BTreeSet::new();
+        let mut apply_summary = ApplySummary::default();
+
+        for (i, resource) in resources.iter().enumerate() {
+            let id = resource.id();
+
+            if let Some(only) = opts.only.as_ref() {
+                let rx = Regex::new(only).context("failed to generate ID filter regex")?;
+
+                if !rx.is_match(id) {
+                    continue;
+                }
+            }
+
+            if std::env::var("GURP_RSS_STATS").is_ok()
+                && let Some(rss) = runtime_stats::rss_bytes()
+            {
+                tracing::info!("RSS before {id}: {}", ByteSize(rss as u64));
+            }
+
+            let chunks: Vec<_> = id.split("/").collect();
+
+            if chunks.len() >= 3 {
+                tracing::debug!("applying {} {}/{total_count}: {id}", chunks[1], i + 1,);
+            } else {
+                tracing::debug!("applying [{}/{total_count}]: {id}", i + 1);
+            }
+
+            let summary = match resource.apply(opts) {
+                Ok(summary) => summary,
+                Err(e) => {
+                    tracing::error!("from {} doer: {}", chunks[2], e);
+                    let err: anyhow::Error = e;
+                    return Err(err.context(format!("failed to apply resource {id}")));
+                }
+            };
+
+            if summary.changes > 0 {
+                changed_ids.insert(id.to_owned());
+            }
+
+            apply_summary += summary;
+        }
+
+        Ok((apply_summary, changed_ids))
+    }
+
     #[rustfmt::skip]
     fn apply_ensure(&self, res: &EnsureResources, opts: &ApplyOpts) -> ApplyResult {
         let mut sum = ApplySummary::default();
         let mut ids = ChangedIds::new();
 
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.publisher, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.etherstub, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.vnic, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.vlan, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.ip_interface, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.ip_address, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.bridge, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.route, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.ip_properties, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.network_flow, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.zfs, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.zone, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.publisher, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.etherstub, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.vnic, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.vlan, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ip_interface, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ip_address, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.bridge, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.route, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ip_properties, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.network_flow, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.zfs, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.zone, opts))?;
         self.accumulate(&mut sum, &mut ids, crate::ipfilter::collect_and_ensure(&res.ipfilter, opts))?;
         self.accumulate(&mut sum, &mut ids, crate::ipnat::collect_and_ensure(&res.ipnat, opts))?;
         self.accumulate(&mut sum, &mut ids, crate::pkg::collect_and_ensure(&res.pkg, opts))?;
         self.accumulate(&mut sum, &mut ids, crate::pkgin::collect_and_ensure(&res.pkgin, opts))?;
         self.accumulate(&mut sum, &mut ids, crate::apk::collect_and_ensure(&res.apk, opts))?;
         self.accumulate(&mut sum, &mut ids, crate::gem::collect_and_ensure(&res.gem, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.group, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.user, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.cron, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.directory, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.file, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.file_line, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.link, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.smf, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.svcprop, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.system_cert, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.misc, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.group, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.user, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.cron, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.directory, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.file, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.file_line, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.link, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.smf, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.svcprop, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.system_cert, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.misc, opts))?;
 
         Ok((sum, ids))
     }
@@ -410,33 +429,33 @@ impl Applicator {
         let mut sum = ApplySummary::default();
         let mut ids = ChangedIds::new();
 
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.link, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.system_cert, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.file_line, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.file, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.directory, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.svcprop, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.smf, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.cron, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.user, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.group, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.publisher, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.link, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.system_cert, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.file_line, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.file, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.directory, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.svcprop, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.smf, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.cron, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.user, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.group, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.publisher, opts))?;
         self.accumulate(&mut sum, &mut ids, crate::gem::collect_and_remove(&res.gem, opts))?;
         self.accumulate(&mut sum, &mut ids, crate::pkg::collect_and_remove(&res.pkg, opts))?;
         self.accumulate(&mut sum, &mut ids, crate::pkgin::collect_and_remove(&res.pkgin, opts))?;
         self.accumulate(&mut sum, &mut ids, crate::apk::collect_and_remove(&res.apk, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.ipnat, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.ipfilter, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.zone, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.zfs, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.bridge, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.network_flow, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.route, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.ip_address, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.ip_interface, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.vlan, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.vnic, opts))?;
-        self.accumulate(&mut sum, &mut ids, apply_resources(&res.etherstub, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ipnat, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ipfilter, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.zone, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.zfs, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.bridge, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.network_flow, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.route, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ip_address, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ip_interface, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.vlan, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.vnic, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.etherstub, opts))?;
 
         Ok((sum, ids))
     }

@@ -9,6 +9,10 @@
   {:splay-seconds {:types [:number]
                    :help "Tells Gurp to pause by a random number of seconds up
                           to the given maximum before applying"}
+   :strict-hostname {:types [:boolean]
+                     :help "If true, Gurp will only run an apply if the host's
+                            name matches the name supplied in the Gurp 'host'
+                            definition"}
    :gem-path {:types [:string]
               :help "Specify the gem binary used by the gem doer"}
    :metrics-to {:types [:string]
