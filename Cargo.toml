@@ -9,7 +9,7 @@ members = [
   "doers",
   "embed",
   "macros",
-  "telemetry",
+  "gurptel",
   "tester",
   "util",
 ]

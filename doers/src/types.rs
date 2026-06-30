@@ -38,7 +38,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
 use std::collections::BTreeSet;
-use telemetry::runtime_stats;
+use gurptel::runtime_stats;
 use util::json;
 
 pub(crate) type ApplyResult = anyhow::Result<(ApplySummary, ChangedIds)>;

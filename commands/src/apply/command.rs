@@ -5,9 +5,9 @@ use camino::{Utf8Path, Utf8PathBuf};
 use chrono::Utc;
 use common::types::ApplyOpts;
 use doers::types::Applicator;
+use gurptel::{flush, types::TelemetryProviders};
 use std::process::ExitCode;
 use std::time::Instant;
-use telemetry::{flush, types::TelemetryProviders};
 
 const REPORT_DIR: &str = "/var/log";
 
