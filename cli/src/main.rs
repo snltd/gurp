@@ -64,8 +64,8 @@ enum Commands {
         /// Do not check for or use a lockfile
         #[arg(long = "no-lock")]
         no_lock: bool,
-        /// Do not write a JSON report
-        #[arg(long = "report-lock")]
+        /// Do not write a JSON report at the end of the run
+        #[arg(long = "no-report")]
         no_report: bool,
         /// Run remove actions BEFORE ensure actions
         #[arg(long = "remove-first")]
