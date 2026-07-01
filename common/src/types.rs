@@ -95,8 +95,8 @@ impl AddAssign for ApplySummary {
 /// Compilation can fail at numerous points. We use this enum to tell the user where.
 #[derive(Debug, thiserror::Error)]
 pub enum CompileError {
-    #[error("compilation error: {0}")]
-    Compile(#[source] anyhow::Error),
+    #[error("compilation error: {message}")]
+    Compile { message: String, trace: Vec<String> },
     #[error("network error: {0}")]
     Network(#[source] NetworkError),
     #[error("I/O error: {0}")]
