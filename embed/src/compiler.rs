@@ -6,7 +6,7 @@ use common::info;
 use common::types::{ApplyOutputOpts, ApplyVmOpts, CompileError, JsonConfig};
 use janetrs::client::JanetClient;
 use janetrs::env::DefOptions;
-use janetrs::{Janet, JanetString, TaggedJanet};
+use janetrs::{Janet, JanetString, JanetStruct, TaggedJanet};
 use std::env;
 
 /// A JsonCompiler turns Janet config into a JSON string
@@ -47,9 +47,9 @@ impl ConfigCompiler {
             .map_err(CompileError::Other)?;
 
         let final_cmd = if to_json {
-            "(to-json (machine-config))"
+            "(to-json (eval '(machine-config)))"
         } else {
-            "(machine-config)"
+            "(eval '(machine-config))"
         };
 
         let janet_instructions = indoc::formatdoc! { r#"
@@ -122,29 +122,95 @@ impl ConfigCompiler {
     // Wrapper for compile() for when we want to get a JSON string
     fn compile_to_string(&self, code: &str) -> Result<JsonConfig, CompileError> {
         compile(&self.client, code)
-            .and_then(|bytes| String::from_utf8(bytes).map_err(|e| CompileError::Compile(e.into())))
+            .and_then(|bytes| String::from_utf8(bytes).map_err(|e| CompileError::Other(e.into())))
     }
 }
-//
+
+/// Trying to compile invalid Janet causes a Janet panic, with a stack trace
+/// dumped to stderr. We want to capture the error so we can act accordingly,
+/// and the stack trace so we can pass it back to a client from a server.
+///
+/// To do this we wrap the Janet so it runs in a fiber. Said fiber receives
+/// the current environment as `outer-env` (which is resumed after the Janet
+/// runs)
+///
+/// If the fiber errors,
+/// `debug/stacktrace` puts the trace into a buffer (using
+/// `with-dyns` to `:err`).The buffer is prefixed with
+///
+/// If the fiber completes without error, the wrapped code's own result is
+/// returned unchanged.
+///
+fn wrapped_config(code: &str) -> String {
+    indoc::formatdoc! { r#"
+    (def outer-env (curenv))
+    (def fib (fiber/new (fn [] {code}) :e outer-env))
+    (def result (resume fib))
+
+    (if (= (fiber/status fib) :error)
+      (let [buf @""]
+        (with-dyns [:err buf] (debug/stacktrace fib result ""))
+        (struct :error (string result) :trace (string buf)))
+      result)"# 
+    }
+}
+
+// Errors are wrapped now. They come in a struct with keys
+// :error and :trace.
+fn destructure_wrapped_error(st: JanetStruct) -> CompileError {
+    let jerror = match st.get_owned(":error") {
+        Some(err_msg) => err_msg.to_string(),
+        None => {
+            return CompileError::Other(anyhow::anyhow!(
+                "could not get error field from Janet result struct"
+            ));
+        }
+    };
+
+    let jtrace = match st.get_owned(":trace") {
+        Some(trace) => trace
+            .to_string()
+            .split('\n')
+            .map(|s| s.to_owned())
+            .collect(),
+        None => {
+            return CompileError::Other(anyhow::anyhow!(
+                "could not get trace field from Janet result struct"
+            ));
+        }
+    };
+
+    CompileError::Compile {
+        message: jerror,
+        trace: jtrace,
+    }
+}
+
 // Compile to a Vec<u8>, which can hold a jimage or be converted to a string, which we do
 // if we expect JSON output.
 fn compile(client: &JanetClient, code: &str) -> Result<Vec<u8>, CompileError> {
     tracing::debug!("evaluating Janet config");
+    let wrapped_code = wrapped_config(code);
 
-    match client.run(code) {
+    match client.run(&wrapped_code) {
         Ok(buf) => match buf.unwrap() {
-            TaggedJanet::String(s) => Ok(s.bytes().collect()),
+            // Successful compilation to JSON gives us a JSON String
+            TaggedJanet::String(str) => Ok(str.bytes().collect()),
+            // Successful compilation to an image gives us a Buffer
             TaggedJanet::Buffer(buf) => {
                 let bytes = buf.as_bytes();
                 if bytes.starts_with(b"ERR:") {
                     let msg = String::from_utf8_lossy(&bytes[4..]).into_owned();
-                    Err(CompileError::Compile(anyhow::anyhow!(msg)))
+                    Err(CompileError::Other(anyhow::anyhow!(msg)))
                 } else {
                     Ok(bytes.to_vec())
                 }
-            } //
-            _ => Err(CompileError::Compile(anyhow::anyhow!(
-                "Janet eval returned unexpected type: expected Buffer, got {buf:?}"
+            }
+            // A compilation error gives us a struct
+            TaggedJanet::Struct(jstruct) => Err(destructure_wrapped_error(jstruct)),
+            // We shouldn't see anything else
+            _ => Err(CompileError::Other(anyhow::anyhow!(
+                "Janet eval returned unexpected type: expected String or Struct, got {buf:?}"
             ))),
         },
         Err(e) => {
@@ -154,11 +220,11 @@ fn compile(client: &JanetClient, code: &str) -> Result<Vec<u8>, CompileError> {
                 janetrs::client::Error::EnvNotInit => "EnvNotInit",
                 janetrs::client::Error::ParseError => "ParseError",
                 janetrs::client::Error::RunError => "RunError",
-                _ => "<UNKNOWN>", // Should be impossible
+                _ => "<UNKNOWN>",
             };
 
-            tracing::error!("error compiling Janet config: {err_desc}");
-            Err(CompileError::Compile(e.into()))
+            tracing::error!("unhandled error compiling Janet config: {err_desc}");
+            Err(CompileError::Other(e.into()))
         }
     }
 }
@@ -193,8 +259,10 @@ pub fn to_jimage(path: &Utf8Path) -> Result<Vec<u8>, CompileError> {
 mod test {
     use super::*;
     use crate::tester::fixture;
+    use camino_tempfile::NamedUtf8TempFile;
     use common::types::ApplyVmOpts;
     use std::fs;
+    use std::io::Write;
 
     fn test_compiler() -> ConfigCompiler {
         ConfigCompiler::new(&ApplyVmOpts::default(), false, ApplyOutputOpts::default()).unwrap()
@@ -234,5 +302,40 @@ mod test {
                 .janet_image(&fs::read(fixture("basic_image.jimage")).unwrap(), None)
                 .unwrap()
         );
+    }
+
+    #[test]
+    fn test_file_is_bad_janet() {
+        let mut file = NamedUtf8TempFile::new().unwrap();
+        write!(file, "(unknown-function)").unwrap();
+
+        let err = test_compiler().janet_file(file.path(), true).unwrap_err();
+
+        match err {
+            CompileError::Compile { message, trace } => {
+                assert!(message.contains("compile error: unknown symbol unknown-function"));
+                assert!(!trace.is_empty());
+            }
+            other => {
+                panic!("expected CompileError::Compile, got {other:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn test_file_is_not_even_janet() {
+        let err = test_compiler()
+            .janet_file("/etc/passwd".into(), true)
+            .unwrap_err();
+
+        match err {
+            CompileError::Compile { message, trace } => {
+                assert!(message.contains("parse error"));
+                assert!(!trace.is_empty());
+            }
+            other => {
+                panic!("expected CompileError::Compile, got {other:?}");
+            }
+        }
     }
 }

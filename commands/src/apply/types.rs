@@ -39,9 +39,12 @@ impl From<CompileError> for FailPhase {
             },
             CompileError::FileNotFound(_) => FailPhase::FileNotFound,
             CompileError::ClientCreate(_) => FailPhase::Client,
-            CompileError::Compile(_) => FailPhase::Compile,
             CompileError::Other(_) => FailPhase::Compile,
             CompileError::Io(_) => FailPhase::Compile,
+            CompileError::Compile {
+                message: _,
+                trace: _,
+            } => FailPhase::Compile,
         }
     }
 }

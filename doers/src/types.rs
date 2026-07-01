@@ -33,7 +33,7 @@ use anyhow::{Context, bail};
 use bytesize::ByteSize;
 use camino::Utf8PathBuf;
 use colored::Colorize;
-use common::types::{ApplyOpts, ApplySummary, ChangedIds};
+use common::types::{ApplyOpts, ApplySummary, ChangedIds, JsonConfig};
 use gurptel::runtime_stats;
 use rand::RngExt;
 use regex::Regex;
@@ -275,7 +275,7 @@ pub struct Applicator {
 }
 
 impl Applicator {
-    pub fn from(json_config: String) -> Self {
+    pub fn from(json_config: JsonConfig) -> Self {
         Self { json_config }
     }
 
@@ -328,6 +328,8 @@ impl Applicator {
             "Unpacking {} bytes of JSON config into HostConfig",
             self.json_config.len()
         );
+
+        tracing::debug!("Raw JSON is {}", self.json_config);
 
         let host_config: HostConfig = match serde_json::from_str(&self.json_config) {
             Ok(conf) => conf,
@@ -503,6 +505,7 @@ impl Applicator {
         Ok(summary_total)
     }
 
+    // This should only handle deserialing errors.
     fn display_error(&self, e: Error) -> anyhow::Result<()> {
         tracing::error!("deserializing error: {}", e);
 
@@ -524,4 +527,9 @@ impl Applicator {
 
         Ok(())
     }
+}
+
+#[cfg(test)]
+mod test {
+    // TODO we need tests for various fail modes.
 }

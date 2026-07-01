@@ -97,3 +97,8 @@ pub(crate) fn compile(
 
     Ok(json_config)
 }
+
+#[cfg(test)]
+mod test {
+    // TODO test failure modes
+}
