@@ -10,6 +10,7 @@ pub fn run(host_file: &Utf8Path, opts: &CompileOpts) -> ExitCode {
         &ApplyVmOpts::default(),
         false,
         ApplyOutputOpts::default(),
+        Some(host_file),
     ) {
         Ok(c) => c,
         Err(e) => {

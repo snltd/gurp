@@ -94,6 +94,7 @@ pub async fn config(
                     &ApplyVmOpts::default(),
                     false,
                     ApplyOutputOpts::default(),
+                    Some(&host_file),
                 ) {
                     Ok(c) => c,
                     Err(e) => {

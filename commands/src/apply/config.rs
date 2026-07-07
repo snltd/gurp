@@ -65,7 +65,7 @@ pub(crate) fn compile(
         String::from_utf8(raw).map_err(|e| CompileError::Other(e.into()))
     } else {
         let mut json_compiler =
-            compiler::ConfigCompiler::new(&opts.vm, opts.destroy, opts.output.clone())?;
+            compiler::ConfigCompiler::new(&opts.vm, opts.destroy, opts.output.clone(), path)?;
 
         if let Some(path) = path {
             // local Janet config
