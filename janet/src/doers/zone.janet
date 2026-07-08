@@ -36,9 +36,11 @@
                 :help "Instead of installing, clone from the given zone, which
                        must exist and be halted"}
    :copy-in {:types [:struct]
-             :help "Copy files into the zone. Key (keyword) is src, val is dest,
-                    relative to zone root. Unqualified src is assumed to be in
-                    ../files/"}
+             :help "Copy files into the zone. Key is source, value is dest,
+                    relative to zone root. If key is an array of strings, all
+                    files listed are copied to dest. Unqualified src is assumed
+                    to be in ../files/. Directories are copied recursively, and
+                    if the dest directory does not exist, it is created."}
    :datasets {:types [:tuple]
               :help "ZFS datasets (as strings) to be delegated to zone"}
    :dns {:types [:struct]
@@ -86,6 +88,7 @@
     as you like, so if you run Gurp every 15 minutes and want your zone rebuilt
     from scratch about once a week, you'd use `:recreate 672`."])
 
+
 (defn ensure
   "Given a zone name and spec, put an ensure struct in the collector"
   [name & spec]
@@ -105,10 +108,11 @@
                                     optional-props-ensure))
         spec-table (spec-with-defaults defaults-ensure spec-struct)]
 
-    (if-let [copy-resource (get spec-table :copy-in)]
+    (if-let [copy-resource (get spec-table :copy-in)
+             expanded-resource (expand-list-struct copy-resource)]
       (set (spec-table :copy-in)
-           (zipcoll (map qualify-from-path (keys copy-resource))
-                    (values copy-resource))))
+           (zipcoll (map qualify-from-path (keys expanded-resource))
+                    (values expanded-resource))))
 
     # Fill-in the zone path if it hasn't been given
     (if-not (has-key? spec-table :zonepath)

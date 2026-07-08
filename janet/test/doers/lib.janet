@@ -96,3 +96,16 @@
       (def mandatory-props-method {})
       (def optional-props-method {})
       (def timeout-method 50))))
+
+
+(deftest expand-list-struct
+  (test
+    (expand-list-struct {"key1" "val1" "key2" "val2"})
+    @{"key1" "val1" "key2" "val2"})
+
+  (test
+    (expand-list-struct {["key1a" "key1b" "key1c"] "val1" "key2" "val2"})
+    @{"key1a" "val1"
+      "key1b" "val1"
+      "key1c" "val1"
+      "key2" "val2"}))
