@@ -316,12 +316,12 @@ mod test {
     #[test]
     fn test_file_is_not_even_janet() {
         let err = test_compiler()
-            .janet_file("/etc/passwd".into(), true)
+            .janet_file(&fixture("not_even_janet.janet"), true)
             .unwrap_err();
 
         match err {
             CompileError::Compile { message, trace } => {
-                assert!(message.contains("parse error"));
+                assert!(message.contains("compile error: unknown symbol"));
                 assert!(!trace.is_empty());
             }
             other => {
