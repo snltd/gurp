@@ -22,6 +22,7 @@ pub struct ApplyOpts {
     pub no_lock: bool,
     pub no_report: bool,
     pub no_check: bool,
+    pub double_check: bool,
     pub remove_first: bool,
     pub only: Option<String>,
     pub output: ApplyOutputOpts,

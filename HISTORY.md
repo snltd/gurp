@@ -1,3 +1,8 @@
+- Gurp now runs a no-op before running an `apply`. This catches errors and
+  reduces the chances of a partially applied state. It can be skipped with the
+  `--no-check` option.
+- You can also run a no-op _after_ application with the `--double-check` option.
+  If any changes show up, Gurp errors.
 - Add `(control-data)` function.
 - Add `:strict-hostname` control data to only apply config to named host.
 - Add a no-op check phase before application. Can be disabled with `--no-check`.

@@ -275,8 +275,9 @@ pub struct Applicator {
 
 #[derive(PartialEq)]
 enum Phase {
-    Check,
+    Preflight,
     Apply,
+    DoubleCheck,
 }
 
 impl Applicator {
@@ -291,13 +292,36 @@ impl Applicator {
                     noop: true,
                     ..opts.clone()
                 },
-                Phase::Check,
+                Phase::Preflight,
             )?;
 
             tracing::info!("Completed noop check phase");
         }
 
-        self._run(opts, Phase::Apply)
+        let apply_result = self._run(opts, Phase::Apply)?;
+
+        if apply_result.changes > 0 && opts.double_check {
+            let second_apply_result = self._run(
+                &ApplyOpts {
+                    noop: true,
+                    ..opts.clone()
+                },
+                Phase::DoubleCheck,
+            )?;
+
+            if second_apply_result.changes > 0 {
+                bail!(
+                    "Double-check apply phase caused {} change(s): state is not being asserted",
+                    second_apply_result.changes
+                )
+            } else {
+                tracing::debug!("Double-check detected no changes");
+                Ok(apply_result)
+            }
+        } else {
+            tracing::debug!("No changes: no need for double-check");
+            Ok(apply_result)
+        }
     }
 
     fn _run(&self, opts: &ApplyOpts, phase: Phase) -> anyhow::Result<ApplySummary> {
@@ -334,12 +358,13 @@ impl Applicator {
             thread::sleep(Duration::from_secs(time_to_wait));
         }
 
-        match phase {
-            Phase::Check => {
-                tracing::info!("Running noop check phase for: {}", config.metadata.name)
-            }
-            Phase::Apply => tracing::info!("Configuring host: {}", config.metadata.name),
-        }
+        let message = match phase {
+            Phase::Preflight => "Running noop check for",
+            Phase::Apply => "Configuring",
+            Phase::DoubleCheck => "Double-checking",
+        };
+
+        tracing::info!("{message} {}", config.metadata.name);
 
         let ret = self.apply(&config, opts);
 

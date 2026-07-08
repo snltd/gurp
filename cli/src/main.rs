@@ -70,6 +70,9 @@ enum Commands {
         /// Do not perform a no-op check run before application
         #[arg(long)]
         no_check: bool,
+        /// If changes are made, re-run the apply phase, erroring if changes occur on the re-run
+        #[arg(long)]
+        double_check: bool,
         /// Run remove actions BEFORE ensure actions
         #[arg(long = "remove-first")]
         remove_first: bool,
@@ -165,6 +168,7 @@ fn main() -> ExitCode {
             no_lock,
             no_report,
             no_check,
+            double_check,
             remove_first,
             only,
             splay,
@@ -179,6 +183,7 @@ fn main() -> ExitCode {
                 no_lock,
                 no_report,
                 no_check,
+                double_check,
                 remove_first,
                 splay,
                 only,
