@@ -152,14 +152,6 @@ fn zfs_bin() -> &'static str {
     }
 }
 
-fn list_filesystems() -> anyhow::Result<Vec<String>> {
-    Ok(cmd_output!(*ZFS_BIN_PATH, "list", "-H", "-o", "name")
-        .context("failed to list ZFS filesystems")?
-        .lines()
-        .map(|s| s.to_owned())
-        .collect())
-}
-
 fn zfs_state(name: &str) -> anyhow::Result<ZfsProperties> {
     let mut ret = HashMap::new();
     let prop_vals = cmd_output!(*ZFS_BIN_PATH, "get", "-pHo", "property,value", "all", name)

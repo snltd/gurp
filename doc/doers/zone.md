@@ -75,7 +75,7 @@ Zone name (`:string`)
 | `:bootstrap` | `table` | See zone/bootstrap |  |
 | `:capped-memory` | `struct` | Set memory cap. Keys must be :physical and :swap, values are strings like '4G' |  |
 | `:clone-from` | `string` | Instead of installing, clone from the given zone, which must exist and be halted |  |
-| `:copy-in` | `struct` | Copy files into the zone. Key (keyword) is src, val is dest, relative to zone root. Unqualified src is assumed to be in ../files/ |  |
+| `:copy-in` | `struct` | Copy files into the zone. Key is source, value is dest, relative to zone root. If key is an array of strings, all files listed are copied to dest. Unqualified src is assumed to be in ../files/. Directories are copied recursively, and if the dest directory does not exist, it is created. |  |
 | `:datasets` | `tuple` | ZFS datasets (as strings) to be delegated to zone |  |
 | `:dns` | `struct` | DNS info. :domain is a string; :nameservers a tuple of strings |  |
 | `:exec-in` | `tuple` | Runs the given commands (:string) in the zone after booting |  |
