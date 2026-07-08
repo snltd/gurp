@@ -5,7 +5,7 @@
 - Add `-S, --splay <SPLAY>` to `apply` command. Pauses a random number of
   seconds up to a given maximum before applying. Splay can also be set via
   control-data.
-- Improve detection and handling of Janet compilation errors.
+- Improve detection, handling, and logging, of Janet compilation errors.
 
 ## v2.1.0 (2026-06-16)
 
