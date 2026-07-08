@@ -121,8 +121,13 @@ impl ConfigCompiler {
 
     // Wrapper for compile() for when we want to get a JSON string
     fn compile_to_string(&self, code: &str) -> Result<JsonConfig, CompileError> {
-        compile(&self.client, code)
-            .and_then(|bytes| String::from_utf8(bytes).map_err(|e| CompileError::Other(e.into())))
+        let compiled_bytes = compile(&self.client, code)?;
+
+        String::from_utf8(compiled_bytes).map_err(|e| {
+            CompileError::Other(anyhow::anyhow!(
+                "cannot convert compiled bytes to JSON string: {e}"
+            ))
+        })
     }
 }
 
@@ -264,26 +269,12 @@ mod test {
     use std::fs;
     use std::io::Write;
 
-    fn test_compiler() -> ConfigCompiler {
-        ConfigCompiler::new(&ApplyVmOpts::default(), false, ApplyOutputOpts::default()).unwrap()
-    }
-
     #[test]
     fn test_janet_file() {
         assert_eq!(
             r#"{"control-data":{},"metadata":{"name":"test"},"resources":{"ensure":{"file":[{"_id":"/basenode/file/_tmp_tester","content":"blah","group":"root","mode":"0644","name":"/tmp/tester","owner":"root","role":"basenode"}]},"remove":{}}}"#,
             test_compiler()
                 .janet_file(&fixture("basic_config.janet"), true)
-                .unwrap()
-        );
-    }
-
-    #[test]
-    fn test_janet_snippet() {
-        assert_eq!(
-            r#"{"control-data":{},"metadata":{"name":"gurp-runner"},"resources":{"ensure":{"directory":[{"_id":"/NO-ROLE/directory/_tmp_test1","group":"root","mode":"0755","name":"/tmp/test1","owner":"root","role":"NO-ROLE"}]},"remove":{}}}"#,
-            test_compiler()
-                .janet_snippet(r#"(directory/ensure "/tmp/test1")"#)
                 .unwrap()
         );
     }
@@ -337,5 +328,33 @@ mod test {
                 panic!("expected CompileError::Compile, got {other:?}");
             }
         }
+    }
+
+    #[test]
+    fn test_janet_snippet() {
+        assert_eq!(
+            r#"{"control-data":{},"metadata":{"name":"gurp-runner"},"resources":{"ensure":{"directory":[{"_id":"/NO-ROLE/directory/_tmp_test1","group":"root","mode":"0755","name":"/tmp/test1","owner":"root","role":"NO-ROLE"}]},"remove":{}}}"#,
+            test_compiler()
+                .janet_snippet(r#"(directory/ensure "/tmp/test1")"#)
+                .unwrap()
+        );
+    }
+
+    // #[test]
+    // fn test_snippet_is_not_even_janet() {
+    //     let err = test_compiler().janet_snippet("123abc").unwrap_err();
+
+    //     // match err {
+    //     //     CompileError::Compile { message, trace } => {
+    //     //         assert_eq!("merp", message);
+    //     //     }
+    //     //     other => {
+    //     //         panic!("expected CompileError::Compile, got {other:?}");
+    //     //     }
+    //     // }
+    // }
+
+    fn test_compiler() -> ConfigCompiler {
+        ConfigCompiler::new(&ApplyVmOpts::default(), false, ApplyOutputOpts::default()).unwrap()
     }
 }
