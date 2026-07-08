@@ -62,11 +62,14 @@ enum Commands {
         #[arg(short = 'e', long, alias = "execute")]
         exec: Option<String>,
         /// Do not check for or use a lockfile
-        #[arg(long = "no-lock")]
+        #[arg(long)]
         no_lock: bool,
         /// Do not write a JSON report at the end of the run
-        #[arg(long = "no-report")]
+        #[arg(long)]
         no_report: bool,
+        /// Do not perform a no-op check run before application
+        #[arg(long)]
+        no_check: bool,
         /// Run remove actions BEFORE ensure actions
         #[arg(long = "remove-first")]
         remove_first: bool,
@@ -161,6 +164,7 @@ fn main() -> ExitCode {
             image,
             no_lock,
             no_report,
+            no_check,
             remove_first,
             only,
             splay,
@@ -174,6 +178,7 @@ fn main() -> ExitCode {
                 image,
                 no_lock,
                 no_report,
+                no_check,
                 remove_first,
                 splay,
                 only,

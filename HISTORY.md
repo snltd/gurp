@@ -1,5 +1,6 @@
 - Add `(control-data)` function.
 - Add `:strict-hostname` control data to only apply config to named host.
+- Add a no-op check phase before application. Can be disabled with `--no-check`.
 - Zone resources' `copy-in` now accepts a list of sources paired with a single
   destination.
 - Internal refactor of doer front-ends.

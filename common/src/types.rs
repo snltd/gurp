@@ -5,14 +5,14 @@ use std::collections::BTreeSet;
 use std::ops::{Add, AddAssign};
 
 /// Global CLI options
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct GlobalOpts {
     pub metrics_to: Option<String>,
     pub logs_to: Option<String>,
 }
 
 /// CLI options for the apply command
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ApplyOpts {
     pub noop: bool,
     pub precompiled: bool,
@@ -21,6 +21,7 @@ pub struct ApplyOpts {
     pub exec: Option<String>,
     pub no_lock: bool,
     pub no_report: bool,
+    pub no_check: bool,
     pub remove_first: bool,
     pub only: Option<String>,
     pub output: ApplyOutputOpts,
@@ -31,7 +32,7 @@ pub struct ApplyOpts {
 }
 
 /// User-supplied flags which affect Gurp's output
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ApplyOutputOpts {
     pub colour: bool,
     pub line_no: bool,
@@ -40,13 +41,13 @@ pub struct ApplyOutputOpts {
 }
 
 /// User-supplied flags which affect the behaviour of the Janet VM
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ApplyVmOpts {
     pub define: Vec<String>,
 }
 
 /// User-supplied flags which affect behaviour in client mode
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ApplyClientOpts {
     pub server: Option<String>,   // client mode only
     pub hostname: Option<String>, // currently client mode only
