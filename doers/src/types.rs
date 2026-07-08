@@ -210,8 +210,7 @@ pub struct RemoveResources {
 
 macro_rules! impl_apply {
     ($($t:ty),*) => {
-        $(
-            impl Apply for $t {
+        $( impl Apply for $t {
                 fn id(&self) -> &str { &self.id }
                 fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
                     self.apply(opts)
@@ -274,12 +273,58 @@ pub struct Applicator {
     json_config: String,
 }
 
+#[derive(PartialEq)]
+enum Phase {
+    Preflight,
+    Apply,
+    DoubleCheck,
+}
+
 impl Applicator {
     pub fn from(json_config: JsonConfig) -> Self {
         Self { json_config }
     }
 
     pub fn run(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        if !opts.no_check && !opts.noop {
+            self._run(
+                &ApplyOpts {
+                    noop: true,
+                    ..opts.clone()
+                },
+                Phase::Preflight,
+            )?;
+
+            tracing::info!("Completed noop check phase");
+        }
+
+        let apply_result = self._run(opts, Phase::Apply)?;
+
+        if apply_result.changes > 0 && opts.double_check {
+            let second_apply_result = self._run(
+                &ApplyOpts {
+                    noop: true,
+                    ..opts.clone()
+                },
+                Phase::DoubleCheck,
+            )?;
+
+            if second_apply_result.changes > 0 {
+                bail!(
+                    "Double-check apply phase caused {} change(s): state is not being asserted",
+                    second_apply_result.changes
+                )
+            } else {
+                tracing::debug!("Double-check detected no changes");
+                Ok(apply_result)
+            }
+        } else {
+            tracing::debug!("No changes: no need for double-check");
+            Ok(apply_result)
+        }
+    }
+
+    fn _run(&self, opts: &ApplyOpts, phase: Phase) -> anyhow::Result<ApplySummary> {
         let config = self.json_to_hostconfig()?;
         let mut splay = None;
 
@@ -304,17 +349,27 @@ impl Applicator {
             }
         }
 
-        if let Some(max_splay) = splay {
+        if phase == Phase::Apply
+            && let Some(max_splay) = splay
+        {
             let mut rng = rand::rng();
             let time_to_wait = rng.random_range(..=max_splay);
             tracing::info!("splay requested: pausing {time_to_wait} seconds...");
             thread::sleep(Duration::from_secs(time_to_wait));
         }
 
-        tracing::info!("Configuring host: {}", config.metadata.name);
+        let message = match phase {
+            Phase::Preflight => "Running noop check for",
+            Phase::Apply => "Configuring",
+            Phase::DoubleCheck => "Double-checking",
+        };
+
+        tracing::info!("{message} {}", config.metadata.name);
+
         let ret = self.apply(&config, opts);
 
-        if std::env::var("GURP_RSS_STATS").is_ok()
+        if phase == Phase::Apply
+            && std::env::var("GURP_RSS_STATS").is_ok()
             && let Some(rss) = runtime_stats::rss_bytes()
         {
             tracing::info!("final RSS: {}", ByteSize(rss as u64));
