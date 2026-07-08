@@ -179,7 +179,7 @@ fn zfs_state(name: &str) -> anyhow::Result<ZfsProperties> {
 }
 
 pub fn zfs_exists(name: &str) -> anyhow::Result<bool> {
-    Ok(list_filesystems()?.contains(&name.to_owned()))
+    cmd_success!(*ZFS_BIN_PATH, "list", "-Ho", "name", name)
 }
 
 #[cfg(test)]

@@ -106,6 +106,16 @@ macro_rules! cmd_output {
     }};
 }
 
+/// Returns true or false depending on whether the given command succeeds
+#[macro_export]
+macro_rules! cmd_success {
+    ( $bin:expr, $( $arg:expr ),+ $(,)? ) => {{
+        let mut cmd = $crate::cmd!($bin, $($arg), +);
+        let output = cmd.output()?;
+        Ok(output.status.success())
+     }};
+}
+
 /// Is exactly one of the Options a Some?
 #[macro_export]
 macro_rules! exactly_one_some {
