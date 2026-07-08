@@ -340,19 +340,19 @@ mod test {
         );
     }
 
-    // #[test]
-    // fn test_snippet_is_not_even_janet() {
-    //     let err = test_compiler().janet_snippet("123abc").unwrap_err();
+    #[test]
+    fn test_snippet_is_not_even_janet() {
+        let err = test_compiler().janet_snippet("123abc").unwrap_err();
 
-    //     // match err {
-    //     //     CompileError::Compile { message, trace } => {
-    //     //         assert_eq!("merp", message);
-    //     //     }
-    //     //     other => {
-    //     //         panic!("expected CompileError::Compile, got {other:?}");
-    //     //     }
-    //     // }
-    // }
+        match err {
+            CompileError::Other(e) => {
+                assert_eq!("Failed to parse code", e.to_string());
+            }
+            other => {
+                panic!("expected CompileError::Compile, got {other:?}");
+            }
+        }
+    }
 
     fn test_compiler() -> ConfigCompiler {
         ConfigCompiler::new(&ApplyVmOpts::default(), false, ApplyOutputOpts::default()).unwrap()

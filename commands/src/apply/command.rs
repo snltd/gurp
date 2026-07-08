@@ -148,11 +148,11 @@ mod test {
             )
         );
 
-        // assert!(logs_contain(
-        //     "could not generate config: compilation error: Failed to parse code"
-        // ));
-        // assert!(logs_contain("sending fail metrics: compile"));
-        // assert!(!logs_contain("resources:"));
+        assert!(logs_contain(
+            "could not generate config: compile error: Failed to parse code"
+        ));
+        assert!(logs_contain("sending fail metrics: compile"));
+        assert!(!logs_contain("resources:"));
     }
 
     #[test]
@@ -218,7 +218,9 @@ mod test {
         );
 
         assert!(logs_contain(
-            "could not generate config: compilation error: Runtime VM error"
+            "ERROR file_does_not_compile: commands::apply::command: could not generate \
+            config: compilation error: In directory/ensure /tmp/testdir: unexpected \
+            property :bad-key."
         ));
         assert!(logs_contain("sending fail metrics: compile"));
         assert!(!logs_contain("resources:"));
