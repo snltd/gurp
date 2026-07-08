@@ -89,7 +89,7 @@ mod test {
             .arg("tests/resources/bad.janet")
             .assert()
             .failure()
-            .stderr(predicate::str::contains(
+            .stdout(predicate::str::contains(
                 "compile error: unknown symbol physical",
             ));
     }

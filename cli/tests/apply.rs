@@ -38,6 +38,6 @@ mod test {
             .arg("./tests/resources/bad.janet")
             .assert()
             .failure()
-            .stderr(predicate::str::contains("unknown symbol physical"));
+            .stdout(predicate::str::contains("unknown symbol physical"));
     }
 }

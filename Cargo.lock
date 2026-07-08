@@ -962,6 +962,7 @@ dependencies = [
  "anyhow",
  "build_helper",
  "camino",
+ "camino-tempfile",
  "common",
  "indoc",
  "janetrs",

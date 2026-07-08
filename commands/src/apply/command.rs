@@ -3,7 +3,7 @@ use super::{config, lockfile, metrics};
 use crate::apply::types::{ApplyStatus, FailPhase};
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::Utc;
-use common::types::ApplyOpts;
+use common::types::{ApplyOpts, CompileError};
 use doers::types::Applicator;
 use gurptel::{flush, types::TelemetryProviders};
 use std::process::ExitCode;
@@ -89,6 +89,15 @@ pub fn run(
 
         Err(e) => {
             tracing::error!("could not generate config: {e:#}");
+
+            if let CompileError::Compile { message, trace } = &e {
+                if message.contains("unknown symbol machine-config") {
+                    tracing::error!("config may lack a (host) definition");
+                };
+
+                tracing::debug!(janet_trace = trace.join("\n"));
+            };
+
             metrics::send(ApplyStatus::Fail(e.into()), &start_time.elapsed());
             ExitCode::FAILURE
         }
@@ -140,7 +149,7 @@ mod test {
         );
 
         assert!(logs_contain(
-            "could not generate config: compilation error: Failed to parse code"
+            "could not generate config: compile error: Failed to parse code"
         ));
         assert!(logs_contain("sending fail metrics: compile"));
         assert!(!logs_contain("resources:"));
@@ -209,7 +218,9 @@ mod test {
         );
 
         assert!(logs_contain(
-            "could not generate config: compilation error: Runtime VM error"
+            "ERROR file_does_not_compile: commands::apply::command: could not generate \
+            config: compilation error: In directory/ensure /tmp/testdir: unexpected \
+            property :bad-key."
         ));
         assert!(logs_contain("sending fail metrics: compile"));
         assert!(!logs_contain("resources:"));
