@@ -290,3 +290,13 @@
   ~(defn remove
      [name & spec]
      (collector/push :remove doer (make-remove-resource))))
+
+(defn expand-list-struct
+  "If any keys of strct are arrays or tuples, expand each key into a new entry
+   with the same value."
+  [strct]
+  (table
+    ;(catseq [[src dest] :pairs strct]
+       (if (or (tuple? src) (array? src))
+         (mapcat |(tuple $ dest) src)
+         [src dest]))))
