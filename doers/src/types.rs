@@ -32,7 +32,7 @@ use crate::zone::{GurpZoneEnsure, GurpZoneRemove};
 use anyhow::{Context, bail};
 use bytesize::ByteSize;
 use camino::Utf8PathBuf;
-use colored::Colorize;
+use owo_colors::OwoColorize;
 use common::types::{ApplyOpts, ApplySummary, ChangedIds, JsonConfig};
 use gurptel::runtime_stats;
 use rand::RngExt;
