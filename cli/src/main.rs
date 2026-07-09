@@ -91,6 +91,8 @@ enum Commands {
         )]
         host_config_file: Option<Utf8PathBuf>,
     },
+    /// Check the validity of a Janet config
+    Check { path: Utf8PathBuf },
     /// Compile a Janet host description
     Compile {
         /// When displaying compiled config, number lines
@@ -208,6 +210,7 @@ fn main() -> ExitCode {
 
             commands::apply::command::run(host_config_file.as_deref(), &opts, providers)
         }
+        Commands::Check { path } => commands::check::run(&path),
         Commands::Compile {
             line_no,
             host_config_file,
