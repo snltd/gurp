@@ -1,3 +1,5 @@
+## v2.2.0 (2026-07-09)
+
 - Gurp now runs a no-op before running an `apply`. This catches errors and
   reduces the chances of a partially applied state. It can be skipped with the
   `--no-check` option.
