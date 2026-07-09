@@ -3,6 +3,7 @@
   `--no-check` option.
 - You can also run a no-op _after_ application with the `--double-check` option.
   If any changes show up, Gurp errors.
+- Add `check` command to check syntactic validity of config files.
 - Add `(control-data)` function.
 - Add `:strict-hostname` control data to only apply config to named host.
 - Add a no-op check phase before application. Can be disabled with `--no-check`.
