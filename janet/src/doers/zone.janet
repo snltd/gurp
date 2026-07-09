@@ -8,6 +8,8 @@
 (import ./zone/rctl :prefix "" :export true)
 (import ../collector)
 
+(def checksum-types ["sha256"])
+
 (defdoer :zone
   "Create and destroy zones. Existing zones cannot be modified."
   :name-is "Zone name"
@@ -59,6 +61,12 @@
                :help "List of privileges to add to zone"}
    :image {:types [:string]
            :help "Install zone using this image. See docs for pattern rules"}
+   :image-checksum {:types [:struct :table]
+                    :help (string/format
+                            "Requires :type and :value. :type must be one of %s.
+                            :value can be a literal checksum, a URI, or a dot-
+                            prefixed suffix which will be appended to the image URL"
+                            (comma-sep checksum-types))}
    :net {:types [:array]
          :help "See zone/network"}
    :pool {:types [:string]
@@ -107,6 +115,13 @@
                                     mandatory-props-ensure
                                     optional-props-ensure))
         spec-table (spec-with-defaults defaults-ensure spec-struct)]
+
+    (if-let [image-sum-resource (get spec-table :image-checksum)]
+      (pinpoint-error
+        :ensure
+        (if-not (has-exactly-one-key? image-checksum-keys image-sum-resource)
+          (errorf ":image-checksum requires exactly one of %s"
+                  (comma-sep image-checksum-keys)))))
 
     (if-let [copy-resource (get spec-table :copy-in)
              expanded-resource (expand-list-struct copy-resource)]
