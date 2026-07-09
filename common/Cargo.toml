@@ -1,11 +1,11 @@
 [package]
 name = "common"
-version = "2.1.0"
+version = "2.2.0"
 edition = "2024"
 
 [dependencies]
 anyhow = "1.0.98"
 camino = { version = "1.1.9", features = ["serde1"] }
-colored = "3.0.0"
 diff = "0.1.13"
+owo-colors = "4.3.0"
 thiserror = "2.0.18"

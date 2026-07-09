@@ -1,6 +1,6 @@
 use crate::constants::DEFAULT_TERM_WIDTH;
 use crate::types::ApplyOutputOpts;
-use colored::Colorize;
+use owo_colors::OwoColorize;
 
 pub fn dump_config(code: &str, description: Option<&str>, opts: &ApplyOutputOpts) -> String {
     let mut ret = String::new();
