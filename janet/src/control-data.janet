@@ -13,6 +13,9 @@
                      :help "If true, Gurp will only run an apply if the host's
                             name matches the name supplied in the Gurp 'host'
                             definition"}
+   :self-update {:types [:string]
+                 :help "Update Gurp from the given source. Can be a file or a
+                        URL"}
    :gem-path {:types [:string]
               :help "Specify the gem binary used by the gem doer"}
    :metrics-to {:types [:string]

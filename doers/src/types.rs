@@ -32,16 +32,18 @@ use crate::zone::{GurpZoneEnsure, GurpZoneRemove};
 use anyhow::{Context, bail};
 use bytesize::ByteSize;
 use camino::Utf8PathBuf;
-use owo_colors::OwoColorize;
 use common::types::{ApplyOpts, ApplySummary, ChangedIds, JsonConfig};
 use gurptel::runtime_stats;
+use owo_colors::OwoColorize;
 use rand::RngExt;
+use rand::distr::{Alphanumeric, SampleString};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
 use std::collections::BTreeSet;
-use std::thread;
+use std::fs::OpenOptions;
 use std::time::Duration;
+use std::{env, thread};
 use util::{info, json};
 
 pub(crate) type ApplyResult = anyhow::Result<(ApplySummary, ChangedIds)>;
@@ -72,6 +74,7 @@ pub struct HostControlData {
     pub gem_path: Option<Utf8PathBuf>,
     pub metrics_to: Option<String>,
     pub logs_to: Option<String>,
+    pub self_update: Option<String>,
     #[serde(default)]
     pub strict_hostname: bool,
 }
@@ -557,6 +560,10 @@ impl Applicator {
             summary_total += service.apply(&changed_ids, opts)?;
         }
 
+        if let Some(self_update) = &config.control_data.self_update {
+            summary_total += self.update_gurp(self_update)?;
+        }
+
         Ok(summary_total)
     }
 
@@ -581,6 +588,27 @@ impl Applicator {
         }
 
         Ok(())
+    }
+
+    fn update_gurp(&self, update_from: &str) -> anyhow::Result<ApplySummary> {
+        // We update by copying in the new Gurp and doing a mv.
+        let gurp_path = env::current_exe().context("cannot get current Gurp path")?;
+
+        let gurp_path = Utf8PathBuf::from_path_buf(gurp_path)
+            .ok()
+            .context("Gurp path is not valid UTF-8")?;
+
+        let gurp_dir = gurp_path.parent().context("cannot get gurp's parent dir")?;
+
+        let suffix: String = Alphanumeric.sample_string(&mut rand::rng(), 8);
+        let tmp_path = gurp_dir.join(format!("gurp.tmp-{suffix}"));
+
+        let mut tmp_file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&tmp_path)?;
+
+        todo!()
     }
 }
 
