@@ -1,3 +1,5 @@
+- Use a safer "atomic" way of creating new files.
+
 ## v2.2.0 (2026-07-09)
 
 - Gurp now runs a no-op before running an `apply`. This catches errors and
