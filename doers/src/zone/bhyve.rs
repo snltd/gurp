@@ -34,7 +34,7 @@ pub fn build_zone(
     let bhyve_config = config.bhyve.as_ref().context("no bhyve config")?;
 
     if let Some(image_str) = &config.image {
-        let image_path = image_path(image_str).context("cannot get image path")?;
+        let image_path = image_path(image_str, opts).context("cannot get image path")?;
 
         write_image(
             &image_path,
@@ -89,14 +89,14 @@ pub fn zone_config(config: &GurpZoneBhyve, uuid: &Uuid) -> String {
     ret
 }
 
-fn image_path(image: &str) -> anyhow::Result<Utf8PathBuf> {
+fn image_path(image: &str, opts: &ApplyOpts) -> anyhow::Result<Utf8PathBuf> {
     if image.starts_with("http") {
         let cached_path = image_cache_filename(image)?;
 
         if !cached_path.exists() {
             tracing::debug!("No cached image file at {}", cached_path);
             tracing::info!("downloading image from {image}");
-            http::remote_file_to_disk(image, &cached_path)?;
+            http::remote_file_to_disk(image, &cached_path, None, opts)?;
         }
 
         Ok(cached_path)

@@ -33,6 +33,7 @@ fn file_from_server(
     opts: &ApplyOpts,
 ) -> anyhow::Result<Changed> {
     let url = desired_state.from_url.as_ref().context("no :from-url")?;
+    let backup_suffix = desired_state.backup_suffix.as_deref();
     let mut changed = false;
 
     if path.exists() {
@@ -43,10 +44,7 @@ fn file_from_server(
                 } else {
                     log_updating!(path);
                     changed = true;
-
-                    if !opts.noop {
-                        http::remote_file_to_disk(url, path)?;
-                    }
+                    http::remote_file_to_disk(url, path, backup_suffix, opts)?;
                 }
             }
             CompareMethod::Filter(pattern) => {
@@ -56,17 +54,14 @@ fn file_from_server(
                 } else {
                     log_updating!(path);
                     changed = true;
-
-                    if !opts.noop {
-                        http::remote_file_to_disk(url, path)?;
-                    }
+                    http::remote_file_to_disk(url, path, backup_suffix, opts)?;
                 }
             }
         }
     } else {
         changed = true;
         log_creating!(path);
-        http::remote_file_to_disk(url, path)?;
+        http::remote_file_to_disk(url, path, backup_suffix, opts)?;
     }
 
     Ok(changed)
@@ -89,7 +84,7 @@ fn file_from_remote(
     let tmpfile = NamedUtf8TempFile::new()?;
     let temp_path = tmpfile.path();
     tracing::debug!("downloading {url} to {temp_path} for comparison");
-    http::remote_file_to_disk(url, temp_path)?;
+    http::remote_file_to_disk(url, temp_path, desired_state.backup_suffix.as_deref(), opts)?;
 
     if let Some(ref expected_checksum) = desired_state.with_checksum {
         let actual_checksum = &hash::sha256_of_file(temp_path)?;

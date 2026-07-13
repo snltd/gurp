@@ -2,6 +2,7 @@ use crate::zone::constants::OMNIOS_RELEASES_URL;
 use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
 use common::constants::IMG_CACHE_DIR;
+use common::types::ApplyOpts;
 use util::http;
 
 // Images follow the form:
@@ -63,7 +64,7 @@ fn get_image(img_url: &str) -> anyhow::Result<Utf8PathBuf> {
             tracing::debug!("found image at {img_path}");
         } else {
             tracing::debug!("no image at {img_path}: downloading");
-            http::remote_file_to_disk(img_url, &img_path)?;
+            http::remote_file_to_disk(img_url, &img_path, None, &ApplyOpts::default())?;
         }
 
         Ok(img_path)

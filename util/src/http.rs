@@ -1,14 +1,19 @@
+use super::atomic_write;
 use anyhow::Context;
 use camino::Utf8Path;
 use common::constants::{CLIENT_API_VERSION, CLIENT_RETRIES, SERVER_PORT};
-use common::types::{CompileError, NetworkError};
-use std::fs::File;
+use common::types::{ApplyOpts, CompileError, NetworkError};
 use std::io::{self, BufWriter};
 use std::thread;
 use std::time::Duration;
 
 // Downloads a file to disk
-pub fn remote_file_to_disk(url: &str, path: &Utf8Path) -> anyhow::Result<()> {
+pub fn remote_file_to_disk(
+    url: &str,
+    path: &Utf8Path,
+    backup_suffix: Option<&str>,
+    opts: &ApplyOpts,
+) -> anyhow::Result<()> {
     let response = match ureq::get(url).call() {
         Ok(resp) => resp,
         Err(ureq::Error::StatusCode(code)) => {
@@ -23,11 +28,12 @@ pub fn remote_file_to_disk(url: &str, path: &Utf8Path) -> anyhow::Result<()> {
     let mut body = response.into_body();
     let mut reader = body.as_reader();
 
-    let file = File::create(path).with_context(|| format!("failed to open file at {path}"))?;
-    let mut writer = BufWriter::new(file);
-
-    io::copy(&mut reader, &mut writer)
-        .with_context(|| format!("failed to copy content of {url} to {path}"))?;
+    atomic_write::install(path, backup_suffix, opts, |f| {
+        let mut writer = BufWriter::new(f);
+        io::copy(&mut reader, &mut writer)
+            .with_context(|| format!("failed to copy content of {url} to {path}"))?;
+        Ok(())
+    })?;
 
     Ok(())
 }
