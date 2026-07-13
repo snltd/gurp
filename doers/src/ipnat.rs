@@ -146,7 +146,7 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
         if opts.output.dump_diffs {
             println!(
                 "{}",
-                &info::dump_diff(
+                info::dump_diff(
                     &current_persistent_rules,
                     desired_rules,
                     Some(&format!("IP NAT rules [{nat_file}]")),
@@ -177,7 +177,7 @@ fn ensure_live_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Result<bo
     if opts.output.dump_diffs {
         println!(
             "{}",
-            &info::dump_diff(
+            info::dump_diff(
                 &current_live_rules,
                 desired_rules,
                 Some("IP NAT rules [LIVE]"),

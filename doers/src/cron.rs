@@ -77,7 +77,7 @@ impl GurpCronEnsure {
                 if opts.output.dump_diffs {
                     println!(
                         "{}",
-                        &info::dump_diff(&content, &new_crontab, Some(&description), &opts.output)
+                        info::dump_diff(&content, &new_crontab, Some(&description), &opts.output)
                     );
                 }
 
@@ -91,7 +91,7 @@ impl GurpCronEnsure {
     }
 
     fn ensured_crontab(&self, current_content: &str) -> anyhow::Result<Option<String>> {
-        let identifier = format!("{} {}", TAG_LINE, &self.id);
+        let identifier = format!("{TAG_LINE} {}", self.id);
         let s = &self.desired_state;
         let required_line = format!(
             "{} {} {} {} {} {}",
@@ -164,7 +164,7 @@ impl GurpCronRemove {
     }
 
     fn removed_crontab(&self, content: &str) -> anyhow::Result<Option<String>> {
-        let identifier = format!("{} {}", TAG_LINE, &self.id);
+        let identifier = format!("{TAG_LINE} {}", self.id);
         let mut changed = false;
         let mut new_crontab: Vec<String> = Vec::new();
         let mut remove_here = false;
