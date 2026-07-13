@@ -172,9 +172,9 @@ impl ZoneConfig {
     pub fn to_zonecfg(&self, uuid: &Uuid) -> String {
         let mut ret = "create -b\n".to_owned();
 
-        ret.push_str(&format!("set brand={}\n", &self.brand));
-        ret.push_str(&format!("set zonepath={}\n", &self.zonepath));
-        ret.push_str(&format!("set autoboot={}\n", &self.autoboot));
+        ret.push_str(&format!("set brand={}\n", self.brand));
+        ret.push_str(&format!("set zonepath={}\n", self.zonepath));
+        ret.push_str(&format!("set autoboot={}\n", self.autoboot));
 
         if let Some(ip_type) = &self.ip_type {
             ret.push_str(&format!("set ip-type={ip_type}\n"));

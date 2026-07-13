@@ -1,4 +1,3 @@
-use crate::file::actions;
 use crate::file::types::{CompareMethod, DesiredFileState};
 use anyhow::Context;
 use camino::Utf8Path;
@@ -6,10 +5,9 @@ use common::info;
 use common::types::{ApplyOpts, Changed};
 use std::fs;
 use std::io::Write;
-use std::time::{SystemTime, UNIX_EPOCH};
-use util::file::{self, FileMetadata, NameOrId};
+use util::file::{self, FileMetadata};
 use util::filter::FileFilter;
-use util::hash;
+use util::{atomic_write, hash};
 
 pub fn ensure_content(
     path: &Utf8Path,
@@ -58,7 +56,7 @@ pub fn ensure_content(
     } else {
         changed = true;
         log_creating!(path);
-        actions::write_text_file(
+        write_text_file(
             path,
             new_content,
             desired_state.backup_suffix.as_deref(),
@@ -76,12 +74,6 @@ pub fn write_text_file(
     backup_suffix: Option<&str>,
     opts: &ApplyOpts,
 ) -> anyhow::Result<()> {
-    if let Some(suffix) = backup_suffix
-        && path.exists()
-    {
-        back_up(path, suffix, opts)?;
-    }
-
     if opts.output.dump_diffs {
         let existing_content = if path.exists() {
             fs::read_to_string(path).with_context(|| format!("failed to read from {path}"))?
@@ -91,7 +83,7 @@ pub fn write_text_file(
 
         println!(
             "{}",
-            &info::dump_diff(
+            info::dump_diff(
                 &existing_content,
                 content,
                 Some(path.as_str()),
@@ -100,38 +92,10 @@ pub fn write_text_file(
         );
     }
 
-    if !opts.noop {
-        let mut fh = fs::File::create(path).with_context(|| format!("failed to open {path}"))?;
-        fh.write_all(content.as_bytes())
-            .with_context(|| format!("failed write to {path}"))?;
-    }
-
-    Ok(())
-}
-
-pub fn back_up(path: &Utf8Path, suffix: &str, opts: &ApplyOpts) -> anyhow::Result<()> {
-    let suffix = if suffix == "TIMESTAMP" {
-        epoch_time_as_string()
-    } else {
-        suffix.to_owned()
-    };
-
-    let backup_target = path.with_extension(suffix);
-    tracing::debug!("Backing up to {}", backup_target);
-
-    if !opts.noop {
-        fs::rename(path, &backup_target)
-            .with_context(|| format!("failed to rename {path} to {backup_target}"))?;
-        file::ensure_metadata(
-            &backup_target,
-            FileMetadata {
-                group: &NameOrId::Name("root".to_owned()),
-                owner: &NameOrId::Name("root".to_owned()),
-                mode: "0400",
-            },
-            opts,
-        )?;
-    }
+    atomic_write::install(path, backup_suffix, opts, |f| {
+        f.write_all(content.as_bytes())
+            .with_context(|| format!("failed_to_write {path}"))
+    })?;
 
     Ok(())
 }
@@ -150,12 +114,4 @@ pub fn ensure_metadata(
         },
         opts,
     )
-}
-
-fn epoch_time_as_string() -> String {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("cannot get epoch time")
-        .as_secs()
-        .to_string()
 }

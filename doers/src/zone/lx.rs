@@ -5,6 +5,7 @@ use crate::zone::constants::{
 use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
 use common::constants::{IMG_CACHE_DIR, PS_BIN};
+use common::types::ApplyOpts;
 use serde_json::Value;
 use std::fs;
 use std::thread::sleep;
@@ -103,7 +104,7 @@ fn get_image(pattern: &str) -> anyhow::Result<Option<Utf8PathBuf>> {
                 tracing::debug!("found image at {img_path}");
             } else {
                 tracing::debug!("no image at {img_path}: downloading");
-                http::remote_file_to_disk(&img_url, &img_path)?;
+                http::remote_file_to_disk(&img_url, &img_path, None, &ApplyOpts::default())?;
             }
 
             Ok(Some(img_path))

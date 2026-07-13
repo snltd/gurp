@@ -22,7 +22,7 @@ impl GurpFileEnsure {
         ensure!(
             self.single_source(),
             "file '{}' must have exactly one of :content, :from, :from-url, or :from-struct",
-            &self.path
+            self.path
         );
 
         ensure!(

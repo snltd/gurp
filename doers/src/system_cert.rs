@@ -39,7 +39,7 @@ impl GurpSystemCertEnsure {
         ensure!(
             self.single_source(),
             "system-cert '{}' must have exactly one of :content, :from, or :from-url",
-            &self.name
+            self.name
         );
 
         let target_path = Utf8PathBuf::from(SYSTEM_CERT_DIR).join(&self.name);

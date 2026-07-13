@@ -21,7 +21,7 @@ impl GurpPublisherEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if functions::publisher_exists(&self.name)? {
             let raw_publisher_info = cmd_output!(PKG_BIN, "publisher", &self.name)
-                .with_context(|| format!("cannot get info for publisher: {}", &self.name))?;
+                .with_context(|| format!("cannot get info for publisher: {}", self.name))?;
 
             let current_state = parse::parse_publisher(&raw_publisher_info);
 

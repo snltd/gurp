@@ -3,12 +3,12 @@ use crate::file::types::{CompareMethod, DesiredFileState};
 use anyhow::{Context, ensure};
 use camino::Utf8Path;
 use common::types::{ApplyOpts, ApplySummary};
-use std::fs;
+use std::fs::{self, File};
 use util::filter::FileFilter;
-use util::hash;
+use util::{atomic_write, hash};
 
-// This only deals with truly local files. :from resources in client/server mode are rewritten to
-// :from-url by the front-end.
+// This only deals with truly local files. :from resources in client/server mode are
+// rewritten to :from-url by the front-end.
 
 pub fn run(
     path: &Utf8Path,
@@ -17,48 +17,44 @@ pub fn run(
     opts: &ApplyOpts,
 ) -> anyhow::Result<ApplySummary> {
     let mut changed = false;
-    let source = desired_state.from.as_ref().context("no source file name")?;
-    ensure!(source.exists(), "Missing source file: {path}");
+    let src = desired_state.from.as_ref().context("no source file name")?;
+    ensure!(src.exists(), "Missing source file: {path}");
+
+    let backup_suffix = desired_state.backup_suffix.as_deref();
 
     if path.exists() {
         match compare {
             CompareMethod::Hash => {
-                if hash::of_file(source)? == hash::of_file(path)? {
+                if hash::of_file(src)? == hash::of_file(path)? {
                     log_no_change!(path);
                 } else {
                     changed = true;
                     log_updating!(path);
 
                     if !opts.noop {
-                        fs::copy(source, path)
-                            .with_context(|| format!("failed to copy from {source} to {path}"))?;
+                        fs::copy(src, path)
+                            .with_context(|| format!("failed to copy from {src} to {path}"))?;
                     }
                 }
             }
             CompareMethod::Filter(pattern) => {
                 let filter = FileFilter::from(pattern)?;
 
-                if hash::of_string(&filter.file(source)?) == hash::of_string(&filter.file(path)?) {
+                if hash::of_string(&filter.file(src)?) == hash::of_string(&filter.file(path)?) {
                     log_no_change!(path);
                 } else {
                     changed = true;
                     log_updating!(path);
-
-                    if !opts.noop {
-                        fs::copy(source, path)
-                            .with_context(|| format!("failed to copy from {source} to {path}"))?;
-                    }
+                    copy_file(src, path, backup_suffix, opts)
+                        .with_context(|| format!("failed to copy from {src} to {path}"))?;
                 }
             }
         }
     } else {
         changed = true;
         log_creating!(path);
-
-        if !opts.noop {
-            fs::copy(source, path)
-                .with_context(|| format!("failed to copy from {source} to {path}"))?;
-        }
+        copy_file(src, path, backup_suffix, opts)
+            .with_context(|| format!("failed to copy from {src} to {path}"))?;
     }
 
     if actions::ensure_metadata(path, desired_state, opts)? {
@@ -66,6 +62,20 @@ pub fn run(
     }
 
     apply_summary!(changed)
+}
+
+fn copy_file(
+    src: &Utf8Path,
+    dest: &Utf8Path,
+    backup_suffix: Option<&str>,
+    opts: &ApplyOpts,
+) -> anyhow::Result<bool> {
+    atomic_write::install(dest, backup_suffix, opts, |f| {
+        let mut source =
+            File::open(src).with_context(|| format!("failed to read source file {src}"))?;
+        std::io::copy(&mut source, f).with_context(|| format!("failed copy {src} --> {dest}"))?;
+        Ok(())
+    })
 }
 
 #[cfg(test)]
