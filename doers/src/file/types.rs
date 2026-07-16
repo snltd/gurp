@@ -4,7 +4,7 @@ use serde_json::Value;
 use std::fmt::Debug;
 use util::file::NameOrId;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct DesiredFileState {

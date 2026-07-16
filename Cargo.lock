@@ -1257,7 +1257,7 @@ dependencies = [
 
 [[package]]
 name = "gurp"
-version = "2.2.0"
+version = "2.2.99"
 dependencies = [
  "assert_cmd",
  "camino",

@@ -6,11 +6,11 @@ use axum::response::Response;
 use axum::routing::get;
 use common::constants::{GURP_VERSION, SERVER_PORT};
 use common::types::ServerOpts;
+use gurptel::server::ServerMetrics;
 use opentelemetry::KeyValue;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Instant;
-use gurptel::server::ServerMetrics;
 use util::info;
 
 pub async fn start(opts: ServerOpts) -> anyhow::Result<()> {

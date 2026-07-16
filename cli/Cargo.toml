@@ -1,6 +1,6 @@
 [package]
 name = "gurp"
-version = "2.2.0"
+version = "2.2.99"
 edition = "2024"
 
 [dependencies]

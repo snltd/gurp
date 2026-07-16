@@ -20,6 +20,7 @@ use crate::pkg::{GurpPkgEnsure, GurpPkgRemove};
 use crate::pkgin::{GurpPkginEnsure, GurpPkginRemove};
 use crate::publisher::{GurpPublisherEnsure, GurpPublisherRemove};
 use crate::route::{GurpRouteEnsure, GurpRouteRemove};
+use crate::self_update;
 use crate::smf::{GurpSmfEnsure, GurpSmfRemove};
 use crate::svc::GurpSvcEnsure;
 use crate::svcprop::{GurpSvcpropEnsure, GurpSvcpropRemove};
@@ -36,14 +37,12 @@ use common::types::{ApplyOpts, ApplySummary, ChangedIds, JsonConfig};
 use gurptel::runtime_stats;
 use owo_colors::OwoColorize;
 use rand::RngExt;
-use rand::distr::{Alphanumeric, SampleString};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
 use std::collections::BTreeSet;
-use std::fs::OpenOptions;
+use std::thread;
 use std::time::Duration;
-use std::{env, thread};
 use util::{info, json};
 
 pub(crate) type ApplyResult = anyhow::Result<(ApplySummary, ChangedIds)>;
@@ -369,7 +368,7 @@ impl Applicator {
 
         tracing::info!("{message} {}", config.metadata.name);
 
-        let ret = self.apply(&config, opts);
+        let ret = self.apply(&config, &phase, opts);
 
         if phase == Phase::Apply
             && std::env::var("GURP_RSS_STATS").is_ok()
@@ -539,7 +538,12 @@ impl Applicator {
         Ok((sum, ids))
     }
 
-    fn apply(&self, config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    fn apply(
+        &self,
+        config: &HostConfig,
+        phase: &Phase,
+        opts: &ApplyOpts,
+    ) -> anyhow::Result<ApplySummary> {
         let ensure_ids;
         let remove_ids;
         let ensure_summary;
@@ -560,8 +564,10 @@ impl Applicator {
             summary_total += service.apply(&changed_ids, opts)?;
         }
 
-        if let Some(self_update) = &config.control_data.self_update {
-            summary_total += self.update_gurp(self_update)?;
+        if *phase == Phase::Apply
+            && let Some(self_update) = &config.control_data.self_update
+        {
+            summary_total += self_update::update_gurp(self_update, opts)?;
         }
 
         Ok(summary_total)
@@ -588,27 +594,6 @@ impl Applicator {
         }
 
         Ok(())
-    }
-
-    fn update_gurp(&self, update_from: &str) -> anyhow::Result<ApplySummary> {
-        // We update by copying in the new Gurp and doing a mv.
-        let gurp_path = env::current_exe().context("cannot get current Gurp path")?;
-
-        let gurp_path = Utf8PathBuf::from_path_buf(gurp_path)
-            .ok()
-            .context("Gurp path is not valid UTF-8")?;
-
-        let gurp_dir = gurp_path.parent().context("cannot get gurp's parent dir")?;
-
-        let suffix: String = Alphanumeric.sample_string(&mut rand::rng(), 8);
-        let tmp_path = gurp_dir.join(format!("gurp.tmp-{suffix}"));
-
-        let mut tmp_file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&tmp_path)?;
-
-        todo!()
     }
 }
 

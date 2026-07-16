@@ -1,3 +1,6 @@
+- Gurp can now update itself from a local file or from the server in
+  client/server mode. Use `(control-data :self-update ARG)` where `ARG` is a
+  path or the string `SERVER`.
 - Use a safer "atomic" way of creating new files.
 
 ## v2.2.0 (2026-07-09)

@@ -22,6 +22,7 @@ pub mod pkg;
 pub mod pkgin;
 pub mod publisher;
 pub mod route;
+pub mod self_update;
 pub mod smf;
 pub mod svc;
 pub mod svcprop;

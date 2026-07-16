@@ -6,10 +6,11 @@ keywords. All keys are optional and may be defined anywhere in a Gurp config.
 
 Trying to set the same key twice causes a fatal error.
 
-| key              | type      | description                                                                               |
-| ---------------- | --------- | ----------------------------------------------------------------------------------------- |
-| `:splay-seconds` | [:number] | Tells Gurp to pause by a random number of seconds up to the given maximum before applying |
-| `:metrics-to`    | [:string] | Send OpenTelemetry metrics to the given endpoint                                          |
-| `:gem-path`      | [:string] | Specify the gem binary used by the gem doer                                               |
-| `:logs-to`       | [:string] | Send OpenTelemetry logs to the given endpoint                                             |
-| `:strict-hostname` | [:boolean] | Gurp will only apply a config if the top-level `host` name matches the machine's actual hostname |
+| key                | type       | description                                                                                                                                      |
+| ------------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `:splay-seconds`   | [:number]  | Tells Gurp to pause by a random number of seconds up to the given maximum before applying                                                        |
+| `:metrics-to`      | [:string]  | Send OpenTelemetry metrics to the given endpoint                                                                                                 |
+| `:gem-path`        | [:string]  | Specify the gem binary used by the gem doer                                                                                                      |
+| `:logs-to`         | [:string]  | Send OpenTelemetry logs to the given endpoint                                                                                                    |
+| `:strict-hostname` | [:boolean] | Gurp will only apply a config if the top-level `host` name matches the machine's actual hostname                                                 |
+| `:self-update`     | [:string]  | Gurp will update itself from the given source. Can be a local file path or the string `SERVER`, if config is being fetched from a remote server. |
