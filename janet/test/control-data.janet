@@ -16,7 +16,7 @@
   (set *control-data* (new-control-data))
   (test-error
     (control-data :wat "oops")
-    "unknown control-data key: :wat. Keys are :splay-seconds, :metrics-to, :gem-path, :strict-hostname, :logs-to"))
+    "unknown control-data key: :wat. Keys are :splay-seconds, :metrics-to, :gem-path, :self-update, :strict-hostname, :logs-to"))
 
 (deftest control-data-wrong-type
   (set *control-data* (new-control-data))
