@@ -73,7 +73,7 @@ fn copy_file(
     atomic_write::install(dest, backup_suffix, opts, |f| {
         let mut source =
             File::open(src).with_context(|| format!("failed to read source file {src}"))?;
-        std::io::copy(&mut source, f).with_context(|| format!("failed copy {src} --> {dest}"))?;
+        std::io::copy(&mut source, f).with_context(|| format!("failed copy {src} -> {dest}"))?;
         Ok(())
     })
 }

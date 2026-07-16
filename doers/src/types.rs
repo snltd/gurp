@@ -20,6 +20,7 @@ use crate::pkg::{GurpPkgEnsure, GurpPkgRemove};
 use crate::pkgin::{GurpPkginEnsure, GurpPkginRemove};
 use crate::publisher::{GurpPublisherEnsure, GurpPublisherRemove};
 use crate::route::{GurpRouteEnsure, GurpRouteRemove};
+use crate::self_update;
 use crate::smf::{GurpSmfEnsure, GurpSmfRemove};
 use crate::svc::GurpSvcEnsure;
 use crate::svcprop::{GurpSvcpropEnsure, GurpSvcpropRemove};
@@ -32,9 +33,9 @@ use crate::zone::{GurpZoneEnsure, GurpZoneRemove};
 use anyhow::{Context, bail};
 use bytesize::ByteSize;
 use camino::Utf8PathBuf;
-use owo_colors::OwoColorize;
 use common::types::{ApplyOpts, ApplySummary, ChangedIds, JsonConfig};
 use gurptel::runtime_stats;
+use owo_colors::OwoColorize;
 use rand::RngExt;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -72,6 +73,7 @@ pub struct HostControlData {
     pub gem_path: Option<Utf8PathBuf>,
     pub metrics_to: Option<String>,
     pub logs_to: Option<String>,
+    pub self_update: Option<String>,
     #[serde(default)]
     pub strict_hostname: bool,
 }
@@ -366,7 +368,7 @@ impl Applicator {
 
         tracing::info!("{message} {}", config.metadata.name);
 
-        let ret = self.apply(&config, opts);
+        let ret = self.apply(&config, &phase, opts);
 
         if phase == Phase::Apply
             && std::env::var("GURP_RSS_STATS").is_ok()
@@ -536,7 +538,12 @@ impl Applicator {
         Ok((sum, ids))
     }
 
-    fn apply(&self, config: &HostConfig, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    fn apply(
+        &self,
+        config: &HostConfig,
+        phase: &Phase,
+        opts: &ApplyOpts,
+    ) -> anyhow::Result<ApplySummary> {
         let ensure_ids;
         let remove_ids;
         let ensure_summary;
@@ -555,6 +562,12 @@ impl Applicator {
 
         for service in &config.resources.ensure.svc {
             summary_total += service.apply(&changed_ids, opts)?;
+        }
+
+        if *phase == Phase::Apply
+            && let Some(self_update) = &config.control_data.self_update
+        {
+            summary_total += self_update::update_gurp(self_update, opts)?;
         }
 
         Ok(summary_total)

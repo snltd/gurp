@@ -38,12 +38,13 @@ pub fn for_remote_filtered_file(url: &str, pattern: &str) -> anyhow::Result<Stri
 }
 
 fn fetch_hash(hash_url: &str) -> anyhow::Result<String> {
+    tracing::debug!("fetching hash: {hash_url}");
     ureq::get(hash_url)
         .call()
         .with_context(|| format!("failed to download {hash_url}"))?
         .into_body()
         .read_to_string()
-        .context("cannot turn fetched body into string")
+        .with_context(|| format!("cannot turn hash from {hash_url} into string"))
 }
 
 // Users supply SHA256 checksums

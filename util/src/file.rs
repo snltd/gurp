@@ -22,6 +22,12 @@ pub enum NameOrId {
     Id(u32),
 }
 
+impl Default for NameOrId {
+    fn default() -> Self {
+        Self::Id(0)
+    }
+}
+
 impl std::fmt::Display for NameOrId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -69,7 +75,7 @@ pub fn ensure_metadata(
     Ok(changed)
 }
 
-fn metadata(path: &Utf8Path) -> anyhow::Result<FileStat> {
+pub fn metadata(path: &Utf8Path) -> anyhow::Result<FileStat> {
     let metadata = stat::stat(path.as_std_path())
         .with_context(|| format!("failed to get metadata for {path}"))?;
 
