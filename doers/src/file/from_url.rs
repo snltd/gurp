@@ -5,7 +5,8 @@ use camino::Utf8Path;
 use camino_tempfile::NamedUtf8TempFile;
 use common::types::{ApplyOpts, ApplySummary, Changed};
 use std::fs;
-use util::{filter, hash, http};
+use util::http::{self, RemoteFileCopy};
+use util::{filter, hash};
 
 pub fn run(
     path: &Utf8Path,
@@ -34,37 +35,38 @@ fn file_from_server(
 ) -> anyhow::Result<Changed> {
     let url = desired_state.from_url.as_ref().context("no :from-url")?;
     let backup_suffix = desired_state.backup_suffix.as_deref();
-    let mut changed = false;
+    let mut change = false;
 
     if path.exists() {
-        match compare {
-            CompareMethod::Hash => {
-                if hash::for_remote_file(url)? == hash::of_file(path)?.to_string() {
-                    log_no_change!(path);
-                } else {
-                    log_updating!(path);
-                    changed = true;
-                    http::remote_file_to_disk(url, path, backup_suffix, opts)?;
-                }
-            }
-            CompareMethod::Filter(pattern) => {
-                if hash::for_remote_filtered_file(url, pattern)? == hash::of_file(path)?.to_string()
-                {
-                    log_no_change!(path);
-                } else {
-                    log_updating!(path);
-                    changed = true;
-                    http::remote_file_to_disk(url, path, backup_suffix, opts)?;
-                }
-            }
+        let remote_hash = match compare {
+            CompareMethod::Hash => hash::for_file_on_server(url)?,
+            CompareMethod::Filter(pattern) => hash::for_filtered_file_on_server(url, pattern)?,
+        };
+
+        if remote_hash == hash::of_file(path)?.to_string() {
+            log_no_change!(path);
+        } else {
+            log_updating!(path);
+            change = true;
         }
     } else {
-        changed = true;
+        change = true;
         log_creating!(path);
-        http::remote_file_to_disk(url, path, backup_suffix, opts)?;
     }
 
-    Ok(changed)
+    if change {
+        http::remote_file_to_disk(
+            &RemoteFileCopy {
+                url,
+                path,
+                backup_suffix,
+                checksum: None,
+            },
+            opts,
+        )?;
+    }
+
+    Ok(change)
 }
 
 fn file_from_remote(
@@ -74,7 +76,7 @@ fn file_from_remote(
     opts: &ApplyOpts,
 ) -> anyhow::Result<Changed> {
     let url = desired_state.from_url.as_ref().context("no :from-url")?;
-    let mut changed = false;
+    let mut change = false;
 
     if path.exists() && desired_state.only_fetch_from_url_once {
         tracing::debug!("{path} exists and :only-fetch-from-url-once is set");
@@ -84,7 +86,15 @@ fn file_from_remote(
     let tmpfile = NamedUtf8TempFile::new()?;
     let temp_path = tmpfile.path();
     tracing::debug!("downloading {url} to {temp_path} for comparison");
-    http::remote_file_to_disk(url, temp_path, desired_state.backup_suffix.as_deref(), opts)?;
+    http::remote_file_to_disk(
+        &RemoteFileCopy {
+            url,
+            path: temp_path,
+            backup_suffix: desired_state.backup_suffix.as_deref(),
+            checksum: None,
+        },
+        opts,
+    )?;
 
     if let Some(ref expected_checksum) = desired_state.with_checksum {
         let actual_checksum = &hash::sha256_of_file(temp_path)?;
@@ -98,40 +108,32 @@ fn file_from_remote(
     }
 
     // We have a local copy of the file
-
     if path.exists() {
-        match compare {
-            CompareMethod::Hash => {
-                if hash::of_file(temp_path)? == hash::of_file(path)? {
-                    log_no_change!(path);
-                } else {
-                    log_updating!(path);
-                    changed = true;
-                }
-            }
+        let p_change = match compare {
+            CompareMethod::Hash => hash::of_file(temp_path)? != hash::of_file(path)?,
             CompareMethod::Filter(pattern) => {
                 let filter = filter::FileFilter::from(pattern)?;
-
-                if hash::of_string(&filter.file(temp_path)?) == hash::of_string(&filter.file(path)?)
-                {
-                    log_no_change!(path);
-                } else {
-                    log_updating!(path);
-                    changed = true;
-                }
+                hash::of_string(&filter.file(temp_path)?) != hash::of_string(&filter.file(path)?)
             }
+        };
+
+        if p_change {
+            log_updating!(path);
+            change = true;
+        } else {
+            log_no_change!(path);
         }
     } else {
-        changed = true;
+        change = true;
         log_creating!(path);
     }
 
-    if changed && !opts.noop {
+    if change && !opts.noop {
         fs::copy(temp_path, path)
             .with_context(|| format!("failed to copy from {temp_path} to {path}"))?;
     }
 
-    Ok(changed)
+    Ok(change)
 }
 
 #[cfg(test)]

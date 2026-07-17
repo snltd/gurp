@@ -46,6 +46,7 @@ Zone name (`:string`)
 (zone/ensure "lx-zone"
              :brand "lx"
              :image "alpine"
+             :image-checksum {:type "sha256" :value ".sha256"}
              :final-state "reboot"
              (zone/network "znet0"
                            :global-nic "auto"
@@ -82,6 +83,7 @@ Zone name (`:string`)
 | `:final-state` | `string` | Put the zone in the given state. Also accepts 'reboot' |  |
 | `:fs` | `array` | See zone/fs |  |
 | `:hostid` | `string` | Force this hostid for the zone |  |
+| `:image-checksum` | `struct table` | Requires :type and :value. :type must be one of "sha256". :value can be a literal checksum, a URI, or a dot- prefixed suffix which will be appended to the image URL |  |
 | `:image` | `string` | Install zone using this image. See docs for pattern rules |  |
 | `:ip-type` | `string` | IP type: exclusive or shared |  |
 | `:limitpriv` | `tuple` | List of privileges to add to zone |  |

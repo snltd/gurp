@@ -1,11 +1,62 @@
+use crate::zone::config::ImageChecksum;
 use crate::zone::constants::ZONEADM_FIELDS;
 use crate::zone::control::ZoneadmState;
 use crate::zone::types::{ZoneName, ZoneadmZones};
 use anyhow::{Context, ensure};
+use camino::Utf8PathBuf;
+use common::constants::IMG_CACHE_DIR;
 use common::constants::ZONEADM_BIN;
+use common::types::{ApplyOpts, FileChecksum};
+use util::http::{self, RemoteFileCopy};
 
 pub fn current_zone_list() -> anyhow::Result<ZoneadmZones> {
     parse_zone_list(&zone_list()?)
+}
+
+pub fn get_image(img_url: &str, checksum: Option<&ImageChecksum>) -> anyhow::Result<Utf8PathBuf> {
+    let chunks = img_url.split("/");
+
+    let img_basename = chunks
+        .last()
+        .with_context(|| format!("cannot get basename for {}", img_url))?;
+
+    let img_path = Utf8PathBuf::from(IMG_CACHE_DIR).join(img_basename);
+
+    if img_path.exists() {
+        tracing::debug!("found image at {img_path}");
+    } else {
+        let file_checksum = checksum
+            .map(|cksum| literal_checksum(img_url, cksum))
+            .transpose()?;
+
+        tracing::debug!("no image at {img_path}: downloading");
+
+        http::remote_file_to_disk(
+            &RemoteFileCopy {
+                url: img_url,
+                path: &img_path,
+                backup_suffix: None,
+                checksum: file_checksum.as_ref(),
+            },
+            &ApplyOpts::default(),
+        )?;
+    }
+
+    Ok(img_path)
+}
+
+fn literal_checksum(img_url: &str, checksum: &ImageChecksum) -> anyhow::Result<FileChecksum> {
+    let literal_checksum = if checksum.value.starts_with(".") {
+        http::remote_file_to_string(&format!("{img_url}{}", checksum.value))?
+    } else {
+        // we've been given the literal value
+        checksum.value.clone()
+    };
+
+    Ok(FileChecksum {
+        algorithm: checksum.sumtype.clone(),
+        value: literal_checksum,
+    })
 }
 
 fn zone_list() -> anyhow::Result<String> {
@@ -34,7 +85,6 @@ fn parse_zone_list(raw: &str) -> anyhow::Result<ZoneadmZones> {
     raw.lines()
         .map(|line| chunks_to_struct(&line.split(":").collect::<Vec<_>>()))
         .collect()
-    // .collect::<anyhow::Result<HashMap<_, _>>>()
 }
 
 #[cfg(test)]

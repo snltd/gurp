@@ -60,7 +60,7 @@ pub fn ensure_metadata(
         changed = true;
     }
 
-    if changed {
+    if changed && !opts.noop {
         set_user(path, new_uid, new_gid, opts)?;
     }
 
@@ -68,8 +68,11 @@ pub fn ensure_metadata(
 
     if current_mode != md.mode {
         changed = true;
-        set_mode(path, &current_mode, md.mode, opts)
-            .with_context(|| format!("failed to set mode {} on {path}", md.mode))?;
+
+        if !opts.noop {
+            set_mode(path, &current_mode, md.mode, opts)
+                .with_context(|| format!("failed to set mode {} on {path}", md.mode))?;
+        }
     }
 
     Ok(changed)

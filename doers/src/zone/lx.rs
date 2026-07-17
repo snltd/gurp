@@ -1,16 +1,16 @@
-use super::config::GurpZoneDns;
+use crate::zone::config::GurpZoneDns;
 use crate::zone::constants::{
     LX_RELEASES_URL, READINESS_WAIT_INTERVAL, READINESS_WAIT_TIMEOUT_NATIVE,
 };
-use anyhow::{Context, bail};
+use crate::zone::helpers;
+use crate::zone::types::ZoneImage;
+use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
-use common::constants::{IMG_CACHE_DIR, PS_BIN};
-use common::types::ApplyOpts;
+use common::constants::PS_BIN;
 use serde_json::Value;
 use std::fs;
 use std::thread::sleep;
 use std::time::Duration;
-use util::http;
 
 pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &GurpZoneDns) -> anyhow::Result<()> {
     let resolv_path = zonepath.join("root").join("etc").join("resolv.conf");
@@ -36,14 +36,12 @@ pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &GurpZoneDns) -> anyhow::Res
     Ok(())
 }
 
-pub fn image_path(image: Option<&str>) -> anyhow::Result<Utf8PathBuf> {
-    if let Some(img_pattern) = image {
-        match get_image(img_pattern)? {
-            Some(path) => Ok(path),
-            None => bail!("did not find a suitable LX image"),
-        }
-    } else {
-        bail!("LX zones require an :image")
+pub fn image_path(image: ZoneImage) -> anyhow::Result<Utf8PathBuf> {
+    ensure!(image.user_string.is_some(), "LX zones require an :image");
+
+    match get_image(&image)? {
+        Some(path) => Ok(path),
+        None => bail!("did not find a suitable LX image"),
     }
 }
 
@@ -95,22 +93,13 @@ fn find_image(pattern: &str) -> anyhow::Result<Option<String>> {
     }
 }
 
-fn get_image(pattern: &str) -> anyhow::Result<Option<Utf8PathBuf>> {
-    if let Some(img_url) = find_image(pattern)? {
-        let chunks = img_url.split("/");
-        if let Some(img_basename) = chunks.last() {
-            let img_path = Utf8PathBuf::from(IMG_CACHE_DIR).join(img_basename);
-            if img_path.exists() {
-                tracing::debug!("found image at {img_path}");
-            } else {
-                tracing::debug!("no image at {img_path}: downloading");
-                http::remote_file_to_disk(&img_url, &img_path, None, &ApplyOpts::default())?;
-            }
+fn get_image(img: &ZoneImage) -> anyhow::Result<Option<Utf8PathBuf>> {
+    let pattern = img
+        .user_string
+        .context("searching for lx image, but no user string")?;
 
-            Ok(Some(img_path))
-        } else {
-            bail!("could not get image basename");
-        }
+    if let Some(img_url) = find_image(pattern)? {
+        Ok(Some(helpers::get_image(&img_url, img.checksum)?))
     } else {
         Ok(None)
     }

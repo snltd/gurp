@@ -85,6 +85,7 @@
                          :exec-in ["/bin/exec1" "/bin/exec2"]
                          :final-state "reboot"
                          :image "alpine"
+                         :image-checksum {:type "sha256" :value ".sha256"}
                          :name "lx-zone"
                          :net @[@{:allowed-address "192.168.1.103/24"
                                   :defrouter "192.168.1.1"

@@ -1,6 +1,7 @@
 (zone/ensure "lx-zone"
              :brand "lx"
              :image "alpine"
+             :image-checksum {:type "sha256" :value ".sha256"}
              :final-state "reboot"
              (zone/network "znet0"
                            :global-nic "auto"

@@ -96,7 +96,6 @@
     as you like, so if you run Gurp every 15 minutes and want your zone rebuilt
     from scratch about once a week, you'd use `:recreate 672`."])
 
-
 (defn ensure
   "Given a zone name and spec, put an ensure struct in the collector"
   [name & spec]
@@ -119,9 +118,10 @@
     (if-let [image-sum-resource (get spec-table :image-checksum)]
       (pinpoint-error
         :ensure
-        (if-not (has-exactly-one-key? image-checksum-keys image-sum-resource)
-          (errorf ":image-checksum requires exactly one of %s"
-                  (comma-sep image-checksum-keys)))))
+        (checked-spec image-sum-resource
+                      {:type {:types [:string]}
+                       :value {:types [:string]}}
+                      {})))
 
     (if-let [copy-resource (get spec-table :copy-in)
              expanded-resource (expand-list-struct copy-resource)]

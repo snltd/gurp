@@ -5,6 +5,7 @@ use common::types::{ApplyOpts, ApplySummary};
 use serde_json::Value;
 use std::env;
 use std::fs::File;
+use util::http::RemoteFileCopy;
 use util::{atomic_write, file, http, info};
 
 pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
@@ -33,7 +34,15 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
-        http::remote_file_to_disk(&format!("{base_url}/gurp-binary"), &gurp_path, None, opts)?;
+        http::remote_file_to_disk(
+            &RemoteFileCopy {
+                url: &format!("{base_url}/gurp-binary"),
+                path: &gurp_path,
+                backup_suffix: None,
+                checksum: None,
+            },
+            opts,
+        )?;
     } else {
         let src = Utf8PathBuf::from(update_from);
         atomic_write::install(&src, None, opts, |f| {
@@ -46,17 +55,15 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
         })?;
     };
 
-    if !opts.noop {
-        file::ensure_metadata(
-            &gurp_path,
-            file::FileMetadata {
-                group: &file::NameOrId::Id(metadata.st_uid),
-                mode: "0755",
-                owner: &file::NameOrId::Id(metadata.st_uid),
-            },
-            opts,
-        )?;
-    }
+    file::ensure_metadata(
+        &gurp_path,
+        file::FileMetadata {
+            group: &file::NameOrId::Id(metadata.st_uid),
+            mode: "0755",
+            owner: &file::NameOrId::Id(metadata.st_uid),
+        },
+        opts,
+    )?;
 
     Ok(ONE_RESOURCE_ONE_CHANGE)
 }
