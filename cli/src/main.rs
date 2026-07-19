@@ -67,12 +67,12 @@ enum Commands {
         /// Do not write a JSON report at the end of the run
         #[arg(long)]
         no_report: bool,
-        /// Do not perform a no-op check run before application
+        /// Perform a no-op check run before application
         #[arg(long)]
-        no_check: bool,
+        pre_run_noop: bool,
         /// If changes are made, re-run the apply phase, erroring if changes occur on the re-run
         #[arg(long)]
-        double_check: bool,
+        post_run_noop: bool,
         /// Run remove actions BEFORE ensure actions
         #[arg(long = "remove-first")]
         remove_first: bool,
@@ -169,8 +169,8 @@ fn main() -> ExitCode {
             image,
             no_lock,
             no_report,
-            no_check,
-            double_check,
+            pre_run_noop,
+            post_run_noop,
             remove_first,
             only,
             splay,
@@ -184,8 +184,8 @@ fn main() -> ExitCode {
                 image,
                 no_lock,
                 no_report,
-                no_check,
-                double_check,
+                pre_run_noop,
+                post_run_noop,
                 remove_first,
                 splay,
                 only,
