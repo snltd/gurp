@@ -288,7 +288,7 @@ impl Applicator {
     }
 
     pub fn run(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        if !opts.no_check && !opts.noop {
+        if opts.pre_run_noop && !opts.noop {
             self._run(
                 &ApplyOpts {
                     noop: true,
@@ -302,7 +302,7 @@ impl Applicator {
 
         let apply_result = self._run(opts, Phase::Apply)?;
 
-        if apply_result.changes > 0 && opts.double_check {
+        if apply_result.changes > 0 && opts.post_run_noop {
             let second_apply_result = self._run(
                 &ApplyOpts {
                     noop: true,

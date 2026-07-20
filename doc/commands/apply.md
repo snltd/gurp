@@ -25,8 +25,8 @@ Options:
   -e, --exec <EXEC>                   Execute a literal snippet of Janet config
       --no-lock                       Do not check for or use a lockfile
       --no-report                     Do not write a JSON report at the end of the run
-      --no-check                      Do not perform a no-op check run before application
-      --double-check                  If changes are made, re-run the apply phase, erroring if changes occur on the re-run
+      --pre-run-noop                  Perform a no-op check run before application
+      --post-run-noop                 If changes are made, re-run the apply phase, erroring if changes occur on the re-run
       --remove-first                  Run remove actions BEFORE ensure actions
       --only <ONLY>                   Only apply resources whose IDs match this regex
   -S, --splay <SPLAY>                 Random delay with a maximum of this many seconds
@@ -77,10 +77,11 @@ There are options:
 - `--no-lock` makes Gurp not check for, create, or remove its runtime lock file.
 - `--no-report` Gurp normally writes a JSON report in `/var/log/` at the end
   of a run. This option turns of that report.
-- `--no-check` Gurp runs a no-op before it runs a normal apply: this is very
-  fast and minimises the chance of a partially applied config. If you do not
-  wish to use it, supply this option.
-- `--double-check` If a Gurp `apply` makes a change to the system state, this
+- `--pre-run-noop` Runs a no-op before the normal apply: this is very
+  fast and minimises the chance of a partially applied config. Can be
+  problematic in some circumstances. For instance, if your config adds a `pkg`
+  repo then installs packages from it.
+- `--post-run-noop` If a Gurp `apply` makes a change to the system state, this
   option makes it immediately re-run the config as a no-op. If the no-op finds
   changes must be made, Gurp assumes it failed to correctly assert state, and
   exits with an error.
