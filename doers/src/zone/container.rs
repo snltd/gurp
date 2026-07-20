@@ -1,4 +1,5 @@
 use crate::zone::config::{Brand, ZoneConfig};
+use crate::zone::types::ZoneImage;
 use crate::zone::{control, illumos, lx};
 use anyhow::{Context, bail, ensure};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -15,7 +16,14 @@ pub fn build_zone(zone: &str, config: &ZoneConfig, opts: &ApplyOpts) -> anyhow::
     if let Some(clone_source) = &config.clone_from {
         clone(zone, clone_source)?;
     } else {
-        install(zone, &config.brand, config.image.as_deref())?;
+        install(
+            zone,
+            &config.brand,
+            ZoneImage {
+                user_string: config.image.as_deref(),
+                checksum: config.image_checksum.as_ref(),
+            },
+        )?;
     }
 
     if config.boot_after_install {
@@ -58,7 +66,7 @@ pub fn build_zone(zone: &str, config: &ZoneConfig, opts: &ApplyOpts) -> anyhow::
     Ok(())
 }
 
-fn install(zone: &str, brand: &Brand, image: Option<&str>) -> anyhow::Result<()> {
+fn install(zone: &str, brand: &Brand, image: ZoneImage) -> anyhow::Result<()> {
     tracing::info!("installing {} [{}]", zone, brand);
 
     let _ = match brand {

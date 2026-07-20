@@ -8,6 +8,8 @@
 (import ./zone/rctl :prefix "" :export true)
 (import ../collector)
 
+(def checksum-types ["sha256"])
+
 (defdoer :zone
   "Create and destroy zones. Existing zones cannot be modified."
   :name-is "Zone name"
@@ -59,6 +61,12 @@
                :help "List of privileges to add to zone"}
    :image {:types [:string]
            :help "Install zone using this image. See docs for pattern rules"}
+   :image-checksum {:types [:struct :table]
+                    :help (string/format
+                            "Requires :type and :value. :type must be one of %s.
+                            :value can be a literal checksum, a URI, or a dot-
+                            prefixed suffix which will be appended to the image URL"
+                            (comma-sep checksum-types))}
    :net {:types [:array]
          :help "See zone/network"}
    :pool {:types [:string]
@@ -88,7 +96,6 @@
     as you like, so if you run Gurp every 15 minutes and want your zone rebuilt
     from scratch about once a week, you'd use `:recreate 672`."])
 
-
 (defn ensure
   "Given a zone name and spec, put an ensure struct in the collector"
   [name & spec]
@@ -107,6 +114,14 @@
                                     mandatory-props-ensure
                                     optional-props-ensure))
         spec-table (spec-with-defaults defaults-ensure spec-struct)]
+
+    (if-let [image-sum-resource (get spec-table :image-checksum)]
+      (pinpoint-error
+        :ensure
+        (checked-spec image-sum-resource
+                      {:type {:types [:string]}
+                       :value {:types [:string]}}
+                      {})))
 
     (if-let [copy-resource (get spec-table :copy-in)
              expanded-resource (expand-list-struct copy-resource)]

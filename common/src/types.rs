@@ -32,6 +32,13 @@ pub struct ApplyOpts {
     pub splay: Option<u64>,
 }
 
+/// Used to pass checksums around
+#[derive(Debug, Default, Clone)]
+pub struct FileChecksum {
+    pub algorithm: String,
+    pub value: String,
+}
+
 /// User-supplied flags which affect Gurp's output
 #[derive(Debug, Default, Clone)]
 pub struct ApplyOutputOpts {

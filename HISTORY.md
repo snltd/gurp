@@ -1,3 +1,7 @@
+- Use `image-checksum` to specify checksums of images used to build zones. This
+  can be a literal sha256, or a URL suffix.
+- no-op before apply is now voluntary. Use `--pre-apply-noop` to opt in.
+  Double-check option is now `--post-apply-noop`.
 - Gurp can now update itself from a local file or from the server in
   client/server mode. Use `(control-data :self-update ARG)` where `ARG` is a
   path or the string `SERVER`.

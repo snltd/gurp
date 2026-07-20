@@ -59,11 +59,20 @@ pub struct ZoneConfig {
     pub ip_type: Option<String>,
     pub limitpriv: Option<Vec<String>>,
     pub image: Option<String>,
+    pub image_checksum: Option<ImageChecksum>,
     pub net: GurpZoneNetworks,
     pub pool: Option<String>,
     pub rctl: Option<GurpZoneRctls>,
     pub recreate: u8,
     pub zonepath: Utf8PathBuf,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ImageChecksum {
+    #[serde(rename = "type")]
+    pub sumtype: String,
+    pub value: String,
 }
 
 #[derive(Debug, Deserialize)]

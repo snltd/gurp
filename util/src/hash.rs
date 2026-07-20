@@ -2,43 +2,51 @@ use anyhow::Context;
 use blake3::Hash;
 use camino::Utf8Path;
 use sha2::{Digest, Sha256};
-use std::fs::{self, File};
-use std::io::Read;
+use std::fs::File;
+use std::io::{self, Read};
 
+/// Returns a blake3 hash of a byte array
 pub fn of_bytes(bytes: &[u8]) -> Hash {
     blake3::hash(bytes)
 }
 
+/// Returns a blake3 hash of a string
 pub fn of_string(user_string: &str) -> Hash {
     of_bytes(user_string.as_bytes())
 }
 
-pub fn of_file(path: &Utf8Path) -> anyhow::Result<Hash> {
+/// Returns a blake3 hash of an open file handle
+pub fn of_reader(mut r: impl Read) -> anyhow::Result<blake3::Hash> {
     let mut hasher = blake3::Hasher::new();
-    let mut fh = fs::File::open(path).with_context(|| format!("cannot open {path}"))?;
-    std::io::copy(&mut fh, &mut hasher)
-        .with_context(|| format!("failed to read hash of {path}"))?;
+    io::copy(&mut r, &mut hasher)?;
     Ok(hasher.finalize())
 }
 
-// Requests a file hash from a Gurp server
-pub fn for_remote_file(url: &str) -> anyhow::Result<String> {
-    let hash_url = url.replace("/file/", "/file-hash/");
-    fetch_hash(&hash_url)
+/// Returns a blake3 hash for a local file
+pub fn of_file(path: &Utf8Path) -> anyhow::Result<blake3::Hash> {
+    let file = File::open(path).with_context(|| format!("failed to open {path}"))?;
+    of_reader(file)
 }
 
-// Requests a file hash from a Gurp server
-pub fn for_remote_filtered_file(url: &str, pattern: &str) -> anyhow::Result<String> {
-    let hash_url = format!(
+/// Requests and returns a blake3 file hash from a Gurp server
+pub fn for_file_on_server(url: &str) -> anyhow::Result<String> {
+    let hash_url = url.replace("/file/", "/file-hash/");
+    fetch_hash_from_server(&hash_url)
+}
+
+/// Requests and returns a blake3 has for a file on a Gurp server after applying a filter
+pub fn for_filtered_file_on_server(url: &str, pattern: &str) -> anyhow::Result<String> {
+    fetch_hash_from_server(&format!(
         "{}?{}",
         url.replace("/file/", "/file-hash-filtered/"),
         pattern
-    );
-    fetch_hash(&hash_url)
+    ))
 }
 
-fn fetch_hash(hash_url: &str) -> anyhow::Result<String> {
+/// Gets a Blake3 hash from the Gurp server
+fn fetch_hash_from_server(hash_url: &str) -> anyhow::Result<String> {
     tracing::debug!("fetching hash: {hash_url}");
+
     ureq::get(hash_url)
         .call()
         .with_context(|| format!("failed to download {hash_url}"))?
@@ -47,21 +55,26 @@ fn fetch_hash(hash_url: &str) -> anyhow::Result<String> {
         .with_context(|| format!("cannot turn hash from {hash_url} into string"))
 }
 
-// Users supply SHA256 checksums
-pub fn sha256_of_file(path: &Utf8Path) -> anyhow::Result<String> {
-    let mut file = File::open(path).with_context(|| format!("failed to open {path} for SHA256"))?;
+/// Returns a sha256 hash of a local file handle
+pub fn sha256_of_reader(mut reader: impl Read) -> anyhow::Result<String> {
     let mut hasher = Sha256::new();
     let mut buf = [0u8; 8192];
+
     loop {
-        let n = file
-            .read(&mut buf)
-            .with_context(|| format!("failed to read {path} for SHA256"))?;
+        let n = reader.read(&mut buf).context("sha256 buf read failed")?;
         if n == 0 {
             break;
         }
         hasher.update(&buf[..n]);
     }
+
     Ok(hex::encode(hasher.finalize()))
+}
+
+/// Returns a sha256 hash of a local file
+pub fn sha256_of_file(path: &Utf8Path) -> anyhow::Result<String> {
+    let file = File::open(path).with_context(|| format!("failed to open {path}"))?;
+    sha256_of_reader(file).with_context(|| format!("failed to get sha256 of {path}"))
 }
 
 #[cfg(test)]

@@ -137,12 +137,15 @@
 
        (spec->resource doer name safe-specs))))
 
+(defn has-exactly-one-key?
+  "Checks if a struct contains exactly one of the given keys"
+  [key-list struct-to-check]
+  (filter |(has-value? key-list $) (keys struct-to-check)))
+
 (defn has-exactly-one-of?
   "Checks whether a spec contains exactly one of the required-keys"
   [required-keys spec]
-  (one?
-    (length
-      (filter |(has-value? required-keys $) (keys (make-spec-struct ;spec))))))
+  (one? (length (has-exactly-one-key? required-keys (make-spec-struct ;spec)))))
 
 (defn key-has-value?
   "Checks whether the given key has an acceptable value"

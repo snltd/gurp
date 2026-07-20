@@ -15,7 +15,7 @@ use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
-use util::http;
+use util::http::{self, RemoteFileCopy};
 use uuid::Uuid;
 
 const BUFFER_SIZE: usize = 8192;
@@ -96,7 +96,15 @@ fn image_path(image: &str, opts: &ApplyOpts) -> anyhow::Result<Utf8PathBuf> {
         if !cached_path.exists() {
             tracing::debug!("No cached image file at {}", cached_path);
             tracing::info!("downloading image from {image}");
-            http::remote_file_to_disk(image, &cached_path, None, opts)?;
+            http::remote_file_to_disk(
+                &RemoteFileCopy {
+                    url: image,
+                    path: &cached_path,
+                    backup_suffix: None,
+                    checksum: None,
+                },
+                opts,
+            )?;
         }
 
         Ok(cached_path)
