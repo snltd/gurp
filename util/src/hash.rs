@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 use std::fs::File;
 use std::io::{self, Read};
 
-/// Returns a blake3 hash of a byte arrray
+/// Returns a blake3 hash of a byte array
 pub fn of_bytes(bytes: &[u8]) -> Hash {
     blake3::hash(bytes)
 }
