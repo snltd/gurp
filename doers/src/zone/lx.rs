@@ -63,9 +63,14 @@ pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
 
 fn fetch_latest_release_images() -> anyhow::Result<Option<Vec<String>>> {
     tracing::debug!("fetching latest release images");
-    let response: Value = ureq::get(LX_RELEASES_URL)
+    let response: Value = ureq::get(LX_RELEASES_URL.as_str())
         .call()
-        .with_context(|| format!("failed to fetch LX image list from {LX_RELEASES_URL}"))?
+        .with_context(|| {
+            format!(
+                "failed to fetch LX image list from {}",
+                LX_RELEASES_URL.as_str()
+            )
+        })?
         .into_body()
         .read_json()
         .context("failed to parse LX release data")?;

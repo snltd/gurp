@@ -15,6 +15,7 @@ use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
+use url::Url;
 use util::http::{self, RemoteFileCopy};
 use uuid::Uuid;
 
@@ -89,7 +90,7 @@ pub fn zone_config(config: &GurpZoneBhyve, uuid: &Uuid) -> String {
     ret
 }
 
-fn image_path(image: &str, opts: &ApplyOpts) -> anyhow::Result<Utf8PathBuf> {
+fn image_path(image: &Url, opts: &ApplyOpts) -> anyhow::Result<Utf8PathBuf> {
     if image.starts_with("http") {
         let cached_path = image_cache_filename(image)?;
 

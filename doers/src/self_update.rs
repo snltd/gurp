@@ -5,6 +5,7 @@ use common::types::{ApplyOpts, ApplySummary};
 use serde_json::Value;
 use std::env;
 use std::fs::File;
+use url::Url;
 use util::http::RemoteFileCopy;
 use util::{atomic_write, file, http, info};
 
@@ -25,9 +26,10 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
             .as_deref()
             .context("requested server update, but server is not set")?;
 
-        let base_url = format!("http://{server}:1867/v1");
-
         let my_hash = info::BUILD_HASH.to_string();
+
+        let base_url =
+            Url::parse(&format!("http://{server}:1867/v1")).context("cannot build server URL")?;
 
         if my_hash == server_hash(&base_url)? {
             tracing::debug!("gurp hash aligns with server hash: {my_hash}");
@@ -36,7 +38,9 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
 
         http::remote_file_to_disk(
             &RemoteFileCopy {
-                url: &format!("{base_url}/gurp-binary"),
+                url: &base_url
+                    .join("gurp-binary")
+                    .context("cannot attach binary path to server URL")?,
                 path: &gurp_path,
                 backup_suffix: None,
                 checksum: None,
@@ -68,12 +72,14 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
     Ok(ONE_RESOURCE_ONE_CHANGE)
 }
 
-fn server_hash(base_url: &str) -> anyhow::Result<String> {
-    let version_url = format!("{base_url}/version");
+fn server_hash(base_url: &Url) -> anyhow::Result<String> {
+    let version_url = base_url
+        .join("version")
+        .context("cannot attach version path to server URL")?;
 
-    let response: Value = ureq::get(&version_url)
+    let response: Value = ureq::get(version_url.as_str())
         .call()
-        .with_context(|| format!("failed to fetch get Gurp version from {version_url}"))?
+        .with_context(|| format!("failed to fetch get Gurp version from {version_url}",))?
         .into_body()
         .read_json()
         .context("failed to parse Gurp version data")?;

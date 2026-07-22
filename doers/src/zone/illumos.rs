@@ -3,6 +3,7 @@ use crate::zone::types::ZoneImage;
 use crate::zone::{config::ImageChecksum, constants::OMNIOS_RELEASES_URL};
 use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
+use url::Url;
 
 // Images follow the form:
 // https://downloads.omnios.org/media/stable/omnios-r151056.ngz.zfs.xz
@@ -32,15 +33,14 @@ pub fn image_path(image: ZoneImage) -> anyhow::Result<Utf8PathBuf> {
     }
 }
 
-fn default_image() -> anyhow::Result<String> {
-    tracing::debug!(
-        "fetching latest release images from {}",
-        OMNIOS_RELEASES_URL
-    );
+fn default_image() -> anyhow::Result<Url> {
+    let release_str = OMNIOS_RELEASES_URL.as_str();
 
-    let html = ureq::get(OMNIOS_RELEASES_URL)
+    tracing::debug!("fetching latest release images from {release_str}",);
+
+    let html = ureq::get(OMNIOS_RELEASES_URL.as_str())
         .call()
-        .with_context(|| format!("failed to fetch OmniOS image page from {OMNIOS_RELEASES_URL}"))?
+        .with_context(|| format!("failed to fetch OmniOS image page from {release_str}"))?
         .into_body()
         .read_to_string()?;
 
@@ -51,8 +51,11 @@ fn default_image() -> anyhow::Result<String> {
         .find(|s| s.ends_with(".ngz.zfs.xz"));
 
     if let Some(link) = link {
-        let image_url = format!("{OMNIOS_RELEASES_URL}{link}");
-        tracing::debug!("using image {}", image_url);
+        let image_url = OMNIOS_RELEASES_URL
+            .join(link)
+            .with_context(|| format!("cannot create image link from {release_str} and {link}"))?;
+
+        tracing::debug!("using image {}", image_url.as_str());
         Ok(image_url)
     } else {
         bail!("could not find ngz.zfs.xz image");

@@ -7,20 +7,23 @@ use camino::Utf8PathBuf;
 use common::constants::IMG_CACHE_DIR;
 use common::constants::ZONEADM_BIN;
 use common::types::{ApplyOpts, FileChecksum};
+use url::Url;
 use util::http::{self, RemoteFileCopy};
 
 pub fn current_zone_list() -> anyhow::Result<ZoneadmZones> {
     parse_zone_list(&zone_list()?)
 }
 
-pub fn get_image(img_url: &str, checksum: Option<&ImageChecksum>) -> anyhow::Result<Utf8PathBuf> {
-    let chunks = img_url.split("/");
+pub fn get_image(img_url: &Url, checksum: Option<&ImageChecksum>) -> anyhow::Result<Utf8PathBuf> {
+    let seggies = img_url
+        .path_segments()
+        .with_context(|| format!("cannot get path segments of {}", img_url.as_str()))?;
 
-    let img_basename = chunks
+    let img_fname = seggies
         .last()
-        .with_context(|| format!("cannot get basename for {}", img_url))?;
+        .with_context(|| format!("cannot get filename of {}", img_url.as_str()))?;
 
-    let img_path = Utf8PathBuf::from(IMG_CACHE_DIR).join(img_basename);
+    let img_path = Utf8PathBuf::from(IMG_CACHE_DIR).join(img_fname);
 
     if img_path.exists() {
         tracing::debug!("found image at {img_path}");

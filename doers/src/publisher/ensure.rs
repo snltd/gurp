@@ -185,6 +185,7 @@ mod test {
     use crate::publisher::types::{Mirror, Origin};
     use pretty_assertions::assert_eq;
     use tester::deserialized_example;
+    use url::Url;
 
     #[test]
     fn test_deserialize_publisher_ensure_new_publisher() {
@@ -194,11 +195,11 @@ mod test {
                 name: "example".to_owned(),
                 desired_state: Publisher {
                     origins: vec![Origin {
-                        uri: "http://pkg.lan.id264.net".to_owned(),
-                        proxy: Some("http://10.2.0.20/1837".to_owned()),
+                        uri: Url::parse("http://pkg.lan.id264.net").unwra(),
+                        proxy: Some(Url::parse("http://10.2.0.20/1837").unwra()),
                     }],
                     mirrors: Some(vec![Mirror {
-                        uri: "http://mirror.lan.id264.net".to_owned(),
+                        uri: Url::parse("http://mirror.lan.id264.net").unwra(),
                         proxy: None,
                     }]),
                 }

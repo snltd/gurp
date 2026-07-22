@@ -2,6 +2,7 @@ use camino::Utf8PathBuf;
 use serde::Deserialize;
 use serde_json::Value;
 use std::fmt::Debug;
+use url::Url;
 use util::file::NameOrId;
 
 #[derive(Deserialize, Debug, Default)]
@@ -11,7 +12,7 @@ pub struct DesiredFileState {
     pub backup_suffix: Option<String>,
     pub content: Option<String>,
     pub from_struct: Option<Value>,
-    pub from_url: Option<String>,
+    pub from_url: Option<Url>,
     pub from: Option<Utf8PathBuf>,
     pub group: NameOrId,
     pub ignore_pattern: Option<String>,

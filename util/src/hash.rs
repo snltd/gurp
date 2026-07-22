@@ -4,6 +4,12 @@ use camino::Utf8Path;
 use sha2::{Digest, Sha256};
 use std::fs::File;
 use std::io::{self, Read};
+use url::Url;
+
+enum ServerHashType {
+    Raw,
+    Filtered,
+}
 
 /// Returns a blake3 hash of a byte array
 pub fn of_bytes(bytes: &[u8]) -> Hash {
@@ -29,25 +35,22 @@ pub fn of_file(path: &Utf8Path) -> anyhow::Result<blake3::Hash> {
 }
 
 /// Requests and returns a blake3 file hash from a Gurp server
-pub fn for_file_on_server(url: &str) -> anyhow::Result<String> {
-    let hash_url = url.replace("/file/", "/file-hash/");
-    fetch_hash_from_server(&hash_url)
+pub fn for_file_on_server(url: &Url) -> anyhow::Result<String> {
+    fetch_hash_from_server(&server_hash_url(url, ServerHashType::Raw)?)
 }
 
 /// Requests and returns a blake3 has for a file on a Gurp server after applying a filter
-pub fn for_filtered_file_on_server(url: &str, pattern: &str) -> anyhow::Result<String> {
-    fetch_hash_from_server(&format!(
-        "{}?{}",
-        url.replace("/file/", "/file-hash-filtered/"),
-        pattern
-    ))
+pub fn for_filtered_file_on_server(url: &Url, pattern: &str) -> anyhow::Result<String> {
+    let mut url = server_hash_url(url, ServerHashType::Filtered)?;
+    url.set_query(Some(pattern));
+    fetch_hash_from_server(&url)
 }
 
 /// Gets a Blake3 hash from the Gurp server
-fn fetch_hash_from_server(hash_url: &str) -> anyhow::Result<String> {
+fn fetch_hash_from_server(hash_url: &Url) -> anyhow::Result<String> {
     tracing::debug!("fetching hash: {hash_url}");
 
-    ureq::get(hash_url)
+    ureq::get(hash_url.as_str())
         .call()
         .with_context(|| format!("failed to download {hash_url}"))?
         .into_body()
@@ -62,9 +65,11 @@ pub fn sha256_of_reader(mut reader: impl Read) -> anyhow::Result<String> {
 
     loop {
         let n = reader.read(&mut buf).context("sha256 buf read failed")?;
+
         if n == 0 {
             break;
         }
+
         hasher.update(&buf[..n]);
     }
 
@@ -75,6 +80,28 @@ pub fn sha256_of_reader(mut reader: impl Read) -> anyhow::Result<String> {
 pub fn sha256_of_file(path: &Utf8Path) -> anyhow::Result<String> {
     let file = File::open(path).with_context(|| format!("failed to open {path}"))?;
     sha256_of_reader(file).with_context(|| format!("failed to get sha256 of {path}"))
+}
+
+fn server_hash_url(url: &Url, segment: ServerHashType) -> anyhow::Result<Url> {
+    let mut ret = url.clone();
+
+    let hash_path: Vec<_> = url
+        .path_segments()
+        .with_context(|| format!("cannot compute hash URL from {url}"))?
+        .map(|s| {
+            if s == "file" {
+                match segment {
+                    ServerHashType::Raw => "file-hash",
+                    ServerHashType::Filtered => "file-hash-filtered",
+                }
+            } else {
+                s
+            }
+        })
+        .collect();
+
+    ret.set_path(&hash_path.join("/"));
+    Ok(ret)
 }
 
 #[cfg(test)]
@@ -95,6 +122,18 @@ mod test {
         assert_eq!(
             "40a2c4e17aa9abec2dd26709c045190b959922b5fffb4ff676568225c0525eca",
             of_file(&fixture("file-filter-test")).unwrap().to_string()
+        );
+    }
+
+    #[test]
+    fn test_server_hash_url() {
+        assert_eq!(
+            Url::parse("http://server.localnet/file-hash/test1").unwrap(),
+            server_hash_url(
+                &Url::parse("http://server.localnet/file/test1").unwrap(),
+                ServerHashType::Raw
+            )
+            .unwrap()
         );
     }
 }
