@@ -20,7 +20,7 @@ pub fn build_zone(zone: &str, config: &ZoneConfig, opts: &ApplyOpts) -> anyhow::
             zone,
             &config.brand,
             ZoneImage {
-                user_string: config.image.as_deref(),
+                image_source: config.image.as_ref(),
                 checksum: config.image_checksum.as_ref(),
             },
         )?;

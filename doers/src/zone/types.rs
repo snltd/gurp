@@ -1,9 +1,9 @@
-use crate::zone::config::ImageChecksum;
+use crate::zone::config::{ImageChecksum, ImageSource};
 use crate::zone::control::ZoneadmState;
 use std::collections::HashMap;
 
 pub struct ZoneImage<'a> {
-    pub user_string: Option<&'a str>,
+    pub image_source: Option<&'a ImageSource>,
     pub checksum: Option<&'a ImageChecksum>,
 }
 

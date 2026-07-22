@@ -9,27 +9,21 @@ use common::constants::ZONEADM_BIN;
 use common::types::{ApplyOpts, FileChecksum};
 use url::Url;
 use util::http::{self, RemoteFileCopy};
+use util::url::Filename;
 
 pub fn current_zone_list() -> anyhow::Result<ZoneadmZones> {
     parse_zone_list(&zone_list()?)
 }
 
 pub fn get_image(img_url: &Url, checksum: Option<&ImageChecksum>) -> anyhow::Result<Utf8PathBuf> {
-    let seggies = img_url
-        .path_segments()
-        .with_context(|| format!("cannot get path segments of {}", img_url.as_str()))?;
-
-    let img_fname = seggies
-        .last()
-        .with_context(|| format!("cannot get filename of {}", img_url.as_str()))?;
-
+    let img_fname = img_url.filename()?;
     let img_path = Utf8PathBuf::from(IMG_CACHE_DIR).join(img_fname);
 
     if img_path.exists() {
         tracing::debug!("found image at {img_path}");
     } else {
         let file_checksum = checksum
-            .map(|cksum| literal_checksum(img_url, cksum))
+            .map(|cksum| checksum_value(img_url, cksum))
             .transpose()?;
 
         tracing::debug!("no image at {img_path}: downloading");
@@ -48,9 +42,9 @@ pub fn get_image(img_url: &Url, checksum: Option<&ImageChecksum>) -> anyhow::Res
     Ok(img_path)
 }
 
-fn literal_checksum(img_url: &str, checksum: &ImageChecksum) -> anyhow::Result<FileChecksum> {
+fn checksum_value(img_url: &Url, checksum: &ImageChecksum) -> anyhow::Result<FileChecksum> {
     let literal_checksum = if checksum.value.starts_with(".") {
-        http::remote_file_to_string(&format!("{img_url}{}", checksum.value))?
+        http::remote_file_to_string(&img_url.join(&checksum.value)?)?
     } else {
         // we've been given the literal value
         checksum.value.clone()

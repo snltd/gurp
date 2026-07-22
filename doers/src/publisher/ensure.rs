@@ -23,7 +23,8 @@ impl GurpPublisherEnsure {
             let raw_publisher_info = cmd_output!(PKG_BIN, "publisher", &self.name)
                 .with_context(|| format!("cannot get info for publisher: {}", self.name))?;
 
-            let current_state = parse::parse_publisher(&raw_publisher_info);
+            let current_state =
+                parse::parse_publisher(&raw_publisher_info).context("failed to parse publisher")?;
 
             if self.desired_state == current_state {
                 tracing::debug!("publisher {} is correct", self.name);
@@ -43,26 +44,26 @@ impl GurpPublisherEnsure {
         cmd.arg("set-publisher");
 
         for origin in &self.desired_state.origins {
-            cmd.args(["-g", &origin.uri]);
+            cmd.args(["-g", origin.uri.as_str()]);
             if let Some(proxy) = &origin.proxy {
                 tracing::info!(
                     "publisher {} origin {}: adding proxy {proxy}",
                     self.name,
                     origin.uri
                 );
-                cmd.args(["--proxy", proxy]);
+                cmd.args(["--proxy", proxy.as_str()]);
             }
         }
 
         for mirror in self.desired_state.mirrors.iter().flatten() {
-            cmd.args(["-m", &mirror.uri]);
+            cmd.args(["-m", mirror.uri.as_str()]);
             if let Some(proxy) = &mirror.proxy {
                 tracing::info!(
                     "publisher {} mirror {}: adding proxy {proxy}",
                     self.name,
                     mirror.uri
                 );
-                cmd.args(["--proxy", proxy]);
+                cmd.args(["--proxy", proxy.as_str()]);
             }
         }
 
@@ -97,7 +98,7 @@ impl GurpPublisherEnsure {
             TargetType::Mirror => cmd.arg("-m"),
         };
 
-        cmd.arg(&target.uri);
+        cmd.arg(target.uri.as_str());
 
         if let Some(proxy) = &target.proxy {
             tracing::info!(
@@ -105,7 +106,7 @@ impl GurpPublisherEnsure {
                 self.name,
                 target.uri
             );
-            cmd.args(["--proxy", proxy]);
+            cmd.args(["--proxy", proxy.as_str()]);
         }
 
         cmd.arg(&self.name);
@@ -150,7 +151,7 @@ impl GurpPublisherEnsure {
                     PKG_BIN,
                     "set-publisher",
                     "-G",
-                    &origin.uri,
+                    &origin.uri.as_str(),
                     &self.name
                 )?;
             }
@@ -169,7 +170,7 @@ impl GurpPublisherEnsure {
                     PKG_BIN,
                     "set-publisher",
                     "-M",
-                    &mirror.uri,
+                    &mirror.uri.as_str(),
                     &self.name
                 )?;
             }
@@ -195,11 +196,11 @@ mod test {
                 name: "example".to_owned(),
                 desired_state: Publisher {
                     origins: vec![Origin {
-                        uri: Url::parse("http://pkg.lan.id264.net").unwra(),
-                        proxy: Some(Url::parse("http://10.2.0.20/1837").unwra()),
+                        uri: Url::parse("http://pkg.lan.id264.net").unwrap(),
+                        proxy: Some(Url::parse("http://10.2.0.20/1837").unwrap()),
                     }],
                     mirrors: Some(vec![Mirror {
-                        uri: Url::parse("http://mirror.lan.id264.net").unwra(),
+                        uri: Url::parse("http://mirror.lan.id264.net").unwrap(),
                         proxy: None,
                     }]),
                 }

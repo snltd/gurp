@@ -1,3 +1,4 @@
+use crate::zone::config::ImageSource;
 use crate::zone::helpers;
 use crate::zone::types::ZoneImage;
 use crate::zone::{config::ImageChecksum, constants::OMNIOS_RELEASES_URL};
@@ -13,16 +14,12 @@ pub fn image_path(image: ZoneImage) -> anyhow::Result<Utf8PathBuf> {
     // if we're given an image and it looks like a URL, fetch it. If it looks like a file, stat
     // it; if we don't have one, fetch the current stable
     // if let Some() = image {
-    match image.user_string {
-        Some(user_string) => {
-            if user_string.starts_with("/") {
-                Ok(Utf8PathBuf::from(user_string))
-            } else if user_string.starts_with("http") {
-                helpers::get_image(user_string, image.checksum)
-            } else {
-                bail!("illumos image must be a fully qualified path or URL")
-            }
-        }
+    match image.image_source {
+        Some(image_source) => match image_source {
+            ImageSource::Path(path) => Ok(path.clone()),
+            ImageSource::Url(url) => helpers::get_image(url, image.checksum),
+            ImageSource::Name(_) => bail!("illumos zone images must be a path or URL"),
+        },
         None => helpers::get_image(
             &default_image()?,
             Some(&ImageChecksum {

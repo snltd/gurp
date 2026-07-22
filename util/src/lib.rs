@@ -12,5 +12,6 @@ pub mod ip_protocols;
 pub mod json;
 pub mod smf_builder;
 pub mod svcs;
+pub mod url;
 pub mod users_and_groups;
 pub mod xml;
