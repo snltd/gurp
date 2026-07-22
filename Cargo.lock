@@ -924,6 +924,7 @@ dependencies = [
  "toml",
  "tracing",
  "ureq",
+ "url",
  "util",
  "uuid",
 ]
@@ -3475,6 +3476,7 @@ dependencies = [
  "idna",
  "percent-encoding",
  "serde",
+ "serde_derive",
 ]
 
 [[package]]
@@ -3522,6 +3524,7 @@ dependencies = [
  "tester",
  "tracing",
  "ureq",
+ "url",
  "vergen-git2",
  "xml-rs",
  "xmlwriter",

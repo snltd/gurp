@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use std::fmt;
+use url::Url;
 
 #[derive(Deserialize, Debug)]
 pub struct Publisher {
@@ -21,18 +22,12 @@ impl PartialEq for Publisher {
     }
 }
 
-#[derive(PartialEq, Default, Deserialize, Debug)]
+#[derive(PartialEq, Deserialize, Debug)]
 pub struct OriginOrMirror {
     #[serde(rename = "name")]
-    pub uri: PublisherUri,
-    pub proxy: Option<PublisherUri>,
+    pub uri: Url,
+    pub proxy: Option<Url>,
 }
-
-pub type Origin = OriginOrMirror;
-pub type Mirror = OriginOrMirror;
-
-pub type PublisherName = String;
-pub type PublisherUri = String;
 
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -53,3 +48,7 @@ impl fmt::Display for TargetType {
         )
     }
 }
+
+pub type Origin = OriginOrMirror;
+pub type Mirror = OriginOrMirror;
+pub type PublisherName = String;

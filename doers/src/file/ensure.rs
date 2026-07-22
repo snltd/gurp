@@ -101,6 +101,7 @@ mod test {
     use camino::Utf8PathBuf;
     use pretty_assertions::assert_eq;
     use tester::{deserialized_example, fixture, my_group, my_user};
+    use url::Url;
     use util::file::NameOrId;
 
     #[test]
@@ -141,8 +142,8 @@ mod test {
                     from: None,
                     from_struct: None,
                     from_url: Some(
-                        "https://raw.githubusercontent.com/snltd/gurp/refs/heads/main/LICENSE.txt"
-                            .to_owned()
+                        Url::parse("https://raw.githubusercontent.com/snltd/gurp/refs/heads/main/LICENSE.txt")
+                            .unwrap()
                     ),
                     with_checksum: Some(
                         "561a47aa1d1bfc3a95ce45345639f9ce2d9ad332b05cfe5da74ad77f2842ee16"
@@ -176,7 +177,7 @@ mod test {
                 backup_suffix: None,
                 from_struct: None,
                 to_format: None,
-                from_url: Some("http://example.com/file".to_owned()),
+                from_url: Some(Url::parse("http://example.com/file").unwrap()),
                 with_checksum: Some("abc123".to_owned()),
                 only_fetch_from_url_once: false,
                 url_is_server: false,

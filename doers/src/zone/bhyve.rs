@@ -1,5 +1,5 @@
 use crate::zfs;
-use crate::zone::config::{GurpZoneBhyve, GurpZoneFilesystem, ZoneConfig};
+use crate::zone::config::{GurpZoneBhyve, GurpZoneFilesystem, ImageSource, ZoneConfig};
 use crate::zone::constants::READINESS_WAIT_TIMEOUT_BHYVE;
 use crate::zone::{cloudinit, control};
 use anyhow::{Context, bail, ensure};
@@ -15,6 +15,7 @@ use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
+use url::Url;
 use util::http::{self, RemoteFileCopy};
 use uuid::Uuid;
 
@@ -33,10 +34,14 @@ pub fn build_zone(
 ) -> anyhow::Result<()> {
     let bhyve_config = config.bhyve.as_ref().context("no bhyve config")?;
 
-    if let Some(image_str) = &config.image {
-        let image_path = image_path(image_str, opts).context("cannot get image path")?;
+    if let Some(image_source) = &config.image {
+        let image_path = match image_source {
+            ImageSource::Url(url) => image_on_disk(url, opts).context("cannot get bhyve image")?,
+            ImageSource::Path(path) => path.to_owned(),
+            ImageSource::Name(_) => bail!("image names are not supported for bhyve zones"),
+        };
 
-        write_image(
+        write_image_to_boot_disk(
             &image_path,
             &bhyve_config.boot_volume,
             &bhyve_config.image_format,
@@ -89,31 +94,27 @@ pub fn zone_config(config: &GurpZoneBhyve, uuid: &Uuid) -> String {
     ret
 }
 
-fn image_path(image: &str, opts: &ApplyOpts) -> anyhow::Result<Utf8PathBuf> {
-    if image.starts_with("http") {
-        let cached_path = image_cache_filename(image)?;
+fn image_on_disk(image: &Url, opts: &ApplyOpts) -> anyhow::Result<Utf8PathBuf> {
+    let cached_path = image_cache_filename(image)?;
 
-        if !cached_path.exists() {
-            tracing::debug!("No cached image file at {}", cached_path);
-            tracing::info!("downloading image from {image}");
-            http::remote_file_to_disk(
-                &RemoteFileCopy {
-                    url: image,
-                    path: &cached_path,
-                    backup_suffix: None,
-                    checksum: None,
-                },
-                opts,
-            )?;
-        }
-
-        Ok(cached_path)
-    } else {
-        Ok(Utf8PathBuf::from(image))
+    if !cached_path.exists() {
+        tracing::debug!("No cached image file at {}", cached_path);
+        tracing::info!("downloading image from {image}");
+        http::remote_file_to_disk(
+            &RemoteFileCopy {
+                url: image,
+                path: &cached_path,
+                backup_suffix: None,
+                checksum: None,
+            },
+            opts,
+        )?;
     }
+
+    Ok(cached_path)
 }
 
-fn write_image(
+fn write_image_to_boot_disk(
     image_path: &Utf8Path,
     zvol: &str,
     image_format: &Option<String>,
@@ -145,8 +146,9 @@ fn write_image(
     }
 }
 
-fn image_cache_filename(url: &str) -> anyhow::Result<Utf8PathBuf> {
+fn image_cache_filename(url: &Url) -> anyhow::Result<Utf8PathBuf> {
     let basename = url
+        .path()
         .split("/")
         .last()
         .with_context(|| format!("unable to parse image URL {url}"))?;

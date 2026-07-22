@@ -8,9 +8,10 @@ use std::io::Write;
 use std::io::{self, BufWriter, Seek, SeekFrom};
 use std::thread;
 use std::time::Duration;
+use url::Url;
 
 pub struct RemoteFileCopy<'a> {
-    pub url: &'a str,
+    pub url: &'a Url,
     pub path: &'a Utf8Path,
     pub checksum: Option<&'a FileChecksum>,
     pub backup_suffix: Option<&'a str>,
@@ -18,7 +19,7 @@ pub struct RemoteFileCopy<'a> {
 
 // Downloads a file to disk
 pub fn remote_file_to_disk(file: &RemoteFileCopy, opts: &ApplyOpts) -> anyhow::Result<()> {
-    let response = match ureq::get(file.url).call() {
+    let response = match ureq::get(file.url.as_str()).call() {
         Ok(resp) => resp,
         Err(ureq::Error::StatusCode(code)) => {
             return Err(NetworkError::Http(code).into());
@@ -56,8 +57,8 @@ pub fn remote_file_to_disk(file: &RemoteFileCopy, opts: &ApplyOpts) -> anyhow::R
 }
 
 // Downloads a file to memory
-pub fn remote_file_to_memory(url: &str) -> Result<Vec<u8>, NetworkError> {
-    let mut response = match ureq::get(url).call() {
+pub fn remote_file_to_memory(url: &Url) -> Result<Vec<u8>, NetworkError> {
+    let mut response = match ureq::get(url.as_str()).call() {
         Ok(resp) => resp,
         Err(ureq::Error::StatusCode(code)) => {
             return Err(NetworkError::Http(code));
@@ -76,7 +77,7 @@ pub fn remote_file_to_memory(url: &str) -> Result<Vec<u8>, NetworkError> {
         .map_err(|e| NetworkError::Transport(e.to_string()))
 }
 
-pub fn remote_file_to_string(url: &str) -> anyhow::Result<String> {
+pub fn remote_file_to_string(url: &Url) -> anyhow::Result<String> {
     String::from_utf8(remote_file_to_memory(url).with_context(|| format!("failed to fetch {url}"))?)
         .context("failed to convert remote file to string")
 }
@@ -123,34 +124,35 @@ fn fetch_precompiled_file(
 ) -> Result<Vec<u8>, CompileError> {
     // We tell the server what we think it's called so it can build file resources we can find.
     // This lets us use a raw IP address, DNS name, whatever.
-    let url = format!(
-        "http://{server}:{SERVER_PORT}/{CLIENT_API_VERSION}/config/{hostname}?server_name={server}&format={format}"
-    );
+    let url = Url::parse(
+        &format!("http://{server}:{SERVER_PORT}/{CLIENT_API_VERSION}/config/{hostname}?server_name={server}&format={format}")
+    ).context("failed to generate URL for precompiled file").map_err(CompileError::Other)?;
+
     tracing::info!("fetching config from {url}");
     remote_file_to_memory(&url).map_err(CompileError::Network)
 }
 
-fn log_ureq_error(url: &str, e: &ureq::Error) {
+fn log_ureq_error(url: &Url, e: &ureq::Error) {
     match &e {
         ureq::Error::StatusCode(code) => {
-            tracing::error!("got {} code from server for {}", code, url)
+            tracing::error!("{url} returned {code}")
         }
         ureq::Error::Io(err) => {
-            tracing::error!("I/O error: {} on {}", err, url)
+            tracing::error!("I/O error: {err} on {url}")
         }
         ureq::Error::HostNotFound => {
-            tracing::error!("Host not found: {}", url)
+            tracing::error!("Host not found: {url}")
         }
         ureq::Error::Http(err) => {
-            tracing::error!("HTTP error: {} on {}", err, url)
+            tracing::error!("HTTP error: {err} on {url}")
         }
         ureq::Error::BadUri(err) => {
-            tracing::error!("Bad URI: {} on {}", err, url)
+            tracing::error!("Bad URI: {err} on {url}")
         }
         ureq::Error::BodyExceedsLimit(size) => {
-            tracing::error!("file send back is too big: limit {}b for {}", size, url)
+            tracing::error!("file send back is too big: limit {size}b for {url}")
         }
-        _ => tracing::error!("unhandled error: {} on {}", e, url),
+        _ => tracing::error!("unhandled error: {e} on {url}"),
     }
 }
 

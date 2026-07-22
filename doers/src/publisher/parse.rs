@@ -1,4 +1,7 @@
 use crate::publisher::types::{Mirror, Origin, OriginOrMirror, Publisher};
+use anyhow::Context;
+use url::Url;
+
 #[derive(PartialEq)]
 enum ParseState {
     None,
@@ -6,41 +9,45 @@ enum ParseState {
     InMirror,
 }
 
-/// Turns the output of `pkg publisher name` into a Publisher struct
-pub(crate) fn parse_publisher(raw: &str) -> Publisher {
-    let mut state = ParseState::None;
-    let mut origins: Vec<Origin> = Vec::new();
-    let mut mirrors: Vec<Mirror> = Vec::new();
-
-    let rows: Vec<_> = raw
-        .lines()
+fn rows_as_key_value(raw: &str) -> Vec<(&str, &str)> {
+    raw.lines()
         .filter_map(|line| {
             let mut fields = line.trim().split(": ");
             if let Some(key) = fields.next()
                 && let Some(val) = fields.next()
             {
-                Some([key, val])
+                Some((key, val))
             } else {
                 None
             }
         })
-        .collect();
+        .collect()
+}
 
-    let mut in_play = OriginOrMirror::default();
+/// Turns the output of `pkg publisher name` into a Publisher struct.
+pub(crate) fn parse_publisher(raw: &str) -> anyhow::Result<Publisher> {
+    let mut state = ParseState::None;
+    let mut origins: Vec<Origin> = Vec::new();
+    let mut mirrors: Vec<Mirror> = Vec::new();
+    let mut in_play: Option<OriginOrMirror> = None;
+    let rows = rows_as_key_value(raw);
 
-    for [key, value] in rows {
+    for (key, value) in rows {
         match key {
             "Origin URI" | "Mirror URI" => {
-                if state == ParseState::InOrigin {
-                    origins.push(in_play);
-                } else if state == ParseState::InMirror {
-                    mirrors.push(in_play);
+                if let Some(finished) = in_play.take() {
+                    match state {
+                        ParseState::InOrigin => origins.push(finished),
+                        ParseState::InMirror => mirrors.push(finished),
+                        ParseState::None => {}
+                    }
                 }
 
-                in_play = OriginOrMirror {
-                    uri: value.to_owned(),
-                    ..Default::default()
-                };
+                in_play = Some(OriginOrMirror {
+                    uri: Url::parse(value)
+                        .with_context(|| format!("failed to parse uri; {value}"))?,
+                    proxy: None,
+                });
 
                 state = if key == "Origin URI" {
                     ParseState::InOrigin
@@ -48,25 +55,34 @@ pub(crate) fn parse_publisher(raw: &str) -> Publisher {
                     ParseState::InMirror
                 };
             }
-            "Proxy" if state != ParseState::None => in_play.proxy = Some(value.to_owned()),
+            "Proxy" if state != ParseState::None => {
+                if let Some(current) = in_play.as_mut() {
+                    current.proxy = Some(
+                        Url::parse(value)
+                            .with_context(|| format!("failed to parse uri; {value}"))?,
+                    );
+                }
+            }
             _ => {}
         }
     }
 
-    if state == ParseState::InOrigin {
-        origins.push(in_play);
-    } else if state == ParseState::InMirror {
-        mirrors.push(in_play);
+    if let Some(finished) = in_play {
+        match state {
+            ParseState::InOrigin => origins.push(finished),
+            ParseState::InMirror => mirrors.push(finished),
+            ParseState::None => {}
+        }
     }
 
-    Publisher {
+    Ok(Publisher {
         origins,
         mirrors: if mirrors.is_empty() {
             None
         } else {
             Some(mirrors)
         },
-    }
+    })
 }
 
 #[cfg(test)]
@@ -104,21 +120,21 @@ mod test {
 
         let expected = Publisher {
             origins: vec![Origin {
-                uri: "https://pkg.omnios.org/r151056/core/".to_owned(),
-                proxy: Some("http://10.2.0.20:3128".to_owned()),
+                uri: Url::parse("https://pkg.omnios.org/r151056/core/").unwrap(),
+                proxy: Some(Url::parse("http://10.2.0.20:3128").unwrap()),
             }],
             mirrors: Some(vec![
                 Mirror {
-                    uri: "https://omnios.lan.id264.net/r151056/core/".to_owned(),
+                    uri: Url::parse("https://omnios.lan.id264.net/r151056/core/").unwrap(),
                     proxy: None,
                 },
                 Mirror {
-                    uri: "https://us-west.mirror.omnios.org/r151056/core/".to_owned(),
-                    proxy: Some("http://localhost:3128".to_owned()),
+                    uri: Url::parse("https://us-west.mirror.omnios.org/r151056/core/").unwrap(),
+                    proxy: Some(Url::parse("http://localhost:3128").unwrap()),
                 },
             ]),
         };
 
-        assert_eq!(parse_publisher(raw), expected);
+        assert_eq!(parse_publisher(raw).unwrap(), expected);
     }
 }

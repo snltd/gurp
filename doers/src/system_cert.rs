@@ -6,6 +6,7 @@ use common::types::{ApplyOpts, ApplySummary};
 use serde::Deserialize;
 use std::fmt::Debug;
 use std::fs;
+use url::Url;
 use util::{hash, http};
 
 const SYSTEM_CERT_DIR: &str = "/etc/ssl/certs";
@@ -18,7 +19,7 @@ pub struct GurpSystemCertEnsure {
     pub id: String,
     pub name: String,
     pub from: Option<Utf8PathBuf>,
-    pub from_url: Option<String>,
+    pub from_url: Option<Url>,
     pub content: Option<String>,
     #[serde(default)]
     pub url_is_server: bool,
@@ -50,11 +51,8 @@ impl GurpSystemCertEnsure {
             fs::read_to_string(source)
                 .with_context(|| format!("failed to read cert from {source}"))?
         } else if let Some(url) = &self.from_url {
-            String::from_utf8(
-                http::remote_file_to_memory(url)
-                    .with_context(|| format!("failed to fetch cert from {url}"))?,
-            )
-            .with_context(|| format!("failed to convert cert from {url} to UTF8"))?
+            http::remote_file_to_string(url)
+                .with_context(|| format!("failed to fetch cert from {url}"))?
         } else if let Some(content) = &self.content {
             content.clone()
         } else {
@@ -159,7 +157,7 @@ mod test {
                 id: "/NO-ROLE/system-cert/from-url".to_owned(),
                 name: "from-url".to_owned(),
                 from: None,
-                from_url: Some("https://cert-service/api".to_owned()),
+                from_url: Some(Url::parse("https://cert-service/api").unwrap()),
                 content: None,
                 url_is_server: false,
             },
@@ -184,7 +182,7 @@ mod test {
             id: "/NO-ROLE/system-cert/irrelevant".to_owned(),
             name: "bad-input".to_owned(),
             from: Some(Utf8PathBuf::from("/dir/ca/example")),
-            from_url: Some("https://cert-service/api".to_owned()),
+            from_url: Some(Url::parse("https://cert-service/api").unwrap()),
             content: None,
             url_is_server: false,
         };

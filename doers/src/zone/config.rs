@@ -3,7 +3,9 @@ use camino::Utf8PathBuf;
 use serde::Deserialize;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::fmt;
+use url::Url;
 use uuid::Uuid;
 
 pub type CopyInFiles = HashMap<Utf8PathBuf, String>;
@@ -58,13 +60,37 @@ pub struct ZoneConfig {
     pub hostid: Option<String>,
     pub ip_type: Option<String>,
     pub limitpriv: Option<Vec<String>>,
-    pub image: Option<String>,
+    pub image: Option<ImageSource>,
     pub image_checksum: Option<ImageChecksum>,
     pub net: GurpZoneNetworks,
     pub pool: Option<String>,
     pub rctl: Option<GurpZoneRctls>,
     pub recreate: u8,
     pub zonepath: Utf8PathBuf,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(try_from = "String")]
+pub enum ImageSource {
+    Url(Url),
+    Path(Utf8PathBuf),
+    Name(String),
+}
+
+impl TryFrom<String> for ImageSource {
+    type Error = anyhow::Error;
+
+    fn try_from(value: String) -> anyhow::Result<Self> {
+        if let Ok(url) = Url::parse(&value) {
+            return Ok(ImageSource::Url(url));
+        }
+
+        if value.contains('/') || value.starts_with('.') {
+            return Ok(ImageSource::Path(Utf8PathBuf::from(value)));
+        }
+
+        Ok(ImageSource::Name(value))
+    }
 }
 
 #[derive(Debug, Deserialize)]

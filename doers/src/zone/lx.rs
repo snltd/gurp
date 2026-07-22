@@ -1,16 +1,17 @@
-use crate::zone::config::GurpZoneDns;
+use crate::zone::config::{GurpZoneDns, ImageSource};
 use crate::zone::constants::{
     LX_RELEASES_URL, READINESS_WAIT_INTERVAL, READINESS_WAIT_TIMEOUT_NATIVE,
 };
 use crate::zone::helpers;
 use crate::zone::types::ZoneImage;
-use anyhow::{Context, bail, ensure};
+use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
 use common::constants::PS_BIN;
 use serde_json::Value;
 use std::fs;
 use std::thread::sleep;
 use std::time::Duration;
+use url::Url;
 
 pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &GurpZoneDns) -> anyhow::Result<()> {
     let resolv_path = zonepath.join("root").join("etc").join("resolv.conf");
@@ -37,11 +38,17 @@ pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &GurpZoneDns) -> anyhow::Res
 }
 
 pub fn image_path(image: ZoneImage) -> anyhow::Result<Utf8PathBuf> {
-    ensure!(image.user_string.is_some(), "LX zones require an :image");
-
-    match get_image(&image)? {
-        Some(path) => Ok(path),
-        None => bail!("did not find a suitable LX image"),
+    match image.image_source {
+        Some(image_source) => match image_source {
+            ImageSource::Path(path) => Ok(path.to_owned()),
+            ImageSource::Url(url) => helpers::get_image(url, image.checksum),
+            ImageSource::Name(name) => {
+                let url = find_image_url(name)?
+                    .with_context(|| format!("failed to find LX image '{name}'"))?;
+                helpers::get_image(&url, image.checksum)
+            }
+        },
+        None => bail!("LX zones require an :image"),
     }
 }
 
@@ -63,9 +70,14 @@ pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
 
 fn fetch_latest_release_images() -> anyhow::Result<Option<Vec<String>>> {
     tracing::debug!("fetching latest release images");
-    let response: Value = ureq::get(LX_RELEASES_URL)
+    let response: Value = ureq::get(LX_RELEASES_URL.as_str())
         .call()
-        .with_context(|| format!("failed to fetch LX image list from {LX_RELEASES_URL}"))?
+        .with_context(|| {
+            format!(
+                "failed to fetch LX image list from {}",
+                LX_RELEASES_URL.as_str()
+            )
+        })?
         .into_body()
         .read_json()
         .context("failed to parse LX release data")?;
@@ -83,26 +95,18 @@ fn fetch_latest_release_images() -> anyhow::Result<Option<Vec<String>>> {
         }))
 }
 
-fn find_image(pattern: &str) -> anyhow::Result<Option<String>> {
-    if let Some(mut latest_images) = fetch_latest_release_images()? {
-        latest_images.sort();
-        latest_images.reverse();
-        Ok(latest_images.iter().find(|i| i.contains(pattern)).cloned())
-    } else {
-        Ok(None)
-    }
-}
+fn find_image_url(pattern: &str) -> anyhow::Result<Option<Url>> {
+    let maybe_image = fetch_latest_release_images()
+        .context("failed to get release images")?
+        .and_then(|mut latest_images| {
+            latest_images.sort();
+            latest_images.reverse();
+            latest_images.into_iter().find(|i| i.contains(pattern))
+        });
 
-fn get_image(img: &ZoneImage) -> anyhow::Result<Option<Utf8PathBuf>> {
-    let pattern = img
-        .user_string
-        .context("searching for lx image, but no user string")?;
-
-    if let Some(img_url) = find_image(pattern)? {
-        Ok(Some(helpers::get_image(&img_url, img.checksum)?))
-    } else {
-        Ok(None)
-    }
+    maybe_image
+        .map(|i| Url::parse(&i).with_context(|| format!("failed to parse image name {i}")))
+        .transpose()
 }
 
 // Because there are a bunch of possible images, it's hard to know what to look for here. For
