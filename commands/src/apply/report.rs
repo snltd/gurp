@@ -1,8 +1,8 @@
 use super::types::FailPhase;
 use camino::{Utf8Path, Utf8PathBuf};
-use chrono::{DateTime, Utc};
 use common::constants::GURP_VERSION;
 use common::types::{ApplyOpts, ApplySummary};
+use jiff::Timestamp;
 use serde::Serialize;
 use serde_json;
 use std::fs;
@@ -33,8 +33,8 @@ pub(crate) struct ReportArgs<'a> {
     pub fail_phase: Option<FailPhase>,
     pub summary: Option<&'a ApplySummary>,
     pub duration: &'a Duration,
-    pub t_start: DateTime<Utc>,
-    pub t_end: DateTime<Utc>,
+    pub t_start: Timestamp,
+    pub t_end: Timestamp,
     pub host_file: Option<Utf8PathBuf>,
     pub opts: &'a ApplyOpts,
 }
@@ -46,8 +46,8 @@ pub(crate) struct Report {
     host_file: Option<Utf8PathBuf>,
     resources: Option<u32>,
     changes: Option<u32>,
-    t_start: DateTime<Utc>,
-    t_end: DateTime<Utc>,
+    t_start: Timestamp,
+    t_end: Timestamp,
     duration: Duration,
     gurp_version: String,
     gurp_build: String,
@@ -101,7 +101,6 @@ impl Report {
 mod test {
     use super::*;
     use camino_tempfile_ext::prelude::*;
-    use chrono::{TimeZone, Utc};
     use common::types::ApplyOpts;
     use pretty_assertions::assert_eq;
 
@@ -110,8 +109,8 @@ mod test {
         let temp_dir = Utf8TempDir::new().unwrap();
         let expected_file = temp_dir.path().join("gurp_last_success.json");
 
-        let t_start = Utc.with_ymd_and_hms(2026, 6, 14, 12, 0, 0).unwrap();
-        let t_end = Utc.with_ymd_and_hms(2026, 6, 14, 12, 0, 6).unwrap();
+        let t_start: Timestamp = "2026-06-14 12:00:00-00".parse().unwrap();
+        let t_end: Timestamp = "2026-06-14 12:00:06-00".parse().unwrap();
 
         Report::from(ReportArgs {
             status: ReportStatus::Success,
@@ -150,8 +149,8 @@ mod test {
         let temp_dir = Utf8TempDir::new().unwrap();
         let expected_file = temp_dir.path().join("gurp_last_fail.json");
 
-        let t_start = Utc.with_ymd_and_hms(2026, 6, 14, 12, 0, 0).unwrap();
-        let t_end = Utc.with_ymd_and_hms(2026, 6, 14, 12, 0, 6).unwrap();
+        let t_start: Timestamp = "2026-06-14 12:00:00-00".parse().unwrap();
+        let t_end: Timestamp = "2026-06-14 12:00:06-00".parse().unwrap();
 
         Report::from(ReportArgs {
             status: ReportStatus::Fail,
