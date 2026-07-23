@@ -30,7 +30,7 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
         let my_hash = info::BUILD_HASH.to_string();
 
         let base_url =
-            Url::parse(&format!("http://{server}:1867/v1")).context("cannot build server URL")?;
+            Url::parse(&format!("http://{server}:1867/v1/")).context("cannot build server URL")?;
 
         if my_hash == server_hash(&base_url)? {
             tracing::debug!("gurp hash aligns with server hash: {my_hash}");
