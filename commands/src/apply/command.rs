@@ -2,10 +2,10 @@ use super::report::{Report, ReportArgs, ReportStatus};
 use super::{config, lockfile, metrics};
 use crate::apply::types::{ApplyStatus, FailPhase};
 use camino::{Utf8Path, Utf8PathBuf};
-use chrono::Utc;
 use common::types::{ApplyOpts, CompileError};
 use doers::types::Applicator;
 use gurptel::{flush, types::TelemetryProviders};
+use jiff::Timestamp;
 use std::process::ExitCode;
 use std::time::Instant;
 
@@ -16,7 +16,7 @@ pub fn run(
     opts: &ApplyOpts,
     providers: TelemetryProviders,
 ) -> ExitCode {
-    let t_start = Utc::now(); // For the report
+    let t_start = Timestamp::now(); // For the report
     let start_time = Instant::now(); // For metrics
 
     let exit_code = match config::compile(host_file, opts) {
@@ -45,7 +45,7 @@ pub fn run(
                                 summary: Some(&apply_summary),
                                 duration: &elapsed_time,
                                 t_start,
-                                t_end: Utc::now(),
+                                t_end: Timestamp::now(),
                                 host_file: host_file.map(|f| f.to_owned()),
                                 opts,
                             })
@@ -70,7 +70,7 @@ pub fn run(
                                 summary: None,
                                 duration: &elapsed_time,
                                 t_start,
-                                t_end: Utc::now(),
+                                t_end: Timestamp::now(),
                                 host_file: host_file.map(|f| f.to_owned()),
                                 opts,
                             })
