@@ -1,12 +1,33 @@
 use anyhow::{Context, bail};
 use common::constants::{SVC_WAIT_INTERVAL, SVC_WAIT_TIMEOUT, SVCADM_BIN, SVCCFG_BIN, SVCS_BIN};
 use common::types::ApplyOpts;
-use std::thread::sleep;
+use std::thread;
 use std::time::Duration;
 
+const STATE_RETRIES: u64 = 5;
+
+/// It is possible that a service from a recently installed package might not be available yet.
+/// I've seen this with Squid. So, let's do this on a retry.
 pub fn current_state(svc: &str) -> anyhow::Result<String> {
-    cmd_output!(SVCS_BIN, "-Ho", "state", svc)
-        .with_context(|| format!("failed to get state of service {svc}"))
+    let mut attempt = 1;
+
+    loop {
+        match cmd_output!(SVCS_BIN, "-Ho", "state", svc) {
+            Ok(s) => return Ok(s),
+            Err(e) => {
+                if attempt == STATE_RETRIES {
+                    bail!("failed to get state of service {svc}: {e}")
+                } else {
+                    let sleepy_time = attempt * attempt * 500;
+                    tracing::debug!(
+                        "attempt {attempt} failed to get state of {svc}: retrying in {sleepy_time}s"
+                    );
+                    thread::sleep(Duration::from_micros(sleepy_time));
+                    attempt += 1;
+                }
+            }
+        }
+    }
 }
 
 pub fn run_svccfg(arg1: &str, arg2: &str) -> anyhow::Result<String> {
@@ -75,7 +96,7 @@ pub fn wait_for_state(svc: &str, state: &str) -> anyhow::Result<bool> {
             return Ok(true);
         }
 
-        sleep(SVC_WAIT_INTERVAL);
+        thread::sleep(SVC_WAIT_INTERVAL);
         let elapsed = elapsed + SVC_WAIT_INTERVAL;
 
         if elapsed >= SVC_WAIT_TIMEOUT {
