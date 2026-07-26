@@ -1,3 +1,4 @@
+- Better logging when config compilation fails
 - Add `--syspath` and `--gurp-config-root` options to `repl` command.
 - Use `image-checksum` to specify checksums of images used to build zones. This
   can be a literal sha256, or a URL suffix.
