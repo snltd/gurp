@@ -1,12 +1,12 @@
 use crate::users_and_groups;
 use anyhow::{Context, bail};
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
 use common::types::ApplyOpts;
 use nix::sys::stat::{self, FileStat};
 use nix::unistd::{Gid, Uid};
 use serde::Deserialize;
-use std::fs;
 use std::os::unix::fs::PermissionsExt;
+use std::{env, fs};
 
 #[derive(Debug)]
 pub struct FileMetadata<'a> {
@@ -151,4 +151,9 @@ fn set_mode(
     }
 
     Ok(())
+}
+
+pub fn current_dir() -> anyhow::Result<Utf8PathBuf> {
+    let cwd = env::current_dir().context("cannot get current dir from env")?;
+    Utf8PathBuf::try_from(cwd).map_err(|e| e.into())
 }

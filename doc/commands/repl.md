@@ -7,8 +7,15 @@ environment.
 Usage: gurp repl
 
 Options:
+      --syspath <SYSPATH>
+          Set the *syspath* dyn [default: /home/rob/github.com/snltd/gurp]
+      --gurp-config-root <GURP_CONFIG_ROOT>
+          Set the :gurp-config-root dyn [default: /home/rob/github.com/snltd/gurp]
   -h, --help  Print help
 ```
+
+`syspath` and `gurp-config-root` both default to your current working directory,
+so you will see a different help message.
 
 The `repl` command puts you "inside" the Gurp front-end, and is useful for
 debugging or experimenting with Gurp config.

@@ -7,6 +7,7 @@ use common::types::{
 };
 use gurptel::init;
 use std::process::ExitCode;
+use util::file;
 
 #[derive(Parser)]
 #[clap(version, about = "Gurp configures illumos systems", long_about = None)]
@@ -133,6 +134,12 @@ enum Commands {
     },
     /// Open a Janet REPL with the Gurp library already loaded into the root environment
     Repl {
+        /// Set the *syspath* dyn
+        #[arg(long, default_value_t = file::current_dir().expect("cannot get cwd"))]
+        syspath: Utf8PathBuf,
+        /// Set the :gurp-config-root dyn
+        #[arg(long, default_value_t = file::current_dir().expect("cannot get cwd"))]
+        gurp_config_root: Utf8PathBuf,
         /// Define a constant which can be accessed from the REPL
         #[arg(short = 'D', long = "define")]
         define: Vec<String>,
@@ -251,9 +258,13 @@ fn main() -> ExitCode {
             no_colour,
         } => commands::describe::run(&resource, no_colour),
         Commands::Doers { no_colour } => commands::doers::run(no_colour),
-        Commands::Repl { define } => {
+        Commands::Repl {
+            define,
+            syspath,
+            gurp_config_root,
+        } => {
             let opts = ApplyVmOpts { define };
-            commands::repl::run(&opts)
+            commands::repl::run(&opts, &syspath, &gurp_config_root)
         }
         Commands::Server { config_dir } => {
             let providers = match init::init_telemetry("gurp.server", &global_opts) {
