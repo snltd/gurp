@@ -160,8 +160,7 @@ fn wrapped_config(code: &str) -> String {
     }
 }
 
-// Errors are wrapped now. They come in a struct with keys
-// :error and :trace.
+// Errors are wrapped now. They come in a struct with keys :error and :trace.
 fn destructure_wrapped_error(st: JanetStruct) -> CompileError {
     let jerror = match st.get_owned(":error") {
         Some(err_msg) => err_msg.to_string(),

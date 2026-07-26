@@ -80,10 +80,18 @@ pub async fn config(
                         tracing::info!("sent {bytes}b image config generated from {host_file}");
                         ret
                     }
+                    Err(e) if matches!(e, common::types::CompileError::Compile { .. }) => {
+                        tracing::error!(
+                            remote_host = remote_host_name.to_string(),
+                            message = e.to_string(),
+                            trace = e.trace().map(|t| t.join("\n")).unwrap_or_default(),
+                        );
+                        error_response(e.into())
+                    }
                     Err(e) => {
                         tracing::error!(
                             remote_host = remote_host_name.to_string(),
-                            message = e.to_string()
+                            message = e.to_string(),
                         );
                         error_response(e.into())
                     }

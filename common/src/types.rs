@@ -119,6 +119,15 @@ pub enum CompileError {
 }
 
 impl CompileError {
+    pub fn trace(&self) -> Option<&[String]> {
+        match self {
+            CompileError::Compile { trace, .. } => Some(trace),
+            _ => None,
+        }
+    }
+}
+
+impl CompileError {
     pub fn is_retryable(&self) -> bool {
         match self {
             CompileError::Network(e) => e.is_retryable(),

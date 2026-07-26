@@ -88,14 +88,16 @@ pub fn run(
         }
 
         Err(e) => {
-            tracing::error!("could not generate config: {e:#}");
+            tracing::error!("could not generate config: {e:#} (Run with debug for stack trace)");
 
             if let CompileError::Compile { message, trace } = &e {
                 if message.contains("unknown symbol machine-config") {
                     tracing::error!("config may lack a (host) definition");
                 };
 
-                tracing::debug!(janet_trace = trace.join("\n"));
+                for line in trace {
+                    tracing::debug!("{line}");
+                }
             };
 
             metrics::send(ApplyStatus::Fail(e.into()), &start_time.elapsed());
