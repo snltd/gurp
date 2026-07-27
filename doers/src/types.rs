@@ -585,8 +585,28 @@ impl Applicator {
         tracing::error!("deserializing error: {}", e);
 
         let formatted_json = json::formatted(&self.json_config)?;
-        let error_line = e.line();
+        let mut error_line = e.line();
+        let error_col = e.column();
+
+        // Looks like Rust sees Janet code as one long line. This isn't unreasonable.
+        // So if the line is 1, let's use the column to find where the error in the code.
+
         let json_lines: Vec<_> = formatted_json.lines().collect();
+
+        if let Some(first_line) = json_lines.first()
+            && error_line == 1
+            && error_col > first_line.len()
+        {
+            let mut col_count = 0;
+            for (i, l) in json_lines.iter().enumerate() {
+                col_count += l.len() - 1;
+                if col_count >= error_col {
+                    error_line = i;
+                    break;
+                }
+            }
+        }
+
         let first_line = error_line.saturating_sub(30);
         let last_line = (error_line + 15).clamp(0, json_lines.len());
 
