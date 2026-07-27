@@ -1,10 +1,12 @@
 use crate::zone::bhyve;
 use camino::Utf8PathBuf;
+use ipnet::IpNet;
 use serde::Deserialize;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
+use std::net::IpAddr;
 use url::Url;
 use uuid::Uuid;
 
@@ -193,8 +195,8 @@ type GurpZoneNetworks = Vec<GurpZoneNetwork>;
 pub struct GurpZoneNetwork {
     pub physical: String,
     pub global_nic: String,
-    pub allowed_address: Option<String>,
-    pub defrouter: Option<String>,
+    pub allowed_address: Option<IpNet>, // needs a prefix
+    pub defrouter: Option<IpAddr>,      // must be a bare adddress
 }
 
 impl GurpZoneBhyve {
