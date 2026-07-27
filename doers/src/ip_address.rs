@@ -1,10 +1,12 @@
-use anyhow::{Context, bail, ensure};
+use anyhow::{Context, bail};
 use common::cmd;
 use common::constants::{IPADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
+use ipnet::IpNet;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::net::IpAddr;
 use std::process::Command;
 use util::deserializer::option_property_deserializer;
 use util::ip_protocols::{self, AlignIpPropArg};
@@ -18,7 +20,7 @@ pub struct GurpIpAddressEnsure {
     pub name: String,
     #[serde(rename = "type")]
     pub address_type: String,
-    pub address: Option<String>,
+    pub address: Option<IpNet>,
     #[serde(default, deserialize_with = "option_property_deserializer")]
     pub properties: Option<IpAddressPropMap>,
 }
@@ -36,7 +38,7 @@ struct IpAddressObject {
     name: String,
     address_type: String,
     state: String,
-    address: String,
+    address: IpNet,
 }
 
 type IpAddressPropMap = HashMap<String, String>;
@@ -208,20 +210,37 @@ fn describe_address(address_name: &str) -> anyhow::Result<Option<IpAddressObject
     Ok(info)
 }
 
+fn parse_addr_or_cidr(raw: &str) -> anyhow::Result<IpNet> {
+    if raw.contains('/') {
+        raw.parse::<IpNet>()
+            .with_context(|| format!("cannot parse CIDR {raw}"))
+    } else {
+        let addr: IpAddr = raw
+            .parse()
+            .with_context(|| format!("cannot parse IP address {raw}"))?;
+
+        IpNet::new(addr, if addr.is_ipv4() { 32 } else { 128 })
+            .with_context(|| format!("cannot construct IP address from {raw}"))
+    }
+}
+
 fn parse_addr_info(raw: &str) -> anyhow::Result<IpAddressObject> {
-    let chunks: Vec<_> = raw.split(':').collect();
+    let mut chunks = raw.split(':');
 
-    ensure!(
-        chunks.len() == 4,
-        format!("Expected four components in ipadm output {raw}")
-    );
-
-    Ok(IpAddressObject {
-        name: chunks[0].to_owned(),
-        address_type: chunks[1].to_owned(),
-        state: chunks[2].to_owned(),
-        address: chunks[3].to_owned(),
-    })
+    if let Some(name) = chunks.next()
+        && let Some(address_type) = chunks.next()
+        && let Some(state) = chunks.next()
+        && let Some(addr) = chunks.next()
+    {
+        Ok(IpAddressObject {
+            name: name.to_owned(),
+            address_type: address_type.to_owned(),
+            state: state.to_owned(),
+            address: parse_addr_or_cidr(addr)?,
+        })
+    } else {
+        bail!("Expected four components in ipadm output {raw}")
+    }
 }
 
 pub fn parse_address_props(raw: &str) -> IpAddressPropMap {
@@ -246,7 +265,7 @@ pub fn parse_address_props(raw: &str) -> IpAddressPropMap {
 mod test {
     use super::*;
     use pretty_assertions::assert_eq;
-    use tester::{deserialized_example, janet2json, propmap};
+    use tester::{deserialized_example, propmap};
 
     #[test]
     fn test_ip_address_deserialize_ensure_static_with_properties() {
@@ -254,7 +273,7 @@ mod test {
             GurpIpAddressEnsure {
                 name: "example0/v4".to_owned(),
                 id: "/NO-ROLE/ip-address/example0_v4".to_owned(),
-                address: Some("192.168.1.13/24".to_owned()),
+                address: Some(parse_addr_or_cidr("192.168.1.13/24").unwrap()),
                 address_type: "static".to_owned(),
                 properties: Some(propmap! {
                     "transmit" => "on",
@@ -297,7 +316,7 @@ mod test {
             name: "e1000g0/v4".to_owned(),
             address_type: "static".to_owned(),
             state: "ok".to_owned(),
-            address: "192.168.1.5/24".to_owned(),
+            address: IpNet::new("192.168.1.5".parse::<IpAddr>().unwrap(), 24).unwrap(),
         };
 
         assert_eq!(
@@ -323,31 +342,5 @@ mod test {
         };
 
         assert_eq!(expected, parse_address_props(input));
-    }
-
-    #[test]
-    fn test_deserialize() {
-        let json_def = janet2json(indoc::indoc! {r#"
-           (ip-address/ensure "test0/v4"
-                              :type "static"
-                              :address "192.168.1.13/24"
-                              :properties {:prefixlen 24
-                                           :transmit true
-                                           :private false})
-          "#});
-
-        let expected = GurpIpAddressEnsure {
-            id: "/NO-ROLE/ip-address/test0_v4".to_owned(),
-            name: "test0/v4".to_owned(),
-            address_type: "static".to_owned(),
-            address: Some("192.168.1.13/24".to_owned()),
-            properties: Some(HashMap::from([
-                ("prefixlen".to_owned(), "24".to_owned()),
-                ("transmit".to_owned(), "on".to_owned()),
-                ("private".to_owned(), "off".to_owned()),
-            ])),
-        };
-
-        assert_eq!(expected, serde_json::from_str(&json_def).unwrap())
     }
 }
