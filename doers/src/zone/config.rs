@@ -196,7 +196,7 @@ pub struct GurpZoneNetwork {
     pub physical: String,
     pub global_nic: String,
     pub allowed_address: Option<IpNet>, // needs a prefix
-    pub defrouter: Option<IpAddr>,      // must be a bare adddress
+    pub defrouter: Option<IpAddr>,      // must be a bare address
 }
 
 impl GurpZoneBhyve {
