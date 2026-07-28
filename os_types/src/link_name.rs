@@ -1,8 +1,9 @@
-use std::fmt;
-use std::str::FromStr;
-
 use anyhow::{Context, bail, ensure};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
+use std::cmp::Ordering;
+use std::ffi::OsStr;
+use std::fmt;
+use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, DeserializeFromStr, SerializeDisplay)]
 pub struct LinkName(String);
@@ -52,6 +53,25 @@ impl FromStr for LinkName {
 impl fmt::Display for LinkName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0)
+    }
+}
+
+// We need this for collecting bridge links into a BTreeSet
+impl Ord for LinkName {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl PartialOrd for LinkName {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl AsRef<OsStr> for LinkName {
+    fn as_ref(&self) -> &OsStr {
+        self.0.as_ref()
     }
 }
 

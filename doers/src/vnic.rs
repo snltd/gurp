@@ -80,7 +80,7 @@ impl GurpVnicEnsure {
         let mut cmd = Command::new(DLADM_BIN);
         cmd.arg("create-vnic");
         cmd.arg("-l");
-        cmd.arg(&self.over.to_string());
+        cmd.arg(&self.over);
 
         if let Some(vlan_tag) = &self.vlan_tag {
             cmd.arg("-v");

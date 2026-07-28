@@ -151,8 +151,7 @@ impl GurpIpAddressEnsure {
             other => bail!("unknown address type: {other}"),
         }
 
-        cmd.arg(&self.name.to_string());
-
+        cmd.arg(&self.name);
         tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {

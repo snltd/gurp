@@ -1,6 +1,7 @@
 use super::LinkName;
 use anyhow::{Context, bail, ensure};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
+use std::ffi::OsStr;
 use std::fmt;
 use std::str::FromStr;
 
@@ -51,6 +52,12 @@ impl FromStr for AddrObj {
 impl fmt::Display for AddrObj {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0)
+    }
+}
+
+impl AsRef<OsStr> for AddrObj {
+    fn as_ref(&self) -> &OsStr {
+        self.0.as_ref()
     }
 }
 

@@ -1,6 +1,7 @@
 use anyhow::{Context, ensure};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::cmp::Ordering;
+use std::ffi::OsStr;
 use std::fmt;
 use std::str::FromStr;
 
@@ -35,6 +36,12 @@ impl FromStr for GurpId {
 impl fmt::Display for GurpId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0)
+    }
+}
+
+impl AsRef<OsStr> for GurpId {
+    fn as_ref(&self) -> &OsStr {
+        self.0.as_ref()
     }
 }
 
