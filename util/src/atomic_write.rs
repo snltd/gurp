@@ -3,6 +3,7 @@ use anyhow::Context;
 use camino::Utf8Path;
 use camino_tempfile::Builder;
 use common::types::ApplyOpts;
+use os_types::FileMode;
 use std::fs::{self, File};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -62,7 +63,7 @@ pub fn back_up(path: &Utf8Path, suffix: &str, opts: &ApplyOpts) -> anyhow::Resul
             FileMetadata {
                 group: &NameOrId::Name("root".to_owned()),
                 owner: &NameOrId::Name("root".to_owned()),
-                mode: "0400",
+                mode: &FileMode::new("0400").context("couldn't create backup file mode")?,
             },
             opts,
         )?;

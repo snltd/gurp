@@ -86,7 +86,7 @@ mod test {
     use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
     use common::types::ApplyOpts;
     use indoc::formatdoc;
-    use os_types::GurpId;
+    use os_types::{FileMode, GurpId};
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
@@ -104,7 +104,7 @@ mod test {
             id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: temp_file.clone(),
             desired_state: DesiredFileState {
-                mode: "0755".to_owned(),
+                mode: FileMode::new("0755").unwrap(),
                 group: NameOrId::Name(my_group()),
                 owner: NameOrId::Name(my_user()),
                 content: None,
@@ -140,7 +140,7 @@ mod test {
             desired_state: DesiredFileState {
                 group: NameOrId::Name(my_group()),
                 owner: NameOrId::Name(my_user()),
-                mode: "2755".to_owned(),
+                mode: FileMode::new("2755").unwrap(),
                 content: None,
                 ignore_pattern: None,
                 from: Some(fixture("file/binary-file")),

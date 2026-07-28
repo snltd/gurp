@@ -12,7 +12,7 @@
   {:group {:types [:string :number]
            :help "The group name or GID of the for this directory"}
    :mode {:types [:string]
-          :help "Permissions, written as a four-digit octal"}
+          :help "Permissions, octal"}
    :owner {:types [:string :number]
            :help "The username or UID of the user who owns this directory"}}
 

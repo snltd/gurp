@@ -4,6 +4,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use common::types::ApplyOpts;
 use nix::sys::stat::{self, FileStat};
 use nix::unistd::{Gid, Uid};
+use os_types::FileMode;
 use serde::Deserialize;
 use std::os::unix::fs::PermissionsExt;
 use std::{env, fs};
@@ -11,7 +12,7 @@ use std::{env, fs};
 #[derive(Debug)]
 pub struct FileMetadata<'a> {
     pub group: &'a NameOrId,
-    pub mode: &'a str,
+    pub mode: &'a FileMode,
     pub owner: &'a NameOrId,
 }
 
@@ -64,9 +65,12 @@ pub fn ensure_metadata(
         set_user(path, new_uid, new_gid, opts)?;
     }
 
-    let current_mode = format!("{:04o}", metadata.st_mode & 0o7777);
+    // We don't care about file type because we're trying to be generic, so mask off the file
+    // type bit.
+    let current_mode = FileMode::from_u32(metadata.st_mode & 0o7777);
 
-    if current_mode != md.mode {
+    if current_mode != *md.mode {
+        println!("CURRENT MODE {} : DESIRED MODE {}", current_mode, md.mode);
         changed = true;
 
         if !opts.noop {
@@ -138,15 +142,16 @@ fn set_user(
 
 fn set_mode(
     path: &Utf8Path,
-    current_mode: &str,
-    desired_mode: &str,
+    current_mode: &FileMode,
+    desired_mode: &FileMode,
     opts: &ApplyOpts,
 ) -> anyhow::Result<()> {
-    tracing::info!("{path}: changing mode {} -> {}", current_mode, desired_mode);
-    let mode = u32::from_str_radix(desired_mode, 8)?;
+    println!("{path}: changing mode {current_mode} -> {desired_mode}",);
+
+    tracing::info!("{path}: changing mode {current_mode} -> {desired_mode}");
 
     if !opts.noop {
-        fs::set_permissions(path, fs::Permissions::from_mode(mode))
+        fs::set_permissions(path, fs::Permissions::from_mode(desired_mode.as_u32()))
             .with_context(|| format!("failed to set permissions on {path}"))?;
     }
 

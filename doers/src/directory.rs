@@ -3,7 +3,7 @@ use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_DIRS};
 use common::types::{ApplyOpts, ApplySummary};
 use nix::unistd::{Gid, Uid};
-use os_types::GurpId;
+use os_types::{FileMode, GurpId};
 use serde::Deserialize;
 use std::fs;
 use util::file::{self, FileMetadata, NameOrId};
@@ -23,7 +23,7 @@ pub struct GurpDirectoryEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct DesiredDirectoryState {
     pub group: NameOrId,
-    pub mode: String,
+    pub mode: FileMode,
     pub owner: NameOrId,
 }
 
@@ -31,7 +31,7 @@ pub struct DesiredDirectoryState {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct DirectoryState {
     pub gid: Gid,
-    pub mode: String,
+    pub mode: FileMode,
     pub uid: Uid,
 }
 
@@ -129,7 +129,7 @@ mod test {
                 desired_state: DesiredDirectoryState {
                     owner: NameOrId::Name("root".to_owned()),
                     group: NameOrId::Name("root".to_owned()),
-                    mode: "0755".to_owned(),
+                    mode: FileMode::new("755").unwrap(),
                 }
             },
             deserialized_example("directory/ensure-default-dir.janet")
@@ -145,7 +145,7 @@ mod test {
                 desired_state: DesiredDirectoryState {
                     owner: NameOrId::Id(4),
                     group: NameOrId::Id(12),
-                    mode: "2750".to_owned(),
+                    mode: FileMode::new("2750").unwrap(),
                 }
             },
             deserialized_example("directory/ensure-with-ids.janet")
@@ -161,7 +161,7 @@ mod test {
                 desired_state: DesiredDirectoryState {
                     owner: NameOrId::Name("adm".to_owned()),
                     group: NameOrId::Name("sys".to_owned()),
-                    mode: "0700".to_owned(),
+                    mode: FileMode::new("0700").unwrap(),
                 }
             },
             deserialized_example("directory/ensure-with-names.janet")

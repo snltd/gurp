@@ -2,6 +2,7 @@ use anyhow::Context;
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::FileMode;
 use serde_json::Value;
 use std::env;
 use std::fs::File;
@@ -63,7 +64,7 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
         &gurp_path,
         file::FileMetadata {
             group: &file::NameOrId::Id(metadata.st_uid),
-            mode: "0755",
+            mode: &FileMode::new("0755").unwrap(),
             owner: &file::NameOrId::Id(metadata.st_uid),
         },
         opts,

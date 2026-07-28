@@ -100,6 +100,7 @@ impl GurpFileEnsure {
 mod test {
     use super::*;
     use camino::Utf8PathBuf;
+    use os_types::FileMode;
     use pretty_assertions::assert_eq;
     use tester::{deserialized_example, fixture, my_group, my_user};
     use url::Url;
@@ -118,7 +119,7 @@ mod test {
                     from_url: None,
                     from: None,
                     ignore_pattern: None,
-                    mode: "0600".to_owned(),
+                    mode: FileMode::new("0600").unwrap(),
                     group: NameOrId::Name("root".to_owned()),
                     owner: NameOrId::Name("sys".to_owned()),
                     to_format: None,
@@ -151,7 +152,7 @@ mod test {
                             .to_owned()
                     ),
                     ignore_pattern: None,
-                    mode: "0644".to_owned(),
+                    mode: FileMode::new("644").unwrap(),
                     owner: NameOrId::Name("root".to_owned()),
                     group: NameOrId::Name("root".to_owned()),
                     to_format: None,
@@ -171,7 +172,7 @@ mod test {
             desired_state: DesiredFileState {
                 group: NameOrId::Name(my_group()),
                 owner: NameOrId::Name(my_user()),
-                mode: "2755".to_owned(),
+                mode: FileMode::new("2755").unwrap(),
                 content: None,
                 ignore_pattern: None,
                 from: Some(fixture("file/binary-file")),
@@ -193,7 +194,7 @@ mod test {
             desired_state: DesiredFileState {
                 group: NameOrId::Name(my_group()),
                 owner: NameOrId::Name(my_user()),
-                mode: "2755".to_owned(),
+                mode: FileMode::new("2755").unwrap(),
                 content: Some("content".to_owned()),
                 ignore_pattern: None,
                 from: Some(fixture("file/binary-file")),
@@ -215,7 +216,7 @@ mod test {
             desired_state: DesiredFileState {
                 group: NameOrId::Name(my_group()),
                 owner: NameOrId::Name(my_user()),
-                mode: "2755".to_owned(),
+                mode: FileMode::new("2755").unwrap(),
                 content: None,
                 ignore_pattern: None,
                 from: None,
