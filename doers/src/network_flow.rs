@@ -2,9 +2,9 @@ use anyhow::{Context, ensure};
 use common::cmd;
 use common::constants::{FLOWADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
-use os_types::GurpId;
+use ipnet::IpNet;
+use os_types::{GurpId, LinkName};
 use serde::Deserialize;
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::process::Command;
 
@@ -14,9 +14,9 @@ pub struct GurpNetworkFlowEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
-    pub link: String,
-    pub local_ip: Option<String>,
-    pub remote_ip: Option<String>,
+    pub link: LinkName,
+    pub local_ip: Option<IpNet>,
+    pub remote_ip: Option<IpNet>,
     pub protocol: Option<String>,
     pub local_port: Option<u16>,
     pub remote_port: Option<u16>,
@@ -33,14 +33,12 @@ pub struct GurpNetworkFlowRemove {
     pub name: String,
 }
 
-type FlowName = String;
-type ExtantFlows = HashMap<FlowName, ExtantFlow>;
-
 #[derive(Debug, PartialEq)]
 pub struct ExtantFlow {
-    pub link: String,
-    pub local_ip: Option<String>,
-    pub remote_ip: Option<String>,
+    pub name: String,
+    pub link: LinkName,
+    pub local_ip: Option<IpNet>,
+    pub remote_ip: Option<IpNet>,
     pub transport: Option<String>,
     pub local_port: Option<u16>,
     pub remote_port: Option<u16>,
@@ -56,9 +54,9 @@ struct ExtantFlowprops {
 
 impl GurpNetworkFlowEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let extant_flows = parse_flows(&get_flows()?);
+        let extant_flows = parse_flows(&get_flows()?).context("cannot get list of flows")?;
 
-        if let Some(extant_flow) = extant_flows.get(&self.name) {
+        if let Some(extant_flow) = extant_flows.iter().find(|f| f.name == self.name) {
             tracing::debug!("found existing flow {}", self.name);
 
             // if the flow isn't right, we must remove it and recreate it
@@ -216,9 +214,9 @@ impl GurpNetworkFlowEnsure {
 
 impl GurpNetworkFlowRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let extant_flows = parse_flows(&get_flows()?);
+        let extant_flows = parse_flows(&get_flows()?).context("cannot get list of flows")?;
 
-        if extant_flows.contains_key(&self.name) {
+        if extant_flows.iter().find(|f| f.name == self.name).is_some() {
             tracing::info!("removing flow {}", self.name);
             cmd_change_or_noop!(opts, FLOWADM_BIN, "remove-flow", &self.name)
                 .with_context(|| format!("failed to remote network-flow {}", self.name))
@@ -252,59 +250,47 @@ fn get_flowprops(flow_name: &str) -> anyhow::Result<String> {
     .with_context(|| format!("failed to get flowprops for network-flow {flow_name}"))
 }
 
-fn string_field_or_none(bits: &[String], index: usize) -> Option<String> {
-    bits.get(index)
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
-}
-
-fn u16_field_or_none(bits: &[String], index: usize) -> Option<u16> {
-    if let Some(bit) = bits.get(index) {
-        bit.parse::<u16>().ok()
-    } else {
-        None
-    }
-}
-
-fn extract_ip(raw: &str) -> String {
-    if let Some(addr) = raw.trim().split(':').next_back() {
-        addr.to_string()
-    } else {
-        String::new()
-    }
-}
-
-fn parse_flows(raw: &str) -> ExtantFlows {
-    raw.lines()
-        .filter_map(|l| {
-            let bits: Vec<_> = split_unescaped_colon(l.trim());
-
-            if bits.len() == 7 {
-                let (remote_ip, local_ip) = if bits[2].starts_with("RMT") {
-                    (Some(extract_ip(&bits[2])), None)
-                } else if bits[2].starts_with("LCL") {
-                    (None, Some(extract_ip(&bits[2])))
-                } else {
-                    (None, None)
-                };
-
-                Some((
-                    bits[0].clone(),
-                    ExtantFlow {
-                        link: bits[1].clone(),
-                        local_ip,
-                        remote_ip,
-                        transport: string_field_or_none(&bits, 3),
-                        local_port: u16_field_or_none(&bits, 4),
-                        remote_port: u16_field_or_none(&bits, 5),
-                        dsfield: string_field_or_none(&bits, 6),
-                    },
-                ))
-            } else {
-                None
-            }
+fn extract_cidr(raw: &str) -> anyhow::Result<Option<IpNet>> {
+    raw.trim()
+        .split(':')
+        .next_back()
+        .filter(|addr| !addr.is_empty())
+        .map(|addr| {
+            addr.parse::<IpNet>()
+                .with_context(|| format!("cannot parse flow IP CIDR {raw}"))
         })
-        .collect()
+        .transpose()
+}
+
+fn parse_flow(raw: &str) -> anyhow::Result<ExtantFlow> {
+    let chunks = split_unescaped_colon(raw.trim());
+
+    let [name, link, ip, transport, lport, rport, dsfield]: [String; 7] = chunks
+        .try_into()
+        .map_err(|_| anyhow::anyhow!("expected 7 fields in {raw}"))?;
+
+    let (remote_ip, local_ip) = if ip.starts_with("RMT") {
+        (extract_cidr(&ip)?, None)
+    } else if ip.starts_with("LCL") {
+        (None, extract_cidr(&ip)?)
+    } else {
+        (None, None)
+    };
+
+    Ok(ExtantFlow {
+        name,
+        link: LinkName::new(link)?,
+        local_ip,
+        remote_ip,
+        transport: (!transport.is_empty()).then_some(transport),
+        local_port: (!lport.is_empty()).then(|| lport.parse()).transpose()?,
+        remote_port: (!rport.is_empty()).then(|| rport.parse()).transpose()?,
+        dsfield: (!dsfield.is_empty()).then_some(dsfield),
+    })
+}
+
+fn parse_flows(raw: &str) -> anyhow::Result<Vec<ExtantFlow>> {
+    raw.lines().map(|l| parse_flow(l.trim())).collect()
 }
 
 fn parse_flowprops(raw: &str) -> ExtantFlowprops {
@@ -366,7 +352,7 @@ mod test {
             GurpNetworkFlowEnsure {
                 name: "tls-throttle".to_owned(),
                 id: GurpId::new("/NO-ROLE/network-flow/tls-throttle").unwrap(),
-                link: "vnic1".to_owned(),
+                link: LinkName::new("vnic1").unwrap(),
                 protocol: Some("tcp".to_owned()),
                 remote_ip: None,
                 remote_port: Some(443),
@@ -386,7 +372,7 @@ mod test {
             GurpNetworkFlowEnsure {
                 name: "ssh-flow".to_owned(),
                 id: GurpId::new("/NO-ROLE/network-flow/ssh-flow").unwrap(),
-                link: "vnic1".to_owned(),
+                link: LinkName::new("vnic1").unwrap(),
                 protocol: Some("tcp".to_owned()),
                 remote_ip: None,
                 remote_port: None,
@@ -463,70 +449,60 @@ mod test {
             testflow6:media_net0::tcp::12345:
             "# };
 
-        let expected = HashMap::from([
-            (
-                "testflow1".to_owned(),
-                ExtantFlow {
-                    link: "e1000g0".to_owned(),
-                    local_ip: None,
-                    remote_ip: None,
-                    transport: Some("tcp".to_owned()),
-                    local_port: Some(443),
-                    remote_port: None,
-                    dsfield: None,
-                },
-            ),
-            (
-                "testflow2".to_owned(),
-                ExtantFlow {
-                    link: "e1000g0".to_owned(),
-                    local_ip: None,
-                    remote_ip: None,
-                    transport: Some("tcp".to_owned()),
-                    local_port: Some(80),
-                    remote_port: None,
-                    dsfield: None,
-                },
-            ),
-            (
-                "testflow3".to_owned(),
-                ExtantFlow {
-                    link: "ws_net0".to_owned(),
-                    local_ip: None,
-                    remote_ip: Some("5.6.7.8/32".to_owned()),
-                    transport: None,
-                    local_port: None,
-                    remote_port: None,
-                    dsfield: None,
-                },
-            ),
-            (
-                "testflow4".to_owned(),
-                ExtantFlow {
-                    link: "gurp_net0".to_owned(),
-                    local_ip: Some("1.2.3.4/32".to_owned()),
-                    remote_ip: None,
-                    transport: None,
-                    local_port: None,
-                    remote_port: None,
-                    dsfield: None,
-                },
-            ),
-            (
-                "testflow6".to_owned(),
-                ExtantFlow {
-                    link: "media_net0".to_owned(),
-                    local_ip: None,
-                    remote_ip: None,
-                    transport: Some("tcp".to_owned()),
-                    local_port: None,
-                    remote_port: Some(12345),
-                    dsfield: None,
-                },
-            ),
-        ]);
+        let expected = vec![
+            ExtantFlow {
+                name: "testflow1".to_owned(),
+                link: LinkName::new("e1000g0").unwrap(),
+                local_ip: None,
+                remote_ip: None,
+                transport: Some("tcp".to_owned()),
+                local_port: Some(443),
+                remote_port: None,
+                dsfield: None,
+            },
+            ExtantFlow {
+                name: "testflow2".to_owned(),
+                link: LinkName::new("e1000g0").unwrap(),
+                local_ip: None,
+                remote_ip: None,
+                transport: Some("tcp".to_owned()),
+                local_port: Some(80),
+                remote_port: None,
+                dsfield: None,
+            },
+            ExtantFlow {
+                name: "testflow3".to_owned(),
+                link: LinkName::new("ws_net0").unwrap(),
+                local_ip: None,
+                remote_ip: Some("5.6.7.8/32".parse().unwrap()),
+                transport: None,
+                local_port: None,
+                remote_port: None,
+                dsfield: None,
+            },
+            ExtantFlow {
+                name: "testflow4".to_owned(),
+                link: LinkName::new("gurp_net0").unwrap(),
+                local_ip: Some("1.2.3.4/32".parse().unwrap()),
+                remote_ip: None,
+                transport: None,
+                local_port: None,
+                remote_port: None,
+                dsfield: None,
+            },
+            ExtantFlow {
+                name: "testflow6".to_owned(),
+                link: LinkName::new("media_net0").unwrap(),
+                local_ip: None,
+                remote_ip: None,
+                transport: Some("tcp".to_owned()),
+                local_port: None,
+                remote_port: Some(12345),
+                dsfield: None,
+            },
+        ];
 
-        assert_eq!(expected, parse_flows(input));
+        assert_eq!(expected, parse_flows(input).unwrap());
     }
 
     #[test]

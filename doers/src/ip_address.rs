@@ -11,6 +11,7 @@ use std::net::IpAddr;
 use std::process::Command;
 use util::deserializer::option_property_deserializer;
 use util::ip_protocols::{self, AlignIpPropArg};
+use util::network;
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -210,20 +211,6 @@ fn describe_address(addrobj_name: &AddrObj) -> anyhow::Result<Option<IpAddressOb
     Ok(info)
 }
 
-fn parse_addr_or_cidr(raw: &str) -> anyhow::Result<IpNet> {
-    if raw.contains('/') {
-        raw.parse::<IpNet>()
-            .with_context(|| format!("cannot parse CIDR {raw}"))
-    } else {
-        let addr: IpAddr = raw
-            .parse()
-            .with_context(|| format!("cannot parse IP address {raw}"))?;
-
-        IpNet::new(addr, if addr.is_ipv4() { 32 } else { 128 })
-            .with_context(|| format!("cannot construct IP address from {raw}"))
-    }
-}
-
 fn parse_addr_info(raw: &str) -> anyhow::Result<IpAddressObject> {
     let mut chunks = raw.split(':');
 
@@ -236,7 +223,7 @@ fn parse_addr_info(raw: &str) -> anyhow::Result<IpAddressObject> {
             name: AddrObj::new(name)?,
             address_type: address_type.to_owned(),
             state: state.to_owned(),
-            address: parse_addr_or_cidr(addr)?,
+            address: network::parse_addr_or_cidr(addr)?,
         })
     } else {
         bail!("Expected four components in ipadm output {raw}")

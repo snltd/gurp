@@ -87,7 +87,7 @@ impl GurpVnicEnsure {
             cmd.arg(vlan_tag.to_string());
         }
 
-        cmd.arg(&self.name.to_string());
+        cmd.arg(&self.name);
 
         tracing::debug!(command = cmd::to_string(&cmd));
 
@@ -145,7 +145,7 @@ impl GurpVnicRemove {
 fn vnic_exists(vnic_name: &LinkName) -> anyhow::Result<bool> {
     let dladm_output = cmd_output!(DLADM_BIN, "show-vnic", "-p", "-o", "link")
         .with_context(|| format!("failed to get state of VNIC {vnic_name}"))?;
-    Ok(dladm_output.lines().any(|l| l == &vnic_name.to_string()))
+    Ok(dladm_output.lines().any(|l| l == vnic_name.to_string()))
 }
 
 fn delete_vnic(vnic_name: &LinkName, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
