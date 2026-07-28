@@ -4,6 +4,7 @@ use common::constants::{
     DISPADMIN_BIN, ONE_RESOURCE_NO_CHANGE, SHARECTL_BIN, SMBADM_BIN, SVCADM_BIN,
 };
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::process::{Command, Stdio};
 
@@ -11,7 +12,7 @@ use std::process::{Command, Stdio};
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpMiscEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(flatten)]
     pub desired_state: MiscState,
 }
@@ -172,7 +173,7 @@ mod test {
     fn test_misc_deserialize_ensure_nfs_domain() {
         assert_eq!(
             GurpMiscEnsure {
-                id: "/NO-ROLE/misc/nfs-domain-lan.id264.net".to_owned(),
+                id: GurpId::new("/NO-ROLE/misc/nfs-domain-lan.id264.net").unwrap(),
                 desired_state: MiscState {
                     nfs_domain: Some("lan.id264.net".to_owned()),
                     enable_smb: None,
@@ -187,7 +188,7 @@ mod test {
     fn test_misc_deserialize_ensure_smb_user() {
         assert_eq!(
             GurpMiscEnsure {
-                id: "/NO-ROLE/misc/enable-smb-rob".to_owned(),
+                id: GurpId::new("/NO-ROLE/misc/enable-smb-rob").unwrap(),
                 desired_state: MiscState {
                     nfs_domain: None,
                     enable_smb: Some("rob".to_owned()),
@@ -202,7 +203,7 @@ mod test {
     fn test_misc_deserialize_ensure_scheduler_class() {
         assert_eq!(
             GurpMiscEnsure {
-                id: "/NO-ROLE/misc/scheduler-FSS".to_owned(),
+                id: GurpId::new("/NO-ROLE/misc/scheduler-FSS").unwrap(),
                 desired_state: MiscState {
                     nfs_domain: None,
                     enable_smb: None,

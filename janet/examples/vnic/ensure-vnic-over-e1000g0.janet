@@ -1,2 +1,2 @@
 (vnic/ensure "vnic0"
-             :over "e1000g")
+             :over "e1000g0")

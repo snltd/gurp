@@ -86,6 +86,7 @@ mod test {
     use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
     use common::types::ApplyOpts;
     use indoc::formatdoc;
+    use os_types::GurpId;
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
@@ -100,7 +101,7 @@ mod test {
         assert!(!temp_file.exists());
 
         let sut = GurpFileEnsure {
-            id: "IRRELEVANT".to_owned(),
+            id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: temp_file.clone(),
             desired_state: DesiredFileState {
                 mode: "0755".to_owned(),
@@ -134,7 +135,7 @@ mod test {
         assert!(!temp_file.exists());
 
         let sut = GurpFileEnsure {
-            id: "IRRELEVANT".to_owned(),
+            id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: temp_file.clone(),
             desired_state: DesiredFileState {
                 group: NameOrId::Name(my_group()),

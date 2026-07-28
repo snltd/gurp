@@ -4,6 +4,7 @@ use common::constants::{
     IPADM_BIN, NETSTAT_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ROUTE_BIN,
 };
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
@@ -31,7 +32,7 @@ type Flags = HashMap<String, String>;
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpRouteEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub destination: String,
     pub gateway: Option<String>,
@@ -50,7 +51,7 @@ pub struct GurpRouteEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpRouteRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub destination: String,
     pub gateway: Option<String>,
@@ -283,7 +284,7 @@ mod test {
     fn test_deserialize_route_ensure_blackhole() {
         assert_eq!(
             GurpRouteEnsure {
-                id: "/NO-ROLE/route/203.0.113.0_24".to_owned(),
+                id: GurpId::new("/NO-ROLE/route/203.0.113.0_24").unwrap(),
                 destination: "203.0.113.0/24".to_owned(),
                 gateway: Some("127.0.0.1".to_owned()),
                 interface: None,
@@ -299,7 +300,7 @@ mod test {
     fn test_deserialize_route_ensure_default_route() {
         assert_eq!(
             GurpRouteEnsure {
-                id: "/NO-ROLE/route/default".to_owned(),
+                id: GurpId::new("/NO-ROLE/route/default").unwrap(),
                 destination: "default".to_owned(),
                 gateway: Some("192.168.1.1".to_owned()),
                 interface: None,
@@ -315,7 +316,7 @@ mod test {
     fn test_deserialize_route_ensure_network_with_mtu() {
         assert_eq!(
             GurpRouteEnsure {
-                id: "/NO-ROLE/route/10.0.5.0_24".to_owned(),
+                id: GurpId::new("/NO-ROLE/route/10.0.5.0_24").unwrap(),
                 destination: "10.0.5.0/24".to_owned(),
                 gateway: Some("10.0.5.150".to_owned()),
                 interface: None,
@@ -331,7 +332,7 @@ mod test {
     fn test_deserialize_route_remove_blackhole() {
         assert_eq!(
             GurpRouteRemove {
-                id: "/NO-ROLE/route/203.0.113.0_24".to_owned(),
+                id: GurpId::new("/NO-ROLE/route/203.0.113.0_24").unwrap(),
                 destination: "203.0.113.0/24".to_owned(),
                 gateway: Some("127.0.0.1".to_owned()),
                 interface: None,
@@ -345,7 +346,7 @@ mod test {
     fn test_deserialize_route_remove_net_route() {
         assert_eq!(
             GurpRouteRemove {
-                id: "/NO-ROLE/route/10.0.5.0_24".to_owned(),
+                id: GurpId::new("/NO-ROLE/route/10.0.5.0_24").unwrap(),
                 destination: "10.0.5.0/24".to_owned(),
                 gateway: Some("10.0.5.150".to_owned()),
                 interface: None,

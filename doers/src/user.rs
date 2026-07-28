@@ -7,6 +7,7 @@ use common::constants::{
 };
 use common::types::{ApplyOpts, ApplySummary};
 use nix::unistd::{Group, User};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::fs;
 use std::process::Command;
@@ -18,7 +19,7 @@ pub const SHADOW_PATH: &str = "/etc/shadow";
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpUserEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     #[serde(flatten)]
     pub desired_state: UserState,
@@ -45,7 +46,7 @@ pub struct UserState {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpUserRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
 }
 
@@ -373,7 +374,7 @@ mod tests {
     fn test_deserialize_user_ensure_gurpuser() {
         assert_eq!(
             GurpUserEnsure {
-                id: "/NO-ROLE/user/gurpuser".to_owned(),
+                id: GurpId::new("/NO-ROLE/user/gurpuser").unwrap(),
                 name: "gurpuser".to_owned(),
                 desired_state: UserState {
                     primary_group: "sysadmin".to_owned(),
@@ -394,7 +395,7 @@ mod tests {
     fn test_deserialize_user_remove_user_lolex() {
         assert_eq!(
             GurpUserRemove {
-                id: "/NO-ROLE/user/lolex".to_owned(),
+                id: GurpId::new("/NO-ROLE/user/lolex").unwrap(),
                 name: "lolex".to_owned(),
             },
             deserialized_example("user/remove-user-lolex.janet")

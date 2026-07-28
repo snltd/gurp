@@ -4,13 +4,14 @@ use common::constants::{
 };
 use common::types::{ApplyOpts, ApplySummary};
 use nix::unistd::Group;
+use os_types::GurpId;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpGroupEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     pub gid: u32,
 }
@@ -19,7 +20,7 @@ pub struct GurpGroupEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpGroupRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
 }
 
@@ -74,7 +75,7 @@ mod test {
         assert_eq!(
             GurpGroupEnsure {
                 name: "new-group".to_owned(),
-                id: "/NO-ROLE/group/new-group".to_owned(),
+                id: GurpId::new("/NO-ROLE/group/new-group").unwrap(),
                 gid: 264,
             },
             deserialized_example("group/ensure-new-group.janet")
@@ -86,7 +87,7 @@ mod test {
         assert_eq!(
             GurpGroupRemove {
                 name: "old-group".to_owned(),
-                id: "/NO-ROLE/group/old-group".to_owned(),
+                id: GurpId::new("/NO-ROLE/group/old-group").unwrap(),
             },
             deserialized_example("group/remove-old-group.janet")
         );

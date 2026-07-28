@@ -7,6 +7,7 @@ use common::constants::{
 };
 use common::info;
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::fs::{self, File};
 use std::io::Write;
@@ -26,7 +27,7 @@ type EnsureList = Vec<GurpIpfilterEnsure>;
 #[serde(rename_all = "kebab-case")]
 pub struct GurpIpfilterEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     pub from: Option<String>,
     pub content: Option<String>,
@@ -38,7 +39,7 @@ pub struct GurpIpfilterEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpIpfilterRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
 }
 
@@ -238,7 +239,7 @@ mod test {
         assert_eq!(
             GurpIpfilterEnsure {
                 name: "rules-from-config".to_owned(),
-                id: "/NO-ROLE/ipfilter/rules-from-config".to_owned(),
+                id: GurpId::new("/NO-ROLE/ipfilter/rules-from-config").unwrap(),
                 priority: 0,
                 from: None,
                 content: Some("block in log all\nblock out all".to_owned()),
@@ -253,7 +254,7 @@ mod test {
         assert_eq!(
             GurpIpfilterEnsure {
                 name: "rules-from-file".to_owned(),
-                id: "/NO-ROLE/ipfilter/rules-from-file".to_owned(),
+                id: GurpId::new("/NO-ROLE/ipfilter/rules-from-file").unwrap(),
                 priority: 1,
                 from: Some("test/ipfilter-test".to_owned()),
                 content: None,
@@ -268,7 +269,7 @@ mod test {
         assert_eq!(
             GurpIpfilterRemove {
                 name: "removes-all-rules".to_owned(),
-                id: "/NO-ROLE/ipfilter/removes-all-rules".to_owned(),
+                id: GurpId::new("/NO-ROLE/ipfilter/removes-all-rules").unwrap(),
             },
             deserialized_example("ipfilter/remove-all-rules.janet")
         );

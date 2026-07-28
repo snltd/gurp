@@ -3,6 +3,7 @@ use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_DIRS};
 use common::types::{ApplyOpts, ApplySummary};
 use nix::unistd::{Gid, Uid};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::fs;
 use util::file::{self, FileMetadata, NameOrId};
@@ -11,7 +12,7 @@ use util::file::{self, FileMetadata, NameOrId};
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpDirectoryEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub path: Utf8PathBuf,
     #[serde(flatten)]
@@ -38,7 +39,7 @@ pub struct DirectoryState {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpDirectoryRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub path: Utf8PathBuf,
 }
@@ -124,7 +125,7 @@ mod test {
         assert_eq!(
             GurpDirectoryEnsure {
                 path: Utf8PathBuf::from("/example/dir_1"),
-                id: "/NO-ROLE/directory/_example_dir_1".to_owned(),
+                id: GurpId::new("/NO-ROLE/directory/_example_dir_1").unwrap(),
                 desired_state: DesiredDirectoryState {
                     owner: NameOrId::Name("root".to_owned()),
                     group: NameOrId::Name("root".to_owned()),
@@ -140,7 +141,7 @@ mod test {
         assert_eq!(
             GurpDirectoryEnsure {
                 path: Utf8PathBuf::from("/example/dir_3"),
-                id: "/NO-ROLE/directory/my-dir".to_owned(),
+                id: GurpId::new("/NO-ROLE/directory/my-dir").unwrap(),
                 desired_state: DesiredDirectoryState {
                     owner: NameOrId::Id(4),
                     group: NameOrId::Id(12),
@@ -156,7 +157,7 @@ mod test {
         assert_eq!(
             GurpDirectoryEnsure {
                 path: Utf8PathBuf::from("/example/dir_2"),
-                id: "/NO-ROLE/directory/all-the-specs".to_owned(),
+                id: GurpId::new("/NO-ROLE/directory/all-the-specs").unwrap(),
                 desired_state: DesiredDirectoryState {
                     owner: NameOrId::Name("adm".to_owned()),
                     group: NameOrId::Name("sys".to_owned()),
@@ -171,7 +172,7 @@ mod test {
     fn test_deserialize_remove_directory() {
         assert_eq!(
             GurpDirectoryRemove {
-                id: "/NO-ROLE/directory/_example".to_owned(),
+                id: GurpId::new("/NO-ROLE/directory/_example").unwrap(),
                 path: Utf8PathBuf::from("/example"),
             },
             deserialized_example("directory/remove-dir.janet")

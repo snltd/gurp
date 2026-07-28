@@ -6,6 +6,7 @@ use common::constants::{
     GEM_BIN, GEM_BIN_DIR, NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE,
 };
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::process::{Command, Stdio};
@@ -21,7 +22,7 @@ type GemName = String;
 #[serde(rename_all = "kebab-case")]
 pub struct GurpGemEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: GemName,
     pub version: Option<String>,
     pub source: Option<String>,
@@ -32,7 +33,7 @@ pub struct GurpGemEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpGemRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: GemName,
     pub gem_path: Option<Utf8PathBuf>,
 }
@@ -314,7 +315,7 @@ mod test {
     fn test_gem_deserialize_ensure_rubygem() {
         assert_eq!(
             GurpGemEnsure {
-                id: "/NO-ROLE/gem/wavefront-cli".to_owned(),
+                id: GurpId::new("/NO-ROLE/gem/wavefront-cli").unwrap(),
                 name: "wavefront-cli".to_owned(),
                 version: None,
                 source: None,
@@ -328,7 +329,7 @@ mod test {
     fn test_gem_deserialize_ensure_version_with_source_and_gempath() {
         assert_eq!(
             GurpGemEnsure {
-                id: "/NO-ROLE/gem/my-gem".to_owned(),
+                id: GurpId::new("/NO-ROLE/gem/my-gem").unwrap(),
                 name: "my-gem".to_owned(),
                 version: Some("1.2.3".to_owned()),
                 source: Some("https://my-gem-repo.com".to_owned()),
@@ -342,7 +343,7 @@ mod test {
     fn test_gem_deserialize_remove_gem() {
         assert_eq!(
             GurpGemRemove {
-                id: "/NO-ROLE/gem/webscale".to_owned(),
+                id: GurpId::new("/NO-ROLE/gem/webscale").unwrap(),
                 name: "webscale".to_owned(),
                 gem_path: None,
             },

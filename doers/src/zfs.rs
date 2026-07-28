@@ -4,6 +4,7 @@ use camino::Utf8PathBuf;
 use common::cmd;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ZFS_BIN, ZFS_LX_BIN};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
@@ -18,7 +19,7 @@ static ZFS_BIN_PATH: LazyLock<&'static str> = LazyLock::new(zfs_bin);
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpZfsEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     pub size: Option<String>,
     #[serde(default, deserialize_with = "property_deserializer")]
@@ -26,12 +27,11 @@ pub struct GurpZfsEnsure {
 }
 
 type ZfsProperties = HashMap<String, String>;
-
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpZfsRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
 }
 
@@ -183,7 +183,7 @@ mod test {
     fn test_deserialize_zfs_ensure_filesystem_with_properties() {
         assert_eq!(
             GurpZfsEnsure {
-                id: "/NO-ROLE/zfs/zfs-example-1".to_owned(),
+                id: GurpId::new("/NO-ROLE/zfs/zfs-example-1").unwrap(),
                 name: "rpool/example/filesystem".to_owned(),
                 size: None,
                 properties: propmap! {
@@ -201,7 +201,7 @@ mod test {
     fn test_deserialize_zfs_ensure_volume_with_label() {
         assert_eq!(
             GurpZfsEnsure {
-                id: "/NO-ROLE/zfs/example-zfs-vol".to_owned(),
+                id: GurpId::new("/NO-ROLE/zfs/example-zfs-vol").unwrap(),
                 name: "rpool/example/volume".to_owned(),
                 size: Some("10G".to_owned()),
                 properties: propmap! {},
@@ -214,7 +214,7 @@ mod test {
     fn test_deserialize_zfs_remove_dataset() {
         assert_eq!(
             GurpZfsRemove {
-                id: "/NO-ROLE/zfs/rpool_old_filesystem".to_owned(),
+                id: GurpId::new("/NO-ROLE/zfs/rpool_old_filesystem").unwrap(),
                 name: "rpool/old/filesystem".to_owned(),
             },
             deserialized_example("zfs/remove-dataset.janet")

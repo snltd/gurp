@@ -2,6 +2,7 @@ use anyhow::{Context, bail, ensure};
 use common::cmd;
 use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::collections::BTreeSet;
 use std::fmt::Debug;
@@ -14,7 +15,7 @@ type Links = BTreeSet<String>;
 #[serde(rename_all = "kebab-case")]
 pub struct GurpBridgeEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     #[serde(flatten)]
     pub desired_state: BridgeState,
@@ -41,7 +42,7 @@ pub struct BridgeState {
 // #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpBridgeRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
 }
 
@@ -347,7 +348,7 @@ mod test {
         assert_eq!(
             GurpBridgeEnsure {
                 name: "basic".to_owned(),
-                id: "/NO-ROLE/bridge/basic".to_owned(),
+                id: GurpId::new("/NO-ROLE/bridge/basic").unwrap(),
                 desired_state: BridgeState {
                     protect: "stp".to_owned(),
                     priority: 32768,
@@ -367,7 +368,7 @@ mod test {
         assert_eq!(
             GurpBridgeEnsure {
                 name: "with_links".to_owned(),
-                id: "/NO-ROLE/bridge/with_links".to_owned(),
+                id: GurpId::new("/NO-ROLE/bridge/with_links").unwrap(),
                 desired_state: BridgeState {
                     protect: "stp".to_owned(),
                     priority: 4096,
@@ -387,7 +388,7 @@ mod test {
         assert_eq!(
             GurpBridgeRemove {
                 name: "unwanted".to_owned(),
-                id: "/NO-ROLE/bridge/unwanted".to_owned(),
+                id: GurpId::new("/NO-ROLE/bridge/unwanted").unwrap(),
             },
             deserialized_example("bridge/remove-bridge.janet")
         );

@@ -2,6 +2,7 @@ use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::fmt::Debug;
 use std::fs;
@@ -16,7 +17,7 @@ use std::os::unix::fs::MetadataExt;
 #[serde(rename_all = "kebab-case")]
 pub struct GurpLinkEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub target: Utf8PathBuf,
     pub source: Utf8PathBuf,
@@ -29,7 +30,7 @@ pub struct GurpLinkEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpLinkRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub path: Utf8PathBuf,
 }
@@ -242,7 +243,7 @@ mod test {
     fn test_deserialize_link_ensure_symlink_forced() {
         assert_eq!(
             GurpLinkEnsure {
-                id: "/NO-ROLE/link/example-symlink".to_owned(),
+                id: GurpId::new("/NO-ROLE/link/example-symlink").unwrap(),
                 target: Utf8PathBuf::from("/symlink/is/here"),
                 source: Utf8PathBuf::from("/link/points/here"),
                 force_link: true,
@@ -256,7 +257,7 @@ mod test {
     fn test_deserialize_link_ensure_hard_link() {
         assert_eq!(
             GurpLinkEnsure {
-                id: "/NO-ROLE/link/_link_is_here".to_owned(),
+                id: GurpId::new("/NO-ROLE/link/_link_is_here").unwrap(),
                 target: Utf8PathBuf::from("/link/is/here"),
                 source: Utf8PathBuf::from("/link/points/here"),
                 force_link: false,
@@ -270,7 +271,7 @@ mod test {
     fn test_deserialize_link_remove_link() {
         assert_eq!(
             GurpLinkRemove {
-                id: "/NO-ROLE/link/_dont_want_this_link".to_owned(),
+                id: GurpId::new("/NO-ROLE/link/_dont_want_this_link").unwrap(),
                 path: Utf8PathBuf::from("/dont/want/this/link"),
             },
             deserialized_example("link/remove-link.janet")

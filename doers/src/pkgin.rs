@@ -3,6 +3,7 @@ use anyhow::Context;
 use common::cmd;
 use common::constants::{NO_RESOURCES_TO_CHANGE, PKGIN_BIN};
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::collections::BTreeSet;
 use std::process::Command;
@@ -20,7 +21,7 @@ type RemoveList = Vec<GurpPkginRemove>;
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPkginEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: PkginName,
 }
 
@@ -28,7 +29,7 @@ pub struct GurpPkginEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPkginRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: PkginName,
 }
 
@@ -171,7 +172,7 @@ mod test {
     fn test_deserialize_pkgin_ensure_rust_package() {
         assert_eq!(
             GurpPkginEnsure {
-                id: "/NO-ROLE/pkgin/rust".to_owned(),
+                id: GurpId::new("/NO-ROLE/pkgin/rust").unwrap(),
                 name: "rust".to_owned(),
             },
             deserialized_example("pkgin/ensure-rust-package.janet")
@@ -182,7 +183,7 @@ mod test {
     fn test_deserialize_pkgin_remove_go_package() {
         assert_eq!(
             GurpPkginRemove {
-                id: "/NO-ROLE/pkgin/go".to_owned(),
+                id: GurpId::new("/NO-ROLE/pkgin/go").unwrap(),
                 name: "go".to_owned(),
             },
             deserialized_example("pkgin/remove-go-package.janet")

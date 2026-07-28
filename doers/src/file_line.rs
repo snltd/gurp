@@ -2,6 +2,7 @@ use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use regex::Regex;
 use serde::Deserialize;
 use std::fs;
@@ -12,7 +13,7 @@ use std::io::Write;
 #[serde(rename_all = "kebab-case")]
 pub struct GurpFileLineEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub line: Option<String>,
     pub insert_at: Option<usize>,
     pub replace: Option<String>,
@@ -27,7 +28,7 @@ pub struct GurpFileLineEnsure {
 #[serde(rename_all = "kebab-case")]
 pub struct GurpFileLineRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub pattern: String,
     #[serde(rename = "match")]
     pub match_type: String,
@@ -303,7 +304,7 @@ mod test {
         assert_eq!(
             GurpFileLineEnsure {
                 path: Utf8PathBuf::from("/path/to/file"),
-                id: "/NO-ROLE/file-line/_path_to_file".to_owned(),
+                id: GurpId::new("/NO-ROLE/file-line/_path_to_file").unwrap(),
                 line: Some("i-want-to-see-this".to_owned()),
                 insert_at: None,
                 replace: None,
@@ -319,7 +320,7 @@ mod test {
         assert_eq!(
             GurpFileLineRemove {
                 path: Utf8PathBuf::from("/path/to/file"),
-                id: "/NO-ROLE/file-line/_path_to_file".to_owned(),
+                id: GurpId::new("/NO-ROLE/file-line/_path_to_file").unwrap(),
                 pattern: "i-do-not-want-to-see-this-anywhere".to_owned(),
                 match_type: "exact".to_owned(),
                 apply_to: "all".to_owned(),
@@ -333,7 +334,7 @@ mod test {
         assert_eq!(
             GurpFileLineRemove {
                 path: Utf8PathBuf::from("/path/to/file"),
-                id: "/NO-ROLE/file-line/_path_to_file".to_owned(),
+                id: GurpId::new("/NO-ROLE/file-line/_path_to_file").unwrap(),
                 pattern: "rust-regex".to_owned(),
                 match_type: "regex".to_owned(),
                 apply_to: "all".to_owned(),
@@ -347,7 +348,7 @@ mod test {
         assert_eq!(
             GurpFileLineRemove {
                 path: Utf8PathBuf::from("/path/to/file"),
-                id: "/NO-ROLE/file-line/_path_to_file".to_owned(),
+                id: GurpId::new("/NO-ROLE/file-line/_path_to_file").unwrap(),
                 pattern: "string-prefix".to_owned(),
                 match_type: "starts-with".to_owned(),
                 apply_to: "last".to_owned(),

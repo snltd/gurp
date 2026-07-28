@@ -35,6 +35,7 @@ use bytesize::ByteSize;
 use camino::Utf8PathBuf;
 use common::types::{ApplyOpts, ApplySummary, ChangedIds, JsonConfig};
 use gurptel::runtime_stats;
+use os_types::GurpId;
 use owo_colors::OwoColorize;
 use rand::RngExt;
 use regex::Regex;
@@ -48,7 +49,7 @@ use util::{info, json};
 pub(crate) type ApplyResult = anyhow::Result<(ApplySummary, ChangedIds)>;
 
 pub trait Apply {
-    fn id(&self) -> &str;
+    fn id(&self) -> &GurpId;
     fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary>;
 }
 
@@ -213,7 +214,7 @@ pub struct RemoveResources {
 macro_rules! impl_apply {
     ($($t:ty),*) => {
         $( impl Apply for $t {
-                fn id(&self) -> &str { &self.id }
+                fn id(&self) -> &GurpId { &self.id }
                 fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
                     self.apply(opts)
                 }
@@ -426,7 +427,7 @@ impl Applicator {
             if let Some(only) = opts.only.as_ref() {
                 let rx = Regex::new(only).context("failed to generate ID filter regex")?;
 
-                if !rx.is_match(id) {
+                if !rx.is_match(&id.to_string()) {
                     continue;
                 }
             }
@@ -437,25 +438,31 @@ impl Applicator {
                 tracing::info!("RSS before {id}: {}", ByteSize(rss as u64));
             }
 
-            let chunks: Vec<_> = id.split("/").collect();
+            // let chunks: Vec<_> = id.split("/").collect();
+            //
+            tracing::debug!(
+                "applying {} {}/{total_count}: {id}",
+                id.resource_type(),
+                i + 1,
+            );
 
-            if chunks.len() >= 3 {
-                tracing::debug!("applying {} {}/{total_count}: {id}", chunks[1], i + 1,);
-            } else {
-                tracing::debug!("applying [{}/{total_count}]: {id}", i + 1);
-            }
+            // if chunks.len() >= 3 {
+            //     tracing::debug!("applying {} {}/{total_count}: {id}", chunks[1], i + 1,);
+            // } else {
+            //     tracing::debug!("applying [{}/{total_count}]: {id}", i + 1);
+            // }
 
             let summary = match resource.apply(opts) {
                 Ok(summary) => summary,
                 Err(e) => {
-                    tracing::error!("from {} doer: {}", chunks[2], e);
+                    tracing::error!("from {} doer: {}", id.resource_name(), e);
                     let err: anyhow::Error = e;
                     return Err(err.context(format!("failed to apply resource {id}")));
                 }
             };
 
             if summary.changes > 0 {
-                changed_ids.insert(id.to_owned());
+                changed_ids.insert(id.clone());
             }
 
             apply_summary += summary;

@@ -6,6 +6,7 @@ use common::constants::{
 };
 use common::info;
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::fs::{self, File};
 use std::io::Write;
@@ -26,7 +27,7 @@ type EnsureList = Vec<GurpIpnatEnsure>;
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpIpnatEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     pub from: Option<String>,
     pub content: Option<String>,
@@ -37,7 +38,7 @@ pub struct GurpIpnatEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpIpnatRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
 }
 
@@ -272,7 +273,7 @@ mod test {
         assert_eq!(
             GurpIpnatEnsure {
                 name: "rules-in-config".to_owned(),
-                id: "/NO-ROLE/ipnat/rules-in-config".to_owned(),
+                id: GurpId::new("/NO-ROLE/ipnat/rules-in-config").unwrap(),
                 priority: 1,
                 from: None,
                 content: Some("rdr le0 203.1.2.3/32 port 80 -> 203.1.2.3,203.1.2.4 port 80 tcp round-robin\nrdr le0 203.1.2.3/32 port 80 -> 203.1.2.5 port 80 tcp round-robin".to_owned())
@@ -287,7 +288,7 @@ mod test {
         assert_eq!(
             GurpIpnatRemove {
                 name: "removes-all-rules".to_owned(),
-                id: "/NO-ROLE/ipnat/removes-all-rules".to_owned(),
+                id: GurpId::new("/NO-ROLE/ipnat/removes-all-rules").unwrap(),
             },
             deserialized_example("ipnat/remove-all-rules.janet")
         );

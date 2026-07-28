@@ -3,6 +3,7 @@ use anyhow::Context;
 use common::cmd;
 use common::constants::{NO_RESOURCES_TO_CHANGE, PKG_BIN};
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::process::Command;
 use std::sync::LazyLock;
@@ -23,7 +24,7 @@ struct AllPkgs {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPkgEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: PkgName,
 }
 
@@ -31,7 +32,7 @@ pub struct GurpPkgEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPkgRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: PkgName,
 }
 
@@ -190,7 +191,7 @@ mod test {
     fn test_deserialize_pkg_ensure_rust_package() {
         assert_eq!(
             GurpPkgEnsure {
-                id: "/NO-ROLE/pkg/ooce_developer_rust".to_owned(),
+                id: GurpId::new("/NO-ROLE/pkg/ooce_developer_rust").unwrap(),
                 name: "ooce/developer/rust".to_owned(),
             },
             deserialized_example("pkg/ensure-rust-package.janet")
@@ -201,7 +202,7 @@ mod test {
     fn test_deserialize_pkg_remove_go_package() {
         assert_eq!(
             GurpPkgRemove {
-                id: "/NO-ROLE/pkg/ooce_developer_go".to_owned(),
+                id: GurpId::new("/NO-ROLE/pkg/ooce_developer_go").unwrap(),
                 name: "ooce/developer/go".to_owned(),
             },
             deserialized_example("pkg/remove-go-package.janet")

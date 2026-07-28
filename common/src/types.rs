@@ -1,6 +1,7 @@
 //! Collections of types mostly relating to user input
 
 use camino::Utf8PathBuf;
+use os_types::GurpId;
 use std::collections::BTreeSet;
 use std::ops::{Add, AddAssign};
 
@@ -161,6 +162,6 @@ pub type Changed = bool;
 /// Specifics to avoid stringly typing things
 pub type JsonConfig = String;
 pub type VlanID = u16;
-pub type ChangedIds = BTreeSet<String>;
+pub type ChangedIds = BTreeSet<GurpId>;
 
 pub type GurpMetric<'a> = (&'a str, &'a str, u128);

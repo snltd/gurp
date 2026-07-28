@@ -3,6 +3,7 @@ use crate::file::{from_content, from_file, from_struct, from_url};
 use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::fmt::Debug;
 
@@ -10,7 +11,7 @@ use std::fmt::Debug;
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpFileEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub path: Utf8PathBuf,
     #[serde(flatten)]
@@ -108,7 +109,7 @@ mod test {
     fn test_deserialize_ensure_file_from_content() {
         assert_eq!(
             GurpFileEnsure {
-                id: "/NO-ROLE/file/_example_file_from-content".to_owned(),
+                id: GurpId::new("/NO-ROLE/file/_example_file_from-content").unwrap(),
                 path: Utf8PathBuf::from("/example/file/from-content"),
                 desired_state: DesiredFileState {
                     backup_suffix: None,
@@ -134,7 +135,7 @@ mod test {
     fn test_deserialize_ensure_file_from_url_with_checksum() {
         assert_eq!(
             GurpFileEnsure {
-                id: "/NO-ROLE/file/remote-file".to_owned(),
+                id: GurpId::new("/NO-ROLE/file/remote-file").unwrap(),
                 path: Utf8PathBuf::from("/example/file/from-url"),
                 desired_state: DesiredFileState {
                     backup_suffix: None,
@@ -165,7 +166,7 @@ mod test {
     #[test]
     fn test_not_exactly_one_source_fails() {
         let file_and_url = GurpFileEnsure {
-            id: "IRRELEVANT".to_owned(),
+            id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: Utf8PathBuf::from("/does/not/matter"),
             desired_state: DesiredFileState {
                 group: NameOrId::Name(my_group()),
@@ -187,7 +188,7 @@ mod test {
         assert!(file_and_url.apply(&ApplyOpts::default()).is_err());
 
         let file_and_content = GurpFileEnsure {
-            id: "IRRELEVANT".to_owned(),
+            id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: Utf8PathBuf::from("/does/not/matter"),
             desired_state: DesiredFileState {
                 group: NameOrId::Name(my_group()),
@@ -209,7 +210,7 @@ mod test {
         assert!(file_and_content.apply(&ApplyOpts::default()).is_err());
 
         let no_source = GurpFileEnsure {
-            id: "IRRELEVANT".to_owned(),
+            id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: Utf8PathBuf::from("/does/not/matter"),
             desired_state: DesiredFileState {
                 group: NameOrId::Name(my_group()),

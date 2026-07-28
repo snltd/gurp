@@ -2,6 +2,7 @@ use anyhow::{Context, ensure};
 use common::cmd;
 use common::constants::{FLOWADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -11,7 +12,7 @@ use std::process::Command;
 #[serde(rename_all = "kebab-case")]
 pub struct GurpNetworkFlowEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     pub link: String,
     pub local_ip: Option<String>,
@@ -28,7 +29,7 @@ pub struct GurpNetworkFlowEnsure {
 #[serde(rename_all = "kebab-case")]
 pub struct GurpNetworkFlowRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
 }
 
@@ -364,7 +365,7 @@ mod test {
         assert_eq!(
             GurpNetworkFlowEnsure {
                 name: "tls-throttle".to_owned(),
-                id: "/NO-ROLE/network-flow/tls-throttle".to_owned(),
+                id: GurpId::new("/NO-ROLE/network-flow/tls-throttle").unwrap(),
                 link: "vnic1".to_owned(),
                 protocol: Some("tcp".to_owned()),
                 remote_ip: None,
@@ -384,7 +385,7 @@ mod test {
         assert_eq!(
             GurpNetworkFlowEnsure {
                 name: "ssh-flow".to_owned(),
-                id: "/NO-ROLE/network-flow/ssh-flow".to_owned(),
+                id: GurpId::new("/NO-ROLE/network-flow/ssh-flow").unwrap(),
                 link: "vnic1".to_owned(),
                 protocol: Some("tcp".to_owned()),
                 remote_ip: None,
@@ -404,7 +405,7 @@ mod test {
         assert_eq!(
             GurpNetworkFlowRemove {
                 name: "unwanted".to_owned(),
-                id: "/NO-ROLE/network-flow/unwanted".to_owned(),
+                id: GurpId::new("/NO-ROLE/network-flow/unwanted").unwrap(),
             },
             deserialized_example("network-flow/remove-flow.janet")
         );

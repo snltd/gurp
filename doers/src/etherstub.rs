@@ -1,6 +1,7 @@
 use anyhow::Context;
 use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -8,7 +9,7 @@ use serde::Deserialize;
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpEtherstubEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
 }
 
@@ -16,7 +17,7 @@ pub struct GurpEtherstubEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpEtherstubRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
 }
 
@@ -60,7 +61,7 @@ mod test {
     fn test_ensure_etherstub_deserialize() {
         assert_eq!(
             GurpEtherstubEnsure {
-                id: "/NO-ROLE/etherstub/newstub0".to_owned(),
+                id: GurpId::new("/NO-ROLE/etherstub/newstub0").unwrap(),
                 name: "newstub0".to_owned(),
             },
             deserialized_example("etherstub/ensure-stub.janet")
@@ -71,7 +72,7 @@ mod test {
     fn test_remove_etherstub_deserialize() {
         assert_eq!(
             GurpEtherstubRemove {
-                id: "/NO-ROLE/etherstub/oldstub0".to_owned(),
+                id: GurpId::new("/NO-ROLE/etherstub/oldstub0").unwrap(),
                 name: "oldstub0".to_owned(),
             },
             deserialized_example("etherstub/remove-stub.janet")

@@ -2,6 +2,7 @@ use anyhow::{Context, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_FILES};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::fmt::Debug;
 use std::fs;
@@ -10,7 +11,7 @@ use std::fs;
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpFileRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub path: Utf8PathBuf,
 }
@@ -50,7 +51,7 @@ mod test {
     fn test_deserialize_remove_file() {
         assert_eq!(
             GurpFileRemove {
-                id: "/NO-ROLE/file/_path_to_file".to_owned(),
+                id: GurpId::new("/NO-ROLE/file/_path_to_file").unwrap(),
                 path: Utf8PathBuf::from("/path/to/file"),
             },
             deserialized_example("file/remove-file.janet")

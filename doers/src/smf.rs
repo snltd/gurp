@@ -5,6 +5,7 @@ use common::constants::{
 };
 use common::info;
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::fs;
 use std::thread::sleep;
@@ -19,7 +20,7 @@ const STATE_TRANSITION_TIMEOUT: Duration = Duration::from_secs(60);
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpSmfEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(flatten)]
     pub desired_state: SmfDefinition,
 }
@@ -28,7 +29,7 @@ pub struct GurpSmfEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpSmfRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
 }
 
@@ -177,7 +178,7 @@ mod test {
     fn test_deserialize_smf_ensure_daemon_with_privs() {
         assert_eq!(
             GurpSmfEnsure {
-                id: "/NO-ROLE/smf/example".to_owned(),
+                id: GurpId::new("/NO-ROLE/smf/example").unwrap(),
                 desired_state: SmfDefinition {
                     name: "example".to_owned(),
                     duration: Some("child".to_owned()),
@@ -309,7 +310,7 @@ mod test {
     fn test_deserialize_smf_remove_service() {
         assert_eq!(
             GurpSmfRemove {
-                id: "/NO-ROLE/smf/unwanted_service".to_owned(),
+                id: GurpId::new("/NO-ROLE/smf/unwanted_service").unwrap(),
                 name: "unwanted/service".to_owned(),
             },
             deserialized_example("smf/remove-service.janet")

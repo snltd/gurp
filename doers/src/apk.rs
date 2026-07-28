@@ -2,6 +2,7 @@ use crate::types::ApplyResult;
 use common::cmd;
 use common::constants::{APK_BIN, NO_RESOURCES_TO_CHANGE};
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
+use os_types::GurpId;
 use regex::Regex;
 use serde::Deserialize;
 use std::process::Command;
@@ -19,7 +20,7 @@ type RemoveList = Vec<GurpApkRemove>;
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpApkEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: ApkName,
 }
 
@@ -27,7 +28,7 @@ pub struct GurpApkEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpApkRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: ApkName,
 }
 
@@ -180,7 +181,7 @@ mod test {
     fn test_deserialize_apk_ensure_rust_package() {
         assert_eq!(
             GurpApkEnsure {
-                id: "/NO-ROLE/apk/rust".to_owned(),
+                id: GurpId::new("/NO-ROLE/apk/rust").unwrap(),
                 name: "rust".to_owned(),
             },
             deserialized_example("apk/ensure-rust-package.janet")
@@ -191,7 +192,7 @@ mod test {
     fn test_deserialize_apk_remove_go_package() {
         assert_eq!(
             GurpApkRemove {
-                id: "/NO-ROLE/apk/go".to_owned(),
+                id: GurpId::new("/NO-ROLE/apk/go").unwrap(),
                 name: "go".to_owned(),
             },
             deserialized_example("apk/remove-go-package.janet")

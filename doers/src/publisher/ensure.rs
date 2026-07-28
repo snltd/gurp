@@ -4,6 +4,7 @@ use anyhow::Context;
 use common::cmd;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PKG_BIN};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::process::Command;
 
@@ -11,7 +12,7 @@ use std::process::Command;
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpPublisherEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: PublisherName,
     #[serde(flatten)]
     pub desired_state: Publisher,
@@ -192,7 +193,7 @@ mod test {
     fn test_deserialize_publisher_ensure_new_publisher() {
         assert_eq!(
             GurpPublisherEnsure {
-                id: "/NO-ROLE/publisher/example".to_owned(),
+                id: GurpId::new("/NO-ROLE/publisher/example").unwrap(),
                 name: "example".to_owned(),
                 desired_state: Publisher {
                     origins: vec![Origin {

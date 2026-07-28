@@ -1,12 +1,18 @@
 use anyhow::Context;
 use common::constants::IPADM_BIN;
 use common::types::ApplyOpts;
+use os_types::{AddrObj, LinkName};
 use std::collections::{BTreeSet, HashMap};
 use std::process::Command;
 
 pub type IpProtocol = String;
 pub type IpadmPropertyMap = HashMap<String, String>;
 pub type IpProtocolMap = HashMap<IpProtocol, IpadmPropertyMap>;
+
+pub enum IpObjType<'a> {
+    Link(&'a LinkName),
+    AddrObj(&'a AddrObj),
+}
 
 pub struct AlignIpPropArg<'a> {
     pub ipadm_cmd: &'a str,
@@ -15,7 +21,7 @@ pub struct AlignIpPropArg<'a> {
     pub current_value: Option<&'a str>,
     pub desired_value: &'a str,
     pub protocol_requires_flag: bool,
-    pub ipadm_object: Option<&'a str>,
+    pub ip_object: Option<&'a IpObjType<'a>>,
 }
 
 fn modify_list_property(
@@ -77,8 +83,11 @@ fn property_alignment_notification(args: &AlignIpPropArg) -> bool {
         args.property.to_owned()
     };
 
-    if let Some(final_arg) = args.ipadm_object {
-        resource = format!("{final_arg}:{resource}");
+    if let Some(ip_object) = args.ip_object {
+        resource = match ip_object {
+            IpObjType::Link(link) => format!("{link}:{resource}"),
+            IpObjType::AddrObj(addrobj) => format!("{addrobj}:{resource}"),
+        };
     }
 
     if let Some(current_value) = args.current_value {
@@ -131,9 +140,12 @@ fn construct_ipadm_prop_cmd(args: &AlignIpPropArg) -> Command {
         cmd.arg(protocol);
     }
 
-    if let Some(ipadm_arg) = args.ipadm_object {
-        cmd.arg(ipadm_arg);
-    }
+    if let Some(ip_object) = args.ip_object {
+        cmd.arg(match ip_object {
+            IpObjType::Link(link) => link.to_string(),
+            IpObjType::AddrObj(addrobj) => addrobj.to_string(),
+        });
+    };
 
     tracing::debug!(command = common::cmd::to_string(&cmd));
     cmd
@@ -173,7 +185,7 @@ mod test {
             current_value: Some("off"), // not relevant here
             desired_value: "on",
             protocol_requires_flag: true,
-            ipadm_object: Some("mvnic1"),
+            ip_object: Some(&IpObjType::Link(&LinkName::new("mvnic1").unwrap())),
         };
 
         let cmd = construct_ipadm_prop_cmd(&input);
@@ -193,7 +205,7 @@ mod test {
             current_value: Some("weak"), // not relevant here
             desired_value: "strong",
             protocol_requires_flag: false,
-            ipadm_object: None,
+            ip_object: None,
         };
 
         let cmd = construct_ipadm_prop_cmd(&input);
@@ -213,7 +225,7 @@ mod test {
             current_value: Some("off"), // not relevant here
             desired_value: "on",
             protocol_requires_flag: false,
-            ipadm_object: Some("e1000g0/v4"),
+            ip_object: Some(&IpObjType::AddrObj(&AddrObj::new("e1000g0/v4").unwrap())),
         };
 
         let cmd = construct_ipadm_prop_cmd(&input);

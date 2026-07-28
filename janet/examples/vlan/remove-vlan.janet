@@ -1,1 +1,1 @@
-(vlan/remove "e1000g010")
+(vlan/remove "e1000g10000")

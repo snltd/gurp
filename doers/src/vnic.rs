@@ -2,6 +2,8 @@ use anyhow::{Context, bail};
 use common::cmd;
 use common::constants::{DLADM_BIN, IPADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary, VlanID};
+use os_types::GurpId;
+use os_types::link_name::LinkName;
 use serde::Deserialize;
 use std::fmt::Debug;
 use std::process::Command;
@@ -10,9 +12,9 @@ use std::process::Command;
 #[serde(rename_all = "kebab-case")]
 pub struct GurpVnicEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
-    pub name: String,
-    pub over: String,
+    pub id: GurpId,
+    pub name: LinkName,
+    pub over: LinkName,
     pub vlan_tag: Option<VlanID>,
     pub with_interface: bool,
 }
@@ -20,13 +22,13 @@ pub struct GurpVnicEnsure {
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct GurpVnicRemove {
     #[serde(rename = "_id")]
-    pub id: String,
-    pub name: String,
+    pub id: GurpId,
+    pub name: LinkName,
 }
 
 struct VnicInfo {
-    over: String,
-    vid: VlanID,
+    over: LinkName,
+    vlan_id: VlanID,
 }
 
 impl GurpVnicEnsure {
@@ -53,12 +55,12 @@ impl GurpVnicEnsure {
             // Or it may have the wrong VLAN tag
 
             if let Some(desired_vid) = self.vlan_tag
-                && desired_vid != vnic_info.vid
+                && desired_vid != vnic_info.vlan_id
             {
                 tracing::info!(
                     "{} has VLAN tag {}, should be {}: forces recreate",
                     self.name,
-                    &vnic_info.vid,
+                    &vnic_info.vlan_id,
                     desired_vid,
                 );
 
@@ -78,14 +80,14 @@ impl GurpVnicEnsure {
         let mut cmd = Command::new(DLADM_BIN);
         cmd.arg("create-vnic");
         cmd.arg("-l");
-        cmd.arg(&self.over);
+        cmd.arg(&self.over.to_string());
 
         if let Some(vlan_tag) = &self.vlan_tag {
             cmd.arg("-v");
             cmd.arg(vlan_tag.to_string());
         }
 
-        cmd.arg(&self.name);
+        cmd.arg(&self.name.to_string());
 
         tracing::debug!(command = cmd::to_string(&cmd));
 
@@ -95,7 +97,7 @@ impl GurpVnicEnsure {
 
         if self.with_interface {
             tracing::info!("creating interface on {}", self.name);
-            cmd_change_or_noop!(opts, IPADM_BIN, "create-if", &self.name)
+            cmd_change_or_noop!(opts, IPADM_BIN, "create-if", &self.name.to_string())
                 .with_context(|| format!("failed to create interface {}", self.name))
         } else {
             Ok(ONE_RESOURCE_ONE_CHANGE)
@@ -103,19 +105,28 @@ impl GurpVnicEnsure {
     }
 
     fn vnic_info(&self) -> anyhow::Result<VnicInfo> {
-        let raw = cmd_output!(DLADM_BIN, "show-vnic", &self.name, "-p", "-o", "over,vid")
-            .with_context(|| format!("failed to get config of VNIC {}", self.name))?;
+        let raw = cmd_output!(
+            DLADM_BIN,
+            "show-vnic",
+            &self.name.to_string(),
+            "-p",
+            "-o",
+            "over,vid"
+        )
+        .with_context(|| format!("failed to get config of VNIC {}", self.name))?;
 
-        let chunks: Vec<_> = raw.split(':').collect();
+        let mut chunks = raw.split(':');
 
-        if chunks.len() != 2 {
-            bail!(format!("Bad output from show-vnic: {raw}"));
+        if let Some(over_link) = chunks.next()
+            && let Some(v_id) = chunks.next()
+        {
+            Ok(VnicInfo {
+                over: LinkName::new(over_link)?,
+                vlan_id: v_id.parse()?,
+            })
+        } else {
+            bail!("Bad output from show-vnic: {raw}");
         }
-
-        Ok(VnicInfo {
-            over: chunks[0].to_owned(),
-            vid: chunks[1].parse::<VlanID>()?,
-        })
     }
 }
 
@@ -131,14 +142,14 @@ impl GurpVnicRemove {
     }
 }
 
-fn vnic_exists(vnic_name: &str) -> anyhow::Result<bool> {
+fn vnic_exists(vnic_name: &LinkName) -> anyhow::Result<bool> {
     let dladm_output = cmd_output!(DLADM_BIN, "show-vnic", "-p", "-o", "link")
         .with_context(|| format!("failed to get state of VNIC {vnic_name}"))?;
-    Ok(dladm_output.lines().any(|l| l == vnic_name))
+    Ok(dladm_output.lines().any(|l| l == &vnic_name.to_string()))
 }
 
-fn delete_vnic(vnic_name: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    cmd_change_or_noop!(opts, DLADM_BIN, "delete-vnic", vnic_name)
+fn delete_vnic(vnic_name: &LinkName, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    cmd_change_or_noop!(opts, DLADM_BIN, "delete-vnic", &vnic_name.to_string())
         .with_context(|| format!("failed to delete VNIC {vnic_name}"))
 }
 
@@ -152,9 +163,9 @@ mod test {
     fn test_deserialize_ensure_vnic_with_interface_and_tag() {
         assert_eq!(
             GurpVnicEnsure {
-                id: "/NO-ROLE/vnic/vnic1".to_owned(),
-                name: "vnic1".to_owned(),
-                over: "e1000g".to_owned(),
+                id: GurpId::new("/NO-ROLE/vnic/vnic1").unwrap(),
+                name: LinkName::new("vnic1").unwrap(),
+                over: LinkName::new("e1000g0").unwrap(),
                 vlan_tag: Some(10),
                 with_interface: true,
             },
@@ -166,9 +177,9 @@ mod test {
     fn test_deserialize_ensure_vnic_over_e1000g0() {
         assert_eq!(
             GurpVnicEnsure {
-                id: "/NO-ROLE/vnic/vnic0".to_owned(),
-                name: "vnic0".to_owned(),
-                over: "e1000g".to_owned(),
+                id: GurpId::new("/NO-ROLE/vnic/vnic0").unwrap(),
+                name: LinkName::new("vnic0").unwrap(),
+                over: LinkName::new("e1000g0").unwrap(),
                 vlan_tag: None,
                 with_interface: false,
             },
@@ -180,8 +191,8 @@ mod test {
     fn test_deserialize_remove_vnic() {
         assert_eq!(
             GurpVnicRemove {
-                id: "/NO-ROLE/vnic/vnic2".to_owned(),
-                name: "vnic2".to_owned(),
+                id: GurpId::new("/NO-ROLE/vnic/vnic2").unwrap(),
+                name: LinkName::new("vnic2").unwrap(),
             },
             deserialized_example("vnic/remove-vnic.janet")
         );

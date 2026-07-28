@@ -2,6 +2,7 @@ use anyhow::{Context, ensure};
 use common::constants::{SVCADM_BIN, SVCCFG_BIN};
 use common::info;
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use regex::Regex;
 use serde::Deserialize;
 use std::io::Write;
@@ -26,7 +27,7 @@ pub enum OnChangeAction {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpSvcpropEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub service: String,
     pub properties: PropertyMap,
@@ -38,7 +39,7 @@ pub struct GurpSvcpropEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpSvcpropRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub service: String,
     pub properties: PropertyList,
@@ -334,7 +335,7 @@ mod test {
         assert_eq!(
             GurpSvcpropEnsure {
                 service: "example/svc_1".to_owned(),
-                id: "/NO-ROLE/svcprop/example_svc_1".to_owned(),
+                id: GurpId::new("/NO-ROLE/svcprop/example_svc_1").unwrap(),
                 on_change: Some(OnChangeAction::Restart),
                 property_groups: Some(BTreeMap::from([(
                     "application".to_owned(),
@@ -373,7 +374,7 @@ mod test {
         assert_eq!(
             GurpSvcpropEnsure {
                 service: "example/svc_1".to_owned(),
-                id: "/NO-ROLE/svcprop/example_svc_1".to_owned(),
+                id: GurpId::new("/NO-ROLE/svcprop/example_svc_1").unwrap(),
                 on_change: None,
                 property_groups: Some(BTreeMap::from([(
                     "application".to_owned(),
@@ -395,7 +396,7 @@ mod test {
     fn test_deserialize_svcprop_remove_properties() {
         assert_eq!(
             GurpSvcpropRemove {
-                id: "/NO-ROLE/svcprop/example_svc_3".to_owned(),
+                id: GurpId::new("/NO-ROLE/svcprop/example_svc_3").unwrap(),
                 service: "example/svc_3".to_owned(),
                 properties: BTreeSet::from(["application/thing".to_owned()]),
                 property_groups: None,

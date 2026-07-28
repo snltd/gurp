@@ -1,6 +1,7 @@
 use anyhow::Context;
 use common::constants::IPADM_BIN;
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -12,7 +13,7 @@ use util::ip_protocols::{self, AlignIpPropArg, IpProtocolMap};
 #[serde(rename_all = "kebab-case")]
 pub struct GurpIpPropertiesEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     #[serde(default, deserialize_with = "deserializer::hash_property_deserializer")]
     pub protocols: IpProtocolMap,
@@ -37,7 +38,7 @@ impl GurpIpPropertiesEnsure {
                             current_value: current_values.get(property).map(String::as_str),
                             desired_value,
                             protocol_requires_flag: false,
-                            ipadm_object: None,
+                            ip_object: None,
                         },
                         opts,
                     )? {
@@ -51,7 +52,7 @@ impl GurpIpPropertiesEnsure {
                         current_value: current_values.get(property).map(String::as_str),
                         desired_value,
                         protocol_requires_flag: false,
-                        ipadm_object: None,
+                        ip_object: None,
                     },
                     opts,
                 )? {
@@ -83,7 +84,7 @@ mod test {
         assert_eq!(
             GurpIpPropertiesEnsure {
                 name: "general".to_owned(),
-                id: "/NO-ROLE/ip-properties/general".to_owned(),
+                id: GurpId::new("/NO-ROLE/ip-properties/general").unwrap(),
                 protocols: HashMap::from([
                     (
                         "ipv4".to_owned(),

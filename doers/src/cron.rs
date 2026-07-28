@@ -2,6 +2,7 @@ use anyhow::{Context, bail};
 use common::constants::{CRONTAB_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
 use common::{cmd, info};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::fmt;
 use std::io::Write;
@@ -30,7 +31,7 @@ impl fmt::Display for StrOrNumber {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpCronEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     pub user: String,
     #[serde(flatten)]
@@ -53,7 +54,7 @@ pub struct CronState {
 #[serde(rename_all = "kebab-case")]
 pub struct GurpCronRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     pub user: String,
 }
@@ -249,7 +250,7 @@ mod test {
     fn test_deserialize_ensure_root_cron_job() {
         assert_eq!(
             GurpCronEnsure {
-                id: "/NO-ROLE/cron/root-cron-job".to_owned(),
+                id: GurpId::new("/NO-ROLE/cron/root-cron-job").unwrap(),
                 name: "root-cron-job".to_owned(),
                 user: "root".to_owned(),
                 desired_state: CronState {
@@ -269,7 +270,7 @@ mod test {
     fn test_deserialize_ensure_print_cron_job() {
         assert_eq!(
             GurpCronEnsure {
-                id: "/NO-ROLE/cron/print-cron-job".to_owned(),
+                id: GurpId::new("/NO-ROLE/cron/print-cron-job").unwrap(),
                 name: "lots-of-values".to_owned(),
                 user: "lp".to_owned(),
                 desired_state: CronState {
@@ -289,7 +290,7 @@ mod test {
     fn test_deserialize_remove_cron_job() {
         assert_eq!(
             GurpCronRemove {
-                id: "/NO-ROLE/cron/that-old-cron-job".to_owned(),
+                id: GurpId::new("/NO-ROLE/cron/that-old-cron-job").unwrap(),
                 user: "root".to_owned(),
                 name: "that-old-cron-job".to_owned(),
             },
@@ -301,14 +302,14 @@ mod test {
     fn test_ensured_crontab_change() {
         let old_crontab = indoc! {"
             1 2 3 4 5 do_thing
-            # gurp managed ID /test-role/cron/test
+            # gurp managed ID /NO-ROLE/cron/test
             5 4 3 2 1 wrong_command
             2 2 3 4 5 do_other_thing
             "};
 
         let expected_crontab = indoc! {"
             1 2 3 4 5 do_thing
-            # gurp managed ID /test-role/cron/test
+            # gurp managed ID /NO-ROLE/cron/test
             4 1,12 * * 1-5 /bin/command >/var/log/file
             2 2 3 4 5 do_other_thing
             "}
@@ -324,7 +325,7 @@ mod test {
     fn test_ensured_crontab_already_there() {
         let old_crontab = indoc! {"
             1 2 3 4 5 do_thing
-            # gurp managed ID /test-role/cron/test
+            # gurp managed ID /NO-ROLE/cron/test
             4 1,12 * * 1-5 /bin/command >/var/log/file
             2 2 3 4 5 do_other_thing
             "};
@@ -342,7 +343,7 @@ mod test {
         let expected_crontab = indoc! {"
             1 2 3 4 5 do_thing
             2 2 3 4 5 do_other_thing
-            # gurp managed ID /test-role/cron/test
+            # gurp managed ID /NO-ROLE/cron/test
             4 1,12 * * 1-5 /bin/command >/var/log/file
             "
         }
@@ -358,7 +359,7 @@ mod test {
     fn test_removed_crontab_change() {
         let old_crontab = indoc! {"
             1 2 3 4 5 do_thing
-            # gurp managed ID /test-role/cron/test
+            # gurp managed ID /NO-ROLE/cron/test
             4 1,12 * * 1-5 /bin/command >/var/log/file
             2 2 3 4 5 do_other_thing
             "
@@ -389,7 +390,7 @@ mod test {
 
     fn common_ensure() -> GurpCronEnsure {
         GurpCronEnsure {
-            id: "/test-role/cron/test".to_owned(),
+            id: GurpId::new("/NO-ROLE/cron/test").unwrap(),
             name: "Test job".to_owned(),
             user: "rob".to_owned(),
             desired_state: CronState {
@@ -405,7 +406,7 @@ mod test {
 
     fn common_remove() -> GurpCronRemove {
         GurpCronRemove {
-            id: "/test-role/cron/test".to_owned(),
+            id: GurpId::new("/NO-ROLE/cron/test").unwrap(),
             name: "Test job".to_owned(),
             user: "rob".to_owned(),
         }

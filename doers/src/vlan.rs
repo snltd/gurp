@@ -1,6 +1,8 @@
 use anyhow::Context;
 use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE};
 use common::types::{ApplyOpts, ApplySummary, VlanID};
+use os_types::GurpId;
+use os_types::link_name::LinkName;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -10,9 +12,9 @@ use std::fmt::Debug;
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpVlanEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
-    pub name: String,
-    pub over: String,
+    pub id: GurpId,
+    pub name: LinkName,
+    pub over: LinkName,
     pub vlan_tag: VlanID,
 }
 
@@ -20,22 +22,22 @@ pub struct GurpVlanEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpVlanRemove {
     #[serde(rename = "_id")]
-    pub id: String,
-    pub name: String,
+    pub id: GurpId,
+    pub name: LinkName,
 }
 
-type Vlans = HashMap<String, VlanInfo>;
+type VlanMap = HashMap<LinkName, VlanInfo>;
 
 // I don't think the flags will be useful to us
 #[derive(Debug, PartialEq)]
 struct VlanInfo {
-    over: String,
+    over: LinkName,
     vlan_tag: VlanID,
 }
 
 impl GurpVlanEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let extant_vlans = parse_vlans(&get_vlans()?);
+        let extant_vlans = vlan_map(&raw_vlan_info()?)?;
 
         if let Some(extant_vlan) = extant_vlans.get(&self.name) {
             if extant_vlan.over == self.over && extant_vlan.vlan_tag == self.vlan_tag {
@@ -59,10 +61,10 @@ impl GurpVlanEnsure {
             DLADM_BIN,
             "create-vlan",
             "-l",
-            &self.over,
+            &self.over.to_string(),
             "-v",
             &self.vlan_tag.to_string(),
-            &self.name
+            &self.name.to_string(),
         )
         .with_context(|| format!("failed to create VLAN object {}", self.name))
     }
@@ -70,7 +72,7 @@ impl GurpVlanEnsure {
 
 impl GurpVlanRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let extant_vlans = parse_vlans(&get_vlans()?);
+        let extant_vlans = vlan_map(&raw_vlan_info()?)?;
 
         if extant_vlans.contains_key(&self.name) {
             delete_vlan(&self.name, opts)
@@ -81,37 +83,45 @@ impl GurpVlanRemove {
     }
 }
 
-fn delete_vlan(name: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+fn delete_vlan(name: &LinkName, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
     tracing::info!("removing VLAN {name}");
-    cmd_change_or_noop!(opts, DLADM_BIN, "delete-vlan", name)
+    cmd_change_or_noop!(opts, DLADM_BIN, "delete-vlan", name.to_string())
         .with_context(|| format!("failed to delete VLAN object {name}"))
 }
 
-fn parse_vlans(raw: &str) -> Vlans {
-    raw.lines()
-        .filter_map(|l| {
-            let mut chunks = l.trim().split(':');
-
-            if let Some(name) = chunks.next()
-                && let Some(vid_str) = chunks.next()
-                && let Some(over) = chunks.next()
-                && let Some(vid) = vid_str.parse::<u16>().ok()
-            {
-                Some((
-                    name.to_string(),
-                    VlanInfo {
-                        over: over.to_string(),
-                        vlan_tag: vid,
-                    },
-                ))
-            } else {
-                None
-            }
-        })
-        .collect()
+fn vlan_map(raw: &str) -> anyhow::Result<VlanMap> {
+    raw.lines().map(|l| parse_vlan_line(l.trim())).collect()
 }
 
-fn get_vlans() -> anyhow::Result<String> {
+fn parse_vlan_line(line: &str) -> anyhow::Result<(LinkName, VlanInfo)> {
+    let mut chunks = line.split(':');
+
+    let name = chunks
+        .next()
+        .with_context(|| format!("vlan line {line} does not have name field"))?;
+
+    let vlan_id_field = chunks
+        .next()
+        .with_context(|| format!("vlan line {line} does not have vlan id field"))?;
+
+    let over = chunks
+        .next()
+        .with_context(|| format!("vlan line {line} does not have over field"))?;
+
+    let vlan_id = vlan_id_field
+        .parse::<u16>()
+        .with_context(|| format!("invalid vlan id '{vlan_id_field}'"))?;
+
+    Ok((
+        LinkName::new(name)?,
+        VlanInfo {
+            over: LinkName::new(over)?,
+            vlan_tag: vlan_id,
+        },
+    ))
+}
+
+fn raw_vlan_info() -> anyhow::Result<String> {
     cmd_output!(DLADM_BIN, "show-vlan", "-p", "-olink,vid,over")
         .context("failed to list VLAN objects")
 }
@@ -125,9 +135,9 @@ mod test {
     fn test_deserialize_ensure_vlan_10() {
         assert_eq!(
             GurpVlanEnsure {
-                id: "/NO-ROLE/vlan/e1000g010".to_owned(),
-                name: "e1000g010".to_owned(),
-                over: "e1000g0".to_owned(),
+                id: GurpId::new("/NO-ROLE/vlan/e1000g10000").unwrap(),
+                name: LinkName::new("e1000g10000").unwrap(),
+                over: LinkName::new("e1000g0").unwrap(),
                 vlan_tag: 10,
             },
             deserialized_example("vlan/ensure-vlan-10.janet")
@@ -138,8 +148,8 @@ mod test {
     fn test_deserialize_remove_vlan() {
         assert_eq!(
             GurpVlanRemove {
-                id: "/NO-ROLE/vlan/e1000g010".to_owned(),
-                name: "e1000g010".to_owned(),
+                id: GurpId::new("/NO-ROLE/vlan/e1000g10000").unwrap(),
+                name: LinkName::new("e1000g10000").unwrap(),
             },
             deserialized_example("vlan/remove-vlan.janet")
         );
@@ -152,23 +162,23 @@ mod test {
             gibbus0:5:e1000g0
         "};
 
-        let expected: Vlans = HashMap::from([
+        let expected: VlanMap = HashMap::from([
             (
-                "e1000g4000".to_owned(),
+                LinkName::new("e1000g4000").unwrap(),
                 VlanInfo {
-                    over: "e1000g0".to_owned(),
+                    over: LinkName::new("e1000g0").unwrap(),
                     vlan_tag: 4,
                 },
             ),
             (
-                "gibbus0".to_owned(),
+                LinkName::new("gibbus0").unwrap(),
                 VlanInfo {
-                    over: "e1000g0".to_owned(),
+                    over: LinkName::new("e1000g0").unwrap(),
                     vlan_tag: 5,
                 },
             ),
         ]);
 
-        assert_eq!(expected, parse_vlans(input));
+        assert_eq!(expected, vlan_map(input).unwrap());
     }
 }

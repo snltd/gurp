@@ -12,6 +12,7 @@ common = { path = "../common" }
 hex = "0.4.3"
 macros = { path = "../macros" }
 nix = { version = "0.31", features = ["fs", "hostname", "user"] }
+os_types = { path = "../os_types" }
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
