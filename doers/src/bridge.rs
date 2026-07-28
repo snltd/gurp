@@ -2,13 +2,11 @@ use anyhow::{Context, bail, ensure};
 use common::cmd;
 use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
-use os_types::GurpId;
+use os_types::{BridgeName, GurpId, LinkName};
 use serde::Deserialize;
 use std::collections::BTreeSet;
 use std::fmt::Debug;
 use std::process::Command;
-
-type Links = BTreeSet<String>;
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -16,7 +14,7 @@ type Links = BTreeSet<String>;
 pub struct GurpBridgeEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
-    pub name: String,
+    pub name: BridgeName,
     #[serde(flatten)]
     pub desired_state: BridgeState,
 }
@@ -29,7 +27,7 @@ struct RawBridgeState {
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct BridgeState {
-    pub links: Option<Links>,
+    pub links: Option<BTreeSet<LinkName>>,
     pub protect: String,
     pub priority: u16,
     pub max_age: u8,
@@ -39,11 +37,10 @@ pub struct BridgeState {
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
-// #[cfg_attr(test, derive(PartialEq))]
 pub struct GurpBridgeRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
-    pub name: String,
+    pub name: BridgeName,
 }
 
 impl GurpBridgeEnsure {
@@ -75,12 +72,11 @@ impl GurpBridgeEnsure {
 
         if let Some(links) = &self.desired_state.links {
             for link in links {
-                cmd.args(["-l", link]);
+                cmd.args(["-l", &link.to_string()]);
             }
         }
 
         cmd.arg(&self.name);
-
         tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
@@ -163,7 +159,7 @@ impl GurpBridgeEnsure {
     }
 
     fn align_state(&self, current: &BridgeState, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let no_links: Links = BTreeSet::new();
+        let no_links = BTreeSet::new();
 
         let mut change = align_links(
             &self.name,
@@ -198,7 +194,7 @@ impl GurpBridgeRemove {
 
     // We have to remove any links attached to the bridge before we can delete it
     fn flush_links(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
-        let no_links: Links = BTreeSet::new();
+        let no_links = BTreeSet::new();
 
         let current_state = parse_bridge(&describe_bridge(&self.name)?)?;
 
@@ -213,7 +209,7 @@ impl GurpBridgeRemove {
     }
 
     fn delete_bridge(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        let mut cmd = cmd!(DLADM_BIN, "delete-bridge", &self.name);
+        let mut cmd = cmd!(DLADM_BIN, "delete-bridge", &self.name.to_string());
 
         if !opts.noop {
             run_cmd!(cmd).with_context(|| format!("failed to delete bridge: {}", self.name))?;
@@ -224,9 +220,9 @@ impl GurpBridgeRemove {
 }
 
 fn modify_links(
-    name: &str,
+    name: &BridgeName,
     action: &str,
-    links: Vec<&str>,
+    links: Vec<&LinkName>,
     opts: &ApplyOpts,
 ) -> anyhow::Result<()> {
     let mut message = match action {
@@ -239,7 +235,7 @@ fn modify_links(
     cmd.arg(action);
 
     for link in links {
-        cmd.args(["-l", link]);
+        cmd.args(["-l", &link.to_string()]);
         message.push_str(&format!("{link} "));
     }
 
@@ -254,7 +250,7 @@ fn modify_links(
     Ok(())
 }
 
-fn describe_bridge(name: &str) -> anyhow::Result<RawBridgeState> {
+fn describe_bridge(name: &BridgeName) -> anyhow::Result<RawBridgeState> {
     let state = cmd_output!(
         DLADM_BIN,
         "show-bridge",
@@ -272,22 +268,15 @@ fn describe_bridge(name: &str) -> anyhow::Result<RawBridgeState> {
 }
 
 fn align_links(
-    bridge_name: &str,
-    desired_links: &Links,
-    current_links: &Links,
+    bridge_name: &BridgeName,
+    desired_links: &BTreeSet<LinkName>,
+    current_links: &BTreeSet<LinkName>,
     opts: &ApplyOpts,
 ) -> anyhow::Result<bool> {
     let mut change = false;
 
-    let add_links: Vec<_> = desired_links
-        .difference(current_links)
-        .map(|s| s.as_str())
-        .collect();
-
-    let remove_links: Vec<_> = current_links
-        .difference(desired_links)
-        .map(|s| s.as_str())
-        .collect();
+    let add_links: Vec<_> = desired_links.difference(current_links).collect();
+    let remove_links: Vec<_> = current_links.difference(desired_links).collect();
 
     if !add_links.is_empty() {
         modify_links(bridge_name, "add-bridge", add_links, opts)?;
@@ -314,8 +303,11 @@ fn parse_bridge(raw: &RawBridgeState) -> anyhow::Result<BridgeState> {
     let links = if raw.links.is_empty() {
         None
     } else {
-        let lines: Links = raw.links.lines().map(|l| l.to_owned()).collect();
-
+        let lines = raw
+            .links
+            .lines()
+            .map(LinkName::new)
+            .collect::<anyhow::Result<BTreeSet<LinkName>>>()?;
         Some(lines)
     };
 
@@ -330,7 +322,7 @@ fn parse_bridge(raw: &RawBridgeState) -> anyhow::Result<BridgeState> {
     })
 }
 
-fn bridge_exists(bridge: &str) -> anyhow::Result<bool> {
+fn bridge_exists(bridge: &BridgeName) -> anyhow::Result<bool> {
     let raw = cmd_output!(DLADM_BIN, "show-bridge", "-p")
         .with_context(|| format!("failed to check if bridge {bridge} exists"))?;
 
@@ -347,7 +339,7 @@ mod test {
     fn test_deserialize_ensure_basic_bridge() {
         assert_eq!(
             GurpBridgeEnsure {
-                name: "basic".to_owned(),
+                name: BridgeName::new("basic").unwrap(),
                 id: GurpId::new("/NO-ROLE/bridge/basic").unwrap(),
                 desired_state: BridgeState {
                     protect: "stp".to_owned(),
@@ -367,7 +359,7 @@ mod test {
     fn test_deserialize_ensure_bridge_with_links_and_props() {
         assert_eq!(
             GurpBridgeEnsure {
-                name: "with_links".to_owned(),
+                name: BridgeName::new("with_links").unwrap(),
                 id: GurpId::new("/NO-ROLE/bridge/with_links").unwrap(),
                 desired_state: BridgeState {
                     protect: "stp".to_owned(),
@@ -376,7 +368,10 @@ mod test {
                     forward_delay: 15,
                     force_protocol: 3,
                     max_age: 27,
-                    links: Some(BTreeSet::from(["stub1".to_owned(), "stub2".to_owned(),])),
+                    links: Some(BTreeSet::from([
+                        LinkName::new("stub1").unwrap(),
+                        LinkName::new("stub2").unwrap(),
+                    ]))
                 },
             },
             deserialized_example("bridge/ensure-bridge-with-links-and-props.janet")
@@ -387,7 +382,7 @@ mod test {
     fn test_deserialize_remove_bridge() {
         assert_eq!(
             GurpBridgeRemove {
-                name: "unwanted".to_owned(),
+                name: BridgeName::new("unwanted").unwrap(),
                 id: GurpId::new("/NO-ROLE/bridge/unwanted").unwrap(),
             },
             deserialized_example("bridge/remove-bridge.janet")
@@ -415,13 +410,16 @@ mod test {
 
         assert_eq!(
             BridgeState {
-                links: Some(BTreeSet::from(["stub0".to_owned(), "stub2".to_owned()])),
                 protect: "stp".to_owned(),
                 priority: 32768,
                 hello_time: 2,
                 forward_delay: 15,
                 force_protocol: 3,
                 max_age: 20,
+                links: Some(BTreeSet::from([
+                    LinkName::new("stub0").unwrap(),
+                    LinkName::new("stub2").unwrap(),
+                ]))
             },
             parse_bridge(&RawBridgeState {
                 state: "stp:32768:2:15:3:20".to_owned(),
