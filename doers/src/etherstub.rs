@@ -1,7 +1,7 @@
 use anyhow::Context;
 use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
-use os_types::GurpId;
+use os_types::{GurpId, LinkName};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -10,7 +10,7 @@ use serde::Deserialize;
 pub struct GurpEtherstubEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
-    pub name: String,
+    pub name: LinkName,
 }
 
 #[derive(Deserialize, Debug)]
@@ -18,7 +18,7 @@ pub struct GurpEtherstubEnsure {
 pub struct GurpEtherstubRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
-    pub name: String,
+    pub name: LinkName,
 }
 
 impl GurpEtherstubEnsure {
@@ -45,11 +45,11 @@ impl GurpEtherstubRemove {
     }
 }
 
-fn etherstub_exists(etherstub_name: &str) -> anyhow::Result<bool> {
+fn etherstub_exists(name: &LinkName) -> anyhow::Result<bool> {
     let dladm_output = cmd_output!(DLADM_BIN, "show-etherstub", "-p", "-o", "link")
-        .with_context(|| format!("failed to test state of etherstub {etherstub_name}"))?;
+        .with_context(|| format!("failed to test state of etherstub {name}"))?;
 
-    Ok(dladm_output.lines().any(|l| l == etherstub_name))
+    Ok(dladm_output.lines().any(|l| l == name.to_string()))
 }
 
 #[cfg(test)]
@@ -62,7 +62,7 @@ mod test {
         assert_eq!(
             GurpEtherstubEnsure {
                 id: GurpId::new("/NO-ROLE/etherstub/newstub0").unwrap(),
-                name: "newstub0".to_owned(),
+                name: LinkName::new("newstub0").unwrap(),
             },
             deserialized_example("etherstub/ensure-stub.janet")
         );
@@ -73,7 +73,7 @@ mod test {
         assert_eq!(
             GurpEtherstubRemove {
                 id: GurpId::new("/NO-ROLE/etherstub/oldstub0").unwrap(),
-                name: "oldstub0".to_owned(),
+                name: LinkName::new("oldstub0").unwrap(),
             },
             deserialized_example("etherstub/remove-stub.janet")
         );
