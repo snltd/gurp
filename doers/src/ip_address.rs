@@ -7,11 +7,9 @@ use os_types::{AddrObj, GurpId};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::net::IpAddr;
 use std::process::Command;
 use util::deserializer::option_property_deserializer;
 use util::ip_protocols::{self, AlignIpPropArg};
-use util::network;
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -223,7 +221,7 @@ fn parse_addr_info(raw: &str) -> anyhow::Result<IpAddressObject> {
             name: AddrObj::new(name)?,
             address_type: address_type.to_owned(),
             state: state.to_owned(),
-            address: network::parse_addr_or_cidr(addr)?,
+            address: addr.parse()?,
         })
     } else {
         bail!("Expected four components in ipadm output {raw}")
@@ -260,7 +258,7 @@ mod test {
             GurpIpAddressEnsure {
                 name: AddrObj::new("example0/v4").unwrap(),
                 id: GurpId::new("/NO-ROLE/ip-address/example0_v4").unwrap(),
-                address: Some(parse_addr_or_cidr("192.168.1.13/24").unwrap()),
+                address: Some(IpNet::new("192.168.1.13".parse().unwrap(), 24).unwrap()),
                 address_type: "static".to_owned(),
                 properties: Some(propmap! {
                     "transmit" => "on",
@@ -303,7 +301,7 @@ mod test {
             name: AddrObj::new("e1000g0/v4").unwrap(),
             address_type: "static".to_owned(),
             state: "ok".to_owned(),
-            address: IpNet::new("192.168.1.5".parse::<IpAddr>().unwrap(), 24).unwrap(),
+            address: IpNet::new("192.168.1.5".parse().unwrap(), 24).unwrap(),
         };
 
         assert_eq!(

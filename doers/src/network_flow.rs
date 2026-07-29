@@ -2,8 +2,7 @@ use anyhow::{Context, ensure};
 use common::cmd;
 use common::constants::{FLOWADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
-use ipnet::IpNet;
-use os_types::{GurpId, LinkName};
+use os_types::{FlowAddr, GurpId, LinkName};
 use serde::Deserialize;
 use std::fmt::Debug;
 use std::process::Command;
@@ -15,8 +14,8 @@ pub struct GurpNetworkFlowEnsure {
     pub id: GurpId,
     pub name: String,
     pub link: LinkName,
-    pub local_ip: Option<IpNet>,
-    pub remote_ip: Option<IpNet>,
+    pub local_ip: Option<FlowAddr>,
+    pub remote_ip: Option<FlowAddr>,
     pub protocol: Option<String>,
     pub local_port: Option<u16>,
     pub remote_port: Option<u16>,
@@ -37,8 +36,8 @@ pub struct GurpNetworkFlowRemove {
 pub struct ExtantFlow {
     pub name: String,
     pub link: LinkName,
-    pub local_ip: Option<IpNet>,
-    pub remote_ip: Option<IpNet>,
+    pub local_ip: Option<FlowAddr>,
+    pub remote_ip: Option<FlowAddr>,
     pub transport: Option<String>,
     pub local_port: Option<u16>,
     pub remote_port: Option<u16>,
@@ -250,13 +249,13 @@ fn get_flowprops(flow_name: &str) -> anyhow::Result<String> {
     .with_context(|| format!("failed to get flowprops for network-flow {flow_name}"))
 }
 
-fn extract_cidr(raw: &str) -> anyhow::Result<Option<IpNet>> {
+fn extract_cidr(raw: &str) -> anyhow::Result<Option<FlowAddr>> {
     raw.trim()
         .split(':')
         .next_back()
         .filter(|addr| !addr.is_empty())
         .map(|addr| {
-            addr.parse::<IpNet>()
+            addr.parse::<FlowAddr>()
                 .with_context(|| format!("cannot parse flow IP CIDR {raw}"))
         })
         .transpose()
@@ -522,10 +521,10 @@ mod test {
             r#"(network-flow/ensure "tls_shaper"
                                     :link "vnic2"
                                     :protocol "tcp"
-                                    :remote-ip "203.0.113.4"
+                                    :remote-ip "203.0.113.4/32"
                                     :remote-port 443
                                     :maxbw "10M") "#,
-            "/usr/sbin/flowadm add-flow -l vnic2 -a remote_ip=203.0.113.4,remote_port=443,transport=tcp -p maxbw=10M tls_shaper",
+            "/usr/sbin/flowadm add-flow -l vnic2 -a remote_ip=203.0.113.4/32,remote_port=443,transport=tcp -p maxbw=10M tls_shaper",
         );
     }
 }

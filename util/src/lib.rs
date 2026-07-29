@@ -10,7 +10,6 @@ pub mod http;
 pub mod info;
 pub mod ip_protocols;
 pub mod json;
-pub mod network;
 pub mod smf_builder;
 pub mod svcs;
 pub mod url;
