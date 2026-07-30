@@ -60,7 +60,7 @@ impl IpAddressEnsure {
             if current.address_type == self.address_type {
                 if &self.address_type == "static"
                     && let Some(desired_address) = &self.address
-                    && current.address != full_address(desired_address, self.properties.as_ref())
+                    && current.address != *desired_address
                 {
                     tracing::info!(
                         "Changing {} address: {} -> {} (forces recreate)",
