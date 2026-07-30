@@ -306,7 +306,7 @@ impl ZoneConfig {
 
 #[cfg(test)]
 mod test {
-    use crate::zone::GurpZoneEnsure;
+    use crate::zone::ZoneEnsure;
     use indoc::indoc;
     use pretty_assertions::assert_eq;
     use tester::janet2json;
@@ -395,7 +395,7 @@ mod test {
             \tset name=zone.max-swap
             \tset value=(priv=privileged,limit=524288000,action=deny)\nend\n"};
 
-        let sut: GurpZoneEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: ZoneEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(expected_conf, sut.config.to_zonecfg(&Uuid::new_v4()));
     }

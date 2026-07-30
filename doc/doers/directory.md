@@ -33,7 +33,7 @@ Fully qualified path to directory (`:string`)
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:group` | `string number` | The group name or GID of the for this directory | `"root"` |
-| `:mode` | `string` | Permissions, written as a four-digit octal | `"0755"` |
+| `:mode` | `string` | Permissions, octal | `"0755"` |
 | `:owner` | `string number` | The username or UID of the user who owns this directory | `"root"` |
 
 ### Optional Properties

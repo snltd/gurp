@@ -11,7 +11,7 @@ members = [
   "macros",
   "gurptel",
   "tester",
-  "util",
+  "util", "os_types",
 ]
 
 [patch.crates-io]

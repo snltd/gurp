@@ -1,5 +1,5 @@
-pub use crate::publisher::ensure::GurpPublisherEnsure;
-pub use crate::publisher::remove::GurpPublisherRemove;
+pub use crate::publisher::ensure::PublisherEnsure;
+pub use crate::publisher::remove::PublisherRemove;
 
 pub mod ensure;
 pub mod functions;

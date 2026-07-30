@@ -4,6 +4,7 @@ use common::constants::{
     IPADM_BIN, NETSTAT_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ROUTE_BIN,
 };
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
@@ -29,9 +30,9 @@ type Flags = HashMap<String, String>;
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpRouteEnsure {
+pub struct RouteEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub destination: String,
     pub gateway: Option<String>,
@@ -48,9 +49,9 @@ pub struct GurpRouteEnsure {
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpRouteRemove {
+pub struct RouteRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub destination: String,
     pub gateway: Option<String>,
@@ -59,7 +60,7 @@ pub struct GurpRouteRemove {
     pub route_type: Option<String>,
 }
 
-impl GurpRouteEnsure {
+impl RouteEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let route = Route {
             destination: self.destination.clone(),
@@ -133,7 +134,7 @@ impl GurpRouteEnsure {
     }
 }
 
-impl GurpRouteRemove {
+impl RouteRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let route = Route {
             destination: self.destination.clone(),
@@ -282,8 +283,8 @@ mod test {
     #[test]
     fn test_deserialize_route_ensure_blackhole() {
         assert_eq!(
-            GurpRouteEnsure {
-                id: "/NO-ROLE/route/203.0.113.0_24".to_owned(),
+            RouteEnsure {
+                id: GurpId::new("/NO-ROLE/route/203.0.113.0_24").unwrap(),
                 destination: "203.0.113.0/24".to_owned(),
                 gateway: Some("127.0.0.1".to_owned()),
                 interface: None,
@@ -298,8 +299,8 @@ mod test {
     #[test]
     fn test_deserialize_route_ensure_default_route() {
         assert_eq!(
-            GurpRouteEnsure {
-                id: "/NO-ROLE/route/default".to_owned(),
+            RouteEnsure {
+                id: GurpId::new("/NO-ROLE/route/default").unwrap(),
                 destination: "default".to_owned(),
                 gateway: Some("192.168.1.1".to_owned()),
                 interface: None,
@@ -314,8 +315,8 @@ mod test {
     #[test]
     fn test_deserialize_route_ensure_network_with_mtu() {
         assert_eq!(
-            GurpRouteEnsure {
-                id: "/NO-ROLE/route/10.0.5.0_24".to_owned(),
+            RouteEnsure {
+                id: GurpId::new("/NO-ROLE/route/10.0.5.0_24").unwrap(),
                 destination: "10.0.5.0/24".to_owned(),
                 gateway: Some("10.0.5.150".to_owned()),
                 interface: None,
@@ -330,8 +331,8 @@ mod test {
     #[test]
     fn test_deserialize_route_remove_blackhole() {
         assert_eq!(
-            GurpRouteRemove {
-                id: "/NO-ROLE/route/203.0.113.0_24".to_owned(),
+            RouteRemove {
+                id: GurpId::new("/NO-ROLE/route/203.0.113.0_24").unwrap(),
                 destination: "203.0.113.0/24".to_owned(),
                 gateway: Some("127.0.0.1".to_owned()),
                 interface: None,
@@ -344,8 +345,8 @@ mod test {
     #[test]
     fn test_deserialize_route_remove_net_route() {
         assert_eq!(
-            GurpRouteRemove {
-                id: "/NO-ROLE/route/10.0.5.0_24".to_owned(),
+            RouteRemove {
+                id: GurpId::new("/NO-ROLE/route/10.0.5.0_24").unwrap(),
                 destination: "10.0.5.0/24".to_owned(),
                 gateway: Some("10.0.5.150".to_owned()),
                 interface: None,
@@ -359,7 +360,7 @@ mod test {
     fn test_build_add_route_cmd() {
         // default route
         let json_def = janet2json(r#"(route/ensure "default" :gateway "192.168.1.1")"#);
-        let sut: GurpRouteEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: RouteEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             "/usr/sbin/route -p add default 192.168.1.1",
@@ -368,7 +369,7 @@ mod test {
 
         // normal route
         let json_def = janet2json(r#"(route/ensure "10.0.0.0/16" :gateway "10.0.0.2")"#);
-        let sut: GurpRouteEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: RouteEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             "/usr/sbin/route -p add 10.0.0.0/16 10.0.0.2",
@@ -377,7 +378,7 @@ mod test {
 
         // interface route
         let json_def = janet2json(r#"(route/ensure "10.0.0.0/16" :interface "e1000g0")"#);
-        let sut: GurpRouteEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: RouteEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             "/usr/sbin/route -p add 10.0.0.0/16 -interface e1000g0",
@@ -387,7 +388,7 @@ mod test {
         // reject route
         let json_def =
             janet2json(r#"(route/ensure "203.0.113.0/24" :gateway "127.0.0.1" :type "reject")"#);
-        let sut: GurpRouteEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: RouteEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             "/usr/sbin/route -p add -reject 203.0.113.0/24 127.0.0.1",
@@ -397,7 +398,7 @@ mod test {
         // blackhole route
         let json_def =
             janet2json(r#"(route/ensure "203.0.113.0/24" :gateway "127.0.0.1" :type "blackhole")"#);
-        let sut: GurpRouteEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: RouteEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             "/usr/sbin/route -p add -blackhole 203.0.113.0/24 127.0.0.1",
@@ -407,7 +408,7 @@ mod test {
         // host route
         let json_def =
             janet2json(r#"(route/ensure "10.11.12.13" :gateway "192.168.1.10" :type "host")"#);
-        let sut: GurpRouteEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: RouteEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             "/usr/sbin/route -p add -host 10.11.12.13 192.168.1.10",
@@ -417,7 +418,7 @@ mod test {
         // gateway route
         let json_def =
             janet2json(r#"(route/ensure "10.11.12.13" :gateway "router" :force-gateway true)"#);
-        let sut: GurpRouteEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: RouteEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             "/usr/sbin/route -p add 10.11.12.13 -gateway router",

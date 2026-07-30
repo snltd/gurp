@@ -1,19 +1,21 @@
 use anyhow::Context;
 use common::constants::{IPADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
+use os_types::link_name::LinkName;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use util::deserializer;
-use util::ip_protocols::{self, AlignIpPropArg, IpProtocolMap};
+use util::ip_protocols::{self, AlignIpPropArg, IpObjType, IpProtocolMap};
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpIpInterfaceEnsure {
+pub struct IpInterfaceEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
-    pub name: String,
+    pub id: GurpId,
+    pub name: LinkName,
     #[serde(
         default,
         deserialize_with = "deserializer::option_hash_property_deserializer"
@@ -23,13 +25,13 @@ pub struct GurpIpInterfaceEnsure {
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpIpInterfaceRemove {
+pub struct IpInterfaceRemove {
     #[serde(rename = "_id")]
-    pub id: String,
-    pub name: String,
+    pub id: GurpId,
+    pub name: LinkName,
 }
 
-impl GurpIpInterfaceEnsure {
+impl IpInterfaceEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut summary = ONE_RESOURCE_NO_CHANGE;
 
@@ -39,7 +41,7 @@ impl GurpIpInterfaceEnsure {
             tracing::debug!("{} exists", self.name);
         } else {
             tracing::info!("creating {}", self.name);
-            summary = cmd_change_or_noop!(opts, IPADM_BIN, "create-if", &self.name)
+            summary = cmd_change_or_noop!(opts, IPADM_BIN, "create-if", &self.name.to_string())
                 .with_context(|| format!("failed to create ip-interface {}", self.name))?;
         }
 
@@ -66,7 +68,7 @@ impl GurpIpInterfaceEnsure {
                                     .map(String::as_str),
                                 desired_value,
                                 protocol_requires_flag: true,
-                                ipadm_object: Some(&self.name),
+                                ip_object: Some(&IpObjType::Link(&self.name)),
                             },
                             opts,
                         )? {
@@ -89,17 +91,17 @@ impl GurpIpInterfaceEnsure {
             "-c",
             "-o",
             "proto,property,current",
-            &self.name,
+            &self.name.to_string(),
         )
         .with_context(|| format!("failed to get properties of ip-interface {}", self.name))
     }
 }
 
-impl GurpIpInterfaceRemove {
+impl IpInterfaceRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if interface_exists(&self.name)? {
             tracing::info!("removing {}", self.name);
-            cmd_change_or_noop!(opts, IPADM_BIN, "delete-if", &self.name)
+            cmd_change_or_noop!(opts, IPADM_BIN, "delete-if", &self.name.to_string())
                 .with_context(|| format!("failed to delete ip-interface {}", self.name))
         } else {
             tracing::debug!("{} does not exist", self.name);
@@ -108,11 +110,13 @@ impl GurpIpInterfaceRemove {
     }
 }
 
-fn interface_exists(interface_name: &str) -> anyhow::Result<bool> {
+fn interface_exists(interface_name: &LinkName) -> anyhow::Result<bool> {
     let ipadm_output = cmd_output!(IPADM_BIN, "show-if", "-p", "-o", "ifname")
         .with_context(|| format!("failed to get state of ip-interface {interface_name}"))?;
 
-    Ok(ipadm_output.lines().any(|l| l == interface_name))
+    Ok(ipadm_output
+        .lines()
+        .any(|l| l == interface_name.to_string()))
 }
 
 #[cfg(test)]
@@ -123,9 +127,9 @@ mod test {
     #[test]
     fn test_ip_interface_deserialize_ensure_interface() {
         assert_eq!(
-            GurpIpInterfaceEnsure {
-                name: "example0".to_owned(),
-                id: "/NO-ROLE/ip-interface/example0".to_owned(),
+            IpInterfaceEnsure {
+                name: LinkName::new("example0").unwrap(),
+                id: GurpId::new("/NO-ROLE/ip-interface/example0").unwrap(),
                 protocols: None,
             },
             deserialized_example("ip-interface/ensure-interface.janet")
@@ -135,9 +139,9 @@ mod test {
     #[test]
     fn test_ip_interface_deserialize_ensure_interface_with_options_and_label() {
         assert_eq!(
-            GurpIpInterfaceEnsure {
-                name: "example1".to_owned(),
-                id: "/NO-ROLE/ip-interface/example-interface".to_owned(),
+            IpInterfaceEnsure {
+                name: LinkName::new("example1").unwrap(),
+                id: GurpId::new("/NO-ROLE/ip-interface/example-interface").unwrap(),
                 protocols: Some(HashMap::from([
                     (
                         "ipv4".to_owned(),
@@ -164,9 +168,9 @@ mod test {
     #[test]
     fn test_ip_interface_deserialize_remove_interface() {
         assert_eq!(
-            GurpIpInterfaceRemove {
-                name: "example2".to_owned(),
-                id: "/NO-ROLE/ip-interface/example2".to_owned(),
+            IpInterfaceRemove {
+                name: LinkName::new("example2").unwrap(),
+                id: GurpId::new("/NO-ROLE/ip-interface/example2").unwrap(),
             },
             deserialized_example("ip-interface/remove-interface.janet")
         );

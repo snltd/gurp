@@ -10,13 +10,13 @@
   (import-tests "vlan" (curenv))
 
   (test *collector*
-    @{:ensure @{:vlan @[{:_id "/test-role/vlan/e1000g010"
-                         :name "e1000g010"
+    @{:ensure @{:vlan @[{:_id "/test-role/vlan/e1000g10000"
+                         :name "e1000g10000"
                          :over "e1000g0"
                          :role "test-role"
                          :vlan-tag 10}]}
-      :remove @{:vlan @[{:_id "/test-role/vlan/e1000g010"
-                         :name "e1000g010"
+      :remove @{:vlan @[{:_id "/test-role/vlan/e1000g10000"
+                         :name "e1000g10000"
                          :role "test-role"}]}}))
 
 (deftest vlan-error

@@ -9,7 +9,7 @@ VLAN name (`:string`)
 ## vlan/ensure
 
 ```janet
-(vlan/ensure "e1000g010"
+(vlan/ensure "e1000g10000"
              :over "e1000g0"
              :vlan-tag 10)
 ```
@@ -28,7 +28,7 @@ None
 ## vlan/remove
 
 ```janet
-(vlan/remove "e1000g010")
+(vlan/remove "e1000g10000")
 ```
 
 ### Mandatory Properties

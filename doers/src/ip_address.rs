@@ -3,10 +3,10 @@ use common::cmd;
 use common::constants::{IPADM_BIN, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
 use ipnet::IpNet;
+use os_types::{AddrObj, GurpId};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::net::IpAddr;
 use std::process::Command;
 use util::deserializer::option_property_deserializer;
 use util::ip_protocols::{self, AlignIpPropArg};
@@ -14,10 +14,10 @@ use util::ip_protocols::{self, AlignIpPropArg};
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpIpAddressEnsure {
+pub struct IpAddressEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
-    pub name: String,
+    pub id: GurpId,
+    pub name: AddrObj,
     #[serde(rename = "type")]
     pub address_type: String,
     pub address: Option<IpNet>,
@@ -27,15 +27,15 @@ pub struct GurpIpAddressEnsure {
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpIpAddressRemove {
+pub struct IpAddressRemove {
     #[serde(rename = "_id")]
-    pub id: String,
-    pub name: String,
+    pub id: GurpId,
+    pub name: AddrObj,
 }
 
 #[derive(Debug, PartialEq)]
 struct IpAddressObject {
-    name: String,
+    name: AddrObj,
     address_type: String,
     state: String,
     address: IpNet,
@@ -43,7 +43,7 @@ struct IpAddressObject {
 
 type IpAddressPropMap = HashMap<String, String>;
 
-impl GurpIpAddressEnsure {
+impl IpAddressEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut recreate_interface = false;
         let mut create_interface = false;
@@ -112,7 +112,7 @@ impl GurpIpAddressEnsure {
                         current_value: current_values.get(property).map(String::as_str),
                         desired_value,
                         protocol_requires_flag: false,
-                        ipadm_object: Some(&self.name),
+                        ip_object: Some(&ip_protocols::IpObjType::AddrObj(&self.name)),
                     },
                     opts,
                 )? {
@@ -125,7 +125,7 @@ impl GurpIpAddressEnsure {
     }
 
     fn delete_addr(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
-        cmd_change_or_noop!(opts, IPADM_BIN, "delete-addr", &self.name)
+        cmd_change_or_noop!(opts, IPADM_BIN, "delete-addr", &self.name.to_string())
             .with_context(|| format!("failed to delete ip-address {}", self.name))?;
         Ok(())
     }
@@ -151,7 +151,6 @@ impl GurpIpAddressEnsure {
         }
 
         cmd.arg(&self.name);
-
         tracing::debug!(command = cmd::to_string(&cmd));
 
         if !opts.noop {
@@ -168,7 +167,7 @@ impl GurpIpAddressEnsure {
             "-c",
             "-o",
             "property,perm,current",
-            &self.name,
+            &self.name.to_string(),
         )
         .with_context(|| {
             format!(
@@ -179,11 +178,11 @@ impl GurpIpAddressEnsure {
     }
 }
 
-impl GurpIpAddressRemove {
+impl IpAddressRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if describe_address(&self.name)?.is_some() {
             tracing::info!("removing {}", self.name);
-            cmd_change_or_noop!(opts, IPADM_BIN, "delete-addr", &self.name)
+            cmd_change_or_noop!(opts, IPADM_BIN, "delete-addr", &self.name.to_string())
                 .with_context(|| format!("failed to delete ip-address {}", self.name))
         } else {
             tracing::debug!("{} does not exist", self.name);
@@ -192,7 +191,7 @@ impl GurpIpAddressRemove {
     }
 }
 
-fn describe_address(address_name: &str) -> anyhow::Result<Option<IpAddressObject>> {
+fn describe_address(addrobj_name: &AddrObj) -> anyhow::Result<Option<IpAddressObject>> {
     let ipadm_output = cmd_output!(
         IPADM_BIN,
         "show-addr",
@@ -200,28 +199,14 @@ fn describe_address(address_name: &str) -> anyhow::Result<Option<IpAddressObject
         "-o",
         "addrobj,type,state,addr"
     )
-    .with_context(|| format!("failed to describe ip-address {address_name}"))?;
+    .with_context(|| format!("failed to describe ip-address {addrobj_name}"))?;
 
     let info = ipadm_output
         .lines()
         .filter_map(|l| parse_addr_info(l).ok())
-        .find(|l| l.name == address_name);
+        .find(|l| &l.name == addrobj_name);
 
     Ok(info)
-}
-
-fn parse_addr_or_cidr(raw: &str) -> anyhow::Result<IpNet> {
-    if raw.contains('/') {
-        raw.parse::<IpNet>()
-            .with_context(|| format!("cannot parse CIDR {raw}"))
-    } else {
-        let addr: IpAddr = raw
-            .parse()
-            .with_context(|| format!("cannot parse IP address {raw}"))?;
-
-        IpNet::new(addr, if addr.is_ipv4() { 32 } else { 128 })
-            .with_context(|| format!("cannot construct IP address from {raw}"))
-    }
 }
 
 fn parse_addr_info(raw: &str) -> anyhow::Result<IpAddressObject> {
@@ -233,10 +218,10 @@ fn parse_addr_info(raw: &str) -> anyhow::Result<IpAddressObject> {
         && let Some(addr) = chunks.next()
     {
         Ok(IpAddressObject {
-            name: name.to_owned(),
+            name: AddrObj::new(name)?,
             address_type: address_type.to_owned(),
             state: state.to_owned(),
-            address: parse_addr_or_cidr(addr)?,
+            address: addr.parse()?,
         })
     } else {
         bail!("Expected four components in ipadm output {raw}")
@@ -270,10 +255,10 @@ mod test {
     #[test]
     fn test_ip_address_deserialize_ensure_static_with_properties() {
         assert_eq!(
-            GurpIpAddressEnsure {
-                name: "example0/v4".to_owned(),
-                id: "/NO-ROLE/ip-address/example0_v4".to_owned(),
-                address: Some(parse_addr_or_cidr("192.168.1.13/24").unwrap()),
+            IpAddressEnsure {
+                name: AddrObj::new("example0/v4").unwrap(),
+                id: GurpId::new("/NO-ROLE/ip-address/example0_v4").unwrap(),
+                address: Some(IpNet::new("192.168.1.13".parse().unwrap(), 24).unwrap()),
                 address_type: "static".to_owned(),
                 properties: Some(propmap! {
                     "transmit" => "on",
@@ -288,9 +273,9 @@ mod test {
     #[test]
     fn test_ip_address_deserialize_ensure_dhcp() {
         assert_eq!(
-            GurpIpAddressEnsure {
-                name: "example1/v4".to_owned(),
-                id: "/NO-ROLE/ip-address/example1_v4".to_owned(),
+            IpAddressEnsure {
+                name: AddrObj::new("example1/v4").unwrap(),
+                id: GurpId::new("/NO-ROLE/ip-address/example1_v4").unwrap(),
                 address: None,
                 address_type: "dhcp".to_owned(),
                 properties: None,
@@ -302,9 +287,9 @@ mod test {
     #[test]
     fn test_ip_address_deserialize_remove_address() {
         assert_eq!(
-            GurpIpAddressRemove {
-                name: "example2/v4".to_owned(),
-                id: "/NO-ROLE/ip-address/example2_v4".to_owned(),
+            IpAddressRemove {
+                name: AddrObj::new("example2/v4").unwrap(),
+                id: GurpId::new("/NO-ROLE/ip-address/example2_v4").unwrap(),
             },
             deserialized_example("ip-address/remove-address.janet")
         );
@@ -313,10 +298,10 @@ mod test {
     #[test]
     fn test_parse_addr_info() {
         let expected = IpAddressObject {
-            name: "e1000g0/v4".to_owned(),
+            name: AddrObj::new("e1000g0/v4").unwrap(),
             address_type: "static".to_owned(),
             state: "ok".to_owned(),
-            address: IpNet::new("192.168.1.5".parse::<IpAddr>().unwrap(), 24).unwrap(),
+            address: IpNet::new("192.168.1.5".parse().unwrap(), 24).unwrap(),
         };
 
         assert_eq!(

@@ -1,4 +1,5 @@
 use camino::Utf8PathBuf;
+use os_types::FileMode;
 use serde::Deserialize;
 use serde_json::Value;
 use std::fmt::Debug;
@@ -16,7 +17,7 @@ pub struct DesiredFileState {
     pub from: Option<Utf8PathBuf>,
     pub group: NameOrId,
     pub ignore_pattern: Option<String>,
-    pub mode: String,
+    pub mode: FileMode,
     pub owner: NameOrId,
     pub to_format: Option<OutputFileFormat>,
     pub with_checksum: Option<String>,

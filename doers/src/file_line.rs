@@ -2,6 +2,7 @@ use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use regex::Regex;
 use serde::Deserialize;
 use std::fs;
@@ -10,9 +11,9 @@ use std::io::Write;
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpFileLineEnsure {
+pub struct FileLineEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub line: Option<String>,
     pub insert_at: Option<usize>,
     pub replace: Option<String>,
@@ -25,9 +26,9 @@ pub struct GurpFileLineEnsure {
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpFileLineRemove {
+pub struct FileLineRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub pattern: String,
     #[serde(rename = "match")]
     pub match_type: String,
@@ -36,7 +37,7 @@ pub struct GurpFileLineRemove {
     pub path: Utf8PathBuf,
 }
 
-impl GurpFileLineEnsure {
+impl FileLineEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         ensure!(
             self.path.exists(),
@@ -185,7 +186,7 @@ fn write_content(
     Ok(ONE_RESOURCE_ONE_CHANGE)
 }
 
-impl GurpFileLineRemove {
+impl FileLineRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let content = fs::read_to_string(&self.path)?;
 
@@ -301,9 +302,9 @@ mod test {
     #[test]
     fn test_deserialize_file_line_ensure_line() {
         assert_eq!(
-            GurpFileLineEnsure {
+            FileLineEnsure {
                 path: Utf8PathBuf::from("/path/to/file"),
-                id: "/NO-ROLE/file-line/_path_to_file".to_owned(),
+                id: GurpId::new("/NO-ROLE/file-line/_path_to_file").unwrap(),
                 line: Some("i-want-to-see-this".to_owned()),
                 insert_at: None,
                 replace: None,
@@ -317,9 +318,9 @@ mod test {
     #[test]
     fn test_deserialize_file_line_remove_pattern() {
         assert_eq!(
-            GurpFileLineRemove {
+            FileLineRemove {
                 path: Utf8PathBuf::from("/path/to/file"),
-                id: "/NO-ROLE/file-line/_path_to_file".to_owned(),
+                id: GurpId::new("/NO-ROLE/file-line/_path_to_file").unwrap(),
                 pattern: "i-do-not-want-to-see-this-anywhere".to_owned(),
                 match_type: "exact".to_owned(),
                 apply_to: "all".to_owned(),
@@ -331,9 +332,9 @@ mod test {
     #[test]
     fn test_deserialize_file_line_remove_regex_match() {
         assert_eq!(
-            GurpFileLineRemove {
+            FileLineRemove {
                 path: Utf8PathBuf::from("/path/to/file"),
-                id: "/NO-ROLE/file-line/_path_to_file".to_owned(),
+                id: GurpId::new("/NO-ROLE/file-line/_path_to_file").unwrap(),
                 pattern: "rust-regex".to_owned(),
                 match_type: "regex".to_owned(),
                 apply_to: "all".to_owned(),
@@ -345,9 +346,9 @@ mod test {
     #[test]
     fn test_deserialize_file_line_remove_last_prefix_match() {
         assert_eq!(
-            GurpFileLineRemove {
+            FileLineRemove {
                 path: Utf8PathBuf::from("/path/to/file"),
-                id: "/NO-ROLE/file-line/_path_to_file".to_owned(),
+                id: GurpId::new("/NO-ROLE/file-line/_path_to_file").unwrap(),
                 pattern: "string-prefix".to_owned(),
                 match_type: "starts-with".to_owned(),
                 apply_to: "last".to_owned(),
@@ -363,7 +364,7 @@ mod test {
                 :line "some irrelevant text")
                 "#});
 
-        let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: FileLineEnsure = serde_json::from_str(&json_def).unwrap();
         assert!(sut.apply(&ApplyOpts::default()).is_err());
     }
 
@@ -375,7 +376,7 @@ mod test {
             (file-line/ensure \"{}\" :line \"line_4\")
             ", file_to_modify});
 
-        let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: FileLineEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
@@ -395,7 +396,7 @@ mod test {
             (file-line/ensure \"{}\" :line \"new line\" :insert-at 0)
             ", file_to_modify});
 
-        let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: FileLineEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
@@ -415,7 +416,7 @@ mod test {
             (file-line/ensure \"{}\" :line \"new line\" :insert-at 100)
             ", file_to_modify});
 
-        let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: FileLineEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
@@ -435,7 +436,7 @@ mod test {
             (file-line/ensure \"{}\" :line \"line_4\")
             ", file_to_modify});
 
-        let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: FileLineEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
@@ -459,7 +460,7 @@ mod test {
             (file-line/ensure \"{}\" :line \"line_3\")
             ", file_to_modify});
 
-        let sut: GurpFileLineEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: FileLineEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,
@@ -506,7 +507,7 @@ mod test {
                 :apply-to \"all\" )
             ", file_to_modify});
 
-        let sut: GurpFileLineRemove = serde_json::from_str(&json_def).unwrap();
+        let sut: FileLineRemove = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
@@ -535,7 +536,7 @@ mod test {
                 :apply-to \"all\")
             ", file_to_modify});
 
-        let sut: GurpFileLineRemove = serde_json::from_str(&json_def).unwrap();
+        let sut: FileLineRemove = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,

@@ -80,12 +80,13 @@ fn copy_file(
 
 #[cfg(test)]
 mod test {
-    use crate::file::ensure::GurpFileEnsure;
+    use crate::file::ensure::FileEnsure;
     use crate::file::types::DesiredFileState;
     use camino_tempfile_ext::prelude::*;
     use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
     use common::types::ApplyOpts;
     use indoc::formatdoc;
+    use os_types::{FileMode, GurpId};
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
@@ -99,11 +100,11 @@ mod test {
 
         assert!(!temp_file.exists());
 
-        let sut = GurpFileEnsure {
-            id: "IRRELEVANT".to_owned(),
+        let sut = FileEnsure {
+            id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: temp_file.clone(),
             desired_state: DesiredFileState {
-                mode: "0755".to_owned(),
+                mode: FileMode::new("0755").unwrap(),
                 group: NameOrId::Name(my_group()),
                 owner: NameOrId::Name(my_user()),
                 content: None,
@@ -133,13 +134,13 @@ mod test {
 
         assert!(!temp_file.exists());
 
-        let sut = GurpFileEnsure {
-            id: "IRRELEVANT".to_owned(),
+        let sut = FileEnsure {
+            id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: temp_file.clone(),
             desired_state: DesiredFileState {
                 group: NameOrId::Name(my_group()),
                 owner: NameOrId::Name(my_user()),
-                mode: "2755".to_owned(),
+                mode: FileMode::new("2755").unwrap(),
                 content: None,
                 ignore_pattern: None,
                 from: Some(fixture("file/binary-file")),
@@ -192,7 +193,7 @@ mod test {
             my_group(),
         });
 
-        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: FileEnsure = serde_json::from_str(&json_def).unwrap();
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
             sut.apply(&ApplyOpts::default()).unwrap()
@@ -233,7 +234,7 @@ mod test {
             my_group(),
         });
 
-        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: FileEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,

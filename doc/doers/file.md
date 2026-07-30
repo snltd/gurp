@@ -44,7 +44,7 @@ None
 | `:from` | `string` | Copy content from this file. If relative, looks in ../files |  |
 | `:group` | `string number` | The group name or GID of the for this file | `"root"` |
 | `:ignore-pattern` | `string` | When comparing, ignore lines matching this Rust regex |  |
-| `:mode` | `string` | Permissions written as a four-digit octal | `"0644"` |
+| `:mode` | `string` | Permissions, octal | `"0644"` |
 | `:only-fetch-from-url-once` | `boolean` | If you use :from-url, Gurp must download the file on every run to compare it with the installed copy. When this is set to true, :from-url files are only downloaded if the target file is missing |  |
 | `:owner` | `string number` | The username or UID of the user who owns this file | `"root"` |
 | `:to-format` | `string` | Used with :from-struct to try to turn the struct into this format |  |

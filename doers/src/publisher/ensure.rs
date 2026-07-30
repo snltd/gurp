@@ -4,20 +4,21 @@ use anyhow::Context;
 use common::cmd;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PKG_BIN};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::process::Command;
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpPublisherEnsure {
+pub struct PublisherEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: PublisherName,
     #[serde(flatten)]
     pub desired_state: Publisher,
 }
 
-impl GurpPublisherEnsure {
+impl PublisherEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if functions::publisher_exists(&self.name)? {
             let raw_publisher_info = cmd_output!(PKG_BIN, "publisher", &self.name)
@@ -191,8 +192,8 @@ mod test {
     #[test]
     fn test_deserialize_publisher_ensure_new_publisher() {
         assert_eq!(
-            GurpPublisherEnsure {
-                id: "/NO-ROLE/publisher/example".to_owned(),
+            PublisherEnsure {
+                id: GurpId::new("/NO-ROLE/publisher/example").unwrap(),
                 name: "example".to_owned(),
                 desired_state: Publisher {
                     origins: vec![Origin {

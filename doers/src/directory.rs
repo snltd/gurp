@@ -3,15 +3,16 @@ use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_DIRS};
 use common::types::{ApplyOpts, ApplySummary};
 use nix::unistd::{Gid, Uid};
+use os_types::{FileMode, GurpId};
 use serde::Deserialize;
 use std::fs;
 use util::file::{self, FileMetadata, NameOrId};
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpDirectoryEnsure {
+pub struct DirectoryEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub path: Utf8PathBuf,
     #[serde(flatten)]
@@ -22,7 +23,7 @@ pub struct GurpDirectoryEnsure {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct DesiredDirectoryState {
     pub group: NameOrId,
-    pub mode: String,
+    pub mode: FileMode,
     pub owner: NameOrId,
 }
 
@@ -30,20 +31,20 @@ pub struct DesiredDirectoryState {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct DirectoryState {
     pub gid: Gid,
-    pub mode: String,
+    pub mode: FileMode,
     pub uid: Uid,
 }
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpDirectoryRemove {
+pub struct DirectoryRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub path: Utf8PathBuf,
 }
 
-impl GurpDirectoryEnsure {
+impl DirectoryEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut changed = false;
 
@@ -82,7 +83,7 @@ impl GurpDirectoryEnsure {
     }
 }
 
-impl GurpDirectoryRemove {
+impl DirectoryRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if self.path.exists() {
             ensure!(
@@ -122,13 +123,13 @@ mod test {
     #[test]
     fn test_deserialize_ensure_directory_defaults() {
         assert_eq!(
-            GurpDirectoryEnsure {
+            DirectoryEnsure {
                 path: Utf8PathBuf::from("/example/dir_1"),
-                id: "/NO-ROLE/directory/_example_dir_1".to_owned(),
+                id: GurpId::new("/NO-ROLE/directory/_example_dir_1").unwrap(),
                 desired_state: DesiredDirectoryState {
                     owner: NameOrId::Name("root".to_owned()),
                     group: NameOrId::Name("root".to_owned()),
-                    mode: "0755".to_owned(),
+                    mode: FileMode::new("755").unwrap(),
                 }
             },
             deserialized_example("directory/ensure-default-dir.janet")
@@ -138,13 +139,13 @@ mod test {
     #[test]
     fn test_deserialize_ensure_directory_with_ids() {
         assert_eq!(
-            GurpDirectoryEnsure {
+            DirectoryEnsure {
                 path: Utf8PathBuf::from("/example/dir_3"),
-                id: "/NO-ROLE/directory/my-dir".to_owned(),
+                id: GurpId::new("/NO-ROLE/directory/my-dir").unwrap(),
                 desired_state: DesiredDirectoryState {
                     owner: NameOrId::Id(4),
                     group: NameOrId::Id(12),
-                    mode: "2750".to_owned(),
+                    mode: FileMode::new("2750").unwrap(),
                 }
             },
             deserialized_example("directory/ensure-with-ids.janet")
@@ -154,13 +155,13 @@ mod test {
     #[test]
     fn test_deserialize_ensure_directory_with_names() {
         assert_eq!(
-            GurpDirectoryEnsure {
+            DirectoryEnsure {
                 path: Utf8PathBuf::from("/example/dir_2"),
-                id: "/NO-ROLE/directory/all-the-specs".to_owned(),
+                id: GurpId::new("/NO-ROLE/directory/all-the-specs").unwrap(),
                 desired_state: DesiredDirectoryState {
                     owner: NameOrId::Name("adm".to_owned()),
                     group: NameOrId::Name("sys".to_owned()),
-                    mode: "0700".to_owned(),
+                    mode: FileMode::new("0700").unwrap(),
                 }
             },
             deserialized_example("directory/ensure-with-names.janet")
@@ -170,8 +171,8 @@ mod test {
     #[test]
     fn test_deserialize_remove_directory() {
         assert_eq!(
-            GurpDirectoryRemove {
-                id: "/NO-ROLE/directory/_example".to_owned(),
+            DirectoryRemove {
+                id: GurpId::new("/NO-ROLE/directory/_example").unwrap(),
                 path: Utf8PathBuf::from("/example"),
             },
             deserialized_example("directory/remove-dir.janet")
@@ -183,7 +184,7 @@ mod test {
         let temp_dir = Utf8TempDir::new().unwrap();
         let dir = temp_dir.child("test_directory");
         let json_def = janet2json(&format!("(directory/ensure \"{}\")", dir.as_path()));
-        let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: DirectoryEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert!(!dir.exists());
         assert_eq!(
@@ -217,7 +218,7 @@ mod test {
             my_group(),
         });
 
-        let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: DirectoryEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,
@@ -250,7 +251,7 @@ mod test {
             my_group(),
         });
 
-        let sut: GurpDirectoryEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: DirectoryEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
@@ -266,7 +267,7 @@ mod test {
     #[test]
     fn test_directory_remove_apply_does_not_exist() {
         let json_def = janet2json(r#"(directory/remove "/no/such/dir")"#);
-        let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
+        let sut: DirectoryRemove = serde_json::from_str(&json_def).unwrap();
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,
             sut.apply(&ApplyOpts::default()).unwrap()
@@ -276,7 +277,7 @@ mod test {
     #[test]
     fn test_directory_remove_apply_not_allowed() {
         let json_def = janet2json(r#"(directory/remove "/usr")"#);
-        let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
+        let sut: DirectoryRemove = serde_json::from_str(&json_def).unwrap();
         assert!(sut.apply(&ApplyOpts::default()).is_err());
     }
 
@@ -287,7 +288,7 @@ mod test {
         dir.create_dir_all().unwrap();
 
         let json_def = janet2json(&format!("(directory/remove \"{}\")", dir.as_path()));
-        let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
+        let sut: DirectoryRemove = serde_json::from_str(&json_def).unwrap();
 
         assert!(dir.exists());
         assert_eq!(
@@ -304,7 +305,7 @@ mod test {
         dir.create_dir_all().unwrap();
 
         let json_def = janet2json(&format!("(directory/remove \"{}\")", dir.as_path()));
-        let sut: GurpDirectoryRemove = serde_json::from_str(&json_def).unwrap();
+        let sut: DirectoryRemove = serde_json::from_str(&json_def).unwrap();
 
         assert!(dir.exists());
         assert_eq!(

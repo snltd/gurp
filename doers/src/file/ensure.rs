@@ -3,21 +3,22 @@ use crate::file::{from_content, from_file, from_struct, from_url};
 use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::fmt::Debug;
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpFileEnsure {
+pub struct FileEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub path: Utf8PathBuf,
     #[serde(flatten)]
     pub desired_state: DesiredFileState,
 }
 
-impl GurpFileEnsure {
+impl FileEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         ensure!(
             self.single_source(),
@@ -99,6 +100,7 @@ impl GurpFileEnsure {
 mod test {
     use super::*;
     use camino::Utf8PathBuf;
+    use os_types::FileMode;
     use pretty_assertions::assert_eq;
     use tester::{deserialized_example, fixture, my_group, my_user};
     use url::Url;
@@ -107,8 +109,8 @@ mod test {
     #[test]
     fn test_deserialize_ensure_file_from_content() {
         assert_eq!(
-            GurpFileEnsure {
-                id: "/NO-ROLE/file/_example_file_from-content".to_owned(),
+            FileEnsure {
+                id: GurpId::new("/NO-ROLE/file/_example_file_from-content").unwrap(),
                 path: Utf8PathBuf::from("/example/file/from-content"),
                 desired_state: DesiredFileState {
                     backup_suffix: None,
@@ -117,7 +119,7 @@ mod test {
                     from_url: None,
                     from: None,
                     ignore_pattern: None,
-                    mode: "0600".to_owned(),
+                    mode: FileMode::new("0600").unwrap(),
                     group: NameOrId::Name("root".to_owned()),
                     owner: NameOrId::Name("sys".to_owned()),
                     to_format: None,
@@ -133,8 +135,8 @@ mod test {
     #[test]
     fn test_deserialize_ensure_file_from_url_with_checksum() {
         assert_eq!(
-            GurpFileEnsure {
-                id: "/NO-ROLE/file/remote-file".to_owned(),
+            FileEnsure {
+                id: GurpId::new("/NO-ROLE/file/remote-file").unwrap(),
                 path: Utf8PathBuf::from("/example/file/from-url"),
                 desired_state: DesiredFileState {
                     backup_suffix: None,
@@ -150,7 +152,7 @@ mod test {
                             .to_owned()
                     ),
                     ignore_pattern: None,
-                    mode: "0644".to_owned(),
+                    mode: FileMode::new("644").unwrap(),
                     owner: NameOrId::Name("root".to_owned()),
                     group: NameOrId::Name("root".to_owned()),
                     to_format: None,
@@ -164,13 +166,13 @@ mod test {
 
     #[test]
     fn test_not_exactly_one_source_fails() {
-        let file_and_url = GurpFileEnsure {
-            id: "IRRELEVANT".to_owned(),
+        let file_and_url = FileEnsure {
+            id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: Utf8PathBuf::from("/does/not/matter"),
             desired_state: DesiredFileState {
                 group: NameOrId::Name(my_group()),
                 owner: NameOrId::Name(my_user()),
-                mode: "2755".to_owned(),
+                mode: FileMode::new("2755").unwrap(),
                 content: None,
                 ignore_pattern: None,
                 from: Some(fixture("file/binary-file")),
@@ -186,13 +188,13 @@ mod test {
 
         assert!(file_and_url.apply(&ApplyOpts::default()).is_err());
 
-        let file_and_content = GurpFileEnsure {
-            id: "IRRELEVANT".to_owned(),
+        let file_and_content = FileEnsure {
+            id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: Utf8PathBuf::from("/does/not/matter"),
             desired_state: DesiredFileState {
                 group: NameOrId::Name(my_group()),
                 owner: NameOrId::Name(my_user()),
-                mode: "2755".to_owned(),
+                mode: FileMode::new("2755").unwrap(),
                 content: Some("content".to_owned()),
                 ignore_pattern: None,
                 from: Some(fixture("file/binary-file")),
@@ -208,13 +210,13 @@ mod test {
 
         assert!(file_and_content.apply(&ApplyOpts::default()).is_err());
 
-        let no_source = GurpFileEnsure {
-            id: "IRRELEVANT".to_owned(),
+        let no_source = FileEnsure {
+            id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: Utf8PathBuf::from("/does/not/matter"),
             desired_state: DesiredFileState {
                 group: NameOrId::Name(my_group()),
                 owner: NameOrId::Name(my_user()),
-                mode: "2755".to_owned(),
+                mode: FileMode::new("2755").unwrap(),
                 content: None,
                 ignore_pattern: None,
                 from: None,

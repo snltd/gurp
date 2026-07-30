@@ -1,25 +1,26 @@
 use anyhow::Context;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, SVCADM_BIN};
 use common::types::{ApplyOpts, ApplySummary, ChangedIds};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::collections::BTreeSet;
 use util::svcs;
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpSvcEnsure {
+pub struct SvcEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     #[serde(rename = "state")]
     pub desired_state: String,
     #[serde(rename = "restarted-by")]
-    pub restarters: BTreeSet<String>,
+    pub restarters: BTreeSet<GurpId>,
     #[serde(rename = "reloaded-by")]
-    pub reloaders: BTreeSet<String>,
+    pub reloaders: BTreeSet<GurpId>,
 }
 
-impl GurpSvcEnsure {
+impl SvcEnsure {
     pub fn apply(
         &self,
         changed_ids: &ChangedIds,
@@ -37,7 +38,7 @@ impl GurpSvcEnsure {
                     "changed resources: {}",
                     changed_ids
                         .iter()
-                        .map(|s| s.as_str())
+                        .map(|s| s.to_string())
                         .collect::<Vec<_>>()
                         .join(", ")
                 );
@@ -72,11 +73,11 @@ mod test {
     #[test]
     fn test_deserialize_ensure_svc_with_restarter() {
         assert_eq!(
-            GurpSvcEnsure {
-                id: "/NO-ROLE/svc/important_service".to_owned(),
+            SvcEnsure {
+                id: GurpId::new("/NO-ROLE/svc/important_service").unwrap(),
                 name: "important/service".to_owned(),
                 desired_state: "enabled".to_owned(),
-                restarters: BTreeSet::from(["/test-role/file/stub".to_owned()]),
+                restarters: BTreeSet::from([GurpId::new("/test-role/file/stub").unwrap()]),
                 reloaders: BTreeSet::new(),
             },
             deserialized_example("svc/ensure-svc-with-restarter.janet")

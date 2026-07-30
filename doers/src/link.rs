@@ -2,6 +2,7 @@ use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::fmt::Debug;
 use std::fs;
@@ -14,9 +15,9 @@ use std::os::unix::fs::MetadataExt;
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpLinkEnsure {
+pub struct LinkEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub target: Utf8PathBuf,
     pub source: Utf8PathBuf,
@@ -27,9 +28,9 @@ pub struct GurpLinkEnsure {
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpLinkRemove {
+pub struct LinkRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub path: Utf8PathBuf,
 }
@@ -42,7 +43,7 @@ pub enum LinkType {
     Hard,
 }
 
-impl GurpLinkEnsure {
+impl LinkEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let target = &self.target;
         let source = &self.source;
@@ -210,7 +211,7 @@ impl GurpLinkEnsure {
     }
 }
 
-impl GurpLinkRemove {
+impl LinkRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let path = &self.path;
 
@@ -241,8 +242,8 @@ mod test {
     #[test]
     fn test_deserialize_link_ensure_symlink_forced() {
         assert_eq!(
-            GurpLinkEnsure {
-                id: "/NO-ROLE/link/example-symlink".to_owned(),
+            LinkEnsure {
+                id: GurpId::new("/NO-ROLE/link/example-symlink").unwrap(),
                 target: Utf8PathBuf::from("/symlink/is/here"),
                 source: Utf8PathBuf::from("/link/points/here"),
                 force_link: true,
@@ -255,8 +256,8 @@ mod test {
     #[test]
     fn test_deserialize_link_ensure_hard_link() {
         assert_eq!(
-            GurpLinkEnsure {
-                id: "/NO-ROLE/link/_link_is_here".to_owned(),
+            LinkEnsure {
+                id: GurpId::new("/NO-ROLE/link/_link_is_here").unwrap(),
                 target: Utf8PathBuf::from("/link/is/here"),
                 source: Utf8PathBuf::from("/link/points/here"),
                 force_link: false,
@@ -269,8 +270,8 @@ mod test {
     #[test]
     fn test_deserialize_link_remove_link() {
         assert_eq!(
-            GurpLinkRemove {
-                id: "/NO-ROLE/link/_dont_want_this_link".to_owned(),
+            LinkRemove {
+                id: GurpId::new("/NO-ROLE/link/_dont_want_this_link").unwrap(),
                 path: Utf8PathBuf::from("/dont/want/this/link"),
             },
             deserialized_example("link/remove-link.janet")
@@ -294,7 +295,7 @@ mod test {
         });
 
         assert!(!target_path.exists());
-        let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: LinkEnsure = serde_json::from_str(&json_def).unwrap();
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
             sut.apply(&ApplyOpts::default()).unwrap()
@@ -320,7 +321,7 @@ mod test {
         });
 
         assert!(!target_path.exists());
-        let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: LinkEnsure = serde_json::from_str(&json_def).unwrap();
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
             sut.apply(&ApplyOpts {
@@ -341,7 +342,7 @@ mod test {
         unix::fs::symlink(source, &target).unwrap();
         let json_def = janet2json(&format!(r#"(link/remove "{}")"#, target.as_path()));
         assert!(target.exists());
-        let sut: GurpLinkRemove = serde_json::from_str(&json_def).unwrap();
+        let sut: LinkRemove = serde_json::from_str(&json_def).unwrap();
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
             sut.apply(&ApplyOpts::default()).unwrap()
@@ -358,7 +359,7 @@ mod test {
         unix::fs::symlink(source, &target).unwrap();
         let json_def = janet2json(&format!(r#"(link/remove "{}")"#, target.as_path()));
         assert!(target.exists());
-        let sut: GurpLinkRemove = serde_json::from_str(&json_def).unwrap();
+        let sut: LinkRemove = serde_json::from_str(&json_def).unwrap();
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
             sut.apply(&ApplyOpts {
@@ -373,7 +374,7 @@ mod test {
     #[test]
     fn test_symlink_remove_missing() {
         let json_def = janet2json(r#"(link/remove "/no/such/file")"#);
-        let sut: GurpLinkRemove = serde_json::from_str(&json_def).unwrap();
+        let sut: LinkRemove = serde_json::from_str(&json_def).unwrap();
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,
             sut.apply(&ApplyOpts {
@@ -401,7 +402,7 @@ mod test {
         });
 
         assert!(!target_path.exists());
-        let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: LinkEnsure = serde_json::from_str(&json_def).unwrap();
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
             sut.apply(&ApplyOpts::default()).unwrap()
@@ -431,7 +432,7 @@ mod test {
             source_path.as_path(),
         });
 
-        let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: LinkEnsure = serde_json::from_str(&json_def).unwrap();
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,
             sut.apply(&ApplyOpts::default()).unwrap()
@@ -469,7 +470,7 @@ mod test {
             new_source_path.as_path(),
         });
 
-        let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: LinkEnsure = serde_json::from_str(&json_def).unwrap();
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
             sut.apply(&ApplyOpts::default()).unwrap()
@@ -504,7 +505,7 @@ mod test {
             source_path.as_path(),
         });
 
-        let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: LinkEnsure = serde_json::from_str(&json_def).unwrap();
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
             sut.apply(&ApplyOpts::default()).unwrap()
@@ -536,7 +537,7 @@ mod test {
             source_path.as_path(),
         });
 
-        let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: LinkEnsure = serde_json::from_str(&json_def).unwrap();
         assert!(
             sut.apply(&ApplyOpts::default())
                 .unwrap_err()
@@ -555,7 +556,7 @@ mod test {
             source_path.as_path(),
         });
 
-        let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: LinkEnsure = serde_json::from_str(&json_def).unwrap();
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
             sut.apply(&ApplyOpts::default()).unwrap()
@@ -583,7 +584,7 @@ mod test {
             source_path.as_path(),
         });
 
-        let sut: GurpLinkEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: LinkEnsure = serde_json::from_str(&json_def).unwrap();
         assert!(
             sut.apply(&ApplyOpts::default())
                 .unwrap_err()

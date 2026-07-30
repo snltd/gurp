@@ -2,20 +2,21 @@ use anyhow::{Context, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_FILES};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::fmt::Debug;
 use std::fs;
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpFileRemove {
+pub struct FileRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     #[serde(rename = "name")]
     pub path: Utf8PathBuf,
 }
 
-impl GurpFileRemove {
+impl FileRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let path = &self.path;
 
@@ -49,8 +50,8 @@ mod test {
     #[test]
     fn test_deserialize_remove_file() {
         assert_eq!(
-            GurpFileRemove {
-                id: "/NO-ROLE/file/_path_to_file".to_owned(),
+            FileRemove {
+                id: GurpId::new("/NO-ROLE/file/_path_to_file").unwrap(),
                 path: Utf8PathBuf::from("/path/to/file"),
             },
             deserialized_example("file/remove-file.janet")
@@ -60,7 +61,7 @@ mod test {
     #[test]
     fn test_file_remove_does_not_exist() {
         let json_def = janet2json(r#"(file/remove "/path/does/not/exist")"#);
-        let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
+        let sut: FileRemove = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,
@@ -71,7 +72,7 @@ mod test {
     #[test]
     fn test_file_remove_forbidden() {
         let json_def = janet2json(r#"(file/remove "/bin/ps")"#);
-        let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
+        let sut: FileRemove = serde_json::from_str(&json_def).unwrap();
 
         assert!(sut.apply(&ApplyOpts::default()).is_err());
     }
@@ -89,7 +90,7 @@ mod test {
         assert!(temp_file.exists());
 
         let json_def = janet2json(&format!("(file/remove \"{temp_file}\")"));
-        let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
+        let sut: FileRemove = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
@@ -111,7 +112,7 @@ mod test {
         assert!(temp_file.exists());
 
         let json_def = janet2json(&format!("(file/remove \"{temp_file}\")"));
-        let sut: GurpFileRemove = serde_json::from_str(&json_def).unwrap();
+        let sut: FileRemove = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,

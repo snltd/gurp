@@ -3,6 +3,7 @@ use anyhow::{Context, bail, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, OPENSSL_BIN};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::fmt::Debug;
 use std::fs;
@@ -14,9 +15,9 @@ const SYSTEM_CERT_DIR: &str = "/etc/ssl/certs";
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpSystemCertEnsure {
+pub struct SystemCertEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     pub from: Option<Utf8PathBuf>,
     pub from_url: Option<Url>,
@@ -27,13 +28,13 @@ pub struct GurpSystemCertEnsure {
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpSystemCertRemove {
+pub struct SystemCertRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
 }
 
-impl GurpSystemCertEnsure {
+impl SystemCertEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut changed = false;
 
@@ -93,7 +94,7 @@ impl GurpSystemCertEnsure {
     }
 }
 
-impl GurpSystemCertRemove {
+impl SystemCertRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let path = Utf8PathBuf::from(SYSTEM_CERT_DIR).join(&self.name);
 
@@ -129,8 +130,8 @@ mod test {
 
     #[test]
     fn test_deserialize_system_cert_from_file() {
-        let expected = GurpSystemCertEnsure {
-            id: "/NO-ROLE/system-cert/from-file".to_owned(),
+        let expected = SystemCertEnsure {
+            id: GurpId::new("/NO-ROLE/system-cert/from-file").unwrap(),
             name: "from-file".to_owned(),
             from: Some(Utf8PathBuf::from("/example/dir/files/ca/example")),
             from_url: None,
@@ -153,8 +154,8 @@ mod test {
     #[test]
     fn test_deserialize_system_cert_from_url() {
         assert_eq!(
-            GurpSystemCertEnsure {
-                id: "/NO-ROLE/system-cert/from-url".to_owned(),
+            SystemCertEnsure {
+                id: GurpId::new("/NO-ROLE/system-cert/from-url").unwrap(),
                 name: "from-url".to_owned(),
                 from: None,
                 from_url: Some(Url::parse("https://cert-service/api").unwrap()),
@@ -168,8 +169,8 @@ mod test {
     #[test]
     fn test_deserialize_remove_system_cert() {
         assert_eq!(
-            GurpSystemCertRemove {
-                id: "/NO-ROLE/system-cert/unwanted-cert".to_owned(),
+            SystemCertRemove {
+                id: GurpId::new("/NO-ROLE/system-cert/unwanted-cert").unwrap(),
                 name: "unwanted-cert".to_owned(),
             },
             deserialized_example("system-cert/remove-cert.janet")
@@ -178,8 +179,8 @@ mod test {
 
     #[test]
     fn test_not_exactly_one_source_fails() {
-        let file_and_url = GurpSystemCertEnsure {
-            id: "/NO-ROLE/system-cert/irrelevant".to_owned(),
+        let file_and_url = SystemCertEnsure {
+            id: GurpId::new("/NO-ROLE/system-cert/irrelevant").unwrap(),
             name: "bad-input".to_owned(),
             from: Some(Utf8PathBuf::from("/dir/ca/example")),
             from_url: Some(Url::parse("https://cert-service/api").unwrap()),
@@ -189,8 +190,8 @@ mod test {
 
         assert!(file_and_url.apply(&ApplyOpts::default()).is_err());
 
-        let file_and_content = GurpSystemCertEnsure {
-            id: "/NO-ROLE/system-cert/irrelevant".to_owned(),
+        let file_and_content = SystemCertEnsure {
+            id: GurpId::new("/NO-ROLE/system-cert/irrelevant").unwrap(),
             name: "bad-input".to_owned(),
             from: Some(Utf8PathBuf::from("/dir/ca/example")),
             from_url: None,
@@ -200,8 +201,8 @@ mod test {
 
         assert!(file_and_content.apply(&ApplyOpts::default()).is_err());
 
-        let no_source = GurpSystemCertEnsure {
-            id: "IRRELEVANT".to_owned(),
+        let no_source = SystemCertEnsure {
+            id: GurpId::new("/NO-ROLE/system-cert/irrelevent").unwrap(),
             name: "example".to_owned(),
             from: None,
             from_url: None,

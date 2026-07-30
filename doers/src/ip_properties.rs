@@ -1,6 +1,7 @@
 use anyhow::Context;
 use common::constants::IPADM_BIN;
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -10,15 +11,15 @@ use util::ip_protocols::{self, AlignIpPropArg, IpProtocolMap};
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpIpPropertiesEnsure {
+pub struct IpPropertiesEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     #[serde(default, deserialize_with = "deserializer::hash_property_deserializer")]
     pub protocols: IpProtocolMap,
 }
 
-impl GurpIpPropertiesEnsure {
+impl IpPropertiesEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let raw = self.current_properties_raw()?;
         let current_properties = ip_protocols::parse_ipadm_props(&raw);
@@ -37,7 +38,7 @@ impl GurpIpPropertiesEnsure {
                             current_value: current_values.get(property).map(String::as_str),
                             desired_value,
                             protocol_requires_flag: false,
-                            ipadm_object: None,
+                            ip_object: None,
                         },
                         opts,
                     )? {
@@ -51,7 +52,7 @@ impl GurpIpPropertiesEnsure {
                         current_value: current_values.get(property).map(String::as_str),
                         desired_value,
                         protocol_requires_flag: false,
-                        ipadm_object: None,
+                        ip_object: None,
                     },
                     opts,
                 )? {
@@ -81,9 +82,9 @@ mod test {
     #[test]
     fn test_ip_properties_deserialize_ensure_properties() {
         assert_eq!(
-            GurpIpPropertiesEnsure {
+            IpPropertiesEnsure {
                 name: "general".to_owned(),
-                id: "/NO-ROLE/ip-properties/general".to_owned(),
+                id: GurpId::new("/NO-ROLE/ip-properties/general").unwrap(),
                 protocols: HashMap::from([
                     (
                         "ipv4".to_owned(),

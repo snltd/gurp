@@ -21,7 +21,7 @@
    :ignore-pattern {:types [:string]
                     :help "When comparing, ignore lines matching this Rust regex"}
    :mode {:types [:string]
-          :help "Permissions written as a four-digit octal"}
+          :help "Permissions, octal"}
    :owner {:types [:string :number]
            :help "The username or UID of the user who owns this file"}
    :to-format {:types [:string]

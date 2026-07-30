@@ -1,26 +1,27 @@
 use anyhow::Context;
 use common::constants::{DLADM_BIN, ONE_RESOURCE_NO_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
+use os_types::{GurpId, LinkName};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpEtherstubEnsure {
+pub struct EtherstubEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
-    pub name: String,
+    pub id: GurpId,
+    pub name: LinkName,
 }
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpEtherstubRemove {
+pub struct EtherstubRemove {
     #[serde(rename = "_id")]
-    pub id: String,
-    pub name: String,
+    pub id: GurpId,
+    pub name: LinkName,
 }
 
-impl GurpEtherstubEnsure {
+impl EtherstubEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if etherstub_exists(&self.name)? {
             tracing::debug!("{} already exists", self.name);
@@ -32,7 +33,7 @@ impl GurpEtherstubEnsure {
     }
 }
 
-impl GurpEtherstubRemove {
+impl EtherstubRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if etherstub_exists(&self.name)? {
             tracing::info!("Removing {}", self.name);
@@ -44,11 +45,11 @@ impl GurpEtherstubRemove {
     }
 }
 
-fn etherstub_exists(etherstub_name: &str) -> anyhow::Result<bool> {
+fn etherstub_exists(name: &LinkName) -> anyhow::Result<bool> {
     let dladm_output = cmd_output!(DLADM_BIN, "show-etherstub", "-p", "-o", "link")
-        .with_context(|| format!("failed to test state of etherstub {etherstub_name}"))?;
+        .with_context(|| format!("failed to test state of etherstub {name}"))?;
 
-    Ok(dladm_output.lines().any(|l| l == etherstub_name))
+    Ok(dladm_output.lines().any(|l| l == name.to_string()))
 }
 
 #[cfg(test)]
@@ -59,9 +60,9 @@ mod test {
     #[test]
     fn test_ensure_etherstub_deserialize() {
         assert_eq!(
-            GurpEtherstubEnsure {
-                id: "/NO-ROLE/etherstub/newstub0".to_owned(),
-                name: "newstub0".to_owned(),
+            EtherstubEnsure {
+                id: GurpId::new("/NO-ROLE/etherstub/newstub0").unwrap(),
+                name: LinkName::new("newstub0").unwrap(),
             },
             deserialized_example("etherstub/ensure-stub.janet")
         );
@@ -70,9 +71,9 @@ mod test {
     #[test]
     fn test_remove_etherstub_deserialize() {
         assert_eq!(
-            GurpEtherstubRemove {
-                id: "/NO-ROLE/etherstub/oldstub0".to_owned(),
-                name: "oldstub0".to_owned(),
+            EtherstubRemove {
+                id: GurpId::new("/NO-ROLE/etherstub/oldstub0").unwrap(),
+                name: LinkName::new("oldstub0").unwrap(),
             },
             deserialized_example("etherstub/remove-stub.janet")
         );

@@ -10,14 +10,14 @@ VNIC name (`:string`)
 
 ```janet
 (vnic/ensure "vnic0"
-             :over "e1000g")
+             :over "e1000g0")
 ```
 
 ```janet
 (vnic/ensure "vnic1"
-  :over "e1000g"
-  :vlan-tag 10
-  :with-interface true)
+             :over "e1000g0"
+             :vlan-tag 10
+             :with-interface true)
 ```
 
 ### Mandatory Properties

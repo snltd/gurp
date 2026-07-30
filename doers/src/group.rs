@@ -4,26 +4,27 @@ use common::constants::{
 };
 use common::types::{ApplyOpts, ApplySummary};
 use nix::unistd::Group;
+use os_types::GurpId;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpGroupEnsure {
+pub struct GroupEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     pub gid: u32,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpGroupRemove {
+pub struct GroupRemove {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
 }
 
-impl GurpGroupEnsure {
+impl GroupEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if let Some(group) = Group::from_name(&self.name)? {
             if group.gid.as_raw() == self.gid {
@@ -45,7 +46,7 @@ impl GurpGroupEnsure {
     }
 }
 
-impl GurpGroupRemove {
+impl GroupRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if Group::from_name(&self.name)?.is_some() {
             ensure!(
@@ -72,9 +73,9 @@ mod test {
     #[test]
     fn test_group_deserialize_ensure_new_group() {
         assert_eq!(
-            GurpGroupEnsure {
+            GroupEnsure {
                 name: "new-group".to_owned(),
-                id: "/NO-ROLE/group/new-group".to_owned(),
+                id: GurpId::new("/NO-ROLE/group/new-group").unwrap(),
                 gid: 264,
             },
             deserialized_example("group/ensure-new-group.janet")
@@ -84,9 +85,9 @@ mod test {
     #[test]
     fn test_group_deserialize_remove_old_group() {
         assert_eq!(
-            GurpGroupRemove {
+            GroupRemove {
                 name: "old-group".to_owned(),
-                id: "/NO-ROLE/group/old-group".to_owned(),
+                id: GurpId::new("/NO-ROLE/group/old-group").unwrap(),
             },
             deserialized_example("group/remove-old-group.janet")
         );

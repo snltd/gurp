@@ -4,21 +4,22 @@ use anyhow::bail;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ZONECFG_BIN};
 use common::types::{ApplyOpts, ApplySummary};
 use common::{cmd, info};
+use os_types::GurpId;
 use serde::Deserialize;
 use std::io::Write;
 use std::process::{Command, Stdio};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
-pub struct GurpZoneEnsure {
+pub struct ZoneEnsure {
     #[serde(rename = "_id")]
-    pub id: String,
+    pub id: GurpId,
     pub name: String,
     #[serde(flatten)]
     pub config: ZoneConfig,
 }
 
-impl GurpZoneEnsure {
+impl ZoneEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let zone = &self.name;
 
