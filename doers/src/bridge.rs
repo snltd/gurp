@@ -11,7 +11,7 @@ use std::process::Command;
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpBridgeEnsure {
+pub struct BridgeEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: BridgeName,
@@ -37,13 +37,13 @@ pub struct BridgeState {
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
-pub struct GurpBridgeRemove {
+pub struct BridgeRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: BridgeName,
 }
 
-impl GurpBridgeEnsure {
+impl BridgeEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if bridge_exists(&self.name)? {
             let current_state = parse_bridge(&describe_bridge(&self.name)?)?;
@@ -180,7 +180,7 @@ impl GurpBridgeEnsure {
     }
 }
 
-impl GurpBridgeRemove {
+impl BridgeRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if bridge_exists(&self.name)? {
             tracing::info!("removing bridge {}", self.name);
@@ -338,7 +338,7 @@ mod test {
     #[test]
     fn test_deserialize_ensure_basic_bridge() {
         assert_eq!(
-            GurpBridgeEnsure {
+            BridgeEnsure {
                 name: BridgeName::new("basic").unwrap(),
                 id: GurpId::new("/NO-ROLE/bridge/basic").unwrap(),
                 desired_state: BridgeState {
@@ -358,7 +358,7 @@ mod test {
     #[test]
     fn test_deserialize_ensure_bridge_with_links_and_props() {
         assert_eq!(
-            GurpBridgeEnsure {
+            BridgeEnsure {
                 name: BridgeName::new("with_links").unwrap(),
                 id: GurpId::new("/NO-ROLE/bridge/with_links").unwrap(),
                 desired_state: BridgeState {
@@ -381,7 +381,7 @@ mod test {
     #[test]
     fn test_deserialize_remove_bridge() {
         assert_eq!(
-            GurpBridgeRemove {
+            BridgeRemove {
                 name: BridgeName::new("unwanted").unwrap(),
                 id: GurpId::new("/NO-ROLE/bridge/unwanted").unwrap(),
             },

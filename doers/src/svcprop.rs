@@ -25,7 +25,7 @@ pub enum OnChangeAction {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpSvcpropEnsure {
+pub struct SvcpropEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     #[serde(rename = "name")]
@@ -37,7 +37,7 @@ pub struct GurpSvcpropEnsure {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpSvcpropRemove {
+pub struct SvcpropRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     #[serde(rename = "name")]
@@ -52,7 +52,7 @@ struct SvcView {
     pub property_groups: PropertyGroupList,
 }
 
-impl GurpSvcpropEnsure {
+impl SvcpropEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let svc = &self.service;
         ensure_instance(&self.service, opts)?;
@@ -170,7 +170,7 @@ impl GurpSvcpropEnsure {
     }
 }
 
-impl GurpSvcpropRemove {
+impl SvcpropRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let svc = &self.service;
         let current_state = current_svc_props(svc)?;
@@ -333,7 +333,7 @@ mod test {
     #[test]
     fn test_deserialize_svcprop_ensure_application_props() {
         assert_eq!(
-            GurpSvcpropEnsure {
+            SvcpropEnsure {
                 service: "example/svc_1".to_owned(),
                 id: GurpId::new("/NO-ROLE/svcprop/example_svc_1").unwrap(),
                 on_change: Some(OnChangeAction::Restart),
@@ -372,7 +372,7 @@ mod test {
     #[test]
     fn test_deserialize_svcprop_ensure_group_and_properties() {
         assert_eq!(
-            GurpSvcpropEnsure {
+            SvcpropEnsure {
                 service: "example/svc_1".to_owned(),
                 id: GurpId::new("/NO-ROLE/svcprop/example_svc_1").unwrap(),
                 on_change: None,
@@ -395,7 +395,7 @@ mod test {
     #[test]
     fn test_deserialize_svcprop_remove_properties() {
         assert_eq!(
-            GurpSvcpropRemove {
+            SvcpropRemove {
                 id: GurpId::new("/NO-ROLE/svcprop/example_svc_3").unwrap(),
                 service: "example/svc_3".to_owned(),
                 properties: BTreeSet::from(["application/thing".to_owned()]),

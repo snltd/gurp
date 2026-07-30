@@ -13,14 +13,14 @@ use std::process::{Command, Stdio};
 
 // This is keyed on the gem binary which reported the gem
 type InstalledGems = HashMap<Utf8PathBuf, Vec<InstalledGem>>;
-type EnsureList = Vec<GurpGemEnsure>;
-type RemoveList = Vec<GurpGemRemove>;
+type EnsureList = Vec<GemEnsure>;
+type RemoveList = Vec<GemRemove>;
 type GemName = String;
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpGemEnsure {
+pub struct GemEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: GemName,
@@ -31,7 +31,7 @@ pub struct GurpGemEnsure {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpGemRemove {
+pub struct GemRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: GemName,
@@ -44,7 +44,7 @@ pub struct InstalledGem {
     pub versions: Vec<String>,
 }
 
-impl GurpGem for GurpGemEnsure {
+impl GurpGem for GemEnsure {
     fn gem_path(&self) -> &Option<Utf8PathBuf> {
         &self.gem_path
     }
@@ -60,7 +60,7 @@ trait GurpGem {
     }
 }
 
-impl GurpGem for GurpGemRemove {
+impl GurpGem for GemRemove {
     fn gem_path(&self) -> &Option<Utf8PathBuf> {
         &self.gem_path
     }
@@ -221,7 +221,7 @@ fn parse_gem_output(output: &str) -> Vec<InstalledGem> {
 }
 
 fn install_specific(
-    gem: &GurpGemEnsure,
+    gem: &GemEnsure,
     installed_gems: &InstalledGems,
     opts: &ApplyOpts,
 ) -> anyhow::Result<ApplySummary> {
@@ -314,7 +314,7 @@ mod test {
     #[test]
     fn test_gem_deserialize_ensure_rubygem() {
         assert_eq!(
-            GurpGemEnsure {
+            GemEnsure {
                 id: GurpId::new("/NO-ROLE/gem/wavefront-cli").unwrap(),
                 name: "wavefront-cli".to_owned(),
                 version: None,
@@ -328,7 +328,7 @@ mod test {
     #[test]
     fn test_gem_deserialize_ensure_version_with_source_and_gempath() {
         assert_eq!(
-            GurpGemEnsure {
+            GemEnsure {
                 id: GurpId::new("/NO-ROLE/gem/my-gem").unwrap(),
                 name: "my-gem".to_owned(),
                 version: Some("1.2.3".to_owned()),
@@ -342,7 +342,7 @@ mod test {
     #[test]
     fn test_gem_deserialize_remove_gem() {
         assert_eq!(
-            GurpGemRemove {
+            GemRemove {
                 id: GurpId::new("/NO-ROLE/gem/webscale").unwrap(),
                 name: "webscale".to_owned(),
                 gem_path: None,

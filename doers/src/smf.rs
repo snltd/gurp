@@ -18,7 +18,7 @@ const STATE_TRANSITION_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpSmfEnsure {
+pub struct SmfEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     #[serde(flatten)]
@@ -27,13 +27,13 @@ pub struct GurpSmfEnsure {
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpSmfRemove {
+pub struct SmfRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
 }
 
-impl GurpSmfEnsure {
+impl SmfEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let new_manifest = smf_builder::make_manifest(&self.desired_state)?;
         let manifest_path = &manifest_path(&self.desired_state.name);
@@ -96,7 +96,7 @@ impl GurpSmfEnsure {
     }
 }
 
-impl GurpSmfRemove {
+impl SmfRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let svc = &self.name;
 
@@ -177,7 +177,7 @@ mod test {
     #[test]
     fn test_deserialize_smf_ensure_daemon_with_privs() {
         assert_eq!(
-            GurpSmfEnsure {
+            SmfEnsure {
                 id: GurpId::new("/NO-ROLE/smf/example").unwrap(),
                 desired_state: SmfDefinition {
                     name: "example".to_owned(),
@@ -254,7 +254,7 @@ mod test {
 
     #[test]
     fn test_generate_manifest() {
-        let sut: GurpSmfEnsure = deserialized_example("smf/ensure-daemon-with-privs.janet");
+        let sut: SmfEnsure = deserialized_example("smf/ensure-daemon-with-privs.janet");
         assert_eq!(
             indoc::indoc! { r#"
             <?xml version='1.0'?>
@@ -309,7 +309,7 @@ mod test {
     #[test]
     fn test_deserialize_smf_remove_service() {
         assert_eq!(
-            GurpSmfRemove {
+            SmfRemove {
                 id: GurpId::new("/NO-ROLE/smf/unwanted_service").unwrap(),
                 name: "unwanted/service".to_owned(),
             },

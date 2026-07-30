@@ -8,7 +8,7 @@ use util::svcs;
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpSvcEnsure {
+pub struct SvcEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
@@ -20,7 +20,7 @@ pub struct GurpSvcEnsure {
     pub reloaders: BTreeSet<GurpId>,
 }
 
-impl GurpSvcEnsure {
+impl SvcEnsure {
     pub fn apply(
         &self,
         changed_ids: &ChangedIds,
@@ -73,7 +73,7 @@ mod test {
     #[test]
     fn test_deserialize_ensure_svc_with_restarter() {
         assert_eq!(
-            GurpSvcEnsure {
+            SvcEnsure {
                 id: GurpId::new("/NO-ROLE/svc/important_service").unwrap(),
                 name: "important/service".to_owned(),
                 desired_state: "enabled".to_owned(),

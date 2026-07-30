@@ -15,7 +15,7 @@ use util::svcs;
 
 const NAT_CONF_FILE: &str = "/etc/ipf/ipnat.conf";
 
-type EnsureList = Vec<GurpIpnatEnsure>;
+type EnsureList = Vec<IpnatEnsure>;
 
 // We build a single big set of NAT rules from multiple sources, and apply it, clearing out whatever
 // was already there. We also write the same rules to /etc/ipf/ipnat.conf. I don't see another
@@ -25,7 +25,7 @@ type EnsureList = Vec<GurpIpnatEnsure>;
 
 #[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpIpnatEnsure {
+pub struct IpnatEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
@@ -36,7 +36,7 @@ pub struct GurpIpnatEnsure {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpIpnatRemove {
+pub struct IpnatRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
@@ -93,7 +93,7 @@ pub fn collect_and_ensure(nat_list: &EnsureList, opts: &ApplyOpts) -> ApplyResul
     }
 }
 
-impl GurpIpnatRemove {
+impl IpnatRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let nat_file = Utf8PathBuf::from(NAT_CONF_FILE);
         let mut ret = ONE_RESOURCE_NO_CHANGE;
@@ -271,7 +271,7 @@ mod test {
     #[test]
     fn test_ipnat_deserialize_ensure_from_config() {
         assert_eq!(
-            GurpIpnatEnsure {
+            IpnatEnsure {
                 name: "rules-in-config".to_owned(),
                 id: GurpId::new("/NO-ROLE/ipnat/rules-in-config").unwrap(),
                 priority: 1,
@@ -286,7 +286,7 @@ mod test {
     #[test]
     fn test_ipnat_deserialize_remove_all_rules() {
         assert_eq!(
-            GurpIpnatRemove {
+            IpnatRemove {
                 name: "removes-all-rules".to_owned(),
                 id: GurpId::new("/NO-ROLE/ipnat/removes-all-rules").unwrap(),
             },

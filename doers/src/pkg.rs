@@ -22,7 +22,7 @@ struct AllPkgs {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpPkgEnsure {
+pub struct PkgEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: PkgName,
@@ -30,14 +30,14 @@ pub struct GurpPkgEnsure {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpPkgRemove {
+pub struct PkgRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: PkgName,
 }
 
-type EnsureList = Vec<GurpPkgEnsure>;
-type RemoveList = Vec<GurpPkgRemove>;
+type EnsureList = Vec<PkgEnsure>;
+type RemoveList = Vec<PkgRemove>;
 
 pub fn collect_and_ensure(pkg_list: &EnsureList, opts: &ApplyOpts) -> ApplyResult {
     let mut changed_ids = ChangedIds::default();
@@ -190,7 +190,7 @@ mod test {
     #[test]
     fn test_deserialize_pkg_ensure_rust_package() {
         assert_eq!(
-            GurpPkgEnsure {
+            PkgEnsure {
                 id: GurpId::new("/NO-ROLE/pkg/ooce_developer_rust").unwrap(),
                 name: "ooce/developer/rust".to_owned(),
             },
@@ -201,7 +201,7 @@ mod test {
     #[test]
     fn test_deserialize_pkg_remove_go_package() {
         assert_eq!(
-            GurpPkgRemove {
+            PkgRemove {
                 id: GurpId::new("/NO-ROLE/pkg/ooce_developer_go").unwrap(),
                 name: "ooce/developer/go".to_owned(),
             },

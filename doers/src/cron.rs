@@ -29,7 +29,7 @@ impl fmt::Display for StrOrNumber {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpCronEnsure {
+pub struct CronEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
@@ -52,14 +52,14 @@ pub struct CronState {
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpCronRemove {
+pub struct CronRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
     pub user: String,
 }
 
-impl GurpCronEnsure {
+impl CronEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let content = current_crontab(&self.user)?;
         let description = format!("{} crontab", self.user);
@@ -132,7 +132,7 @@ impl GurpCronEnsure {
     }
 }
 
-impl GurpCronRemove {
+impl CronRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let content = current_crontab(&self.user)?;
         match self.removed_crontab(&content)? {
@@ -249,7 +249,7 @@ mod test {
     #[test]
     fn test_deserialize_ensure_root_cron_job() {
         assert_eq!(
-            GurpCronEnsure {
+            CronEnsure {
                 id: GurpId::new("/NO-ROLE/cron/root-cron-job").unwrap(),
                 name: "root-cron-job".to_owned(),
                 user: "root".to_owned(),
@@ -269,7 +269,7 @@ mod test {
     #[test]
     fn test_deserialize_ensure_print_cron_job() {
         assert_eq!(
-            GurpCronEnsure {
+            CronEnsure {
                 id: GurpId::new("/NO-ROLE/cron/print-cron-job").unwrap(),
                 name: "lots-of-values".to_owned(),
                 user: "lp".to_owned(),
@@ -289,7 +289,7 @@ mod test {
     #[test]
     fn test_deserialize_remove_cron_job() {
         assert_eq!(
-            GurpCronRemove {
+            CronRemove {
                 id: GurpId::new("/NO-ROLE/cron/that-old-cron-job").unwrap(),
                 user: "root".to_owned(),
                 name: "that-old-cron-job".to_owned(),
@@ -388,8 +388,8 @@ mod test {
         assert_eq!(None, common_remove().removed_crontab(old_crontab).unwrap());
     }
 
-    fn common_ensure() -> GurpCronEnsure {
-        GurpCronEnsure {
+    fn common_ensure() -> CronEnsure {
+        CronEnsure {
             id: GurpId::new("/NO-ROLE/cron/test").unwrap(),
             name: "Test job".to_owned(),
             user: "rob".to_owned(),
@@ -404,8 +404,8 @@ mod test {
         }
     }
 
-    fn common_remove() -> GurpCronRemove {
-        GurpCronRemove {
+    fn common_remove() -> CronRemove {
+        CronRemove {
             id: GurpId::new("/NO-ROLE/cron/test").unwrap(),
             name: "Test job".to_owned(),
             user: "rob".to_owned(),

@@ -15,7 +15,7 @@ use util::svcs;
 
 const IPF_CONF: &str = "/etc/ipf/ipf.conf";
 
-type EnsureList = Vec<GurpIpfilterEnsure>;
+type EnsureList = Vec<IpfilterEnsure>;
 
 // We build a single big set of filter rules from multiple sources, check its validity, and ensure
 // its contents align with those of /etc/ipf/ipf.conf. If the file has changed, or if any resource
@@ -25,7 +25,7 @@ type EnsureList = Vec<GurpIpfilterEnsure>;
 #[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpIpfilterEnsure {
+pub struct IpfilterEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
@@ -37,7 +37,7 @@ pub struct GurpIpfilterEnsure {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpIpfilterRemove {
+pub struct IpfilterRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
@@ -118,7 +118,7 @@ pub fn collect_and_ensure(filter_list: &EnsureList, opts: &ApplyOpts) -> ApplyRe
     }
 }
 
-impl GurpIpfilterRemove {
+impl IpfilterRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let filter_file = Utf8PathBuf::from(IPF_CONF);
         let mut ret = ONE_RESOURCE_NO_CHANGE;
@@ -237,7 +237,7 @@ mod test {
     #[test]
     fn test_ipfilter_deserialize_ensure_from_config() {
         assert_eq!(
-            GurpIpfilterEnsure {
+            IpfilterEnsure {
                 name: "rules-from-config".to_owned(),
                 id: GurpId::new("/NO-ROLE/ipfilter/rules-from-config").unwrap(),
                 priority: 0,
@@ -252,7 +252,7 @@ mod test {
     #[test]
     fn test_ipfilter_deserialize_ensure_from_file() {
         assert_eq!(
-            GurpIpfilterEnsure {
+            IpfilterEnsure {
                 name: "rules-from-file".to_owned(),
                 id: GurpId::new("/NO-ROLE/ipfilter/rules-from-file").unwrap(),
                 priority: 1,
@@ -267,7 +267,7 @@ mod test {
     #[test]
     fn test_ipfilter_deserialize_remove_all_rules() {
         assert_eq!(
-            GurpIpfilterRemove {
+            IpfilterRemove {
                 name: "removes-all-rules".to_owned(),
                 id: GurpId::new("/NO-ROLE/ipfilter/removes-all-rules").unwrap(),
             },

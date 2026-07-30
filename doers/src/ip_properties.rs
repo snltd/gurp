@@ -11,7 +11,7 @@ use util::ip_protocols::{self, AlignIpPropArg, IpProtocolMap};
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpIpPropertiesEnsure {
+pub struct IpPropertiesEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
@@ -19,7 +19,7 @@ pub struct GurpIpPropertiesEnsure {
     pub protocols: IpProtocolMap,
 }
 
-impl GurpIpPropertiesEnsure {
+impl IpPropertiesEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let raw = self.current_properties_raw()?;
         let current_properties = ip_protocols::parse_ipadm_props(&raw);
@@ -82,7 +82,7 @@ mod test {
     #[test]
     fn test_ip_properties_deserialize_ensure_properties() {
         assert_eq!(
-            GurpIpPropertiesEnsure {
+            IpPropertiesEnsure {
                 name: "general".to_owned(),
                 id: GurpId::new("/NO-ROLE/ip-properties/general").unwrap(),
                 protocols: HashMap::from([

@@ -17,7 +17,7 @@ static ZFS_BIN_PATH: LazyLock<&'static str> = LazyLock::new(zfs_bin);
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpZfsEnsure {
+pub struct ZfsEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
@@ -29,13 +29,13 @@ pub struct GurpZfsEnsure {
 type ZfsProperties = HashMap<String, String>;
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpZfsRemove {
+pub struct ZfsRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
 }
 
-impl GurpZfsEnsure {
+impl ZfsEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let fs = &self.name;
         if zfs_exists(fs)? {
@@ -123,7 +123,7 @@ impl GurpZfsEnsure {
     }
 }
 
-impl GurpZfsRemove {
+impl ZfsRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         tracing::debug!("zfs: looking for {}", self.name);
 
@@ -182,7 +182,7 @@ mod test {
     #[test]
     fn test_deserialize_zfs_ensure_filesystem_with_properties() {
         assert_eq!(
-            GurpZfsEnsure {
+            ZfsEnsure {
                 id: GurpId::new("/NO-ROLE/zfs/zfs-example-1").unwrap(),
                 name: "rpool/example/filesystem".to_owned(),
                 size: None,
@@ -200,7 +200,7 @@ mod test {
     #[test]
     fn test_deserialize_zfs_ensure_volume_with_label() {
         assert_eq!(
-            GurpZfsEnsure {
+            ZfsEnsure {
                 id: GurpId::new("/NO-ROLE/zfs/example-zfs-vol").unwrap(),
                 name: "rpool/example/volume".to_owned(),
                 size: Some("10G".to_owned()),
@@ -213,7 +213,7 @@ mod test {
     #[test]
     fn test_deserialize_zfs_remove_dataset() {
         assert_eq!(
-            GurpZfsRemove {
+            ZfsRemove {
                 id: GurpId::new("/NO-ROLE/zfs/rpool_old_filesystem").unwrap(),
                 name: "rpool/old/filesystem".to_owned(),
             },

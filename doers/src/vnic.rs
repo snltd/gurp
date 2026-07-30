@@ -10,7 +10,7 @@ use std::process::Command;
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpVnicEnsure {
+pub struct VnicEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: LinkName,
@@ -20,7 +20,7 @@ pub struct GurpVnicEnsure {
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
-pub struct GurpVnicRemove {
+pub struct VnicRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: LinkName,
@@ -31,7 +31,7 @@ struct VnicInfo {
     vlan_id: VlanID,
 }
 
-impl GurpVnicEnsure {
+impl VnicEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if vnic_exists(&self.name)? {
             // dladm doesn't have a way to modify a VNIC, so if it's not up to spec, we must
@@ -130,7 +130,7 @@ impl GurpVnicEnsure {
     }
 }
 
-impl GurpVnicRemove {
+impl VnicRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if vnic_exists(&self.name)? {
             tracing::info!("Removing {}", self.name);
@@ -162,7 +162,7 @@ mod test {
     #[test]
     fn test_deserialize_ensure_vnic_with_interface_and_tag() {
         assert_eq!(
-            GurpVnicEnsure {
+            VnicEnsure {
                 id: GurpId::new("/NO-ROLE/vnic/vnic1").unwrap(),
                 name: LinkName::new("vnic1").unwrap(),
                 over: LinkName::new("e1000g0").unwrap(),
@@ -176,7 +176,7 @@ mod test {
     #[test]
     fn test_deserialize_ensure_vnic_over_e1000g0() {
         assert_eq!(
-            GurpVnicEnsure {
+            VnicEnsure {
                 id: GurpId::new("/NO-ROLE/vnic/vnic0").unwrap(),
                 name: LinkName::new("vnic0").unwrap(),
                 over: LinkName::new("e1000g0").unwrap(),
@@ -190,7 +190,7 @@ mod test {
     #[test]
     fn test_deserialize_remove_vnic() {
         assert_eq!(
-            GurpVnicRemove {
+            VnicRemove {
                 id: GurpId::new("/NO-ROLE/vnic/vnic2").unwrap(),
                 name: LinkName::new("vnic2").unwrap(),
             },

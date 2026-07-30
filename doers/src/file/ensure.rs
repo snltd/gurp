@@ -9,7 +9,7 @@ use std::fmt::Debug;
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpFileEnsure {
+pub struct FileEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     #[serde(rename = "name")]
@@ -18,7 +18,7 @@ pub struct GurpFileEnsure {
     pub desired_state: DesiredFileState,
 }
 
-impl GurpFileEnsure {
+impl FileEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         ensure!(
             self.single_source(),
@@ -109,7 +109,7 @@ mod test {
     #[test]
     fn test_deserialize_ensure_file_from_content() {
         assert_eq!(
-            GurpFileEnsure {
+            FileEnsure {
                 id: GurpId::new("/NO-ROLE/file/_example_file_from-content").unwrap(),
                 path: Utf8PathBuf::from("/example/file/from-content"),
                 desired_state: DesiredFileState {
@@ -135,7 +135,7 @@ mod test {
     #[test]
     fn test_deserialize_ensure_file_from_url_with_checksum() {
         assert_eq!(
-            GurpFileEnsure {
+            FileEnsure {
                 id: GurpId::new("/NO-ROLE/file/remote-file").unwrap(),
                 path: Utf8PathBuf::from("/example/file/from-url"),
                 desired_state: DesiredFileState {
@@ -166,7 +166,7 @@ mod test {
 
     #[test]
     fn test_not_exactly_one_source_fails() {
-        let file_and_url = GurpFileEnsure {
+        let file_and_url = FileEnsure {
             id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: Utf8PathBuf::from("/does/not/matter"),
             desired_state: DesiredFileState {
@@ -188,7 +188,7 @@ mod test {
 
         assert!(file_and_url.apply(&ApplyOpts::default()).is_err());
 
-        let file_and_content = GurpFileEnsure {
+        let file_and_content = FileEnsure {
             id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: Utf8PathBuf::from("/does/not/matter"),
             desired_state: DesiredFileState {
@@ -210,7 +210,7 @@ mod test {
 
         assert!(file_and_content.apply(&ApplyOpts::default()).is_err());
 
-        let no_source = GurpFileEnsure {
+        let no_source = FileEnsure {
             id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: Utf8PathBuf::from("/does/not/matter"),
             desired_state: DesiredFileState {

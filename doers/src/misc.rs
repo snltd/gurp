@@ -10,7 +10,7 @@ use std::process::{Command, Stdio};
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpMiscEnsure {
+pub struct MiscEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     #[serde(flatten)]
@@ -30,7 +30,7 @@ type NfsDomain = String;
 type Username = String;
 type SchedulerClass = String;
 
-impl GurpMiscEnsure {
+impl MiscEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut aggr = ApplySummary::default();
 
@@ -172,7 +172,7 @@ mod test {
     #[test]
     fn test_misc_deserialize_ensure_nfs_domain() {
         assert_eq!(
-            GurpMiscEnsure {
+            MiscEnsure {
                 id: GurpId::new("/NO-ROLE/misc/nfs-domain-lan.id264.net").unwrap(),
                 desired_state: MiscState {
                     nfs_domain: Some("lan.id264.net".to_owned()),
@@ -187,7 +187,7 @@ mod test {
     #[test]
     fn test_misc_deserialize_ensure_smb_user() {
         assert_eq!(
-            GurpMiscEnsure {
+            MiscEnsure {
                 id: GurpId::new("/NO-ROLE/misc/enable-smb-rob").unwrap(),
                 desired_state: MiscState {
                     nfs_domain: None,
@@ -202,7 +202,7 @@ mod test {
     #[test]
     fn test_misc_deserialize_ensure_scheduler_class() {
         assert_eq!(
-            GurpMiscEnsure {
+            MiscEnsure {
                 id: GurpId::new("/NO-ROLE/misc/scheduler-FSS").unwrap(),
                 desired_state: MiscState {
                     nfs_domain: None,

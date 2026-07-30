@@ -1,8 +1,8 @@
 #[macro_use]
 pub mod config_macros;
 
-pub use crate::zone::ensure::GurpZoneEnsure;
-pub use crate::zone::remove::GurpZoneRemove;
+pub use crate::zone::ensure::ZoneEnsure;
+pub use crate::zone::remove::ZoneRemove;
 
 pub mod bhyve;
 pub mod cloudinit;

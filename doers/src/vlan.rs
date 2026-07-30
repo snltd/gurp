@@ -10,7 +10,7 @@ use std::fmt::Debug;
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpVlanEnsure {
+pub struct VlanEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: LinkName,
@@ -20,7 +20,7 @@ pub struct GurpVlanEnsure {
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpVlanRemove {
+pub struct VlanRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: LinkName,
@@ -35,7 +35,7 @@ struct VlanInfo {
     vlan_tag: VlanID,
 }
 
-impl GurpVlanEnsure {
+impl VlanEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let extant_vlans = vlan_map(&raw_vlan_info()?)?;
 
@@ -70,7 +70,7 @@ impl GurpVlanEnsure {
     }
 }
 
-impl GurpVlanRemove {
+impl VlanRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let extant_vlans = vlan_map(&raw_vlan_info()?)?;
 
@@ -134,7 +134,7 @@ mod test {
     #[test]
     fn test_deserialize_ensure_vlan_10() {
         assert_eq!(
-            GurpVlanEnsure {
+            VlanEnsure {
                 id: GurpId::new("/NO-ROLE/vlan/e1000g10000").unwrap(),
                 name: LinkName::new("e1000g10000").unwrap(),
                 over: LinkName::new("e1000g0").unwrap(),
@@ -147,7 +147,7 @@ mod test {
     #[test]
     fn test_deserialize_remove_vlan() {
         assert_eq!(
-            GurpVlanRemove {
+            VlanRemove {
                 id: GurpId::new("/NO-ROLE/vlan/e1000g10000").unwrap(),
                 name: LinkName::new("e1000g10000").unwrap(),
             },

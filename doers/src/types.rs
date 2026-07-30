@@ -1,35 +1,35 @@
-use crate::apk::{GurpApkEnsure, GurpApkRemove};
-use crate::bridge::{GurpBridgeEnsure, GurpBridgeRemove};
-use crate::cron::{GurpCronEnsure, GurpCronRemove};
-use crate::directory::{GurpDirectoryEnsure, GurpDirectoryRemove};
-use crate::etherstub::{GurpEtherstubEnsure, GurpEtherstubRemove};
-use crate::file::ensure::GurpFileEnsure;
-use crate::file::remove::GurpFileRemove;
-use crate::file_line::{GurpFileLineEnsure, GurpFileLineRemove};
-use crate::gem::{GurpGemEnsure, GurpGemRemove};
-use crate::group::{GurpGroupEnsure, GurpGroupRemove};
-use crate::ip_address::{GurpIpAddressEnsure, GurpIpAddressRemove};
-use crate::ip_interface::{GurpIpInterfaceEnsure, GurpIpInterfaceRemove};
-use crate::ip_properties::GurpIpPropertiesEnsure;
-use crate::ipfilter::{GurpIpfilterEnsure, GurpIpfilterRemove};
-use crate::ipnat::{GurpIpnatEnsure, GurpIpnatRemove};
-use crate::link::{GurpLinkEnsure, GurpLinkRemove};
-use crate::misc::GurpMiscEnsure;
-use crate::network_flow::{GurpNetworkFlowEnsure, GurpNetworkFlowRemove};
-use crate::pkg::{GurpPkgEnsure, GurpPkgRemove};
-use crate::pkgin::{GurpPkginEnsure, GurpPkginRemove};
-use crate::publisher::{GurpPublisherEnsure, GurpPublisherRemove};
-use crate::route::{GurpRouteEnsure, GurpRouteRemove};
+use crate::apk::{ApkEnsure, ApkRemove};
+use crate::bridge::{BridgeEnsure, BridgeRemove};
+use crate::cron::{CronEnsure, CronRemove};
+use crate::directory::{DirectoryEnsure, DirectoryRemove};
+use crate::etherstub::{EtherstubEnsure, EtherstubRemove};
+use crate::file::ensure::FileEnsure;
+use crate::file::remove::FileRemove;
+use crate::file_line::{FileLineEnsure, FileLineRemove};
+use crate::gem::{GemEnsure, GemRemove};
+use crate::group::{GroupEnsure, GroupRemove};
+use crate::ip_address::{IpAddressEnsure, IpAddressRemove};
+use crate::ip_interface::{IpInterfaceEnsure, IpInterfaceRemove};
+use crate::ip_properties::IpPropertiesEnsure;
+use crate::ipfilter::{IpfilterEnsure, IpfilterRemove};
+use crate::ipnat::{IpnatEnsure, IpnatRemove};
+use crate::link::{LinkEnsure, LinkRemove};
+use crate::misc::MiscEnsure;
+use crate::network_flow::{NetworkFlowEnsure, NetworkFlowRemove};
+use crate::pkg::{PkgEnsure, PkgRemove};
+use crate::pkgin::{PkginEnsure, PkginRemove};
+use crate::publisher::{PublisherEnsure, PublisherRemove};
+use crate::route::{RouteEnsure, RouteRemove};
 use crate::self_update;
-use crate::smf::{GurpSmfEnsure, GurpSmfRemove};
-use crate::svc::GurpSvcEnsure;
-use crate::svcprop::{GurpSvcpropEnsure, GurpSvcpropRemove};
-use crate::system_cert::{GurpSystemCertEnsure, GurpSystemCertRemove};
-use crate::user::{GurpUserEnsure, GurpUserRemove};
-use crate::vlan::{GurpVlanEnsure, GurpVlanRemove};
-use crate::vnic::{GurpVnicEnsure, GurpVnicRemove};
-use crate::zfs::{GurpZfsEnsure, GurpZfsRemove};
-use crate::zone::{GurpZoneEnsure, GurpZoneRemove};
+use crate::smf::{SmfEnsure, SmfRemove};
+use crate::svc::SvcEnsure;
+use crate::svcprop::{SvcpropEnsure, SvcpropRemove};
+use crate::system_cert::{SystemCertEnsure, SystemCertRemove};
+use crate::user::{UserEnsure, UserRemove};
+use crate::vlan::{VlanEnsure, VlanRemove};
+use crate::vnic::{VnicEnsure, VnicRemove};
+use crate::zfs::{ZfsEnsure, ZfsRemove};
+use crate::zone::{ZoneEnsure, ZoneRemove};
 use anyhow::{Context, bail};
 use bytesize::ByteSize;
 use camino::Utf8PathBuf;
@@ -91,124 +91,124 @@ pub struct HostResources {
 #[serde(rename_all = "kebab-case")]
 pub struct EnsureResources {
     #[serde(default)]
-    pub apk: Vec<GurpApkEnsure>,
+    pub apk: Vec<ApkEnsure>,
     #[serde(default)]
-    pub bridge: Vec<GurpBridgeEnsure>,
+    pub bridge: Vec<BridgeEnsure>,
     #[serde(default)]
-    pub cron: Vec<GurpCronEnsure>,
+    pub cron: Vec<CronEnsure>,
     #[serde(default)]
-    pub directory: Vec<GurpDirectoryEnsure>,
+    pub directory: Vec<DirectoryEnsure>,
     #[serde(default)]
-    pub etherstub: Vec<GurpEtherstubEnsure>,
+    pub etherstub: Vec<EtherstubEnsure>,
     #[serde(default)]
-    pub file: Vec<GurpFileEnsure>,
+    pub file: Vec<FileEnsure>,
     #[serde(default)]
-    pub file_line: Vec<GurpFileLineEnsure>,
+    pub file_line: Vec<FileLineEnsure>,
     #[serde(default)]
-    pub gem: Vec<GurpGemEnsure>,
+    pub gem: Vec<GemEnsure>,
     #[serde(default)]
-    pub group: Vec<GurpGroupEnsure>,
+    pub group: Vec<GroupEnsure>,
     #[serde(default)]
-    pub ip_address: Vec<GurpIpAddressEnsure>,
+    pub ip_address: Vec<IpAddressEnsure>,
     #[serde(default)]
-    pub ip_interface: Vec<GurpIpInterfaceEnsure>,
+    pub ip_interface: Vec<IpInterfaceEnsure>,
     #[serde(default)]
-    pub ip_properties: Vec<GurpIpPropertiesEnsure>,
+    pub ip_properties: Vec<IpPropertiesEnsure>,
     #[serde(default)]
-    pub ipfilter: Vec<GurpIpfilterEnsure>,
+    pub ipfilter: Vec<IpfilterEnsure>,
     #[serde(default)]
-    pub ipnat: Vec<GurpIpnatEnsure>,
+    pub ipnat: Vec<IpnatEnsure>,
     #[serde(default)]
-    pub link: Vec<GurpLinkEnsure>,
+    pub link: Vec<LinkEnsure>,
     #[serde(default)]
-    pub misc: Vec<GurpMiscEnsure>,
+    pub misc: Vec<MiscEnsure>,
     #[serde(default)]
-    pub network_flow: Vec<GurpNetworkFlowEnsure>,
+    pub network_flow: Vec<NetworkFlowEnsure>,
     #[serde(default)]
-    pub pkg: Vec<GurpPkgEnsure>,
+    pub pkg: Vec<PkgEnsure>,
     #[serde(default)]
-    pub pkgin: Vec<GurpPkginEnsure>,
+    pub pkgin: Vec<PkginEnsure>,
     #[serde(default)]
-    pub publisher: Vec<GurpPublisherEnsure>,
+    pub publisher: Vec<PublisherEnsure>,
     #[serde(default)]
-    pub route: Vec<GurpRouteEnsure>,
+    pub route: Vec<RouteEnsure>,
     #[serde(default)]
-    pub svcprop: Vec<GurpSvcpropEnsure>,
+    pub svcprop: Vec<SvcpropEnsure>,
     #[serde(default)]
-    pub smf: Vec<GurpSmfEnsure>,
+    pub smf: Vec<SmfEnsure>,
     #[serde(default)]
-    pub svc: Vec<GurpSvcEnsure>,
+    pub svc: Vec<SvcEnsure>,
     #[serde(default)]
-    pub system_cert: Vec<GurpSystemCertEnsure>,
+    pub system_cert: Vec<SystemCertEnsure>,
     #[serde(default)]
-    pub user: Vec<GurpUserEnsure>,
+    pub user: Vec<UserEnsure>,
     #[serde(default)]
-    pub vlan: Vec<GurpVlanEnsure>,
+    pub vlan: Vec<VlanEnsure>,
     #[serde(default)]
-    pub vnic: Vec<GurpVnicEnsure>,
+    pub vnic: Vec<VnicEnsure>,
     #[serde(default)]
-    pub zfs: Vec<GurpZfsEnsure>,
+    pub zfs: Vec<ZfsEnsure>,
     #[serde(default)]
-    pub zone: Vec<GurpZoneEnsure>,
+    pub zone: Vec<ZoneEnsure>,
 }
 
 #[derive(Default, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct RemoveResources {
     #[serde(default)]
-    pub apk: Vec<GurpApkRemove>,
+    pub apk: Vec<ApkRemove>,
     #[serde(default)]
-    pub bridge: Vec<GurpBridgeRemove>,
+    pub bridge: Vec<BridgeRemove>,
     #[serde(default)]
-    pub cron: Vec<GurpCronRemove>,
+    pub cron: Vec<CronRemove>,
     #[serde(default)]
-    pub directory: Vec<GurpDirectoryRemove>,
+    pub directory: Vec<DirectoryRemove>,
     #[serde(default)]
-    pub etherstub: Vec<GurpEtherstubRemove>,
+    pub etherstub: Vec<EtherstubRemove>,
     #[serde(default)]
-    pub file: Vec<GurpFileRemove>,
+    pub file: Vec<FileRemove>,
     #[serde(default)]
-    pub file_line: Vec<GurpFileLineRemove>,
+    pub file_line: Vec<FileLineRemove>,
     #[serde(default)]
-    pub gem: Vec<GurpGemRemove>,
+    pub gem: Vec<GemRemove>,
     #[serde(default)]
-    pub group: Vec<GurpGroupRemove>,
+    pub group: Vec<GroupRemove>,
     #[serde(default)]
-    pub ip_address: Vec<GurpIpAddressRemove>,
+    pub ip_address: Vec<IpAddressRemove>,
     #[serde(default)]
-    pub ip_interface: Vec<GurpIpInterfaceRemove>,
+    pub ip_interface: Vec<IpInterfaceRemove>,
     #[serde(default)]
-    pub ipfilter: Vec<GurpIpfilterRemove>,
+    pub ipfilter: Vec<IpfilterRemove>,
     #[serde(default)]
-    pub ipnat: Vec<GurpIpnatRemove>,
+    pub ipnat: Vec<IpnatRemove>,
     #[serde(default)]
-    pub link: Vec<GurpLinkRemove>,
+    pub link: Vec<LinkRemove>,
     #[serde(default)]
-    pub network_flow: Vec<GurpNetworkFlowRemove>,
+    pub network_flow: Vec<NetworkFlowRemove>,
     #[serde(default)]
-    pub pkg: Vec<GurpPkgRemove>,
+    pub pkg: Vec<PkgRemove>,
     #[serde(default)]
-    pub pkgin: Vec<GurpPkginRemove>,
+    pub pkgin: Vec<PkginRemove>,
     #[serde(default)]
-    pub publisher: Vec<GurpPublisherRemove>,
+    pub publisher: Vec<PublisherRemove>,
     #[serde(default)]
-    pub route: Vec<GurpRouteRemove>,
+    pub route: Vec<RouteRemove>,
     #[serde(default)]
-    pub smf: Vec<GurpSmfRemove>,
+    pub smf: Vec<SmfRemove>,
     #[serde(default)]
-    pub svcprop: Vec<GurpSvcpropRemove>,
+    pub svcprop: Vec<SvcpropRemove>,
     #[serde(default)]
-    pub system_cert: Vec<GurpSystemCertRemove>,
+    pub system_cert: Vec<SystemCertRemove>,
     #[serde(default)]
-    pub user: Vec<GurpUserRemove>,
+    pub user: Vec<UserRemove>,
     #[serde(default)]
-    pub vlan: Vec<GurpVlanRemove>,
+    pub vlan: Vec<VlanRemove>,
     #[serde(default)]
-    pub vnic: Vec<GurpVnicRemove>,
+    pub vnic: Vec<VnicRemove>,
     #[serde(default)]
-    pub zfs: Vec<GurpZfsRemove>,
+    pub zfs: Vec<ZfsRemove>,
     #[serde(default)]
-    pub zone: Vec<GurpZoneRemove>,
+    pub zone: Vec<ZoneRemove>,
 }
 
 macro_rules! impl_apply {
@@ -224,52 +224,52 @@ macro_rules! impl_apply {
 }
 
 impl_apply!(
-    GurpBridgeEnsure,
-    GurpCronEnsure,
-    GurpDirectoryEnsure,
-    GurpEtherstubEnsure,
-    GurpFileEnsure,
-    GurpFileLineEnsure,
-    GurpGroupEnsure,
-    GurpIpAddressEnsure,
-    GurpIpInterfaceEnsure,
-    GurpIpPropertiesEnsure,
-    GurpLinkEnsure,
-    GurpMiscEnsure,
-    GurpNetworkFlowEnsure,
-    GurpPublisherEnsure,
-    GurpRouteEnsure,
-    GurpSvcpropEnsure,
-    GurpSmfEnsure,
-    GurpSystemCertEnsure,
-    GurpUserEnsure,
-    GurpVlanEnsure,
-    GurpVnicEnsure,
-    GurpZfsEnsure,
-    GurpZoneEnsure,
-    GurpBridgeRemove,
-    GurpCronRemove,
-    GurpDirectoryRemove,
-    GurpEtherstubRemove,
-    GurpFileRemove,
-    GurpFileLineRemove,
-    GurpGroupRemove,
-    GurpIpAddressRemove,
-    GurpIpInterfaceRemove,
-    GurpIpfilterRemove,
-    GurpIpnatRemove,
-    GurpLinkRemove,
-    GurpNetworkFlowRemove,
-    GurpPublisherRemove,
-    GurpRouteRemove,
-    GurpSmfRemove,
-    GurpSvcpropRemove,
-    GurpSystemCertRemove,
-    GurpUserRemove,
-    GurpVlanRemove,
-    GurpVnicRemove,
-    GurpZfsRemove,
-    GurpZoneRemove
+    BridgeEnsure,
+    CronEnsure,
+    DirectoryEnsure,
+    EtherstubEnsure,
+    FileEnsure,
+    FileLineEnsure,
+    GroupEnsure,
+    IpAddressEnsure,
+    IpInterfaceEnsure,
+    IpPropertiesEnsure,
+    LinkEnsure,
+    MiscEnsure,
+    NetworkFlowEnsure,
+    PublisherEnsure,
+    RouteEnsure,
+    SvcpropEnsure,
+    SmfEnsure,
+    SystemCertEnsure,
+    UserEnsure,
+    VlanEnsure,
+    VnicEnsure,
+    ZfsEnsure,
+    ZoneEnsure,
+    BridgeRemove,
+    CronRemove,
+    DirectoryRemove,
+    EtherstubRemove,
+    FileRemove,
+    FileLineRemove,
+    GroupRemove,
+    IpAddressRemove,
+    IpInterfaceRemove,
+    IpfilterRemove,
+    IpnatRemove,
+    LinkRemove,
+    NetworkFlowRemove,
+    PublisherRemove,
+    RouteRemove,
+    SmfRemove,
+    SvcpropRemove,
+    SystemCertRemove,
+    UserRemove,
+    VlanRemove,
+    VnicRemove,
+    ZfsRemove,
+    ZoneRemove
 );
 
 pub struct Applicator {

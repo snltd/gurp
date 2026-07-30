@@ -10,7 +10,7 @@ use std::process::Command;
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpPublisherEnsure {
+pub struct PublisherEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: PublisherName,
@@ -18,7 +18,7 @@ pub struct GurpPublisherEnsure {
     pub desired_state: Publisher,
 }
 
-impl GurpPublisherEnsure {
+impl PublisherEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if functions::publisher_exists(&self.name)? {
             let raw_publisher_info = cmd_output!(PKG_BIN, "publisher", &self.name)
@@ -192,7 +192,7 @@ mod test {
     #[test]
     fn test_deserialize_publisher_ensure_new_publisher() {
         assert_eq!(
-            GurpPublisherEnsure {
+            PublisherEnsure {
                 id: GurpId::new("/NO-ROLE/publisher/example").unwrap(),
                 name: "example".to_owned(),
                 desired_state: Publisher {

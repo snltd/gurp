@@ -14,12 +14,12 @@ static CURRENT_PKG_OUTPUT: LazyLock<String> =
 
 type PkginName = String;
 type InstalledPkgs = Vec<PkginName>;
-type EnsureList = Vec<GurpPkginEnsure>;
-type RemoveList = Vec<GurpPkginRemove>;
+type EnsureList = Vec<PkginEnsure>;
+type RemoveList = Vec<PkginRemove>;
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpPkginEnsure {
+pub struct PkginEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: PkginName,
@@ -27,7 +27,7 @@ pub struct GurpPkginEnsure {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpPkginRemove {
+pub struct PkginRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: PkginName,
@@ -171,7 +171,7 @@ mod test {
     #[test]
     fn test_deserialize_pkgin_ensure_rust_package() {
         assert_eq!(
-            GurpPkginEnsure {
+            PkginEnsure {
                 id: GurpId::new("/NO-ROLE/pkgin/rust").unwrap(),
                 name: "rust".to_owned(),
             },
@@ -182,7 +182,7 @@ mod test {
     #[test]
     fn test_deserialize_pkgin_remove_go_package() {
         assert_eq!(
-            GurpPkginRemove {
+            PkginRemove {
                 id: GurpId::new("/NO-ROLE/pkgin/go").unwrap(),
                 name: "go".to_owned(),
             },

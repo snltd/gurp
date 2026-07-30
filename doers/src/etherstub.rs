@@ -7,7 +7,7 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpEtherstubEnsure {
+pub struct EtherstubEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: LinkName,
@@ -15,13 +15,13 @@ pub struct GurpEtherstubEnsure {
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpEtherstubRemove {
+pub struct EtherstubRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: LinkName,
 }
 
-impl GurpEtherstubEnsure {
+impl EtherstubEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if etherstub_exists(&self.name)? {
             tracing::debug!("{} already exists", self.name);
@@ -33,7 +33,7 @@ impl GurpEtherstubEnsure {
     }
 }
 
-impl GurpEtherstubRemove {
+impl EtherstubRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if etherstub_exists(&self.name)? {
             tracing::info!("Removing {}", self.name);
@@ -60,7 +60,7 @@ mod test {
     #[test]
     fn test_ensure_etherstub_deserialize() {
         assert_eq!(
-            GurpEtherstubEnsure {
+            EtherstubEnsure {
                 id: GurpId::new("/NO-ROLE/etherstub/newstub0").unwrap(),
                 name: LinkName::new("newstub0").unwrap(),
             },
@@ -71,7 +71,7 @@ mod test {
     #[test]
     fn test_remove_etherstub_deserialize() {
         assert_eq!(
-            GurpEtherstubRemove {
+            EtherstubRemove {
                 id: GurpId::new("/NO-ROLE/etherstub/oldstub0").unwrap(),
                 name: LinkName::new("oldstub0").unwrap(),
             },

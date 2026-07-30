@@ -13,12 +13,12 @@ static CURRENT_APK_OUTPUT: LazyLock<String> =
 
 type ApkName = String;
 type InstalledApks = Vec<ApkName>;
-type EnsureList = Vec<GurpApkEnsure>;
-type RemoveList = Vec<GurpApkRemove>;
+type EnsureList = Vec<ApkEnsure>;
+type RemoveList = Vec<ApkRemove>;
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpApkEnsure {
+pub struct ApkEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: ApkName,
@@ -26,7 +26,7 @@ pub struct GurpApkEnsure {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpApkRemove {
+pub struct ApkRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: ApkName,
@@ -180,7 +180,7 @@ mod test {
     #[test]
     fn test_deserialize_apk_ensure_rust_package() {
         assert_eq!(
-            GurpApkEnsure {
+            ApkEnsure {
                 id: GurpId::new("/NO-ROLE/apk/rust").unwrap(),
                 name: "rust".to_owned(),
             },
@@ -191,7 +191,7 @@ mod test {
     #[test]
     fn test_deserialize_apk_remove_go_package() {
         assert_eq!(
-            GurpApkRemove {
+            ApkRemove {
                 id: GurpId::new("/NO-ROLE/apk/go").unwrap(),
                 name: "go".to_owned(),
             },

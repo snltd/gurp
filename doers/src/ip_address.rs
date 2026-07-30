@@ -14,7 +14,7 @@ use util::ip_protocols::{self, AlignIpPropArg};
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpIpAddressEnsure {
+pub struct IpAddressEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: AddrObj,
@@ -27,7 +27,7 @@ pub struct GurpIpAddressEnsure {
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpIpAddressRemove {
+pub struct IpAddressRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: AddrObj,
@@ -43,7 +43,7 @@ struct IpAddressObject {
 
 type IpAddressPropMap = HashMap<String, String>;
 
-impl GurpIpAddressEnsure {
+impl IpAddressEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut recreate_interface = false;
         let mut create_interface = false;
@@ -178,7 +178,7 @@ impl GurpIpAddressEnsure {
     }
 }
 
-impl GurpIpAddressRemove {
+impl IpAddressRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if describe_address(&self.name)?.is_some() {
             tracing::info!("removing {}", self.name);
@@ -255,7 +255,7 @@ mod test {
     #[test]
     fn test_ip_address_deserialize_ensure_static_with_properties() {
         assert_eq!(
-            GurpIpAddressEnsure {
+            IpAddressEnsure {
                 name: AddrObj::new("example0/v4").unwrap(),
                 id: GurpId::new("/NO-ROLE/ip-address/example0_v4").unwrap(),
                 address: Some(IpNet::new("192.168.1.13".parse().unwrap(), 24).unwrap()),
@@ -273,7 +273,7 @@ mod test {
     #[test]
     fn test_ip_address_deserialize_ensure_dhcp() {
         assert_eq!(
-            GurpIpAddressEnsure {
+            IpAddressEnsure {
                 name: AddrObj::new("example1/v4").unwrap(),
                 id: GurpId::new("/NO-ROLE/ip-address/example1_v4").unwrap(),
                 address: None,
@@ -287,7 +287,7 @@ mod test {
     #[test]
     fn test_ip_address_deserialize_remove_address() {
         assert_eq!(
-            GurpIpAddressRemove {
+            IpAddressRemove {
                 name: AddrObj::new("example2/v4").unwrap(),
                 id: GurpId::new("/NO-ROLE/ip-address/example2_v4").unwrap(),
             },

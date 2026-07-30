@@ -80,7 +80,7 @@ fn copy_file(
 
 #[cfg(test)]
 mod test {
-    use crate::file::ensure::GurpFileEnsure;
+    use crate::file::ensure::FileEnsure;
     use crate::file::types::DesiredFileState;
     use camino_tempfile_ext::prelude::*;
     use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
@@ -100,7 +100,7 @@ mod test {
 
         assert!(!temp_file.exists());
 
-        let sut = GurpFileEnsure {
+        let sut = FileEnsure {
             id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: temp_file.clone(),
             desired_state: DesiredFileState {
@@ -134,7 +134,7 @@ mod test {
 
         assert!(!temp_file.exists());
 
-        let sut = GurpFileEnsure {
+        let sut = FileEnsure {
             id: GurpId::new("/NO-ROLE/file/irrelevant").unwrap(),
             path: temp_file.clone(),
             desired_state: DesiredFileState {
@@ -193,7 +193,7 @@ mod test {
             my_group(),
         });
 
-        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: FileEnsure = serde_json::from_str(&json_def).unwrap();
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
             sut.apply(&ApplyOpts::default()).unwrap()
@@ -234,7 +234,7 @@ mod test {
             my_group(),
         });
 
-        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: FileEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(
             ONE_RESOURCE_NO_CHANGE,

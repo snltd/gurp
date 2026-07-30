@@ -122,7 +122,7 @@ fn prepped_kvp(raw: &str) -> String {
 
 #[cfg(test)]
 mod test {
-    use crate::file::ensure::GurpFileEnsure;
+    use crate::file::ensure::FileEnsure;
     use camino::Utf8PathBuf;
     use camino_tempfile_ext::prelude::*;
     use common::constants::ONE_RESOURCE_ONE_CHANGE;
@@ -158,7 +158,7 @@ mod test {
                   }
                 }"#};
 
-        let sut: GurpFileEnsure = serde_json::from_str(&sample_struct(&temp_file, "json")).unwrap();
+        let sut: FileEnsure = serde_json::from_str(&sample_struct(&temp_file, "json")).unwrap();
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
             sut.apply(&ApplyOpts::default()).unwrap()
@@ -190,7 +190,7 @@ mod test {
               - 789
           "#};
 
-        let sut: GurpFileEnsure = serde_json::from_str(&sample_struct(&temp_file, "yaml")).unwrap();
+        let sut: FileEnsure = serde_json::from_str(&sample_struct(&temp_file, "yaml")).unwrap();
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
             sut.apply(&ApplyOpts::default()).unwrap()
@@ -244,7 +244,7 @@ mod test {
                 key_2 = gurp
         "#};
 
-        let sut: GurpFileEnsure = serde_json::from_str(&json_def).unwrap();
+        let sut: FileEnsure = serde_json::from_str(&json_def).unwrap();
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
             sut.apply(&ApplyOpts::default()).unwrap()
@@ -257,7 +257,7 @@ mod test {
 
     #[test]
     fn test_file_create_ini_from_struct_errors() {
-        let sut: GurpFileEnsure =
+        let sut: FileEnsure =
             serde_json::from_str(&sample_struct(&Utf8PathBuf::from("/tmp/file"), "ini")).unwrap();
         assert!(sut.apply(&ApplyOpts::default()).is_err());
     }

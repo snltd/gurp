@@ -7,13 +7,13 @@ use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpPublisherRemove {
+pub struct PublisherRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: PublisherName,
 }
 
-impl GurpPublisherRemove {
+impl PublisherRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if functions::publisher_exists(&self.name)? {
             tracing::info!("removing publisher: {}", self.name);
@@ -34,7 +34,7 @@ mod test {
     #[test]
     fn test_deserialize_publisher_remove_old_publisher() {
         assert_eq!(
-            GurpPublisherRemove {
+            PublisherRemove {
                 id: GurpId::new("/NO-ROLE/publisher/old_publisher").unwrap(),
                 name: "old_publisher".to_owned(),
             },

@@ -15,7 +15,7 @@ const SYSTEM_CERT_DIR: &str = "/etc/ssl/certs";
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpSystemCertEnsure {
+pub struct SystemCertEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
@@ -28,13 +28,13 @@ pub struct GurpSystemCertEnsure {
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpSystemCertRemove {
+pub struct SystemCertRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
 }
 
-impl GurpSystemCertEnsure {
+impl SystemCertEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut changed = false;
 
@@ -94,7 +94,7 @@ impl GurpSystemCertEnsure {
     }
 }
 
-impl GurpSystemCertRemove {
+impl SystemCertRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let path = Utf8PathBuf::from(SYSTEM_CERT_DIR).join(&self.name);
 
@@ -130,7 +130,7 @@ mod test {
 
     #[test]
     fn test_deserialize_system_cert_from_file() {
-        let expected = GurpSystemCertEnsure {
+        let expected = SystemCertEnsure {
             id: GurpId::new("/NO-ROLE/system-cert/from-file").unwrap(),
             name: "from-file".to_owned(),
             from: Some(Utf8PathBuf::from("/example/dir/files/ca/example")),
@@ -154,7 +154,7 @@ mod test {
     #[test]
     fn test_deserialize_system_cert_from_url() {
         assert_eq!(
-            GurpSystemCertEnsure {
+            SystemCertEnsure {
                 id: GurpId::new("/NO-ROLE/system-cert/from-url").unwrap(),
                 name: "from-url".to_owned(),
                 from: None,
@@ -169,7 +169,7 @@ mod test {
     #[test]
     fn test_deserialize_remove_system_cert() {
         assert_eq!(
-            GurpSystemCertRemove {
+            SystemCertRemove {
                 id: GurpId::new("/NO-ROLE/system-cert/unwanted-cert").unwrap(),
                 name: "unwanted-cert".to_owned(),
             },
@@ -179,7 +179,7 @@ mod test {
 
     #[test]
     fn test_not_exactly_one_source_fails() {
-        let file_and_url = GurpSystemCertEnsure {
+        let file_and_url = SystemCertEnsure {
             id: GurpId::new("/NO-ROLE/system-cert/irrelevant").unwrap(),
             name: "bad-input".to_owned(),
             from: Some(Utf8PathBuf::from("/dir/ca/example")),
@@ -190,7 +190,7 @@ mod test {
 
         assert!(file_and_url.apply(&ApplyOpts::default()).is_err());
 
-        let file_and_content = GurpSystemCertEnsure {
+        let file_and_content = SystemCertEnsure {
             id: GurpId::new("/NO-ROLE/system-cert/irrelevant").unwrap(),
             name: "bad-input".to_owned(),
             from: Some(Utf8PathBuf::from("/dir/ca/example")),
@@ -201,7 +201,7 @@ mod test {
 
         assert!(file_and_content.apply(&ApplyOpts::default()).is_err());
 
-        let no_source = GurpSystemCertEnsure {
+        let no_source = SystemCertEnsure {
             id: GurpId::new("/NO-ROLE/system-cert/irrelevent").unwrap(),
             name: "example".to_owned(),
             from: None,

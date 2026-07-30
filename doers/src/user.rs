@@ -17,7 +17,7 @@ pub const SHADOW_PATH: &str = "/etc/shadow";
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpUserEnsure {
+pub struct UserEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
@@ -44,13 +44,13 @@ pub struct UserState {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpUserRemove {
+pub struct UserRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
 }
 
-impl GurpUserEnsure {
+impl UserEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let user = &self.name;
 
@@ -297,7 +297,7 @@ impl GurpUserEnsure {
     }
 }
 
-impl GurpUserRemove {
+impl UserRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if user_exists(&self.name)? {
             ensure!(
@@ -373,7 +373,7 @@ mod tests {
     #[test]
     fn test_deserialize_user_ensure_gurpuser() {
         assert_eq!(
-            GurpUserEnsure {
+            UserEnsure {
                 id: GurpId::new("/NO-ROLE/user/gurpuser").unwrap(),
                 name: "gurpuser".to_owned(),
                 desired_state: UserState {
@@ -394,7 +394,7 @@ mod tests {
     #[test]
     fn test_deserialize_user_remove_user_lolex() {
         assert_eq!(
-            GurpUserRemove {
+            UserRemove {
                 id: GurpId::new("/NO-ROLE/user/lolex").unwrap(),
                 name: "lolex".to_owned(),
             },
@@ -416,7 +416,7 @@ mod tests {
 
         fs::write(&path, original_shadow).unwrap();
 
-        let g = GurpUserEnsure {
+        let g = UserEnsure {
             desired_state: UserState {
                 password_hash: Some("NEWHASH".into()),
                 ..deserialized_example("user/ensure-user-gurpuser.janet")

@@ -12,7 +12,7 @@ use util::ip_protocols::{self, AlignIpPropArg, IpObjType, IpProtocolMap};
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpIpInterfaceEnsure {
+pub struct IpInterfaceEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: LinkName,
@@ -25,13 +25,13 @@ pub struct GurpIpInterfaceEnsure {
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpIpInterfaceRemove {
+pub struct IpInterfaceRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: LinkName,
 }
 
-impl GurpIpInterfaceEnsure {
+impl IpInterfaceEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let mut summary = ONE_RESOURCE_NO_CHANGE;
 
@@ -97,7 +97,7 @@ impl GurpIpInterfaceEnsure {
     }
 }
 
-impl GurpIpInterfaceRemove {
+impl IpInterfaceRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         if interface_exists(&self.name)? {
             tracing::info!("removing {}", self.name);
@@ -127,7 +127,7 @@ mod test {
     #[test]
     fn test_ip_interface_deserialize_ensure_interface() {
         assert_eq!(
-            GurpIpInterfaceEnsure {
+            IpInterfaceEnsure {
                 name: LinkName::new("example0").unwrap(),
                 id: GurpId::new("/NO-ROLE/ip-interface/example0").unwrap(),
                 protocols: None,
@@ -139,7 +139,7 @@ mod test {
     #[test]
     fn test_ip_interface_deserialize_ensure_interface_with_options_and_label() {
         assert_eq!(
-            GurpIpInterfaceEnsure {
+            IpInterfaceEnsure {
                 name: LinkName::new("example1").unwrap(),
                 id: GurpId::new("/NO-ROLE/ip-interface/example-interface").unwrap(),
                 protocols: Some(HashMap::from([
@@ -168,7 +168,7 @@ mod test {
     #[test]
     fn test_ip_interface_deserialize_remove_interface() {
         assert_eq!(
-            GurpIpInterfaceRemove {
+            IpInterfaceRemove {
                 name: LinkName::new("example2").unwrap(),
                 id: GurpId::new("/NO-ROLE/ip-interface/example2").unwrap(),
             },

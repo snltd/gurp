@@ -9,7 +9,7 @@ use std::process::Command;
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpNetworkFlowEnsure {
+pub struct NetworkFlowEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
@@ -26,7 +26,7 @@ pub struct GurpNetworkFlowEnsure {
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpNetworkFlowRemove {
+pub struct NetworkFlowRemove {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
@@ -51,7 +51,7 @@ struct ExtantFlowprops {
     priority: Option<String>,
 }
 
-impl GurpNetworkFlowEnsure {
+impl NetworkFlowEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let extant_flows = parse_flows(&get_flows()?).context("cannot get list of flows")?;
 
@@ -211,7 +211,7 @@ impl GurpNetworkFlowEnsure {
     }
 }
 
-impl GurpNetworkFlowRemove {
+impl NetworkFlowRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let extant_flows = parse_flows(&get_flows()?).context("cannot get list of flows")?;
 
@@ -348,7 +348,7 @@ mod test {
     #[test]
     fn test_deserialize_network_flow_ensure_tcp_443_throttle() {
         assert_eq!(
-            GurpNetworkFlowEnsure {
+            NetworkFlowEnsure {
                 name: "tls-throttle".to_owned(),
                 id: GurpId::new("/NO-ROLE/network-flow/tls-throttle").unwrap(),
                 link: LinkName::new("vnic1").unwrap(),
@@ -368,7 +368,7 @@ mod test {
     #[test]
     fn test_deserialize_network_flow_ensure_ssh_local_throttle() {
         assert_eq!(
-            GurpNetworkFlowEnsure {
+            NetworkFlowEnsure {
                 name: "ssh-flow".to_owned(),
                 id: GurpId::new("/NO-ROLE/network-flow/ssh-flow").unwrap(),
                 link: LinkName::new("vnic1").unwrap(),
@@ -388,7 +388,7 @@ mod test {
     #[test]
     fn test_deserialize_network_flow_remove_flow() {
         assert_eq!(
-            GurpNetworkFlowRemove {
+            NetworkFlowRemove {
                 name: "unwanted".to_owned(),
                 id: GurpId::new("/NO-ROLE/network-flow/unwanted").unwrap(),
             },
@@ -507,7 +507,7 @@ mod test {
     #[test]
     fn test_build_command() {
         assert_cmd_call!(
-            GurpNetworkFlowEnsure,
+            NetworkFlowEnsure,
             r#"(network-flow/ensure "web_flow"
                                     :link "vnic1"
                                     :protocol "tcp"
@@ -517,7 +517,7 @@ mod test {
         );
 
         assert_cmd_call!(
-            GurpNetworkFlowEnsure,
+            NetworkFlowEnsure,
             r#"(network-flow/ensure "tls_shaper"
                                     :link "vnic2"
                                     :protocol "tcp"

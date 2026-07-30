@@ -11,7 +11,7 @@ use std::process::{Command, Stdio};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
-pub struct GurpZoneEnsure {
+pub struct ZoneEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
@@ -19,7 +19,7 @@ pub struct GurpZoneEnsure {
     pub config: ZoneConfig,
 }
 
-impl GurpZoneEnsure {
+impl ZoneEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let zone = &self.name;
 
