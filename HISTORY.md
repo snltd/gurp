@@ -1,5 +1,10 @@
 - Leading `0` on file modes is now optional.
 - Much improved capture of invalid resource data.
+- Fix bug which stopped you adding a proxy to an existing publisher.
+- Clearer zone bootstrap logging.
+- Retry service state assertion: some package-delivered services take a while
+  to become available.
+- Smarter location of deserialization errors.
 - Better logging when config compilation fails
 - Add `--syspath` and `--gurp-config-root` options to `repl` command.
 - Use `image-checksum` to specify checksums of images used to build zones. This

@@ -35,7 +35,9 @@ pub fn install(
         .sync_all()
         .with_context(|| format!("cannot sync {path}"))?;
 
-    if let Some(suffix) = backup_suffix {
+    if let Some(suffix) = backup_suffix
+        && path.exists()
+    {
         back_up(path, suffix, opts).with_context(|| format!("cannot back up {path}"))?;
     }
 

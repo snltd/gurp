@@ -192,14 +192,14 @@ fn bootstrap(zone: &str, conf: &ZoneConfig, opts: &ApplyOpts) -> anyhow::Result<
     );
 
     if let Some(server) = &bootstrap_conf.server {
-        tracing::info!("bootstrapping from remote server: {server}");
+        tracing::info!("bootstrapping {zone} from remote server: {server}");
         bootstrap_args.push(format!("--server={server}"));
 
         if let Some(hostname) = &bootstrap_conf.hostname {
             bootstrap_args.push(format!("--hostname={hostname}"));
         }
     } else if let Some(file) = &bootstrap_conf.file {
-        tracing::info!("bootstrapping from local file: {file}");
+        tracing::info!("bootstrapping {zone} from local file: {file}");
         bootstrap_args.push(file.to_owned());
     } else {
         bail!("bootstrap requires either :file or :server");

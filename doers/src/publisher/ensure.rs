@@ -38,34 +38,37 @@ impl PublisherEnsure {
         }
     }
 
-    fn create_publisher(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        tracing::info!("creating publisher {}", self.name);
+    fn add_items(&self, mut cmd: Command, items: &[OriginOrMirror], ttype: TargetType) -> Command {
+        for item in items {
+            cmd.arg(match ttype {
+                TargetType::Origin => "-g",
+                TargetType::Mirror => "-m",
+            });
 
-        let mut cmd = Command::new(PKG_BIN);
-        cmd.arg("set-publisher");
+            cmd.arg(item.uri.as_str());
 
-        for origin in &self.desired_state.origins {
-            cmd.args(["-g", origin.uri.as_str()]);
-            if let Some(proxy) = &origin.proxy {
+            if let Some(proxy) = &item.proxy {
                 tracing::info!(
                     "publisher {} origin {}: adding proxy {proxy}",
                     self.name,
-                    origin.uri
+                    item.uri
                 );
                 cmd.args(["--proxy", proxy.as_str()]);
             }
         }
 
-        for mirror in self.desired_state.mirrors.iter().flatten() {
-            cmd.args(["-m", mirror.uri.as_str()]);
-            if let Some(proxy) = &mirror.proxy {
-                tracing::info!(
-                    "publisher {} mirror {}: adding proxy {proxy}",
-                    self.name,
-                    mirror.uri
-                );
-                cmd.args(["--proxy", proxy.as_str()]);
-            }
+        cmd
+    }
+
+    fn create_publisher(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        tracing::info!("creating publisher {}", self.name);
+
+        let mut cmd = Command::new(PKG_BIN);
+        cmd.arg("set-publisher");
+        cmd = self.add_items(cmd, self.desired_state.origins.as_ref(), TargetType::Origin);
+
+        if let Some(mirrors) = &self.desired_state.mirrors {
+            cmd = self.add_items(cmd, mirrors, TargetType::Mirror);
         }
 
         cmd.arg(&self.name);
@@ -87,18 +90,15 @@ impl PublisherEnsure {
     ) -> anyhow::Result<()> {
         let mut cmd = Command::new(PKG_BIN);
         cmd.arg("set-publisher");
+
         tracing::info!(
-            "publisher {}: adding {} {}",
+            "publisher {}: setting {} {}",
             self.name,
             target_type,
             target.uri
         );
 
-        match target_type {
-            TargetType::Origin => cmd.arg("-g"),
-            TargetType::Mirror => cmd.arg("-m"),
-        };
-
+        cmd.arg("-p");
         cmd.arg(target.uri.as_str());
 
         if let Some(proxy) = &target.proxy {
