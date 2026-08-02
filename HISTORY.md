@@ -1,3 +1,5 @@
+## v2.3.0 (2026-07-31)
+
 - Leading `0` on file modes is now optional.
 - Much improved capture of invalid resource data.
 - Fix bug which stopped you adding a proxy to an existing publisher.
