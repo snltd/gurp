@@ -126,6 +126,7 @@ mod test {
                     with_checksum: None,
                     only_fetch_from_url_once: false,
                     url_is_server: false,
+                    url_replacements: None,
                 }
             },
             deserialized_example("file/ensure-from-content.janet")
@@ -158,6 +159,7 @@ mod test {
                     to_format: None,
                     only_fetch_from_url_once: false,
                     url_is_server: false,
+                url_replacements: None,
                 }
             },
             deserialized_example("file/ensure-from-url-with-checksum.janet")
@@ -183,6 +185,7 @@ mod test {
                 with_checksum: Some("abc123".to_owned()),
                 only_fetch_from_url_once: false,
                 url_is_server: false,
+                url_replacements: None,
             },
         };
 
@@ -205,6 +208,7 @@ mod test {
                 with_checksum: None,
                 only_fetch_from_url_once: false,
                 url_is_server: false,
+                url_replacements: None,
             },
         };
 
@@ -227,6 +231,7 @@ mod test {
                 with_checksum: None,
                 only_fetch_from_url_once: false,
                 url_is_server: false,
+                url_replacements: None,
             },
         };
 

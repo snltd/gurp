@@ -40,7 +40,21 @@ pub fn run(
             CompareMethod::Filter(pattern) => {
                 let filter = FileFilter::from(pattern)?;
 
-                if hash::of_string(&filter.file(src)?) == hash::of_string(&filter.file(path)?) {
+                let content = if let Some(url_replacements) =
+                    desired_state.url_replacements.as_ref()
+                    && !url_replacements.is_empty()
+                {
+                    println!("HERE1");
+                    let content = fs::read_to_string(src)?;
+                    let updated_content =
+                        actions::fill_in_url_replacements(content, url_replacements)?;
+                    filter.string(&updated_content)
+                } else {
+                    println!("HERE2");
+                    filter.file(src)?
+                };
+
+                if hash::of_string(&content) == hash::of_string(&filter.file(path)?) {
                     log_no_change!(path);
                 } else {
                     changed = true;
@@ -85,7 +99,8 @@ mod test {
     use camino_tempfile_ext::prelude::*;
     use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
     use common::types::ApplyOpts;
-    use indoc::formatdoc;
+    use httpmock::prelude::*;
+    use indoc::{formatdoc, indoc};
     use os_types::{FileMode, GurpId};
     use pretty_assertions::assert_eq;
     use std::fs;
@@ -117,6 +132,7 @@ mod test {
                 with_checksum: None,
                 only_fetch_from_url_once: false,
                 url_is_server: false,
+                url_replacements: None,
             },
         };
 
@@ -151,6 +167,7 @@ mod test {
                 with_checksum: None,
                 only_fetch_from_url_once: false,
                 url_is_server: false,
+                url_replacements: None,
             },
         };
 
@@ -241,5 +258,58 @@ mod test {
             sut.apply(&ApplyOpts::default()).unwrap()
         );
         assert_eq!(content, fs::read_to_string(&temp_file).unwrap());
+    }
+
+    #[test]
+    fn test_file_create_from_file_with_url_substitution() {
+        let server = MockServer::start();
+
+        let conf_mock = server.mock(|when, then| {
+            when.method(GET).path("/replacement");
+            then.status(200)
+                // .header("content-type", "text/plain")
+                .body("hunter2");
+        });
+
+        let content = "my password is __PASSWORD__";
+        let temp_dir = Utf8TempDir::new().unwrap();
+        temp_dir.child("test-file").write_str(content).unwrap();
+
+        let temp_file = temp_dir.path().join("test-file");
+
+        fs::set_permissions(&temp_file, fs::Permissions::from_mode(0o600)).unwrap();
+        assert!(temp_file.exists());
+
+        let json_def = janet2json(&formatdoc! {r#"
+            (file/ensure "{}"
+                :from "{}"
+                :mode "0750"
+                :url-replacements {{ "__PASSWORD__"  "{}" }}
+                :owner "{}"
+                :group "{}")
+            "#,
+            temp_file,
+            fixture("file/from-file-example"),
+            server.url("/replacement"),
+            my_user(),
+            my_group(),
+        });
+
+        let sut: FileEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
+        assert!(temp_file.exists());
+        let metadata = fs::metadata(&temp_file).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o7777, 0o750);
+        assert_eq!(
+            indoc! { r#"
+                some-value 123
+                another-value abc
+                password __PASSWORD__"#},
+            fs::read_to_string(temp_file).unwrap()
+        );
+        conf_mock.assert();
     }
 }

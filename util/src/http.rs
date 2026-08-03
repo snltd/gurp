@@ -18,7 +18,7 @@ pub struct RemoteFileCopy<'a> {
 }
 
 // Downloads a file to disk
-pub fn remote_file_to_disk(file: &RemoteFileCopy, opts: &ApplyOpts) -> anyhow::Result<()> {
+pub fn url_to_disk(file: &RemoteFileCopy, opts: &ApplyOpts) -> anyhow::Result<()> {
     let response = match ureq::get(file.url.as_str()).call() {
         Ok(resp) => resp,
         Err(ureq::Error::StatusCode(code)) => {
@@ -57,7 +57,7 @@ pub fn remote_file_to_disk(file: &RemoteFileCopy, opts: &ApplyOpts) -> anyhow::R
 }
 
 // Downloads a file to memory
-pub fn remote_file_to_memory(url: &Url) -> Result<Vec<u8>, NetworkError> {
+pub fn url_to_memory(url: &Url) -> Result<Vec<u8>, NetworkError> {
     let mut response = match ureq::get(url.as_str()).call() {
         Ok(resp) => resp,
         Err(ureq::Error::StatusCode(code)) => {
@@ -77,8 +77,8 @@ pub fn remote_file_to_memory(url: &Url) -> Result<Vec<u8>, NetworkError> {
         .map_err(|e| NetworkError::Transport(e.to_string()))
 }
 
-pub fn remote_file_to_string(url: &Url) -> anyhow::Result<String> {
-    String::from_utf8(remote_file_to_memory(url).with_context(|| format!("failed to fetch {url}"))?)
+pub fn url_to_string(url: &Url) -> anyhow::Result<String> {
+    String::from_utf8(url_to_memory(url).with_context(|| format!("failed to fetch {url}"))?)
         .context("failed to convert remote file to string")
 }
 
@@ -129,7 +129,7 @@ fn fetch_precompiled_file(
     ).context("failed to generate URL for precompiled file").map_err(CompileError::Other)?;
 
     tracing::info!("fetching config from {url}");
-    remote_file_to_memory(&url).map_err(CompileError::Network)
+    url_to_memory(&url).map_err(CompileError::Network)
 }
 
 fn log_ureq_error(url: &Url, e: &ureq::Error) {

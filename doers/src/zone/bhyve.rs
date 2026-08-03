@@ -100,7 +100,7 @@ fn image_on_disk(image: &Url, opts: &ApplyOpts) -> anyhow::Result<Utf8PathBuf> {
     if !cached_path.exists() {
         tracing::debug!("No cached image file at {}", cached_path);
         tracing::info!("downloading image from {image}");
-        http::remote_file_to_disk(
+        http::url_to_disk(
             &RemoteFileCopy {
                 url: image,
                 path: &cached_path,

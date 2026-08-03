@@ -20,6 +20,8 @@
            :help "The group name or GID of the for this file"}
    :ignore-pattern {:types [:string]
                     :help "When comparing, ignore lines matching this Rust regex"}
+   :url-replacements {:types [:struct :table]
+                      :help "Replace keys with whatever the corresponding value points to"}
    :mode {:types [:string]
           :help "Permissions, octal"}
    :owner {:types [:string :number]
