@@ -2,6 +2,7 @@ use camino::Utf8PathBuf;
 use os_types::FileMode;
 use serde::Deserialize;
 use serde_json::Value;
+use std::collections::HashMap;
 use std::fmt::Debug;
 use url::Url;
 use util::file::NameOrId;
@@ -20,6 +21,7 @@ pub struct DesiredFileState {
     pub mode: FileMode,
     pub owner: NameOrId,
     pub to_format: Option<OutputFileFormat>,
+    pub url_replacements: Option<HashMap<String, Url>>,
     pub with_checksum: Option<String>,
     #[serde(default)]
     pub only_fetch_from_url_once: bool,

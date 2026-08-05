@@ -67,7 +67,7 @@ pub fn ensure_metadata(
 
     // We don't care about file type because we're trying to be generic, so mask off the file
     // type bit.
-    let current_mode = FileMode::from_u32(metadata.st_mode & 0o7777);
+    let current_mode = FileMode::from_u32(metadata.st_mode as u32 & 0o7777);
 
     if current_mode != *md.mode {
         println!("CURRENT MODE {} : DESIRED MODE {}", current_mode, md.mode);

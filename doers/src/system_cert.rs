@@ -52,8 +52,7 @@ impl SystemCertEnsure {
             fs::read_to_string(source)
                 .with_context(|| format!("failed to read cert from {source}"))?
         } else if let Some(url) = &self.from_url {
-            http::remote_file_to_string(url)
-                .with_context(|| format!("failed to fetch cert from {url}"))?
+            http::url_to_string(url).with_context(|| format!("failed to fetch cert from {url}"))?
         } else if let Some(content) = &self.content {
             content.clone()
         } else {

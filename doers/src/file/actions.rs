@@ -3,10 +3,13 @@ use anyhow::Context;
 use camino::Utf8Path;
 use common::info;
 use common::types::{ApplyOpts, Changed};
+use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
+use url::Url;
 use util::file::{self, FileMetadata};
 use util::filter::FileFilter;
+use util::http;
 use util::{atomic_write, hash};
 
 pub fn ensure_content(
@@ -114,4 +117,22 @@ pub fn ensure_metadata(
         },
         opts,
     )
+}
+
+/// Replace strings in the given content with strings fetched from URLs.
+pub fn fill_in_url_replacements(
+    content: String,
+    replacements: &HashMap<String, Url>,
+) -> anyhow::Result<String> {
+    let mut modified = content.to_owned().clone();
+
+    for (pattern, url) in replacements {
+        tracing::debug!("filling in URL replacement '{pattern}'");
+        let replacement = http::url_to_string(url)
+            .with_context(|| format!("cannot fetch remote string from {url}"))?;
+
+        modified = modified.replace(pattern, &replacement);
+    }
+
+    Ok(modified)
 }

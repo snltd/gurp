@@ -1,3 +1,6 @@
+- Add `:url-replacements` to `:file` doer. This lets you replace a pattern in a
+  file with the target of a URL. Does not work with `:from-url`.
+  
 ## v2.3.0 (2026-07-31)
 
 - Leading `0` on file modes is now optional.

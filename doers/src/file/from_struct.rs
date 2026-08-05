@@ -15,9 +15,18 @@ pub fn run(
         .from_struct
         .as_ref()
         .context("no user struct")?;
+
     let new_content = to_file(user_struct, desired_state.to_format.as_ref())?;
 
-    let mut changed = actions::ensure_content(path, &new_content, desired_state, compare, opts)?;
+    let final_content = if let Some(url_replacements) = desired_state.url_replacements.as_ref()
+        && !url_replacements.is_empty()
+    {
+        actions::fill_in_url_replacements(new_content, url_replacements)?
+    } else {
+        new_content
+    };
+
+    let mut changed = actions::ensure_content(path, &final_content, desired_state, compare, opts)?;
 
     if actions::ensure_metadata(path, desired_state, opts)? {
         changed = true;
@@ -127,6 +136,7 @@ mod test {
     use camino_tempfile_ext::prelude::*;
     use common::constants::ONE_RESOURCE_ONE_CHANGE;
     use common::types::ApplyOpts;
+    use httpmock::prelude::*;
     use indoc::{formatdoc, indoc};
     use pretty_assertions::assert_eq;
     use std::fs;
@@ -284,5 +294,56 @@ mod test {
             user = my_user(),
             group = my_group(),
         })
+    }
+
+    #[test]
+    fn test_file_create_from_struct_with_url_substitution() {
+        let server = MockServer::start();
+
+        let conf_mock = server.mock(|when, then| {
+            when.method(GET).path("/replacement");
+            then.status(200)
+                .header("content-type", "text/plain")
+                .body("hunter2");
+        });
+
+        let temp_dir = Utf8TempDir::new().unwrap();
+        let temp_file = temp_dir.path().join("test-file");
+
+        let json_def = janet2json(&formatdoc! {r#"
+            (file/ensure "{}"
+                :from-struct {{:word "value"
+                              :number 123
+                              :password "__PASSWORD__"}}
+                :to-format "json"
+                :mode "0750"
+                :url-replacements {{ "__PASSWORD__"  "{}" }}
+                :owner "{}"
+                :group "{}")
+            "#,
+            temp_file,
+            server.url("/replacement"),
+            my_user(),
+            my_group(),
+        });
+
+        let sut: FileEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
+        assert!(temp_file.exists());
+        let metadata = fs::metadata(&temp_file).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o7777, 0o750);
+        assert_eq!(
+            indoc! { r#"
+                {
+                  "number": 123,
+                  "password": "hunter2",
+                  "word": "value"
+                }"#},
+            fs::read_to_string(temp_file).unwrap()
+        );
+        conf_mock.assert();
     }
 }

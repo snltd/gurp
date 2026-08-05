@@ -8,6 +8,8 @@ use std::fs;
 use util::http::{self, RemoteFileCopy};
 use util::{filter, hash};
 
+// url_replacements are not supported here
+
 pub fn run(
     path: &Utf8Path,
     desired_state: &DesiredFileState,
@@ -55,7 +57,7 @@ fn file_from_server(
     }
 
     if change {
-        http::remote_file_to_disk(
+        http::url_to_disk(
             &RemoteFileCopy {
                 url,
                 path,
@@ -86,7 +88,7 @@ fn file_from_remote(
     let tmpfile = NamedUtf8TempFile::new()?;
     let temp_path = tmpfile.path();
     tracing::debug!("downloading {url} to {temp_path} for comparison");
-    http::remote_file_to_disk(
+    http::url_to_disk(
         &RemoteFileCopy {
             url,
             path: temp_path,

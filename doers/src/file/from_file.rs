@@ -3,7 +3,10 @@ use crate::file::types::{CompareMethod, DesiredFileState};
 use anyhow::{Context, ensure};
 use camino::Utf8Path;
 use common::types::{ApplyOpts, ApplySummary};
+use std::collections::HashMap;
 use std::fs::{self, File};
+use std::io::Write;
+use url::Url;
 use util::filter::FileFilter;
 use util::{atomic_write, hash};
 
@@ -19,49 +22,78 @@ pub fn run(
     let mut changed = false;
     let src = desired_state.from.as_ref().context("no source file name")?;
     ensure!(src.exists(), "Missing source file: {path}");
-
     let backup_suffix = desired_state.backup_suffix.as_deref();
 
-    if path.exists() {
-        match compare {
-            CompareMethod::Hash => {
-                if hash::of_file(src)? == hash::of_file(path)? {
-                    log_no_change!(path);
-                } else {
-                    changed = true;
-                    log_updating!(path);
+    let replacements = desired_state
+        .url_replacements
+        .as_ref()
+        .filter(|m| !m.is_empty());
 
-                    if !opts.noop {
-                        fs::copy(src, path)
-                            .with_context(|| format!("failed to copy from {src} to {path}"))?;
-                    }
-                }
-            }
-            CompareMethod::Filter(pattern) => {
-                let filter = FileFilter::from(pattern)?;
-
-                if hash::of_string(&filter.file(src)?) == hash::of_string(&filter.file(path)?) {
-                    log_no_change!(path);
-                } else {
-                    changed = true;
-                    log_updating!(path);
-                    copy_file(src, path, backup_suffix, opts)
+    // Fast path: no replacements, no filter — never materialize a String.
+    if replacements.is_none() && matches!(compare, CompareMethod::Hash) {
+        if path.exists() {
+            if hash::of_file(src)? == hash::of_file(path)? {
+                log_no_change!(path);
+            } else {
+                changed = true;
+                log_updating!(path);
+                if !opts.noop {
+                    fs::copy(src, path)
                         .with_context(|| format!("failed to copy from {src} to {path}"))?;
                 }
             }
+        } else {
+            changed = true;
+            log_creating!(path);
+            copy_file(src, path, backup_suffix, opts)
+                .with_context(|| format!("failed to copy from {src} to {path}"))?;
         }
     } else {
-        changed = true;
-        log_creating!(path);
-        copy_file(src, path, backup_suffix, opts)
-            .with_context(|| format!("failed to copy from {src} to {path}"))?;
+        let content = resolve_content(src, replacements)?;
+        let comparable = comparison_view(&content, compare)?;
+
+        let same = path.exists()
+            && hash::of_string(&comparable)
+                == hash::of_string(&comparison_view(&fs::read_to_string(path)?, compare)?);
+
+        if same {
+            log_no_change!(path);
+        } else {
+            changed = true;
+            if path.exists() {
+                log_updating!(path);
+            } else {
+                log_creating!(path);
+            }
+            atomic_write::install(path, backup_suffix, opts, |f| {
+                f.write_all(content.as_bytes())
+                    .with_context(|| format!("failed_to_write {path}"))
+            })?;
+        }
     }
 
     if actions::ensure_metadata(path, desired_state, opts)? {
         changed = true;
     }
-
     apply_summary!(changed)
+}
+
+fn resolve_content(
+    src: &Utf8Path,
+    replacements: Option<&HashMap<String, Url>>,
+) -> anyhow::Result<String> {
+    let raw = fs::read_to_string(src).with_context(|| format!("failed to read {src} as UTF-8"))?;
+    match replacements {
+        Some(r) => actions::fill_in_url_replacements(raw, r),
+        None => Ok(raw),
+    }
+}
+
+fn comparison_view(content: &str, compare: &CompareMethod) -> anyhow::Result<String> {
+    match compare {
+        CompareMethod::Hash => Ok(content.to_owned()),
+        CompareMethod::Filter(pattern) => Ok(FileFilter::from(pattern)?.string(content)),
+    }
 }
 
 fn copy_file(
@@ -85,7 +117,8 @@ mod test {
     use camino_tempfile_ext::prelude::*;
     use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
     use common::types::ApplyOpts;
-    use indoc::formatdoc;
+    use httpmock::prelude::*;
+    use indoc::{formatdoc, indoc};
     use os_types::{FileMode, GurpId};
     use pretty_assertions::assert_eq;
     use std::fs;
@@ -117,6 +150,7 @@ mod test {
                 with_checksum: None,
                 only_fetch_from_url_once: false,
                 url_is_server: false,
+                url_replacements: None,
             },
         };
 
@@ -151,6 +185,7 @@ mod test {
                 with_checksum: None,
                 only_fetch_from_url_once: false,
                 url_is_server: false,
+                url_replacements: None,
             },
         };
 
@@ -241,5 +276,59 @@ mod test {
             sut.apply(&ApplyOpts::default()).unwrap()
         );
         assert_eq!(content, fs::read_to_string(&temp_file).unwrap());
+    }
+
+    #[test]
+    fn test_file_create_from_file_with_url_substitution() {
+        let server = MockServer::start();
+
+        let conf_mock = server.mock(|when, then| {
+            when.method(GET).path("/replacement");
+            then.status(200)
+                .header("content-type", "text/plain")
+                .body("hunter2");
+        });
+
+        let content = "my password is __PASSWORD__";
+        let temp_dir = Utf8TempDir::new().unwrap();
+        temp_dir.child("test-file").write_str(content).unwrap();
+
+        let temp_file = temp_dir.path().join("test-file");
+
+        fs::set_permissions(&temp_file, fs::Permissions::from_mode(0o600)).unwrap();
+        assert!(temp_file.exists());
+
+        let json_def = janet2json(&formatdoc! {r#"
+            (file/ensure "{}"
+                :from "{}"
+                :mode "0750"
+                :url-replacements {{ "__PASSWORD__"  "{}" }}
+                :owner "{}"
+                :group "{}")
+            "#,
+            temp_file,
+            fixture("file/from-file-example"),
+            server.url("/replacement"),
+            my_user(),
+            my_group(),
+        });
+
+        let sut: FileEnsure = serde_json::from_str(&json_def).unwrap();
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
+        assert!(temp_file.exists());
+        let metadata = fs::metadata(&temp_file).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o7777, 0o750);
+        assert_eq!(
+            indoc! { r#"
+                some-value 123
+                another-value abc
+                password hunter2
+            "#},
+            fs::read_to_string(temp_file).unwrap()
+        );
+        conf_mock.assert();
     }
 }

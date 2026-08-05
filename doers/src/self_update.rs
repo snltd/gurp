@@ -37,7 +37,7 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
-        http::remote_file_to_disk(
+        http::url_to_disk(
             &RemoteFileCopy {
                 url: &base_url
                     .join("gurp-binary")

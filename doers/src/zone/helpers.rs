@@ -28,7 +28,7 @@ pub fn get_image(img_url: &Url, checksum: Option<&ImageChecksum>) -> anyhow::Res
 
         tracing::debug!("no image at {img_path}: downloading");
 
-        http::remote_file_to_disk(
+        http::url_to_disk(
             &RemoteFileCopy {
                 url: img_url,
                 path: &img_path,
@@ -44,7 +44,7 @@ pub fn get_image(img_url: &Url, checksum: Option<&ImageChecksum>) -> anyhow::Res
 
 fn checksum_value(img_url: &Url, checksum: &ImageChecksum) -> anyhow::Result<FileChecksum> {
     let literal_checksum = if checksum.value.starts_with(".") {
-        http::remote_file_to_string(&img_url.join(&checksum.value)?)?
+        http::url_to_string(&img_url.join(&checksum.value)?)?
     } else {
         // we've been given the literal value
         checksum.value.clone()

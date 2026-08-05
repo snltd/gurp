@@ -49,6 +49,7 @@ None
 | `:owner` | `string number` | The username or UID of the user who owns this file | `"root"` |
 | `:to-format` | `string` | Used with :from-struct to try to turn the struct into this format |  |
 | `:url-is-server` | `boolean` | Used internally to identify Gurp server URLs |  |
+| `:url-replacements` | `struct table` | Replace keys with whatever the corresponding value points to. Not supported with :from-url |  |
 | `:with-checksum` | `string` | Blake3 checksum used to validate files fetched by :from-url |  |
 
 ## file/remove
