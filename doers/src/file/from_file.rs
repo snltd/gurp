@@ -3,7 +3,10 @@ use crate::file::types::{CompareMethod, DesiredFileState};
 use anyhow::{Context, ensure};
 use camino::Utf8Path;
 use common::types::{ApplyOpts, ApplySummary};
+use std::collections::HashMap;
 use std::fs::{self, File};
+use std::io::Write;
+use url::Url;
 use util::filter::FileFilter;
 use util::{atomic_write, hash};
 
@@ -19,63 +22,78 @@ pub fn run(
     let mut changed = false;
     let src = desired_state.from.as_ref().context("no source file name")?;
     ensure!(src.exists(), "Missing source file: {path}");
-
     let backup_suffix = desired_state.backup_suffix.as_deref();
 
-    if path.exists() {
-        match compare {
-            CompareMethod::Hash => {
-                if hash::of_file(src)? == hash::of_file(path)? {
-                    log_no_change!(path);
-                } else {
-                    changed = true;
-                    log_updating!(path);
+    let replacements = desired_state
+        .url_replacements
+        .as_ref()
+        .filter(|m| !m.is_empty());
 
-                    if !opts.noop {
-                        fs::copy(src, path)
-                            .with_context(|| format!("failed to copy from {src} to {path}"))?;
-                    }
-                }
-            }
-            CompareMethod::Filter(pattern) => {
-                let filter = FileFilter::from(pattern)?;
-
-                let content = if let Some(url_replacements) =
-                    desired_state.url_replacements.as_ref()
-                    && !url_replacements.is_empty()
-                {
-                    println!("HERE1");
-                    let content = fs::read_to_string(src)?;
-                    let updated_content =
-                        actions::fill_in_url_replacements(content, url_replacements)?;
-                    filter.string(&updated_content)
-                } else {
-                    println!("HERE2");
-                    filter.file(src)?
-                };
-
-                if hash::of_string(&content) == hash::of_string(&filter.file(path)?) {
-                    log_no_change!(path);
-                } else {
-                    changed = true;
-                    log_updating!(path);
-                    copy_file(src, path, backup_suffix, opts)
+    // Fast path: no replacements, no filter — never materialize a String.
+    if replacements.is_none() && matches!(compare, CompareMethod::Hash) {
+        if path.exists() {
+            if hash::of_file(src)? == hash::of_file(path)? {
+                log_no_change!(path);
+            } else {
+                changed = true;
+                log_updating!(path);
+                if !opts.noop {
+                    fs::copy(src, path)
                         .with_context(|| format!("failed to copy from {src} to {path}"))?;
                 }
             }
+        } else {
+            changed = true;
+            log_creating!(path);
+            copy_file(src, path, backup_suffix, opts)
+                .with_context(|| format!("failed to copy from {src} to {path}"))?;
         }
     } else {
-        changed = true;
-        log_creating!(path);
-        copy_file(src, path, backup_suffix, opts)
-            .with_context(|| format!("failed to copy from {src} to {path}"))?;
+        let content = resolve_content(src, replacements)?;
+        let comparable = comparison_view(&content, compare)?;
+
+        let same = path.exists()
+            && hash::of_string(&comparable)
+                == hash::of_string(&comparison_view(&fs::read_to_string(path)?, compare)?);
+
+        if same {
+            log_no_change!(path);
+        } else {
+            changed = true;
+            if path.exists() {
+                log_updating!(path);
+            } else {
+                log_creating!(path);
+            }
+            atomic_write::install(path, backup_suffix, opts, |f| {
+                f.write_all(content.as_bytes())
+                    .with_context(|| format!("failed_to_write {path}"))
+            })?;
+        }
     }
 
     if actions::ensure_metadata(path, desired_state, opts)? {
         changed = true;
     }
-
     apply_summary!(changed)
+}
+
+fn resolve_content(
+    src: &Utf8Path,
+    replacements: Option<&HashMap<String, Url>>,
+) -> anyhow::Result<String> {
+    let raw = fs::read_to_string(src).with_context(|| format!("failed to read {src} as UTF-8"))?;
+    match replacements {
+        Some(r) => actions::fill_in_url_replacements(raw, r),
+        None => Ok(raw),
+    }
+}
+
+fn comparison_view(content: &str, compare: &CompareMethod) -> anyhow::Result<String> {
+    match compare {
+        CompareMethod::Hash => Ok(content.to_owned()),
+        CompareMethod::Filter(pattern) => Ok(FileFilter::from(pattern)?.string(content)),
+    }
 }
 
 fn copy_file(
@@ -267,7 +285,7 @@ mod test {
         let conf_mock = server.mock(|when, then| {
             when.method(GET).path("/replacement");
             then.status(200)
-                // .header("content-type", "text/plain")
+                .header("content-type", "text/plain")
                 .body("hunter2");
         });
 
@@ -307,7 +325,8 @@ mod test {
             indoc! { r#"
                 some-value 123
                 another-value abc
-                password __PASSWORD__"#},
+                password hunter2
+            "#},
             fs::read_to_string(temp_file).unwrap()
         );
         conf_mock.assert();

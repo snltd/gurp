@@ -8,6 +8,8 @@ use std::fs;
 use util::http::{self, RemoteFileCopy};
 use util::{filter, hash};
 
+// url_replacements are not supported here
+
 pub fn run(
     path: &Utf8Path,
     desired_state: &DesiredFileState,
