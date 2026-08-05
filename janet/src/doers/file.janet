@@ -22,7 +22,7 @@
                     :help "When comparing, ignore lines matching this Rust regex"}
    :url-replacements {:types [:struct :table]
                       :help "Replace keys with whatever the corresponding value
-                      points to. Not suppored with :from-url"}
+                      points to. Not supported with :from-url"}
    :mode {:types [:string]
           :help "Permissions, octal"}
    :owner {:types [:string :number]
