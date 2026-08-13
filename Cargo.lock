@@ -853,7 +853,7 @@ dependencies = [
 
 [[package]]
 name = "doers"
-version = "2.3.1"
+version = "2.3.2"
 dependencies = [
  "anyhow",
  "build_helper",
