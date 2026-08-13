@@ -50,7 +50,7 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
         )?;
     } else {
         let src = Utf8PathBuf::from(update_from);
-        atomic_write::install(&src, None, opts, |f| {
+        atomic_write::install(&gurp_path, None, opts, |f| {
             let mut source =
                 File::open(&src).with_context(|| format!("failed to read source file {src}"))?;
 

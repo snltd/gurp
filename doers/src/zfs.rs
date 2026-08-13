@@ -1,5 +1,5 @@
 use anyhow::Context;
-use byte_unit::Byte;
+use bytesize::ByteSize;
 use camino::Utf8PathBuf;
 use common::cmd;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ZFS_BIN, ZFS_LX_BIN};
@@ -51,8 +51,7 @@ impl ZfsEnsure {
                         tracing::debug!("{}: already {}", property, desired_value);
                     } else {
                         // Catch size properties. Putting the iB is a nasty, but it works
-                        if let Ok(desired_bytes) =
-                            Byte::parse_str(format!("{desired_value}iB"), true)
+                        if let Ok(desired_bytes) = format!("{desired_value}iB").parse::<ByteSize>()
                             && desired_value.ends_with(['M', 'G', 'k', 'E'])
                             && desired_bytes.to_string() == *current_value
                         {

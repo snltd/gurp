@@ -70,7 +70,6 @@ pub fn ensure_metadata(
     let current_mode = FileMode::from_u32(metadata.st_mode as u32 & 0o7777);
 
     if current_mode != *md.mode {
-        println!("CURRENT MODE {} : DESIRED MODE {}", current_mode, md.mode);
         changed = true;
 
         if !opts.noop {
@@ -146,8 +145,6 @@ fn set_mode(
     desired_mode: &FileMode,
     opts: &ApplyOpts,
 ) -> anyhow::Result<()> {
-    println!("{path}: changing mode {current_mode} -> {desired_mode}",);
-
     tracing::info!("{path}: changing mode {current_mode} -> {desired_mode}");
 
     if !opts.noop {
