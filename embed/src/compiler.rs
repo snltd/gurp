@@ -8,6 +8,7 @@ use janetrs::client::JanetClient;
 use janetrs::env::DefOptions;
 use janetrs::{Janet, JanetString, JanetStruct, TaggedJanet};
 use std::env;
+use util::json;
 
 /// A JsonCompiler turns Janet config into a JSON string
 pub struct ConfigCompiler {
@@ -123,11 +124,14 @@ impl ConfigCompiler {
     fn compile_to_string(&self, code: &str) -> Result<JsonConfig, CompileError> {
         let compiled_bytes = compile(&self.client, code)?;
 
-        String::from_utf8(compiled_bytes).map_err(|e| {
+        let raw_json = String::from_utf8(compiled_bytes).map_err(|e| {
             CompileError::Other(anyhow::anyhow!(
                 "cannot convert compiled bytes to JSON string: {e}"
             ))
-        })
+        })?;
+
+        json::pretty(&raw_json)
+            .map_err(|e| CompileError::Other(anyhow::anyhow!("cannot prettify JSON string: {e}")))
     }
 }
 
