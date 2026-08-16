@@ -3,21 +3,14 @@ use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
 use os_types::FileMode;
-use serde_json::Value;
-use std::env;
 use std::fs::File;
 use url::Url;
 use util::http::RemoteFileCopy;
-use util::{atomic_write, file, http, info};
+use util::{atomic_write, file, hash, http, info};
 
 pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-    tracing::info!("updating Gurp from {update_from}");
-
-    let gurp_path = env::current_exe().context("cannot get current Gurp path")?;
-    let gurp_path = Utf8PathBuf::from_path_buf(gurp_path)
-        .ok()
-        .context("Gurp path is not valid UTF-8")?;
-
+    let gurp_path = info::gurp_path()?;
+    let gurp_hash = hash::of_file(&gurp_path)?;
     let metadata = file::metadata(&gurp_path)?;
 
     if update_from == "SERVER" {
@@ -27,21 +20,29 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
             .as_deref()
             .context("requested server update, but server is not set")?;
 
-        let my_hash = info::BUILD_HASH.to_string();
-
         let base_url =
             Url::parse(&format!("http://{server}:1867/v1/")).context("cannot build server URL")?;
 
-        if my_hash == server_hash(&base_url)? {
-            tracing::debug!("gurp hash aligns with server hash: {my_hash}");
+        let hash_url = &base_url
+            .join("gurp-binary-hash")
+            .context("cannot attach binary hash to server URL")?;
+
+        let binary_url = &base_url
+            .join("gurp-binary-hash")
+            .context("cannot attach binary path to server URL")?;
+
+        let server_hash = http::url_to_string(hash_url)?;
+
+        if server_hash == gurp_hash.to_string() {
+            tracing::debug!("no need to update gurp from server {gurp_hash} == {server_hash}");
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
 
+        tracing::info!("updating Gurp from server sh {server_hash} gh {gurp_hash}");
+
         http::url_to_disk(
             &RemoteFileCopy {
-                url: &base_url
-                    .join("gurp-binary")
-                    .context("cannot attach binary path to server URL")?,
+                url: binary_url,
                 path: &gurp_path,
                 backup_suffix: None,
                 checksum: None,
@@ -50,14 +51,20 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
         )?;
     } else {
         let src = Utf8PathBuf::from(update_from);
-        atomic_write::install(&gurp_path, None, opts, |f| {
-            let mut source =
-                File::open(&src).with_context(|| format!("failed to read source file {src}"))?;
 
-            std::io::copy(&mut source, f)
-                .with_context(|| format!("failed copy {src} -> {gurp_path}"))?;
-            Ok(())
-        })?;
+        if hash::of_file(&src)? == gurp_hash {
+            tracing::debug!("no need to update gurp from {src}");
+        } else {
+            tracing::info!("updating Gurp from {update_from}");
+            atomic_write::install(&gurp_path, None, opts, |f| {
+                let mut source = File::open(&src)
+                    .with_context(|| format!("failed to read source file {src}"))?;
+
+                std::io::copy(&mut source, f)
+                    .with_context(|| format!("failed copy {src} -> {gurp_path}"))?;
+                Ok(())
+            })?;
+        }
     };
 
     file::ensure_metadata(
@@ -71,19 +78,4 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
     )?;
 
     Ok(ONE_RESOURCE_ONE_CHANGE)
-}
-
-fn server_hash(base_url: &Url) -> anyhow::Result<String> {
-    let version_url = base_url
-        .join("version")
-        .context("cannot attach version path to server URL")?;
-
-    let response: Value = ureq::get(version_url.as_str())
-        .call()
-        .with_context(|| format!("failed to fetch get Gurp version from {version_url}",))?
-        .into_body()
-        .read_json()
-        .context("failed to parse Gurp version data")?;
-
-    Ok(response["sha"].to_string())
 }

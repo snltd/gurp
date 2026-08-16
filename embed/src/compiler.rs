@@ -8,6 +8,7 @@ use janetrs::client::JanetClient;
 use janetrs::env::DefOptions;
 use janetrs::{Janet, JanetString, JanetStruct, TaggedJanet};
 use std::env;
+use util::json;
 
 /// A JsonCompiler turns Janet config into a JSON string
 pub struct ConfigCompiler {
@@ -123,11 +124,14 @@ impl ConfigCompiler {
     fn compile_to_string(&self, code: &str) -> Result<JsonConfig, CompileError> {
         let compiled_bytes = compile(&self.client, code)?;
 
-        String::from_utf8(compiled_bytes).map_err(|e| {
+        let raw_json = String::from_utf8(compiled_bytes).map_err(|e| {
             CompileError::Other(anyhow::anyhow!(
                 "cannot convert compiled bytes to JSON string: {e}"
             ))
-        })
+        })?;
+
+        json::pretty(&raw_json)
+            .map_err(|e| CompileError::Other(anyhow::anyhow!("cannot prettify JSON string: {e}")))
     }
 }
 
@@ -265,17 +269,23 @@ mod test {
     use crate::tester::fixture;
     use camino_tempfile::NamedUtf8TempFile;
     use common::types::ApplyVmOpts;
+    use serde_json::Value;
     use std::fs;
     use std::io::Write;
 
     #[test]
     fn test_janet_file() {
-        assert_eq!(
-            r#"{"control-data":{},"metadata":{"name":"test"},"resources":{"ensure":{"file":[{"_id":"/basenode/file/_tmp_tester","content":"blah","group":"root","mode":"0644","name":"/tmp/tester","owner":"root","role":"basenode"}]},"remove":{}}}"#,
-            test_compiler()
+        let expected: Value = serde_json::from_str(
+            r#"{"control-data":{},"metadata":{"name":"test"},"resources":{"ensure":{"file":[{"_id":"/basenode/file/_tmp_tester","content":"blah","group":"root","mode":"0644","name":"/tmp/tester","owner":"root","role":"basenode"}]},"remove":{}}}"#).unwrap();
+
+        let actual: Value = serde_json::from_str(
+            &test_compiler()
                 .janet_file(&fixture("basic_config.janet"), true)
-                .unwrap()
-        );
+                .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -286,12 +296,17 @@ mod test {
 
     #[test]
     fn test_jimage() {
-        assert_eq!(
-            r#"{"metadata":{"name":"test"},"resources":{"ensure":{"file":[{"_id":"/NO-ROLE/file/_tmp_tester","content":"blah","group":"root","mode":"0644","name":"/tmp/tester","owner":"root"}]},"remove":{}}}"#,
-            test_compiler()
+        let expected: Value = serde_json::from_str(
+            r#"{"metadata":{"name":"test"},"resources":{"ensure":{"file":[{"_id":"/NO-ROLE/file/_tmp_tester","content":"blah","group":"root","mode":"0644","name":"/tmp/tester","owner":"root"}]},"remove":{}}}"#).unwrap();
+
+        let actual: Value = serde_json::from_str(
+            &test_compiler()
                 .janet_image(&fs::read(fixture("basic_image.jimage")).unwrap(), None)
-                .unwrap()
-        );
+                .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -331,12 +346,17 @@ mod test {
 
     #[test]
     fn test_janet_snippet() {
-        assert_eq!(
-            r#"{"control-data":{},"metadata":{"name":"gurp-runner"},"resources":{"ensure":{"directory":[{"_id":"/NO-ROLE/directory/_tmp_test1","group":"root","mode":"0755","name":"/tmp/test1","owner":"root","role":"NO-ROLE"}]},"remove":{}}}"#,
-            test_compiler()
+        let expected: Value = serde_json::from_str(
+            r#"{"control-data":{},"metadata":{"name":"gurp-runner"},"resources":{"ensure":{"directory":[{"_id":"/NO-ROLE/directory/_tmp_test1","group":"root","mode":"0755","name":"/tmp/test1","owner":"root","role":"NO-ROLE"}]},"remove":{}}}"#).unwrap();
+
+        let actual: Value = serde_json::from_str(
+            &test_compiler()
                 .janet_snippet(r#"(directory/ensure "/tmp/test1")"#)
-                .unwrap()
-        );
+                .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(expected, actual);
     }
 
     #[test]

@@ -19,7 +19,7 @@ pub struct RemoteFileCopy<'a> {
 
 // Downloads a file to disk
 pub fn url_to_disk(file: &RemoteFileCopy, opts: &ApplyOpts) -> anyhow::Result<()> {
-    let response = match ureq::get(file.url.as_str()).call() {
+    let mut response = match ureq::get(file.url.as_str()).call() {
         Ok(resp) => resp,
         Err(ureq::Error::StatusCode(code)) => {
             return Err(NetworkError::Http(code).into());
@@ -30,8 +30,11 @@ pub fn url_to_disk(file: &RemoteFileCopy, opts: &ApplyOpts) -> anyhow::Result<()
         }
     };
 
-    let mut body = response.into_body();
-    let mut reader = body.as_reader();
+    let mut reader = response
+        .body_mut()
+        .with_config()
+        .limit(1000 * 1024 * 1024)
+        .reader();
 
     atomic_write::install(file.path, file.backup_suffix, opts, |f| {
         {

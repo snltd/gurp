@@ -213,15 +213,27 @@ pub async fn file_hash(
         }
     };
 
-    let hash = match hash::of_file(&path) {
-        Ok(hash) => hash,
+    send_hash_of_file(&path)
+}
+
+fn send_hash_of_file(path: &Utf8Path) -> Response<Body> {
+    match hash::of_file(path) {
+        Ok(hash) => hash.to_string().into_response(),
         Err(e) => {
             tracing::warn!("could not get hash of {path}: {e}");
-            return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
-    };
+    }
+}
 
-    hash.to_string().into_response()
+pub async fn gurp_binary_hash() -> Response<Body> {
+    match info::gurp_path() {
+        Ok(path) => send_hash_of_file(&path),
+        Err(_) => {
+            tracing::warn!("could not get path of Gurp binary");
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
 }
 
 #[axum::debug_handler]

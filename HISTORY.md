@@ -1,5 +1,12 @@
+## v2.3.2 (2026-08-16)
+- Fix bug which showed wrong line when deserialization failed.
+- Fix bug which stopped update from server working.
+
+## v2.3.1 (2026-08-13)
+- Fix bug which set incorrect mode when updating from file.
 - Add `:url-replacements` to `:file` doer. This lets you replace a pattern in a
   file with the target of a URL. Does not work with `:from-url`.
+- Drop byte-unit dependency.
   
 ## v2.3.0 (2026-07-31)
 
