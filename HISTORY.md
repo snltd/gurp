@@ -1,4 +1,4 @@
-## v2.3.2 (2026-08-13)
+## v2.3.2 (2026-08-16)
 - Fix bug which showed wrong line when deserialization failed.
 - Fix bug which stopped update from server working.
 
