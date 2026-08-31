@@ -96,7 +96,7 @@ pub fn remove_zone(zone: &str) -> anyhow::Result<ApplySummary> {
     Ok(ONE_RESOURCE_ONE_CHANGE)
 }
 
-// I've seen things (bhyve) get stuck here, but I can't reproduce anything right now
+// I've seen emulated zones get stuck here, but I can't reproduce anything right now
 pub fn halt_zone(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("zone {}: halting", zone);
     cmd_output!(ZONEADM_BIN, "-z", zone, "halt")
@@ -166,7 +166,7 @@ fn wait_for_state(zone: &str, desired_state: ZoneState) -> anyhow::Result<()> {
 
 pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
     // This goes a bit further than waiting for the zone state. It checks it's up and in multi-user
-    // mode. LX and Bhyve have their own versions of this.
+    // mode. Non-native brands have their own versions of this.
     let elapsed = Duration::from_secs(0);
     loop {
         if is_ready(zone)? {
@@ -183,7 +183,7 @@ pub fn wait_for_readiness(zone: &str) -> anyhow::Result<bool> {
 }
 
 fn is_ready(zone: &str) -> anyhow::Result<bool> {
-    // LX and Bhyve provide their own versions of this
+    // Non-native brands provide their own versions of this
     let mut cmd = cmd!(SVCS_BIN, "-z", zone, "-Ho", "state", READY_SVC);
 
     let output = cmd

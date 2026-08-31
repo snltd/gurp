@@ -9,7 +9,7 @@ use serde_json::Value;
 use std::fs;
 use uuid::Uuid;
 
-// So far as I can tell, the only way to configure a bhyve zone is to use cloudinit. And so far
+// So far as I can tell, the only way to configure an emulated zone is to use cloudinit. And so far
 // as I can tell, the only way to do that is to make a fake CD-ROM ISO image, and temporarily
 // attach it to the zone.
 //

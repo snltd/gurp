@@ -10,6 +10,7 @@ pub mod config;
 pub mod constants;
 pub mod container;
 pub mod control;
+pub mod emulation;
 pub mod ensure;
 pub mod helpers;
 pub mod illumos;

@@ -1,4 +1,5 @@
 use crate::zone::bhyve;
+use crate::zone::emulation::EmulConfig;
 use camino::Utf8PathBuf;
 use ipnet::IpNet;
 use serde::Deserialize;
@@ -16,6 +17,7 @@ pub type CopyInFiles = HashMap<Utf8PathBuf, String>;
 #[serde(rename_all = "lowercase")]
 pub enum Brand {
     Bhyve,
+    Emu,
     Illumos,
     Ipkg,
     Lipkg,
@@ -31,6 +33,7 @@ impl fmt::Display for Brand {
             "{}",
             match self {
                 Brand::Bhyve => "bhyve",
+                Brand::Emu => "emu",
                 Brand::Illumos => "illumos",
                 Brand::Ipkg => "ipkg",
                 Brand::Lipkg => "lipkg",
@@ -58,6 +61,7 @@ pub struct ZoneConfig {
     pub copy_in: Option<CopyInFiles>,
     pub datasets: Option<Vec<String>>,
     pub dns: Option<GurpZoneDns>,
+    pub emu: Option<GurpZoneEmu>,
     pub exec_in: Option<Vec<String>>,
     pub final_state: Option<String>,
     pub fs: Option<GurpZoneFilesystems>,
@@ -133,6 +137,25 @@ pub struct GurpZoneBhyve {
     pub vcpus: u8,
     pub wait_for_boot: bool,
 }
+
+impl EmulConfig for GurpZoneBhyve {}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GurpZoneEmu {
+    pub arch: String,
+    pub boot_volume: String,
+    pub cloudinit_files: Option<Vec<Utf8PathBuf>>,
+    pub cloudinit_struct: Option<Value>,
+    pub cpu: String,
+    pub extra_opts: Option<HashMap<String, String>>,
+    pub image_format: Option<String>,
+    pub ram: String,
+    pub vcpus: u8,
+    pub wait_for_boot: bool,
+}
+
+impl EmulConfig for GurpZoneEmu {}
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
