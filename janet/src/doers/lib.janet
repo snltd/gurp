@@ -17,7 +17,8 @@
                                    protocol)}))
 
 (defn comma-sep
-  "Return a comma-separated string of the items in list"
+  "Return a comma-separated string of the items in list. Everything is literal,
+  so keywords stay keywords, and quoted strings keep their quotes."
   [list]
   (string/join (map |(string/format "%p" $) list) ", "))
 
@@ -137,31 +138,33 @@
 
        (spec->resource doer name safe-specs))))
 
-(defn has-exactly-one-key?
-  "Checks if a struct contains exactly one of the given keys"
+(defn keys-in-struct
+  "Returns the elements of key-list which are keys in struct-to-check"
   [key-list struct-to-check]
   (filter |(has-value? key-list $) (keys struct-to-check)))
 
 (defn has-exactly-one-of?
   "Checks whether a spec contains exactly one of the required-keys"
   [required-keys spec]
-  (one? (length (has-exactly-one-key? required-keys (make-spec-struct ;spec)))))
+  (one? (length (keys-in-struct required-keys (make-spec-struct ;spec)))))
+
+(defn has-none-or-one-of?
+  "Checks whether a spec contains none or one of the required-keys"
+  [required-keys spec]
+  (<= (length (keys-in-struct required-keys (make-spec-struct ;spec))) 1))
 
 (defn key-has-value?
   "Checks whether the given key has an acceptable value"
   [spec key acceptable-values]
   (if-let [given-value (get (struct ;spec) key)]
-    (if-not (has-value? acceptable-values given-value)
-      (errorf "%q must be one of %s [got '%s']"
+    (if (has-value? acceptable-values given-value)
+      true
+      (errorf "%q must be one of %p Got %p"
               key
-              (comma-sep acceptable-values)
-              given-value))))
+              acceptable-values
+              given-value))
+    (errorf "key-has-value? did not find key %p" key)))
 
-
-(defmacro table->flat-tuple
-  "Completely flattens a struct or table, including its keys"
-  [table]
-  ~(flatten (pairs ,table)))
 
 (defmacro expand-resource
   "Group the results of in-resource functions like (zone-fs) into a list under
@@ -184,6 +187,11 @@
                     ;(get $is-key false @[])
                     ,key
                     (if ,as-struct (first $vals) $vals)))))))))
+
+(defmacro table->flat-tuple
+   "One-level-flattens a struct or table, including its keys"
+  [table]
+  ~(flatten (pairs ,table)))
 
 (defn expand-svc-property
   "Turns a svcprop value into a struct describing a typed value"
@@ -296,7 +304,7 @@
 
 (defn expand-list-struct
   "If any keys of strct are arrays or tuples, expand each key into a new entry
-   with the same value."
+   with the same value. Returns a table. May clobber existing keys!"
   [strct]
   (table
     ;(catseq [[src dest] :pairs strct]
