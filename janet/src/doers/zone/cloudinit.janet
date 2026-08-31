@@ -2,15 +2,17 @@
 
 (defhelper :zone :cloudinit
   "Describe cloudinit config inside a zone resource"
+  :name-is "cloudinit file name"
 
   :optional-props
-  {:files {:types [:tuple]
-           :help "Copy the given files into the Cloudinit image"}
+  {:from {:types [:string]
+          :help "Copy the given files into the Cloudinit image"}
    :from-struct {:types [:struct :table]
-                 :help "Generate a Cloudinit file from the given struct or
-                        table. Top level keys map to files, e.g. 'user-data'"}}
+                 :help "Generate a Cloudinit file from the given struct or table"}}
 
-  :mandatory-props {}
+  :mandatory-props
+  {:name {:types [:string]
+          :help "cloudinit file name. Derived from helper name"}}
 
   :defaults {}
 
@@ -18,9 +20,13 @@
 
 (defn cloudinit
   "Given a spec, return cloudinit config"
-  [& spec]
-  (let [name "NO-NAME"
-        spec-struct (make-spec-struct ;spec)
+  [name & spec]
+  (if-not (has-exactly-one-of? [:from :from-struct] spec)
+    (pinpoint-error
+      :ensure
+      (error "need exactly one of :from, :from-struct")))
+
+  (let [spec-struct (make-spec-struct :name name ;spec)
         expanded-spec (spec-with-defaults defaults-cloudinit spec-struct)
         spec-table (pinpoint-error :cloudinit
                                    (checked-spec expanded-spec
