@@ -6,7 +6,7 @@
 (deftest svc
   (set *collector* (new-collector))
 
-  (import-tests "svc" (curenv))
+  (import-tests "svc")
 
   (test *collector*
     @{:ensure @{:svc @[{:_id "/NO-ROLE/svc/snltd_example"

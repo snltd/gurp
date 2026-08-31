@@ -7,7 +7,8 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "route" (curenv))
+  (import-tests "route")
+
   (route/ensure "192.168.1.0/24" :interface "e1000g0")
   (route/ensure "192.168.1.0/24" :interface "router" :force-gateway true)
   (route/remove "192.168.1.1" :gateway "default")

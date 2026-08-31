@@ -7,7 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "publisher" (curenv))
+  (import-tests "publisher")
 
   (test *collector*
     @{:ensure @{:publisher @[{:_id "/test-role/publisher/example"

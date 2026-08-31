@@ -9,7 +9,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "system-cert" (curenv))
+  (import-tests "system-cert")
 
   (test *collector*
     @{:ensure @{:system-cert @[{:_id "/NO-ROLE/system-cert/from-file"

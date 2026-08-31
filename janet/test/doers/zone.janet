@@ -8,7 +8,7 @@
   (setdyn :gurp-config-root "/gurpdir")
   (set *collector* (new-collector))
 
-  (import-tests "zone" (curenv))
+  (import-tests "zone")
 
   (zone/ensure "test-zone-bootstrap-file"
                (zone/network "test_net0"
@@ -39,17 +39,17 @@
                          :bhyve @{:acpi false
                                   :boot-rom "BHYVE_RELEASE"
                                   :boot-volume "tank/bhyve/test"
-                                  :cloudinit-struct {:network {:version 2}}
                                   :ram "4G"
                                   :vcpus 4
                                   :wait-for-boot true}
                          :boot-after-install true
                          :brand "bhyve"
-                         :dns {:domain "lan.id264.net"
-                               :nameservers ["192.168.1.53" "192.168.1.1"]}
+                         :cloudinit @{:from-struct {:instance-id "example-zone"
+                                                    :local-hostname "example-zone"}
+                                      :name "meta-data"}
                          :image "/var/tmp/noble-server-cloudimg-amd64.img.raw"
                          :name "bhyve-zone"
-                         :net @[@{:allowed-address "192.168.1.102/24"
+                         :net @[@{:allowed-address "10.10.0.2/24"
                                   :global-nic "auto"
                                   :physical "bhyve0"}]
                          :recreate 0
@@ -142,4 +142,4 @@
     (zone/ensure "bad-key"
                  :brand "sparse"
                  :oops "wat")
-    "In zone/ensure bad-key: unexpected property :oops. Valid properties are :brand, :rctl, :copy-in, :ip-type, :limitpriv, :bootstrap, :final-state, :bhyve, :boot-after-install, :clone-from, :attr, :fs, :image, :dns, :datasets, :net, :autoboot, :hostid, :bootstrap-from, :zonepath, :image-checksum, :capped-memory, :label, :pool, :exec-in, :recreate"))
+    "In zone/ensure bad-key: unexpected property :oops. Valid properties are :brand, :rctl, :copy-in, :ip-type, :limitpriv, :bootstrap, :final-state, :bhyve, :boot-after-install, :clone-from, :attr, :fs, :image, :dns, :cloudinit, :datasets, :net, :autoboot, :hostid, :bootstrap-from, :zonepath, :image-checksum, :capped-memory, :label, :pool, :exec-in, :recreate"))

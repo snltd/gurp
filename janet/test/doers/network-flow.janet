@@ -7,7 +7,8 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "network-flow" (curenv))
+  (import-tests "network-flow")
+    
   (network-flow/ensure "cap_all"
                        :link "vnic0"
                        :maxbw "50M")

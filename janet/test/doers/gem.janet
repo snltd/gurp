@@ -7,7 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "gem" (curenv))
+  (import-tests "gem")
 
   (test *collector*
         @{:ensure @{:gem @[{:_id "/test-role/gem/wavefront-cli"

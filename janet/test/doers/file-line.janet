@@ -7,7 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "file-line" (curenv))
+  (import-tests "file-line")
 
   (test *collector*
     @{:ensure @{:file-line @[{:_id "/test-role/file-line/_path_to_file"

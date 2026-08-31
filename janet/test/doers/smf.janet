@@ -6,7 +6,7 @@
 (deftest smf
   (set *collector* (new-collector))
 
-  (import-tests "smf" (curenv))
+  (import-tests "smf")
 
   (test *collector*
     @{:ensure @{:smf @[{:_id "/NO-ROLE/smf/example"

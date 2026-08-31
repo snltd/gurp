@@ -7,7 +7,7 @@
   (set *collector* (new-collector))
   (setdyn :role-dyn "test-role")
 
-  (import-tests "svcprop" (curenv))
+  (import-tests "svcprop")
 
   (test *collector*
     @{:ensure @{:svcprop @[{:_id "/test-role/svcprop/example_svc_1"

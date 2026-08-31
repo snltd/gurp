@@ -7,7 +7,8 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "etherstub" (curenv))
+  (import-tests "etherstub")
+  
   (etherstub/ensure "estub1")
 
   (test *collector*

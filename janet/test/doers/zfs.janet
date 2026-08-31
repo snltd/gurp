@@ -8,7 +8,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "zfs" (curenv))
+  (import-tests "zfs")
 
   (zfs/ensure "rpool/blank")
 
