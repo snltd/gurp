@@ -3,6 +3,7 @@
 (import ./zone/attr :prefix "" :export true)
 (import ./zone/bhyve :prefix "" :export true)
 (import ./zone/bootstrap :prefix "" :export true)
+(import ./zone/emu :prefix "" :export true)
 (import ./zone/fs :prefix "" :export true)
 (import ./zone/network :prefix "" :export true)
 (import ./zone/rctl :prefix "" :export true)
@@ -37,6 +38,7 @@
    :clone-from {:types [:string]
                 :help "Instead of installing, clone from the given zone, which
                        must exist and be halted"}
+   :cloudinit {:types [:table] :help "See zone/cloudinit"}
    :copy-in {:types [:struct]
              :help "Copy files into the zone. Key is source, value is dest,
                     relative to zone root. If key is an array of strings, all
@@ -47,6 +49,7 @@
               :help "ZFS datasets (as strings) to be delegated to zone"}
    :dns {:types [:struct]
          :help "DNS info. :domain is a string; :nameservers a tuple of strings"}
+   :emu {:types [:table] :help "See zone/emu"}
    :exec-in {:types [:tuple]
              :help "Runs the given commands (:string) in the zone after booting"}
    :final-state {:types [:string]
@@ -106,6 +109,8 @@
   (expand-resource :rctl)
   (expand-resource :bhyve :as-struct true)
   (expand-resource :bootstrap :as-struct true)
+  (expand-resource :cloudinit :as-struct true)
+  (expand-resource :emu :as-struct true)
 
   (let [modified-spec-struct (make-spec-struct ;modified-spec)
         spec-struct (pinpoint-error
