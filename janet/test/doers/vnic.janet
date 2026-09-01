@@ -7,7 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "vnic" (curenv))
+  (import-tests "vnic")
 
   (test *collector*
     @{:ensure @{:vnic @[{:_id "/test-role/vnic/vnic0"

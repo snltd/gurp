@@ -7,7 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "bridge" (curenv))
+  (import-tests "bridge")
 
   (test *collector*
     @{:ensure @{:bridge @[{:_id "/test-role/bridge/basic"

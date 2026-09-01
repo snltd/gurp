@@ -7,7 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "ipnat" (curenv))
+  (import-tests "ipnat")
 
   (test *collector*
     @{:ensure @{:ipnat @[{:_id "/test-role/ipnat/rules-in-config"

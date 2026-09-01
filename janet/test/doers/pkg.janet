@@ -7,7 +7,8 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "pkg" (curenv))
+  (import-tests "pkg")
+
   (pkg/remove "ooce/developer/python")
 
   (test *collector*

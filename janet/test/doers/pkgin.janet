@@ -7,7 +7,8 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "pkgin" (curenv))
+  (import-tests "pkgin")
+
   (pkgin/remove "python")
 
   (test *collector*

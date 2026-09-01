@@ -7,7 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "misc" (curenv))
+  (import-tests "misc")
   (misc/ensure :enable-smb "klf")
   (misc/ensure :enable-smb "frances")
 

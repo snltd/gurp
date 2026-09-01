@@ -7,7 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "ipfilter" (curenv))
+  (import-tests "ipfilter")
 
   (test *collector*
     @{:ensure @{:ipfilter @[{:_id "/test-role/ipfilter/rules-from-config"

@@ -4,34 +4,29 @@
   "Describe a bhyve zone inside a zone resource."
 
   :optional-props
-  {:cloudinit-struct {:types [:struct]
-                      :help "Generate a Cloudinit file from the given struct.
-                             Top level keys map to files, e.g. 'user-data'"}
-   :cloudinit-files {:types [:tuple]
-                     :help "Copy the given files into the Cloudinit image"}
-   :wait-for-boot {:types [:boolean]
-                   :help "Wait for boot, or detach immediately"}
-   :image-format {:types [:string]
-                  :help "Specify the format of the image pointed to by :image-url"}
-   :acpi {:types [:boolean]
+  {:acpi {:types [:boolean]
           :help "whether to enable ACPI in zone"}
    :boot-rom {:types [:string]
               :help "boot ROM image: may be BHYVE_RELEASE or BHYVE_RELEASE_CSM"}
+   :image-format {:types [:string]
+                  :help "Specify the format of the image pointed to by :image-url"}
    :image-path {:types [:string]
-                :help "Path to install image - must be raw format"}}
+                :help "Path to install image - must be raw format"}
+   :wait-for-boot {:types [:boolean]
+                   :help "Wait for boot, or detach immediately"}}
 
   :mandatory-props
-  {:ram {:types [:string]
+  {:boot-volume {:types [:string]
+                 :help "ZFS boot volume"}
+   :ram {:types [:string]
          :help "Amount of RAM to allocate: e.g. '3G'"}
    :vcpus {:types [:number]
-           :help "Number of VCPUs to allocate"}
-   :boot-volume {:types [:string]
-                 :help "ZFS boot volume"}}
+           :help "Number of VCPUs to allocate"}}
 
   :defaults
-  {:wait-for-boot true
+  {:acpi false
    :boot-rom "BHYVE_RELEASE"
-   :acpi false}
+   :wait-for-boot true}
 
   :notes
   ["A bhyve zone must be built from an image. This can be a local path or a URL.

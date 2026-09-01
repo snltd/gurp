@@ -3,6 +3,8 @@
 (import ./zone/attr :prefix "" :export true)
 (import ./zone/bhyve :prefix "" :export true)
 (import ./zone/bootstrap :prefix "" :export true)
+(import ./zone/cloudinit :prefix "" :export true)
+# (import ./zone/emu :prefix "" :export true)
 (import ./zone/fs :prefix "" :export true)
 (import ./zone/network :prefix "" :export true)
 (import ./zone/rctl :prefix "" :export true)
@@ -37,6 +39,7 @@
    :clone-from {:types [:string]
                 :help "Instead of installing, clone from the given zone, which
                        must exist and be halted"}
+   :cloudinit {:types [:array] :help "See zone/cloudinit"}
    :copy-in {:types [:struct]
              :help "Copy files into the zone. Key is source, value is dest,
                     relative to zone root. If key is an array of strings, all
@@ -47,6 +50,7 @@
               :help "ZFS datasets (as strings) to be delegated to zone"}
    :dns {:types [:struct]
          :help "DNS info. :domain is a string; :nameservers a tuple of strings"}
+   # :emu {:types [:table] :help "See zone/emu"}
    :exec-in {:types [:tuple]
              :help "Runs the given commands (:string) in the zone after booting"}
    :final-state {:types [:string]
@@ -96,6 +100,17 @@
     as you like, so if you run Gurp every 15 minutes and want your zone rebuilt
     from scratch about once a week, you'd use `:recreate 672`."])
 
+(defn- squash-cloudinit
+  "Merges multiple cloudinit resources into a single struct"
+  [resources]
+  (let [ret @{:from @{} :from-struct @{}}]
+    (loop [res :in resources]
+      (when-let [val (res :from)]
+        (put (ret :from) (res :name) val))
+      (when-let [val (res :from-struct)]
+        (put (ret :from-struct) (res :name) val)))
+    ret))
+
 (defn ensure
   "Given a zone name and spec, put an ensure struct in the collector"
   [name & spec]
@@ -106,6 +121,8 @@
   (expand-resource :rctl)
   (expand-resource :bhyve :as-struct true)
   (expand-resource :bootstrap :as-struct true)
+  (expand-resource :cloudinit)
+  # (expand-resource :emu :as-struct true)
 
   (let [modified-spec-struct (make-spec-struct ;modified-spec)
         spec-struct (pinpoint-error
@@ -115,7 +132,7 @@
                                     optional-props-ensure))
         spec-table (spec-with-defaults defaults-ensure spec-struct)]
 
-    (if-let [image-sum-resource (get spec-table :image-checksum)]
+    (when-let [image-sum-resource (get spec-table :image-checksum)]
       (pinpoint-error
         :ensure
         (checked-spec image-sum-resource
@@ -123,11 +140,14 @@
                        :value {:types [:string]}}
                       {})))
 
-    (if-let [copy-resource (get spec-table :copy-in)
-             expanded-resource (expand-list-struct copy-resource)]
+    (when-let [copy-resource (get spec-table :copy-in)
+               expanded-resource (expand-list-struct copy-resource)]
       (set (spec-table :copy-in)
            (zipcoll (map qualify-from-path (keys expanded-resource))
                     (values expanded-resource))))
+
+    (when-let [cloudinit-resources (get spec-table :cloudinit)]
+      (set (spec-table :cloudinit) (squash-cloudinit cloudinit-resources)))
 
     # Fill-in the zone path if it hasn't been given
     (if-not (has-key? spec-table :zonepath)

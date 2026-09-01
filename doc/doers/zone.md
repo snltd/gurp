@@ -13,18 +13,21 @@ Zone name (`:string`)
              :brand "bhyve"
              :autoboot false
              :image "/var/tmp/noble-server-cloudimg-amd64.img.raw"
+
              (zone/network "bhyve0"
-                           :allowed-address "192.168.1.102/24"
+                           :allowed-address "10.10.0.2/24"
                            :global-nic "auto")
              (zone/bhyve
                :ram "4G"
                :vcpus 4
-               :boot-volume "tank/bhyve/test"
-               :cloudinit-struct {:network {:version 2}})
+               :boot-volume "tank/bhyve/test")
 
-             :dns {:domain "lan.id264.net"
-                   :nameservers ["192.168.1.53"
-                                 "192.168.1.1"]})
+             (zone/cloudinit "meta-data"
+                             :from-struct (cloudinit-meta-data "example-zone"))
+             (zone/cloudinit "network"
+                             :from-struct {:network {:fancy "struct"}})
+             (zone/cloudinit "users" :from "cloudwatch/users")
+             (zone/cloudinit "packages" :from "cloudwatch/packages"))
 ```
 
 ```janet
@@ -76,6 +79,7 @@ Zone name (`:string`)
 | `:bootstrap` | `table` | See zone/bootstrap |  |
 | `:capped-memory` | `struct` | Set memory cap. Keys must be :physical and :swap, values are strings like '4G' |  |
 | `:clone-from` | `string` | Instead of installing, clone from the given zone, which must exist and be halted |  |
+| `:cloudinit` | `array` | See zone/cloudinit |  |
 | `:copy-in` | `struct` | Copy files into the zone. Key is source, value is dest, relative to zone root. If key is an array of strings, all files listed are copied to dest. Unqualified src is assumed to be in ../files/. Directories are copied recursively, and if the dest directory does not exist, it is created. |  |
 | `:datasets` | `tuple` | ZFS datasets (as strings) to be delegated to zone |  |
 | `:dns` | `struct` | DNS info. :domain is a string; :nameservers a tuple of strings |  |
@@ -149,26 +153,11 @@ Describe a bhyve zone inside a zone resource.
 This helpers does not accept a name
 
 ```janet
-(use ../../src/dsl)
-
 (zone/bhyve
   :vcpus 4
   :ram "8G"
   :image-format "qcow2"
-  :boot-volume "tank/byhve/example-boot"
-  :cloudinit-files [(config-file "cloud-init/user-data")]
-  :cloudinit-struct
-  {:meta-data (cloudinit-meta-data "example-zone")
-
-   :network-config
-   {:network {:version 2
-              :ethernets
-              {:enp0s6 {:addresses ["10.10.0.2"]
-                        :mtu 1500
-                        :nameservers {:search ["localnet"]
-                                      :addresses ["10.10.0.53" "1.1.1.1"]}
-                        :routes [{:to "0.0.0.0/0"
-                                  :via "10.10.0.1"}]}}}}})
+  :boot-volume "tank/byhve/example-boot")
 ```
 
 ### Mandatory Properties
@@ -185,8 +174,6 @@ This helpers does not accept a name
 |-------|--------|---------------|-----------|
 | `:acpi` | `boolean` | whether to enable ACPI in zone |  |
 | `:boot-rom` | `string` | boot ROM image: may be BHYVE_RELEASE or BHYVE_RELEASE_CSM | `"BHYVE_RELEASE"` |
-| `:cloudinit-files` | `tuple` | Copy the given files into the Cloudinit image |  |
-| `:cloudinit-struct` | `struct` | Generate a Cloudinit file from the given struct. Top level keys map to files, e.g. 'user-data' |  |
 | `:image-format` | `string` | Specify the format of the image pointed to by :image-url |  |
 | `:image-path` | `string` | Path to install image - must be raw format |  |
 | `:wait-for-boot` | `boolean` | Wait for boot, or detach immediately | `true` |
@@ -230,6 +217,44 @@ None
 ## Notes
 
 - You must supply exactly one of `:file` and `:server`.
+
+# zone/cloudinit
+
+Describe cloudinit config inside a zone resource
+
+## Name
+
+cloudinit file name (`:string`)
+
+```janet
+(zone/cloudinit "network-config"
+                :from-struct
+                {:network {:version 2
+                           :ethernets
+                           {:enp0s6 {:addresses ["10.10.0.2"]
+                                     :mtu 1500
+                                     :nameservers {:search ["localnet"]
+                                                   :addresses ["10.10.0.53" "1.1.1.1"]}
+                                     :routes [{:to "0.0.0.0/0"
+                                               :via "10.10.0.1"}]}}}})
+```
+
+### Mandatory Properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:name` | `string` | cloudinit file name. Derived from helper name |  |
+
+### Optional Properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:from-struct` | `struct table` | Generate a Cloudinit file from the given struct or table |  |
+| `:from` | `string` | Copy the given files into the Cloudinit image |  |
+
+## Notes
+
+- You must supply exactly one of :from or :from-struct
 
 # zone/fs
 

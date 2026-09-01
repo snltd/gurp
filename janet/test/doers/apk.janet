@@ -7,7 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "apk" (curenv))
+  (import-tests "apk")
 
   (apk/remove "python")
 

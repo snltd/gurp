@@ -7,7 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "vlan" (curenv))
+  (import-tests "vlan")
 
   (test *collector*
     @{:ensure @{:vlan @[{:_id "/test-role/vlan/e1000g10000"

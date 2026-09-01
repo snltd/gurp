@@ -8,7 +8,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "file" (curenv))
+  (import-tests "file")
 
   (test *collector*
     @{:ensure @{:file @[{:_id "/test-role/file/_example_file_from-content"

@@ -8,7 +8,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "cron" (curenv))
+  (import-tests "cron")
 
   (test *collector*
     @{:ensure @{:cron @[{:_id "/test-role/cron/print-cron-job"

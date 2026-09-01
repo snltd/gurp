@@ -7,7 +7,7 @@
   (setdyn :role-dyn "test-role")
   (set *collector* (new-collector))
 
-  (import-tests "ip-properties" (curenv))
+  (import-tests "ip-properties")
 
   (test *collector*
     @{:ensure @{:ip-properties @[{:_id "/test-role/ip-properties/general"

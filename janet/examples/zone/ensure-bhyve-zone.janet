@@ -2,15 +2,18 @@
              :brand "bhyve"
              :autoboot false
              :image "/var/tmp/noble-server-cloudimg-amd64.img.raw"
+
              (zone/network "bhyve0"
-                           :allowed-address "192.168.1.102/24"
+                           :allowed-address "10.10.0.2/24"
                            :global-nic "auto")
              (zone/bhyve
                :ram "4G"
                :vcpus 4
-               :boot-volume "tank/bhyve/test"
-               :cloudinit-struct {:network {:version 2}})
+               :boot-volume "tank/bhyve/test")
 
-             :dns {:domain "lan.id264.net"
-                   :nameservers ["192.168.1.53"
-                                 "192.168.1.1"]})
+             (zone/cloudinit "meta-data"
+                             :from-struct (cloudinit-meta-data "example-zone"))
+             (zone/cloudinit "network"
+                             :from-struct {:network {:fancy "struct"}})
+             (zone/cloudinit "users" :from "cloudwatch/users")
+             (zone/cloudinit "packages" :from "cloudwatch/packages"))
