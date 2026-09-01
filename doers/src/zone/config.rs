@@ -43,6 +43,7 @@ impl fmt::Display for Brand {
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct ZoneConfig {
     pub attr: Option<GurpZoneAttrs>,
@@ -53,6 +54,7 @@ pub struct ZoneConfig {
     pub brand: Brand,
     pub capped_memory: Option<GurpZoneCappedMemory>,
     pub clone_from: Option<String>,
+    pub cloudinit: Option<CloudInitConfig>,
     pub copy_in: Option<CopyInFiles>,
     pub datasets: Option<Vec<String>>,
     pub dns: Option<GurpZoneDns>,
@@ -84,19 +86,26 @@ impl TryFrom<String> for ImageSource {
 
     fn try_from(value: String) -> anyhow::Result<Self> {
         if let Ok(url) = Url::parse(&value) {
-            return Ok(ImageSource::Url(url));
+            Ok(ImageSource::Url(url))
+        } else if value.contains('/') || value.starts_with('.') {
+            Ok(ImageSource::Path(Utf8PathBuf::from(value)))
+        } else {
+            Ok(ImageSource::Name(value))
         }
-
-        if value.contains('/') || value.starts_with('.') {
-            return Ok(ImageSource::Path(Utf8PathBuf::from(value)));
-        }
-
-        Ok(ImageSource::Name(value))
     }
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
+pub struct CloudInitConfig {
+    pub from: HashMap<String, Utf8PathBuf>,
+    pub from_struct: HashMap<String, Value>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct ImageChecksum {
     #[serde(rename = "type")]
     pub sumtype: String,
@@ -105,27 +114,28 @@ pub struct ImageChecksum {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct BootstrapConf {
-    pub server: Option<String>,
     pub file: Option<String>,
     pub hostname: Option<String>,
+    pub server: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpZoneBhyve {
+    pub acpi: bool,
+    pub boot_rom: String,
     pub boot_volume: String,
-    pub cloudinit_files: Option<Vec<Utf8PathBuf>>,
-    pub cloudinit_struct: Option<Value>,
     pub image_format: Option<String>,
     pub ram: String,
     pub vcpus: u8,
     pub wait_for_boot: bool,
-    pub acpi: bool,
-    pub boot_rom: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpZoneRctl {
     pub name: String,
     #[serde(rename = "priv")]
@@ -135,18 +145,21 @@ pub struct GurpZoneRctl {
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpZoneCappedMemory {
     pub physical: String,
     pub swap: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpZoneDns {
     pub domain: Option<String>,
     pub nameservers: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(untagged)]
 pub enum AttrValue {
     Str(String),
@@ -167,6 +180,7 @@ impl fmt::Display for AttrValue {
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct GurpZoneAttr {
     pub name: String,
     #[serde(rename = "type")]
@@ -179,6 +193,7 @@ type GurpZoneAttrs = Vec<GurpZoneAttr>;
 type GurpZoneRctls = Vec<GurpZoneRctl>;
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpZoneFilesystem {
     pub dir: Utf8PathBuf,
@@ -191,18 +206,13 @@ pub struct GurpZoneFilesystem {
 type GurpZoneNetworks = Vec<GurpZoneNetwork>;
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct GurpZoneNetwork {
     pub physical: String,
     pub global_nic: String,
     pub allowed_address: Option<IpNet>, // needs a prefix
     pub defrouter: Option<IpAddr>,      // must be a bare address
-}
-
-impl GurpZoneBhyve {
-    pub fn has_cloudinit(&self) -> bool {
-        self.cloudinit_files.is_some() || self.cloudinit_struct.is_some()
-    }
 }
 
 impl ZoneConfig {
@@ -266,7 +276,11 @@ impl ZoneConfig {
         }
 
         if let Some(bhyve_config) = &self.bhyve {
-            ret.push_str(&bhyve::zone_config(bhyve_config, uuid));
+            ret.push_str(&bhyve::zone_config(
+                bhyve_config,
+                self.cloudinit.is_some(),
+                uuid,
+            ));
         }
 
         ret
@@ -306,14 +320,17 @@ impl ZoneConfig {
 
 #[cfg(test)]
 mod test {
+    use super::*;
     use crate::zone::ZoneEnsure;
     use indoc::indoc;
+    use ipnet::IpNet;
     use pretty_assertions::assert_eq;
-    use tester::janet2json;
+    use serde_json::json;
+    use tester::{deserialized_example, janet2json};
     use uuid::Uuid;
 
     #[test]
-    fn test_config() {
+    fn test_config_native() {
         let json_def = janet2json(indoc! {r#"
             (zone/ensure "test-zone"
                 :brand "lipkg"
@@ -398,5 +415,79 @@ mod test {
         let sut: ZoneEnsure = serde_json::from_str(&json_def).unwrap();
 
         assert_eq!(expected_conf, sut.config.to_zonecfg(&Uuid::new_v4()));
+    }
+
+    #[test]
+    fn test_config_emulated() {
+        let expected = ZoneConfig {
+            attr: None,
+            autoboot: false,
+            bhyve: Some(GurpZoneBhyve {
+                boot_volume: "tank/bhyve/test".to_owned(),
+                image_format: None,
+                ram: "4G".to_owned(),
+                vcpus: 4,
+                wait_for_boot: true,
+                acpi: false,
+                boot_rom: "BHYVE_RELEASE".to_owned(),
+            }),
+            bootstrap: None,
+            boot_after_install: true,
+            brand: Brand::Bhyve,
+            capped_memory: None,
+            cloudinit: Some(CloudInitConfig {
+                from: HashMap::from([
+                    ("users".to_owned(), Utf8PathBuf::from("cloudwatch/users")),
+                    (
+                        "packages".to_owned(),
+                        Utf8PathBuf::from("cloudwatch/packages"),
+                    ),
+                ]),
+                from_struct: HashMap::from([
+                    (
+                        "network".to_owned(),
+                        json!({
+                            "network": {
+                                "fancy": "struct",
+                            },
+                        }),
+                    ),
+                    (
+                        "meta-data".to_owned(),
+                        json!({
+                            "instance-id": "example-zone",
+                            "local-hostname": "example-zone",
+                        }),
+                    ),
+                ]),
+            }),
+            clone_from: None,
+            copy_in: None,
+            datasets: None,
+            dns: None,
+            exec_in: None,
+            final_state: None,
+            fs: None,
+            hostid: None,
+            ip_type: None,
+            limitpriv: None,
+            image: Some(ImageSource::Path(
+                "/var/tmp/noble-server-cloudimg-amd64.img.raw".into(),
+            )),
+            image_checksum: None,
+            net: vec![GurpZoneNetwork {
+                physical: "bhyve0".to_owned(),
+                global_nic: "auto".to_owned(),
+                allowed_address: Some(IpNet::new("10.10.0.2".parse().unwrap(), 24).unwrap()),
+                defrouter: None,
+            }],
+            pool: None,
+            rctl: None,
+            recreate: 0,
+            zonepath: Utf8PathBuf::from("/zones/bhyve-zone"),
+        };
+
+        let actual: ZoneConfig = deserialized_example("zone/ensure-bhyve-zone.janet");
+        assert_eq!(expected, actual);
     }
 }

@@ -1,6 +1,7 @@
 (use judge)
 (use ./test-lib)
 (use ../../src/collector)
+(use ../../src/dsl)
 (import ../../src/doers/zone)
 
 (deftest zone
@@ -44,9 +45,11 @@
                                   :wait-for-boot true}
                          :boot-after-install true
                          :brand "bhyve"
-                         :cloudinit @{:from-struct {:instance-id "example-zone"
-                                                    :local-hostname "example-zone"}
-                                      :name "meta-data"}
+                         :cloudinit @{:from @{"packages" "cloudwatch/packages"
+                                              "users" "cloudwatch/users"}
+                                      :from-struct @{"meta-data" {:instance-id "example-zone"
+                                                                  :local-hostname "example-zone"}
+                                                     "network" {:network {:fancy "struct"}}}}
                          :image "/var/tmp/noble-server-cloudimg-amd64.img.raw"
                          :name "bhyve-zone"
                          :net @[@{:allowed-address "10.10.0.2/24"

@@ -1,5 +1,3 @@
-(use ../../src/dsl)
-
 (zone/bhyve
   :vcpus 4
   :ram "8G"

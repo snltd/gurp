@@ -1,3 +1,5 @@
+- Move cloudinit config out of bhyve helper and into its own `cloudinit` helper.
+
 ## v2.3.2 (2026-08-16)
 - Fix bug which showed wrong line when deserialization failed.
 - Fix bug which stopped update from server working.

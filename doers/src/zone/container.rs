@@ -208,7 +208,7 @@ fn bootstrap(zone: &str, conf: &ZoneConfig, opts: &ApplyOpts) -> anyhow::Result<
     let my_path = env::current_exe().context("can't get my path")?;
     let this_exec = match Utf8PathBuf::from_path_buf(my_path) {
         Ok(path) => path,
-        Err(_) => bail!(format!("failed to get Gurp path")),
+        Err(_) => bail!("failed to get Gurp path"),
     };
 
     copy_to_zone(&conf.zonepath, &this_exec, bootstrap_bin)?;

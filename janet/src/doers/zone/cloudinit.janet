@@ -16,7 +16,7 @@
 
   :defaults {}
 
-  :notes [])
+  :notes ["You must supply exactly one of :from or :from-struct"])
 
 (defn cloudinit
   "Given a spec, return cloudinit config"

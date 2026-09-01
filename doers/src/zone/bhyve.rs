@@ -1,12 +1,10 @@
 use crate::zfs;
-use crate::zone::config::{GurpZoneBhyve, GurpZoneFilesystem, ImageSource, ZoneConfig};
+use crate::zone::config::{GurpZoneBhyve, ImageSource, ZoneConfig};
 use crate::zone::constants::READINESS_WAIT_TIMEOUT_BHYVE;
 use crate::zone::{cloudinit, control};
 use anyhow::{Context, bail, ensure};
 use camino::{Utf8Path, Utf8PathBuf};
-use common::constants::{
-    IMG_CACHE_DIR, QEMU_IMG_BIN, ZFS_BIN, ZLOGIN_BIN, ZONEADM_BIN, ZONECFG_BIN, ZSTD_BIN,
-};
+use common::constants::{IMG_CACHE_DIR, QEMU_IMG_BIN, ZFS_BIN, ZLOGIN_BIN, ZONEADM_BIN, ZSTD_BIN};
 use common::types::ApplyOpts;
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 use std::fs::{self, File};
@@ -49,8 +47,8 @@ pub fn build_zone(
         .context("failed to write boot image")?;
     }
 
-    if bhyve_config.has_cloudinit() {
-        cloudinit::setup(bhyve_config, &cloudinit::iso_path(uuid), opts)?;
+    if let Some(ci_cfg) = &config.cloudinit {
+        cloudinit::setup(ci_cfg, &cloudinit::iso_path(uuid), opts)?;
     }
 
     cmd_output!(ZONEADM_BIN, "-z", zone, "install")?;
@@ -63,14 +61,14 @@ pub fn build_zone(
         wait_for_readiness(zone, uuid)?;
     }
 
-    if bhyve_config.has_cloudinit() {
-        remove_cloudinit_config(zone)?;
+    if config.cloudinit.is_some() {
+        cloudinit::remove(zone)?;
     }
 
     Ok(())
 }
 
-pub fn zone_config(config: &GurpZoneBhyve, uuid: &Uuid) -> String {
+pub fn zone_config(config: &GurpZoneBhyve, has_cloudinit: bool, uuid: &Uuid) -> String {
     let mut ret = String::new();
 
     ret.push_str(zone_device!(boot_device(config)));
@@ -80,16 +78,9 @@ pub fn zone_config(config: &GurpZoneBhyve, uuid: &Uuid) -> String {
     ret.push_str(zone_attr!("ram", "string", config.ram));
     ret.push_str(zone_attr!("acpi", "string", config.acpi));
 
-    if config.has_cloudinit() {
-        let iso_path = cloudinit::iso_path(uuid);
-        ret.push_str(zone_attr!("cdrom", "string", iso_path));
-        ret.push_str(&zone_fs!(GurpZoneFilesystem {
-            dir: iso_path.clone(),
-            special: iso_path.clone(),
-            fs_type: "lofs".to_owned(),
-            options: Some(vec!["ro".to_owned()])
-        }));
-    }
+    if has_cloudinit {
+        ret.push_str(&cloudinit::zone_config_snippet(uuid));
+    };
 
     ret
 }
@@ -154,20 +145,6 @@ fn image_cache_filename(url: &Url) -> anyhow::Result<Utf8PathBuf> {
         .with_context(|| format!("unable to parse image URL {url}"))?;
     let cache_dir = Utf8PathBuf::from(IMG_CACHE_DIR);
     Ok(cache_dir.join(basename))
-}
-
-fn remove_cloudinit_config(zone: &str) -> anyhow::Result<()> {
-    tracing::debug!("removing cloudinit cdrom from zone config");
-    // It's safe to do this here. The config won't be re-read until the zone
-    // boots
-    let _ = cmd_output!(ZONECFG_BIN, "-z", zone, "remove attr name=cdrom")
-        .with_context(|| format!("failed to remove cdrom attr from zone {}", zone))?;
-
-    tracing::debug!("removing cloudinit lofs from zone config");
-    let _ = cmd_output!(ZONECFG_BIN, "-z", zone, "remove fs type=lofs")
-        .with_context(|| format!("failed to remove cdrom lofs from zone {}", zone))?;
-
-    Ok(())
 }
 
 // For ZFS images

@@ -1,7 +1,19 @@
 (use judge)
+(use ../test-lib)
 (import ../../../src/doers/zone)
 
-(deftest zone/bhyve
+(deftest zone/bhyve-example
+    (test
+    (import-test "zone/bhyve-01.janet")
+      {:bhyve @{:acpi false
+                :boot-rom "BHYVE_RELEASE"
+                :boot-volume "tank/byhve/example-boot"
+                :image-format "qcow2"
+                :ram "8G"
+                :vcpus 4
+                :wait-for-boot true}}))
+
+(deftest zone/bhyve-static
   (test
     (zone/bhyve :ram "3G"
                 :vcpus 4
