@@ -40,7 +40,7 @@ pub fn setup(
     Ok(())
 }
 
-pub fn remove(zone: &str) -> anyhow::Result<()> {
+pub fn teardown(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("removing cloudinit cdrom from zone config");
     // It's safe to do this here. The config won't be re-read until the zone
     // boots

@@ -124,12 +124,12 @@
 (defn markdown-for-helperss
   [doer]
   (def doer-dir (string (doer-root) "/" doer))
-  (if (os/stat doer-dir)
+  (when (os/stat doer-dir)
     (string/join
       (seq [helpers :in (sorted (os/dir doer-dir))]
         (try
           (markdown-for-helpers doer-dir doer (string/replace ".janet" "" helpers))
-          ([e] (eprint "Error on " helpers ": " e))))
+          ([e] (eprintf "Error on %s/%s: %s" doer helpers e))))
       "\n")))
 
 (defn generate-docs-to-stdout

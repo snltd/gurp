@@ -31,7 +31,8 @@
              :boolean "boolean"
              _ "string")))
 
-    (if (= "astring" (spec-table :type))
-      (set (spec-table :value) (string (spec-table :value))))
+    (match (spec-table :type)
+      "astring" (set (spec-table :value) (string (spec-table :value)))
+      "string" (set (spec-table :value) (safe-val (spec-table :value))))
 
     (struct :attr spec-table)))
