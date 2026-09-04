@@ -3,6 +3,14 @@
 (defhelper :zone :bhyve
   "Describe a bhyve zone inside a zone resource."
 
+  :mandatory-props
+  {:boot-volume {:types [:string]
+                 :help "ZFS boot volume"}
+   :ram {:types [:string]
+         :help "Amount of RAM to allocate: e.g. '3G'"}
+   :vcpus {:types [:number]
+           :help "Number of VCPUs to allocate"}}
+
   :optional-props
   {:acpi {:types [:boolean]
           :help "whether to enable ACPI in zone"}
@@ -15,13 +23,6 @@
    :wait-for-boot {:types [:boolean]
                    :help "Wait for boot, or detach immediately"}}
 
-  :mandatory-props
-  {:boot-volume {:types [:string]
-                 :help "ZFS boot volume"}
-   :ram {:types [:string]
-         :help "Amount of RAM to allocate: e.g. '3G'"}
-   :vcpus {:types [:number]
-           :help "Number of VCPUs to allocate"}}
 
   :defaults
   {:acpi false

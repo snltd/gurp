@@ -24,7 +24,13 @@
     (zone/attr "kernel-ver" :value "4.4")
     {:attr @{:name "kernel-ver"
              :type "string"
-             :value "4.4"}})
+             :value "\"4.4\""}})
+
+  (test
+    (zone/attr "extra" :value "-accel tcg,thread=multi")
+    {:attr @{:name "extra"
+             :type "string"
+             :value "\"-accel tcg,thread=multi\""}})
 
   (test-error
     (zone/attr "huh?")

@@ -10,7 +10,7 @@ use fs_extra::dir::CopyOptions;
 use std::process::{Command, Stdio};
 use std::{env, fs};
 
-// Container as opposed to bhyve.
+// native container as opposed to emulation.
 
 pub fn build_zone(zone: &str, config: &ZoneConfig, opts: &ApplyOpts) -> anyhow::Result<()> {
     if let Some(clone_source) = &config.clone_from {

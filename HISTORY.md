@@ -1,3 +1,4 @@
+- Add support for `emu` branded zones.
 - Move cloudinit config out of bhyve helper and into its own `cloudinit` helper.
 
 ## v2.3.2 (2026-08-16)

@@ -146,3 +146,8 @@
 (deftest expand-list-struct
   (test (expand-list-struct {:a 1 :b 2}) @{:a 1 :b 2})
   (test (expand-list-struct {:a 1 [:x :y :z] 4}) @{:a 1 :x 4 :y 4 :z 4}))
+
+(deftest safe-val
+  (test (safe-val "word") "word")
+  (test (safe-val "two words") "\"two words\"")
+  (test (safe-val `"Quote this!", I said`) "\"\\\"Quote this!\\\", I said\""))

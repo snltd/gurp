@@ -61,6 +61,37 @@ Zone name (`:string`)
                        "lx-test/f2" "/bin/exec2"})
 ```
 
+```janet
+(zone/ensure "emu-example"
+             :brand "emu"
+             :autoboot true
+             :recreate 1
+             :image "/var/tmp/braich-151059.raw"
+
+             (zone/network "emu0"
+                           :allowed-address "192.168.1.102/24"
+                           :global-nic "auto")
+
+             (zone/attr "type" :value "generic")
+             (zone/attr "diskif" :value "virtio-blk-device")
+             (zone/attr "netif" :value "virtio-net-device")
+
+             (zone/rctl "zone.cpu-shares"
+                        :priv "privileged"
+                        :limit 1
+                        :action "none")
+
+             (zone/emu
+               :bios "https://downloads.omnios.org/media/braich/u-boot.bin"
+               :arch "aarch64"
+               :vcpus 4
+               :cpu "cortex-a53"
+               :qemu-args ["-machine virt" "-accel tcg,thread=multi"]
+               :ram "2G"
+               :image-format "raw"
+               :boot-volume "tank/emu-example"))
+```
+
 ### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
@@ -83,6 +114,7 @@ Zone name (`:string`)
 | `:copy-in` | `struct` | Copy files into the zone. Key is source, value is dest, relative to zone root. If key is an array of strings, all files listed are copied to dest. Unqualified src is assumed to be in ../files/. Directories are copied recursively, and if the dest directory does not exist, it is created. |  |
 | `:datasets` | `tuple` | ZFS datasets (as strings) to be delegated to zone |  |
 | `:dns` | `struct` | DNS info. :domain is a string; :nameservers a tuple of strings |  |
+| `:emu` | `table` | See zone/emu |  |
 | `:exec-in` | `tuple` | Runs the given commands (:string) in the zone after booting |  |
 | `:final-state` | `string` | Put the zone in the given state. Also accepts 'reboot' |  |
 | `:fs` | `array` | See zone/fs |  |
@@ -255,6 +287,38 @@ cloudinit file name (`:string`)
 ## Notes
 
 - You must supply exactly one of :from or :from-struct
+
+# zone/emu
+
+Describe a qemu zone inside a zone resource.
+
+## Name
+
+This helpers does not accept a name
+
+### Mandatory Properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:arch` | `string` | Architecture to emulate |  |
+| `:boot-volume` | `string` | ZFS boot volume |  |
+| `:cpu` | `string` | CPU model to emulate |  |
+| `:ram` | `string` | Amount of RAM to allocate: e.g. '3G' |  |
+| `:vcpus` | `number` | Number of VCPUs to allocate |  |
+
+### Optional Properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:bios` | `string` | Path or URL to bios file |  |
+| `:image-format` | `string` | Specify the format of the image pointed to by :image-url |  |
+| `:image-path` | `string` | Path to install image - must be raw format |  |
+| `:qemu-args` | `array tuple` | Extra arguments to pass to qemu as `extraN` attrs |  |
+| `:wait-for-boot` | `boolean` | Wait for boot, or detach immediately | `true` |
+
+## Notes
+
+- Gurp uses the `extra` attr for the bios filename. If you need to pass more flags to qemu, use the `qemu-args` property, or define attrs named extraN with N > 1.
 
 # zone/fs
 

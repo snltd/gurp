@@ -79,7 +79,7 @@
                         {:_id "/test-role/zone/lx-zone"
                          :attr @[@{:name "kernel-ver"
                                    :type "string"
-                                   :value "4.4"}]
+                                   :value "\"4.4\""}]
                          :autoboot true
                          :boot-after-install true
                          :brand "lx"
@@ -97,6 +97,41 @@
                          :recreate 0
                          :role "test-role"
                          :zonepath "/zones/lx-zone"}
+                        {:_id "/test-role/zone/emu-example"
+                         :attr @[@{:name "type"
+                                   :type "string"
+                                   :value "generic"}
+                                 @{:name "diskif"
+                                   :type "string"
+                                   :value "\"virtio-blk-device\""}
+                                 @{:name "netif"
+                                   :type "string"
+                                   :value "\"virtio-net-device\""}]
+                         :autoboot true
+                         :boot-after-install true
+                         :brand "emu"
+                         :emu @{:arch "aarch64"
+                                :bios "https://downloads.omnios.org/media/braich/u-boot.bin"
+                                :boot-volume "tank/emu-example"
+                                :cpu "cortex-a53"
+                                :image-format "raw"
+                                :qemu-args @["\"-machine virt\""
+                                             "\"-accel tcg,thread=multi\""]
+                                :ram "2G"
+                                :vcpus 4
+                                :wait-for-boot true}
+                         :image "/var/tmp/braich-151059.raw"
+                         :name "emu-example"
+                         :net @[@{:allowed-address "192.168.1.102/24"
+                                  :global-nic "auto"
+                                  :physical "emu0"}]
+                         :rctl @[@{:action "none"
+                                   :limit 1
+                                   :name "zone.cpu-shares"
+                                   :priv "privileged"}]
+                         :recreate 1
+                         :role "test-role"
+                         :zonepath "/zones/emu-example"}
                         {:_id "/test-role/zone/test-zone-bootstrap-file"
                          :autoboot true
                          :boot-after-install true
@@ -145,4 +180,4 @@
     (zone/ensure "bad-key"
                  :brand "sparse"
                  :oops "wat")
-    "In zone/ensure bad-key: unexpected property :oops. Valid properties are :brand, :rctl, :copy-in, :ip-type, :limitpriv, :bootstrap, :final-state, :bhyve, :boot-after-install, :clone-from, :attr, :fs, :image, :dns, :cloudinit, :datasets, :net, :autoboot, :hostid, :bootstrap-from, :zonepath, :image-checksum, :capped-memory, :label, :pool, :exec-in, :recreate"))
+    "In zone/ensure bad-key: unexpected property :oops. Valid properties are :brand, :rctl, :copy-in, :ip-type, :limitpriv, :bootstrap, :final-state, :bhyve, :emu, :boot-after-install, :clone-from, :attr, :fs, :image, :dns, :cloudinit, :datasets, :net, :autoboot, :hostid, :bootstrap-from, :zonepath, :image-checksum, :capped-memory, :label, :pool, :exec-in, :recreate"))

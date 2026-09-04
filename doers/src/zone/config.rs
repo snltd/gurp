@@ -1,4 +1,4 @@
-use crate::zone::bhyve;
+use crate::zone::{bhyve, emu};
 use camino::Utf8PathBuf;
 use ipnet::IpNet;
 use serde::Deserialize;
@@ -12,10 +12,21 @@ use uuid::Uuid;
 
 pub type CopyInFiles = HashMap<Utf8PathBuf, String>;
 
+pub trait EmulConfig {
+    fn boot_volume(&self) -> &str;
+    fn image_format(&self) -> Option<&str>;
+    fn wait_for_boot(&self) -> bool;
+
+    fn boot_device(&self) -> Utf8PathBuf {
+        Utf8PathBuf::from("/dev/zvol/rdsk").join(self.boot_volume())
+    }
+}
+
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Brand {
     Bhyve,
+    Emu,
     Illumos,
     Ipkg,
     Lipkg,
@@ -31,6 +42,7 @@ impl fmt::Display for Brand {
             "{}",
             match self {
                 Brand::Bhyve => "bhyve",
+                Brand::Emu => "emu",
                 Brand::Illumos => "illumos",
                 Brand::Ipkg => "ipkg",
                 Brand::Lipkg => "lipkg",
@@ -58,6 +70,7 @@ pub struct ZoneConfig {
     pub copy_in: Option<CopyInFiles>,
     pub datasets: Option<Vec<String>>,
     pub dns: Option<GurpZoneDns>,
+    pub emu: Option<GurpZoneEmu>,
     pub exec_in: Option<Vec<String>>,
     pub final_state: Option<String>,
     pub fs: Option<GurpZoneFilesystems>,
@@ -132,6 +145,51 @@ pub struct GurpZoneBhyve {
     pub ram: String,
     pub vcpus: u8,
     pub wait_for_boot: bool,
+}
+
+impl EmulConfig for GurpZoneBhyve {
+    fn boot_volume(&self) -> &str {
+        &self.boot_volume
+    }
+
+    fn image_format(&self) -> Option<&str> {
+        self.image_format.as_deref()
+    }
+
+    fn wait_for_boot(&self) -> bool {
+        self.wait_for_boot
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+#[cfg_attr(test, derive(PartialEq))]
+pub struct GurpZoneEmu {
+    pub arch: String,
+    pub bios: Option<ImageSource>,
+    pub boot_volume: String,
+    pub cloudinit_files: Option<Vec<Utf8PathBuf>>,
+    pub cloudinit_struct: Option<Value>,
+    pub cpu: String,
+    pub qemu_args: Option<Vec<String>>,
+    pub image_format: Option<String>,
+    pub ram: String,
+    pub vcpus: u8,
+    pub wait_for_boot: bool,
+}
+
+impl EmulConfig for GurpZoneEmu {
+    fn boot_volume(&self) -> &str {
+        &self.boot_volume
+    }
+
+    fn image_format(&self) -> Option<&str> {
+        self.image_format.as_deref()
+    }
+
+    fn wait_for_boot(&self) -> bool {
+        self.wait_for_boot
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -275,6 +333,14 @@ impl ZoneConfig {
             }
         }
 
+        if let Some(emu_config) = &self.emu {
+            ret.push_str(&emu::zone_config(
+                emu_config,
+                self.cloudinit.is_some(),
+                uuid,
+            ));
+        }
+
         if let Some(bhyve_config) = &self.bhyve {
             ret.push_str(&bhyve::zone_config(
                 bhyve_config,
@@ -284,6 +350,14 @@ impl ZoneConfig {
         }
 
         ret
+    }
+
+    pub fn has_cloudinit(&self) -> bool {
+        if let Some(ci_cfg) = &self.cloudinit {
+            !(ci_cfg.from.is_empty() && ci_cfg.from_struct.is_empty())
+        } else {
+            false
+        }
     }
 
     fn zone_dns(&self, conf: &GurpZoneDns) -> String {
@@ -406,7 +480,7 @@ mod test {
             add attr
             \tset name=string-attr
             \tset type=string
-            \tset value=la-de-da
+            \tset value=\"la-de-da\"
             end
             add rctl
             \tset name=zone.max-swap
@@ -465,6 +539,7 @@ mod test {
             copy_in: None,
             datasets: None,
             dns: None,
+            emu: None,
             exec_in: None,
             final_state: None,
             fs: None,

@@ -189,7 +189,7 @@
                     (if ,as-struct (first $vals) $vals)))))))))
 
 (defmacro table->flat-tuple
-   "One-level-flattens a struct or table, including its keys"
+  "One-level-flattens a struct or table, including its keys"
   [table]
   ~(flatten (pairs ,table)))
 
@@ -311,3 +311,22 @@
        (if (or (tuple? src) (array? src))
          (mapcat |(tuple $ dest) src)
          [src dest]))))
+
+(defn safe-val
+  "Turn a string into something safe to put into a zone attr."
+  [val]
+  (def contains-peg (peg/compile ~(any (+ (* ($) :W) 1))))
+
+  (def escape-peg
+    (peg/compile
+      ~{:special (+ (/ (set "\"") "\\\"")
+                    (/ (set "\\") "\\\\")
+                    (/ (set "\n") "\\n")
+                    (/ (set "\t") "\\t")
+                    (/ (set "\r") "\\r"))
+        :normal (if-not :special (capture 1))
+        :main (any (+ :special :normal))}))
+
+  (if (empty? (peg/match contains-peg val))
+    val
+    (string "\"" (string/join (peg/match escape-peg val) "") "\"")))

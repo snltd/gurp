@@ -4,7 +4,7 @@
 (import ./zone/bhyve :prefix "" :export true)
 (import ./zone/bootstrap :prefix "" :export true)
 (import ./zone/cloudinit :prefix "" :export true)
-# (import ./zone/emu :prefix "" :export true)
+(import ./zone/emu :prefix "" :export true)
 (import ./zone/fs :prefix "" :export true)
 (import ./zone/network :prefix "" :export true)
 (import ./zone/rctl :prefix "" :export true)
@@ -50,7 +50,7 @@
               :help "ZFS datasets (as strings) to be delegated to zone"}
    :dns {:types [:struct]
          :help "DNS info. :domain is a string; :nameservers a tuple of strings"}
-   # :emu {:types [:table] :help "See zone/emu"}
+   :emu {:types [:table] :help "See zone/emu"}
    :exec-in {:types [:tuple]
              :help "Runs the given commands (:string) in the zone after booting"}
    :final-state {:types [:string]
@@ -122,7 +122,7 @@
   (expand-resource :bhyve :as-struct true)
   (expand-resource :bootstrap :as-struct true)
   (expand-resource :cloudinit)
-  # (expand-resource :emu :as-struct true)
+  (expand-resource :emu :as-struct true)
 
   (let [modified-spec-struct (make-spec-struct ;modified-spec)
         spec-struct (pinpoint-error

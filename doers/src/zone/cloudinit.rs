@@ -9,7 +9,7 @@ use serde_json::Value;
 use std::fs;
 use uuid::Uuid;
 
-// So far as I can tell, the only way to configure a bhyve zone is to use cloudinit. And so far
+// So far as I can tell, the only way to configure an emulated zone is to use cloudinit. And so far
 // as I can tell, the only way to do that is to make a fake CD-ROM ISO image, and temporarily
 // attach it to the zone.
 //
@@ -40,7 +40,7 @@ pub fn setup(
     Ok(())
 }
 
-pub fn remove(zone: &str) -> anyhow::Result<()> {
+pub fn teardown(zone: &str) -> anyhow::Result<()> {
     tracing::debug!("removing cloudinit cdrom from zone config");
     // It's safe to do this here. The config won't be re-read until the zone
     // boots
