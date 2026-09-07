@@ -1,5 +1,5 @@
 use crate::zone::config::{EmulConfig, GurpZoneBhyve, ZoneConfig};
-use crate::zone::{cloudinit, console_watcher, control, image};
+use crate::zone::{console_watcher, control, image};
 use anyhow::Context;
 use common::constants::ZONEADM_BIN;
 use common::types::ApplyOpts;
@@ -27,10 +27,6 @@ pub fn build_zone(
         .context("failed to write boot image")?
     }
 
-    if let Some(ci_cfg) = &config.cloudinit {
-        cloudinit::setup(ci_cfg, &cloudinit::iso_path(uuid), opts)?;
-    }
-
     cmd_output!(ZONEADM_BIN, "-z", zone, "install")?;
 
     if config.boot_after_install {
@@ -41,26 +37,16 @@ pub fn build_zone(
         console_watcher::wait_for_readiness(zone, uuid)?;
     }
 
-    if config.has_cloudinit() {
-        cloudinit::teardown(zone)?;
-    }
-
     Ok(())
 }
 
-pub fn zone_config(config: &GurpZoneBhyve, has_cloudinit: bool, uuid: &Uuid) -> String {
+pub fn zone_config(config: &GurpZoneBhyve) -> String {
     let mut ret = String::new();
-
     ret.push_str(zone_device!(config.boot_device()));
     ret.push_str(zone_attr!("bootrom", "string", config.boot_rom));
     ret.push_str(zone_attr!("bootdisk", "string", config.boot_volume));
     ret.push_str(zone_attr!("vcpus", "string", config.vcpus));
     ret.push_str(zone_attr!("ram", "string", config.ram));
     ret.push_str(zone_attr!("acpi", "string", config.acpi));
-
-    if has_cloudinit {
-        ret.push_str(&cloudinit::zone_config_snippet(uuid));
-    };
-
     ret
 }

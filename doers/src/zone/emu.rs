@@ -1,5 +1,5 @@
 use crate::zone::config::{EmulConfig, GurpZoneEmu, ImageSource, ZoneConfig};
-use crate::zone::{cloudinit, console_watcher, control, image};
+use crate::zone::{console_watcher, control, image};
 use anyhow::Context;
 use camino::Utf8Path;
 use common::constants::ZONEADM_BIN;
@@ -29,10 +29,6 @@ pub fn build_zone(
         .context("failed to write boot image")?
     }
 
-    if let Some(ci_cfg) = &config.cloudinit {
-        cloudinit::setup(ci_cfg, &cloudinit::iso_path(uuid), opts)?;
-    }
-
     cmd_output!(ZONEADM_BIN, "-z", zone, "install")?;
 
     if let Some(bios_src) = &brand_config.bios {
@@ -45,10 +41,6 @@ pub fn build_zone(
 
     if brand_config.wait_for_boot() {
         console_watcher::wait_for_readiness(zone, uuid)?;
-    }
-
-    if config.has_cloudinit() {
-        cloudinit::teardown(zone)?;
     }
 
     Ok(())
@@ -69,7 +61,7 @@ fn setup_bios(bios_src: &ImageSource, zonepath: &Utf8Path, opts: &ApplyOpts) -> 
     Ok(())
 }
 
-pub fn zone_config(config: &GurpZoneEmu, has_cloudinit: bool, uuid: &Uuid) -> String {
+pub fn zone_config(config: &GurpZoneEmu) -> String {
     let mut ret = String::new();
 
     ret.push_str(zone_device!(config.boot_device()));
@@ -98,10 +90,6 @@ pub fn zone_config(config: &GurpZoneEmu, has_cloudinit: bool, uuid: &Uuid) -> St
             ret.push_str(zone_attr!(name, "string", val));
         }
     }
-
-    if has_cloudinit {
-        ret.push_str(&cloudinit::zone_config_snippet(uuid));
-    };
 
     ret
 }
