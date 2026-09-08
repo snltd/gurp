@@ -1,6 +1,6 @@
 use anyhow::Context;
 use camino::Utf8PathBuf;
-use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
+use common::constants::{NO_RESOURCES_TO_CHANGE, ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
 use os_types::FileMode;
 use std::fs::File;
@@ -9,6 +9,11 @@ use util::http::RemoteFileCopy;
 use util::{atomic_write, file, hash, http, info};
 
 pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+    if opts.no_update {
+        tracing::warn!("not updating Gurp due to --no-update");
+        return Ok(NO_RESOURCES_TO_CHANGE);
+    }
+
     let gurp_path = info::gurp_path()?;
     let gurp_hash = hash::of_file(&gurp_path)?;
     let metadata = file::metadata(&gurp_path)?;
