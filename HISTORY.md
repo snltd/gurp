@@ -1,5 +1,5 @@
-- Add support for `emu` branded zones.
-- Move cloudinit config out of bhyve helper and into its own `cloudinit` helper.
+## v2.3.3 (2026-09-08)
+- Fix bug in self-update feature which would clobber Gurp binary.
 
 ## v2.3.2 (2026-08-16)
 - Fix bug which showed wrong line when deserialization failed.
