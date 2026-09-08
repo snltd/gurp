@@ -1,3 +1,5 @@
+- Fix regression where numeric ZFS properties were always set.
+
 ## v2.3.3 (2026-09-08)
 - Fix bug in self-update feature which would clobber Gurp binary.
 
