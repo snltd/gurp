@@ -13,8 +13,6 @@ use util::deserializer::property_deserializer;
 
 static ZFS_BIN_PATH: LazyLock<&'static str> = LazyLock::new(zfs_bin);
 
-// We used to cache the ZFS output. Don't do that!
-
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct ZfsEnsure {
@@ -27,6 +25,7 @@ pub struct ZfsEnsure {
 }
 
 type ZfsProperties = HashMap<String, String>;
+
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct ZfsRemove {
@@ -47,17 +46,10 @@ impl ZfsEnsure {
 
             for (property, desired_value) in &self.properties {
                 if let Some(current_value) = current_state.get(property) {
-                    if current_value == desired_value {
+                    if current_value == desired_value || compare_bytes(current_value, desired_value)
+                    {
                         tracing::debug!("{}: already {}", property, desired_value);
                     } else {
-                        // Catch size properties. Putting the iB is a nasty, but it works
-                        if let Ok(desired_bytes) = format!("{desired_value}iB").parse::<ByteSize>()
-                            && desired_value.ends_with(['M', 'G', 'k', 'E'])
-                            && desired_bytes.to_string() == *current_value
-                        {
-                            break;
-                        }
-
                         tracing::info!(
                             "change zfs {}: [{}] {} -> {}",
                             property,
@@ -173,6 +165,17 @@ pub fn zfs_exists(name: &str) -> anyhow::Result<bool> {
     cmd_success!(*ZFS_BIN_PATH, "list", "-Ho", "name", name)
 }
 
+// zfs get -p returns sizes as bytes; our user may have specified bytes or used a suffix
+fn compare_bytes(current_value: &str, desired_value: &str) -> bool {
+    if desired_value.ends_with(['M', 'G', 'k', 'E'])
+        && let Ok(parsed_desired) = format!("{desired_value}iB").parse::<ByteSize>()
+    {
+        parsed_desired.as_u64().to_string() == *current_value
+    } else {
+        current_value == desired_value
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -218,5 +221,13 @@ mod test {
             },
             deserialized_example("zfs/remove-dataset.janet")
         );
+    }
+
+    #[test]
+    fn test_compare_bytes() {
+        assert!(compare_bytes("10", "10"));
+        assert!(compare_bytes("1024", "1k"));
+        assert!(compare_bytes("1048576", "1M"));
+        assert!(compare_bytes("10737418240", "10G"));
     }
 }
