@@ -1,30 +1,37 @@
+## v2.4.0 (2026-09-19)
+
 - Apply system certs before adding publishers.
+- Add support for `emu` branded zones.
+- Make cloudinit config a zone helper `(zone/cloudinit ...)` rather than a key.
 - Fix regression where numeric ZFS properties were always set.
 - Fix regression on `compile` command for Janet output.
 - Bring back fancy printing in `compile` command.
 - Add `--no-update` to `apply` command.
 
 ## v2.3.3 (2026-09-08)
+
 - Fix bug in self-update feature which would clobber Gurp binary.
 
 ## v2.3.2 (2026-08-16)
+
 - Fix bug which showed wrong line when deserialization failed.
 - Fix bug which stopped update from server working.
 
 ## v2.3.1 (2026-08-13)
+
 - Fix bug which set incorrect mode when updating from file.
 - Add `:url-replacements` to `:file` doer. This lets you replace a pattern in a
   file with the target of a URL. Does not work with `:from-url`.
 - Drop byte-unit dependency.
-  
+
 ## v2.3.0 (2026-07-31)
 
 - Leading `0` on file modes is now optional.
 - Much improved capture of invalid resource data.
 - Fix bug which stopped you adding a proxy to an existing publisher.
 - Clearer zone bootstrap logging.
-- Retry service state assertion: some package-delivered services take a while
-  to become available.
+- Retry service state assertion: some package-delivered services take a while to
+  become available.
 - Smarter location of deserialization errors.
 - Better logging when config compilation fails
 - Add `--syspath` and `--gurp-config-root` options to `repl` command.
