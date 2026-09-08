@@ -1,5 +1,5 @@
 use crate::zone::config::{Brand, ZoneConfig};
-use crate::zone::{bhyve, container, control, emu, helpers};
+use crate::zone::{bhyve, cloudinit, container, control, emu, helpers};
 use anyhow::bail;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, ZONECFG_BIN};
 use common::types::{ApplyOpts, ApplySummary};
@@ -23,7 +23,7 @@ impl ZoneEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let zone = &self.name;
 
-        // This is used for Bhyve/Emu Cloudinit
+        // This is used for Cloudinit
         let uuid = Uuid::new_v4();
 
         let config_input = self.config.to_zonecfg(&uuid);
@@ -44,7 +44,11 @@ impl ZoneEnsure {
         if opts.output.dump_configs {
             println!(
                 "{}",
-                info::dump_config(&config_input, Some("zonecfg config"), &opts.output)
+                info::dump_config(
+                    &config_input,
+                    Some(&format!("zonecfg for {}", self.name)),
+                    &opts.output
+                )
             );
         }
 
@@ -53,11 +57,19 @@ impl ZoneEnsure {
         } else {
             self.create_from_config(&config_input)?;
 
+            if let Some(ci_cfg) = &self.config.cloudinit {
+                cloudinit::setup(ci_cfg, &cloudinit::iso_path(&uuid), opts)?;
+            }
+
             match self.config.brand {
                 Brand::Bhyve => bhyve::build_zone(&self.name, &self.config, &uuid, opts),
                 Brand::Emu => emu::build_zone(&self.name, &self.config, &uuid, opts),
                 _ => container::build_zone(&self.name, &self.config, opts),
             }?;
+
+            if self.config.has_cloudinit() {
+                cloudinit::teardown(zone)?;
+            }
 
             self.set_final_state()?;
 

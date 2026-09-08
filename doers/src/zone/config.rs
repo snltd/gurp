@@ -1,4 +1,4 @@
-use crate::zone::{bhyve, emu};
+use crate::zone::{bhyve, cloudinit, emu};
 use camino::Utf8PathBuf;
 use ipnet::IpNet;
 use serde::Deserialize;
@@ -334,20 +334,16 @@ impl ZoneConfig {
         }
 
         if let Some(emu_config) = &self.emu {
-            ret.push_str(&emu::zone_config(
-                emu_config,
-                self.cloudinit.is_some(),
-                uuid,
-            ));
+            ret.push_str(&emu::zone_config(emu_config));
         }
 
         if let Some(bhyve_config) = &self.bhyve {
-            ret.push_str(&bhyve::zone_config(
-                bhyve_config,
-                self.cloudinit.is_some(),
-                uuid,
-            ));
+            ret.push_str(&bhyve::zone_config(bhyve_config));
         }
+
+        if self.has_cloudinit() {
+            ret.push_str(&cloudinit::zone_config_snippet(uuid));
+        };
 
         ret
     }

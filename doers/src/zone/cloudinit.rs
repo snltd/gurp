@@ -62,13 +62,13 @@ pub fn zone_config_snippet(uuid: &Uuid) -> String {
     let iso_path = iso_path(uuid);
 
     let fs = zone_fs!(GurpZoneFilesystem {
-        dir: iso_path.clone(),
+        dir: "/cloudinit".into(),
         special: iso_path.clone(),
         fs_type: "lofs".to_owned(),
         options: Some(vec!["ro".to_owned()])
     });
 
-    format!("{}\n{fs}", zone_attr!("cdrom", "string", iso_path))
+    format!("{}\n{fs}", zone_attr!("cdrom", "string", "/cloudinit"))
 }
 
 fn populate(
