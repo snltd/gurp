@@ -28,7 +28,7 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
             .context("cannot attach binary hash to server URL")?;
 
         let binary_url = &base_url
-            .join("gurp-binary-hash")
+            .join("gurp-binary")
             .context("cannot attach binary path to server URL")?;
 
         let server_hash = http::url_to_string(hash_url)?;
