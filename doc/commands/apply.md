@@ -75,12 +75,12 @@ There are options:
   Useful for cleaning up during development, but should be used with extreme
   caution. It has no short value, so you can't type it by accident.
 - `--no-lock` makes Gurp not check for, create, or remove its runtime lock file.
-- `--no-report` Gurp normally writes a JSON report in `/var/log/` at the end
-  of a run. This option turns of that report.
-- `--pre-run-noop` Runs a no-op before the normal apply: this is very
-  fast and minimises the chance of a partially applied config. Can be
-  problematic in some circumstances. For instance, if your config adds a `pkg`
-  repo then installs packages from it.
+- `--no-report` Gurp normally writes a JSON report in `/var/log/` at the end of
+  a run. This option turns of that report.
+- `--pre-run-noop` Runs a no-op before the normal apply: this is very fast and
+  minimises the chance of a partially applied config. Can be problematic in some
+  circumstances. For instance, if your config adds a `pkg` repo then installs
+  packages from it.
 - `--post-run-noop` If a Gurp `apply` makes a change to the system state, this
   option makes it immediately re-run the config as a no-op. If the no-op finds
   changes must be made, Gurp assumes it failed to correctly assert state, and
@@ -92,10 +92,11 @@ There are options:
 - `-O, --only <REGEX>` Makes Gurp only apply resources whose IDs match the given
   Rust regex.
 - `-D, --define <DEFINE>` Can be used multiple time, with the values used to
-  build a Janet struct, `gurp-user-defs` with global scope, visible during the
-  compile phase. If `DEFINE` is of the form `key=value`, the struct gets `key`
-  as a symbol and `value` as a string. If `DEFINE` is `key` only, the struct
-  gets `key` as a symbol, with a value of boolean `true`.
+  build a Janet struct, `gurp-user-defs` set as a dynamic binding with global
+  scope, visible during the compile phase. If `DEFINE` is of the form
+  `key=value`, the struct gets `key` as a symbol and `value` as a string. If
+  `DEFINE` is `key` only, the struct gets `key` as a symbol, with a value of
+  boolean `true`.
 - `-S, --splay <SPLAY>` pauses for a random time up to a maximum of `SPLAY`
   seconds prior to applying. A splay time can also be set via `control-data`,
   but the command-line value takes precedence.
