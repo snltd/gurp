@@ -1215,6 +1215,7 @@ dependencies = [
  "commands",
  "common",
  "gurptel",
+ "indoc",
  "predicates",
  "pretty_assertions",
  "serde_json",
