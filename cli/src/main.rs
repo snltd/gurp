@@ -65,6 +65,9 @@ enum Commands {
         /// Do not check for or use a lockfile
         #[arg(long)]
         no_lock: bool,
+        /// Do not update Gurp, even if directed to by the config
+        #[arg(short = 'U', long)]
+        no_update: bool,
         /// Do not write a JSON report at the end of the run
         #[arg(long)]
         no_report: bool,
@@ -176,6 +179,7 @@ fn main() -> ExitCode {
             image,
             no_lock,
             no_report,
+            no_update,
             pre_run_noop,
             post_run_noop,
             remove_first,
@@ -191,6 +195,7 @@ fn main() -> ExitCode {
                 image,
                 no_lock,
                 no_report,
+                no_update,
                 pre_run_noop,
                 post_run_noop,
                 remove_first,

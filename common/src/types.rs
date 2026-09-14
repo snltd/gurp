@@ -22,6 +22,7 @@ pub struct ApplyOpts {
     pub exec: Option<String>,
     pub no_lock: bool,
     pub no_report: bool,
+    pub no_update: bool,
     pub pre_run_noop: bool,
     pub post_run_noop: bool,
     pub remove_first: bool,
