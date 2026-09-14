@@ -40,7 +40,7 @@ pub fn gurp(vmopts: &ApplyVmOpts, destroy: bool) -> anyhow::Result<JanetClient> 
     }
 
     if vmopts.define.is_empty() {
-        janet_instructions.push_str(r#"(defglobal "gurp-user-defs" {})"#);
+        janet_instructions.push_str(r#"(setdyn :gurp-user-defs {})"#);
     } else {
         janet_instructions.push_str(&define_string(vmopts));
     }
@@ -125,7 +125,7 @@ mod tests {
         };
 
         assert_eq!(
-            r#"(defglobal "gurp-user-defs" (struct (keyword "boolean") true (keyword "key") "value"))"#,
+            r#"(setdyn :gurp-user-defs (struct (keyword "boolean") true (keyword "key") "value"))"#,
             define_string(&opts)
         );
     }

@@ -113,7 +113,7 @@ impl ConfigCompiler {
         };
 
         let defines = if vmopts.define.is_empty() {
-            r#"(defglobal "gurp-user-defs" {})"#
+            r#"(setdyn :gurp-user-defs {})"#
         } else {
             &client::define_string(vmopts)
         };
