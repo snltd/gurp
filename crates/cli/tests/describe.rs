@@ -17,13 +17,28 @@ mod test {
 
     #[test]
     #[ignore]
-    fn test_describe_gem() {
+    fn test_describe_doer() {
         cargo_bin_cmd!("gurp")
             .arg("describe")
             .arg("gem")
             .assert()
             .success()
             .stdout(predicate::str::contains("Install and uninstall Ruby gems."));
+    }
+
+    #[test]
+    #[ignore]
+    fn test_describe_helper() {
+        cargo_bin_cmd!("gurp")
+            .arg("describe")
+            .arg("zone/bhyve")
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("Mandatory properties"))
+            .stdout(predicate::str::contains("Optional properties"))
+            .stdout(predicate::str::contains(
+                "A bhyve zone must be built from an image.",
+            ));
     }
 
     #[test]
