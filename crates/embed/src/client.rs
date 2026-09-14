@@ -60,7 +60,7 @@ fn destroyer_string() -> String {
 /// contain an '=', are split on that char, with the first part becoming a struct key (keyword)
 /// and the second becoming the corresponding value (string). If there is no '=', the whole value
 /// becomes a key (keyword) and the value is set to true (boolean).
-fn define_string(vmopts: &ApplyVmOpts) -> String {
+pub fn define_string(vmopts: &ApplyVmOpts) -> String {
     tracing::debug!("setting gurp-user-defs");
 
     let bindings = vmopts
@@ -87,7 +87,7 @@ fn define_string(vmopts: &ApplyVmOpts) -> String {
     if bindings.is_empty() {
         String::new()
     } else {
-        format!(r#"(defglobal "gurp-user-defs" (struct {bindings}))"#)
+        format!(r#"(setdyn :gurp-user-defs (struct {bindings}))"#)
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::client;
+use super::client;
 use anyhow::Context;
 use camino::Utf8Path;
 use common::constants::SERVER_PORT;
@@ -9,7 +9,7 @@ use janetrs::env::DefOptions;
 use janetrs::{Janet, JanetString, JanetStruct, TaggedJanet};
 use std::env;
 use util::json;
-
+//
 /// A JsonCompiler turns Janet config into a JSON string
 pub struct ConfigCompiler {
     client: JanetClient,
@@ -99,6 +99,7 @@ impl ConfigCompiler {
         &mut self,
         raw_image: &[u8],
         server: Option<&str>,
+        vmopts: &ApplyVmOpts,
     ) -> Result<JsonConfig, CompileError> {
         let jstr = JanetString::new(raw_image);
         let janet_val = Janet::string(jstr);
@@ -111,8 +112,15 @@ impl ConfigCompiler {
             String::new()
         };
 
+        let defines = if vmopts.define.is_empty() {
+            r#"(defglobal "gurp-user-defs" {})"#
+        } else {
+            &client::define_string(vmopts)
+        };
+
         let janet_instructions = indoc::formatdoc! { r#"
             (merge-module (curenv) (load-image *user-image*) "" true)
+            {defines}
             {server}
             (to-json (eval '(machine-config)))
     "#};
@@ -301,7 +309,11 @@ mod test {
 
         let actual: Value = serde_json::from_str(
             &test_compiler()
-                .janet_image(&fs::read(fixture("basic_image.jimage")).unwrap(), None)
+                .janet_image(
+                    &fs::read(fixture("basic_image.jimage")).unwrap(),
+                    None,
+                    &ApplyVmOpts::default(),
+                )
                 .unwrap(),
         )
         .unwrap();

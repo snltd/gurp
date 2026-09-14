@@ -249,6 +249,7 @@ None
 ## Notes
 
 - You must supply exactly one of `:file` and `:server`.
+- On a bootstrap run, `gurp-user-defs` contains `:is-bootstrap true`, so you can change behaviour on an initial run.
 
 # zone/cloudinit
 
