@@ -476,6 +476,7 @@ impl Applicator {
         let mut sum = ApplySummary::default();
         let mut ids = ChangedIds::new();
 
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.system_cert, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.publisher, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.etherstub, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.vnic, opts))?;
@@ -503,7 +504,6 @@ impl Applicator {
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.link, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.smf, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.svcprop, opts))?;
-        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.system_cert, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.misc, opts))?;
 
         Ok((sum, ids))
@@ -515,7 +515,6 @@ impl Applicator {
         let mut ids = ChangedIds::new();
 
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.link, opts))?;
-        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.system_cert, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.file_line, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.file, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.directory, opts))?;
@@ -525,6 +524,7 @@ impl Applicator {
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.user, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.group, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.publisher, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.system_cert, opts))?;
         self.accumulate(&mut sum, &mut ids, crate::gem::collect_and_remove(&res.gem, opts))?;
         self.accumulate(&mut sum, &mut ids, crate::pkg::collect_and_remove(&res.pkg, opts))?;
         self.accumulate(&mut sum, &mut ids, crate::pkgin::collect_and_remove(&res.pkgin, opts))?;
