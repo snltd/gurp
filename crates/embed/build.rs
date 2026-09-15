@@ -2,7 +2,7 @@
 // source.
 
 fn main() {
-    for entry in walkdir::WalkDir::new("../janet/src") {
+    for entry in walkdir::WalkDir::new("../../janet/src") {
         let entry = entry.unwrap();
         println!("cargo:rerun-if-changed={}", entry.path().display());
     }

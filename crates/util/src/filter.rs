@@ -65,7 +65,7 @@ impl<'a> FileFilter<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use tester::fixture;
+    use snltest::fixture;
 
     #[test]
     fn test_filter_string_1() {
@@ -91,7 +91,7 @@ mod test {
         let sut = FileFilter::from("b.*ore").unwrap();
         assert_eq!(
             "Some stuff\nStuff at the end\n".to_owned(),
-            sut.file(&fixture("file-filter-test")).unwrap()
+            sut.file(&fixture!("file-filter-test")).unwrap()
         )
     }
 

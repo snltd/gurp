@@ -102,7 +102,8 @@ mod test {
     use camino::Utf8PathBuf;
     use os_types::FileMode;
     use pretty_assertions::assert_eq;
-    use tester::{deserialized_example, fixture, my_group, my_user};
+    use snltest::fixture;
+    use tester::{deserialized_example, my_group, my_user};
     use url::Url;
     use util::file::NameOrId;
 
@@ -177,7 +178,7 @@ mod test {
                 mode: FileMode::new("2755").unwrap(),
                 content: None,
                 ignore_pattern: None,
-                from: Some(fixture("file/binary-file")),
+                from: Some(fixture!("file/binary-file")),
                 backup_suffix: None,
                 from_struct: None,
                 to_format: None,
@@ -200,7 +201,7 @@ mod test {
                 mode: FileMode::new("2755").unwrap(),
                 content: Some("content".to_owned()),
                 ignore_pattern: None,
-                from: Some(fixture("file/binary-file")),
+                from: Some(fixture!("file/binary-file")),
                 backup_suffix: None,
                 from_struct: None,
                 to_format: None,

@@ -121,9 +121,10 @@ mod test {
     use indoc::{formatdoc, indoc};
     use os_types::{FileMode, GurpId};
     use pretty_assertions::assert_eq;
+    use snltest::fixture;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
-    use tester::{fixture, janet2json, my_group, my_user};
+    use tester::{janet2json, my_group, my_user};
     use util::file::NameOrId;
 
     #[test]
@@ -142,7 +143,7 @@ mod test {
                 owner: NameOrId::Name(my_user()),
                 content: None,
                 ignore_pattern: None,
-                from: Some(fixture("file/binary-file")),
+                from: Some(fixture!("file/binary-file")),
                 backup_suffix: None,
                 from_struct: None,
                 to_format: None,
@@ -177,7 +178,7 @@ mod test {
                 mode: FileMode::new("2755").unwrap(),
                 content: None,
                 ignore_pattern: None,
-                from: Some(fixture("file/binary-file")),
+                from: Some(fixture!("file/binary-file")),
                 backup_suffix: None,
                 from_struct: None,
                 to_format: None,
@@ -223,7 +224,7 @@ mod test {
             "#,
             temp_file.parent().unwrap(),
             temp_file,
-            &fixture("file/copy-file"),
+            &fixture!("file/copy-file"),
             my_user(),
             my_group(),
         });
@@ -264,7 +265,7 @@ mod test {
                 :group "{}")
             "#,
             temp_file,
-            fixture("file/ignore-line-file"),
+            fixture!("file/ignore-line-file"),
             my_user(),
             my_group(),
         });
@@ -307,7 +308,7 @@ mod test {
                 :group "{}")
             "#,
             temp_file,
-            fixture("file/from-file-example"),
+            fixture!("file/from-file-example"),
             server.url("/replacement"),
             my_user(),
             my_group(),

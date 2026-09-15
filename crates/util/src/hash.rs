@@ -107,7 +107,7 @@ fn server_hash_url(url: &Url, segment: ServerHashType) -> anyhow::Result<Url> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use tester::fixture;
+    use snltest::fixture;
 
     #[test]
     fn test_hash_of_string() {
@@ -121,7 +121,7 @@ mod test {
     fn test_hash_of_file() {
         assert_eq!(
             "40a2c4e17aa9abec2dd26709c045190b959922b5fffb4ff676568225c0525eca",
-            of_file(&fixture("file-filter-test")).unwrap().to_string()
+            of_file(&fixture!("file-filter-test")).unwrap().to_string()
         );
     }
 
