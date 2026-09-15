@@ -13,7 +13,9 @@
                  bootstrap"}}
 
   :notes
-  ["You must supply exactly one of `:file` and `:server`."])
+  ["You must supply exactly one of `:file` and `:server`."
+   "On a bootstrap run, `gurp-user-defs` contains `:is-bootstrap true`, so
+    you can change behaviour on an initial run."])
 
 (defn bootstrap
   "Given a spec, return config to bootstrap a zone"

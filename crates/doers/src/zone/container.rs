@@ -186,6 +186,8 @@ fn bootstrap(zone: &str, conf: &ZoneConfig, opts: &ApplyOpts) -> anyhow::Result<
         bootstrap_args.push(format!("--metrics-to={metrics_host}"));
     }
 
+    bootstrap_args.push("-Dis-bootstrap".to_owned());
+
     ensure!(
         exactly_one_some!(bootstrap_conf.server, bootstrap_conf.file),
         "bootstrap requires exactly one of :file and :server"

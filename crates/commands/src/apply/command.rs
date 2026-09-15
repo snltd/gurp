@@ -16,18 +16,18 @@ pub fn run(
     opts: &ApplyOpts,
     providers: TelemetryProviders,
 ) -> ExitCode {
-    let t_start = Timestamp::now(); // For the report
-    let start_time = Instant::now(); // For metrics
+    let start_timestamp = Timestamp::now(); // goes in the the report
+    let run_timer = Instant::now(); // calculate run duration for metrics
 
     let exit_code = match config::compile(host_file, opts) {
         Ok(cfg) => {
             let lock = lockfile::acquire(opts);
 
-            if lockfile::is_on(&start_time, &lock) {
+            if lockfile::is_on(&run_timer, &lock) {
                 ExitCode::FAILURE
             } else {
                 let run_result = Applicator::from(cfg).run(opts);
-                let elapsed_time = start_time.elapsed();
+                let elapsed_time = run_timer.elapsed();
                 tracing::info!("Run time: {:.3?}", elapsed_time);
 
                 let run_exit_code = match run_result {
@@ -44,7 +44,7 @@ pub fn run(
                                 fail_phase: None,
                                 summary: Some(&apply_summary),
                                 duration: &elapsed_time,
-                                t_start,
+                                t_start: start_timestamp,
                                 t_end: Timestamp::now(),
                                 host_file: host_file.map(|f| f.to_owned()),
                                 opts,
@@ -69,7 +69,7 @@ pub fn run(
                                 fail_phase: Some(FailPhase::Apply),
                                 summary: None,
                                 duration: &elapsed_time,
-                                t_start,
+                                t_start: start_timestamp,
                                 t_end: Timestamp::now(),
                                 host_file: host_file.map(|f| f.to_owned()),
                                 opts,
@@ -100,7 +100,7 @@ pub fn run(
                 }
             };
 
-            metrics::send(ApplyStatus::Fail(e.into()), &start_time.elapsed());
+            metrics::send(ApplyStatus::Fail(e.into()), &run_timer.elapsed());
             ExitCode::FAILURE
         }
     };

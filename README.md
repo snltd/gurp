@@ -85,7 +85,7 @@ If you want to know more:
 - Build it yourself:
   ```sh
   $ git clone git@github.com:snltd/gurp.git && cd gurp
-  $ CFLAGS=-std=c99 cargo install --path cli
+  $ CFLAGS=-std=c99 cargo install --path crates/cli
   ```
 
 - [Get an omnios-extra style build dir](https://github.com/snltd/sysdef-extra/tree/main/build/gurp).

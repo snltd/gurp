@@ -76,7 +76,7 @@ pub(crate) fn compile(
         } else {
             // local or remote Janet image
             let raw = load(path, &opts.client, "jimage")?;
-            json_compiler.janet_image(&raw, opts.client.server.as_deref())
+            json_compiler.janet_image(&raw, opts.client.server.as_deref(), &opts.vm)
         }
     }?;
 

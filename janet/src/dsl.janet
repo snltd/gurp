@@ -306,19 +306,21 @@
   (default key-column 0)
   (tabular-rows->struct (lines tabular-output) key-column))
 
+(defn user-def
+  "Returns the value of the given user-def"
+  [name]
+  (let [user-defs (dyn :gurp-user-defs {})]
+    (user-defs (keyword name))))
+
 (defn recreate?
   "Returns 1 (true) or 0 (false) depending on whether the user has defined
   :recreate-zone-<name> or :recreate-all-zones. To be used in conjunction with
   the zone :recreate property"
   [zone-name]
-  (let [user-defs (get (curenv) 'gurp-user-defs)]
-    (if (not user-defs)
-      0
-      (if (or
-            ((user-defs :value) (keyword "recreate-all-zones"))
-            ((user-defs :value) (keyword "recreate-zone-" zone-name)))
-        1
-        0))))
+  (if (or (user-def :recreate-all-zones)
+          (user-def (keyword "recreate-zone-" zone-name)))
+    1
+    0))
 
 (defn num-field-sort
   "Sort a file when each line's first field is numeric"

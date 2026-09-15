@@ -40,7 +40,7 @@ pub fn gurp(vmopts: &ApplyVmOpts, destroy: bool) -> anyhow::Result<JanetClient> 
     }
 
     if vmopts.define.is_empty() {
-        janet_instructions.push_str(r#"(defglobal "gurp-user-defs" {})"#);
+        janet_instructions.push_str(r#"(setdyn :gurp-user-defs {})"#);
     } else {
         janet_instructions.push_str(&define_string(vmopts));
     }
@@ -60,7 +60,7 @@ fn destroyer_string() -> String {
 /// contain an '=', are split on that char, with the first part becoming a struct key (keyword)
 /// and the second becoming the corresponding value (string). If there is no '=', the whole value
 /// becomes a key (keyword) and the value is set to true (boolean).
-fn define_string(vmopts: &ApplyVmOpts) -> String {
+pub fn define_string(vmopts: &ApplyVmOpts) -> String {
     tracing::debug!("setting gurp-user-defs");
 
     let bindings = vmopts
@@ -87,7 +87,7 @@ fn define_string(vmopts: &ApplyVmOpts) -> String {
     if bindings.is_empty() {
         String::new()
     } else {
-        format!(r#"(defglobal "gurp-user-defs" (struct {bindings}))"#)
+        format!(r#"(setdyn :gurp-user-defs (struct {bindings}))"#)
     }
 }
 
@@ -125,7 +125,7 @@ mod tests {
         };
 
         assert_eq!(
-            r#"(defglobal "gurp-user-defs" (struct (keyword "boolean") true (keyword "key") "value"))"#,
+            r#"(setdyn :gurp-user-defs (struct (keyword "boolean") true (keyword "key") "value"))"#,
             define_string(&opts)
         );
     }
