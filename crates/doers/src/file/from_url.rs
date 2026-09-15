@@ -146,9 +146,10 @@ mod test {
     use common::types::ApplyOpts;
     use httpmock::prelude::*;
     use pretty_assertions::assert_eq;
+    use snltest::load_fixture;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
-    use tester::{janet2json, load_fixture, my_group, my_user};
+    use tester::{janet2json, my_group, my_user};
 
     #[test]
     fn test_file_create_from_url() {
@@ -158,7 +159,7 @@ mod test {
             when.method(GET).path("/sample/file");
             then.status(200)
                 .header("content-type", "text/plain")
-                .body(load_fixture("file/url-sample-file"));
+                .body(load_fixture!("file/url-sample-file"));
         });
 
         let temp_dir = Utf8TempDir::new().unwrap();
@@ -193,7 +194,7 @@ mod test {
 
         assert_eq!(metadata.permissions().mode() & 0o7777, 0o640);
         assert_eq!(
-            load_fixture("file/url-sample-file"),
+            load_fixture!("file/url-sample-file"),
             fs::read_to_string(temp_file).unwrap()
         );
     }
@@ -232,7 +233,7 @@ mod test {
             when.method(GET).path("/sample/file");
             then.status(200)
                 .header("content-type", "text/plain")
-                .body(load_fixture("file/url-sample-file"));
+                .body(load_fixture!("file/url-sample-file"));
         });
 
         let json_def = janet2json(&indoc::formatdoc! {r#"

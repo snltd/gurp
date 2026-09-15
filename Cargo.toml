@@ -1,18 +1,7 @@
 [workspace]
 resolver = "3"
 
-members = [
-  "build_helper", 
-  "cli",
-  "commands",
-  "common",
-  "doers",
-  "embed",
-  "macros",
-  "gurptel",
-  "tester",
-  "util", "os_types",
-]
+members = ["crates/*"]
 
 [patch.crates-io]
 evil-janet = { git = "https://github.com/snltd/evil-janet", branch = "janet-1.41.2" }

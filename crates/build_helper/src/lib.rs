@@ -2,7 +2,7 @@ use blake3::Hash;
 use camino::Utf8PathBuf;
 use janetrs::TaggedJanet;
 use janetrs::client::JanetClient;
-use std::{env, fs};
+use std::fs;
 
 // This is for build.rs files. Anything that fails can fail hard.
 
@@ -15,7 +15,7 @@ pub struct ImageHelper {
 
 impl ImageHelper {
     pub fn new(src_files: Vec<&str>, img_name: &str) -> Self {
-        let repo_root = ImageHelper::repo_root();
+        let repo_root = snltest::repo_root();
         let src_dir = repo_root.join("janet").join("src");
 
         for entry in walkdir::WalkDir::new(&src_dir) {
@@ -111,13 +111,6 @@ impl ImageHelper {
 
     fn client() -> JanetClient {
         JanetClient::init_with_default_env().expect("Failed to create Janet client")
-    }
-
-    fn repo_root() -> Utf8PathBuf {
-        Utf8PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("cannot get CARGO_MANIFEST_DIR"))
-            .parent()
-            .expect("cannot get repo_root")
-            .into()
     }
 
     fn image_hash(&self) -> Hash {

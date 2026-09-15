@@ -385,8 +385,8 @@ mod test {
     use super::*;
     use crate::xml;
     use pretty_assertions::assert_eq;
+    use snltest::load_fixture;
     use std::collections::BTreeMap;
-    use tester::load_fixture;
 
     #[test]
     fn test_make_manifest() {
@@ -444,7 +444,7 @@ mod test {
         };
 
         let result = make_manifest(&test_svc).unwrap();
-        let expected = load_fixture("smf_helper/telegraf.xml");
+        let expected = load_fixture!("smf_helper/telegraf.xml");
         let result_xml = xml::parse(&result);
         let expected_xml = xml::parse(&expected);
 
@@ -482,7 +482,7 @@ mod test {
         };
 
         let result = make_manifest(&test_svc).unwrap();
-        let expected = load_fixture("smf_helper/boot-service.xml");
+        let expected = load_fixture!("smf_helper/boot-service.xml");
         let result_xml = xml::parse(&result);
         let expected_xml = xml::parse(&expected);
 

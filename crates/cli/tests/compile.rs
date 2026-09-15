@@ -3,7 +3,7 @@ mod test {
     use assert_cmd::cargo::cargo_bin_cmd;
     use predicates::prelude::*;
     use pretty_assertions::assert_eq;
-    use tester::{cwd, fixture, load_fixture};
+    use snltest::{cwd, fixture, load_fixture};
 
     #[test]
     #[ignore]
@@ -22,12 +22,12 @@ mod test {
             "remover",
             "serv-zones",
         ] {
-            let canonical_json = load_fixture(&format!("compile/outputs/{host}.json"));
+            let canonical_json = load_fixture!(&format!("compile/outputs/{host}.json"));
             let expected_json = canonical_json.replace(canonical_test_dir, &test_dir);
 
             let output = cargo_bin_cmd!("gurp")
                 .arg("compile")
-                .arg(fixture(&format!("compile/inputs/{host}.janet")))
+                .arg(fixture!(&format!("compile/inputs/{host}.janet")))
                 .arg("--format=json")
                 .assert()
                 .success();
