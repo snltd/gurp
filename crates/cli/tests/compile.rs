@@ -1,8 +1,12 @@
 #[cfg(test)]
 mod test {
     use assert_cmd::cargo::cargo_bin_cmd;
+    use predicates::prelude::*;
     use pretty_assertions::assert_eq;
     use snltest::{cwd, fixture, load_fixture};
+
+    const COLOUR_MARKER: &str = "\x1b[33m";
+    const LINE_NO_MARKER: &str = " 4 | ";
 
     const SOURCE_FILES: [&str; 9] = [
         "backup",
@@ -70,26 +74,55 @@ mod test {
     #[test]
     #[ignore]
     fn test_compile_to_janet() {
-        // let (_tp, outdir) = snltest::fixture_dir("janet-test", vec![]);
+        for host in SOURCE_FILES {
+            cargo_bin_cmd!("gurp")
+                .arg("compile")
+                .arg(fixture!(&format!("compile/inputs/{host}.janet")))
+                .arg("--format=janet")
+                .assert()
+                .stdout(predicate::str::contains(":resources {:ensure"))
+                .stdout(predicate::str::contains(COLOUR_MARKER).not())
+                .stdout(predicate::str::contains(LINE_NO_MARKER).not());
+        }
+    }
 
-        // for host in SOURCE_FILES {
-        // assert!(outdir.exists());
-        // let outfile = outdir.join("out.jimage");
+    #[test]
+    #[ignore]
+    fn test_compile_line_no() {
+        for format in ["janet", "json"] {
+            cargo_bin_cmd!("gurp")
+                .arg("compile")
+                .arg(fixture!("compile/inputs/grafana.janet"))
+                .arg("--line-no")
+                .arg("--format")
+                .arg(format)
+                .assert()
+                .stdout(predicate::str::contains(COLOUR_MARKER).not())
+                .stdout(predicate::str::contains(LINE_NO_MARKER));
+        }
+    }
 
-        // .arg(fixture!(&format!("compile/inputs/{host}.janet")))
+    #[test]
+    #[ignore]
+    fn test_compile_colour() {
+        // We don't colour JSON. We only do Janet 'cos it's free
+        cargo_bin_cmd!("gurp")
+            .arg("compile")
+            .arg(fixture!("compile/inputs/grafana.janet"))
+            .arg("--colour")
+            .arg("--line-no")
+            .arg("--format=janet")
+            .assert()
+            .stdout(predicate::str::contains(COLOUR_MARKER))
+            .stdout(predicate::str::contains(LINE_NO_MARKER));
 
         cargo_bin_cmd!("gurp")
             .arg("compile")
             .arg(fixture!("compile/inputs/grafana.janet"))
+            .arg("--colour")
             .arg("--format=janet")
             .assert()
-            .stdout("GIB");
-
-        // assert!(outfile.exists());
-
-        // let size = outfile.metadata().unwrap().len();
-        // println!("{size}");
-        // assert!(size > 100);
-        // }
+            .stdout(predicate::str::contains(COLOUR_MARKER))
+            .stdout(predicate::str::contains(LINE_NO_MARKER).not());
     }
 }

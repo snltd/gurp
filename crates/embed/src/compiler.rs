@@ -49,8 +49,10 @@ impl ConfigCompiler {
 
         let final_cmd = if to_json {
             "(to-json (eval '(machine-config)))"
+        } else if self.output_opts.colour {
+            r#"(string/format "%M" (eval '(machine-config)))"#
         } else {
-            "(eval '(machine-config))"
+            r#"(string/format "%m" (eval '(machine-config)))"#
         };
 
         let janet_instructions = indoc::formatdoc! { r#"
@@ -66,7 +68,11 @@ impl ConfigCompiler {
             );
         }
 
-        self.compile_to_string(&janet_instructions)
+        if to_json {
+            self.compile_to_json(&janet_instructions)
+        } else {
+            self.compile_to_string(&janet_instructions)
+        }
     }
 
     // Get a string by compiling a snippet of Janet
@@ -92,7 +98,7 @@ impl ConfigCompiler {
             );
         }
 
-        self.compile_to_string(&janet_instructions)
+        self.compile_to_json(&janet_instructions)
     }
 
     pub fn janet_image(
@@ -125,11 +131,24 @@ impl ConfigCompiler {
             (to-json (eval '(machine-config)))
     "#};
 
-        self.compile_to_string(&janet_instructions)
+        self.compile_to_json(&janet_instructions)
     }
 
     // Wrapper for compile() for when we want to get a JSON string
-    fn compile_to_string(&self, code: &str) -> Result<JsonConfig, CompileError> {
+    fn compile_to_string(&self, code: &str) -> Result<String, CompileError> {
+        let compiled_bytes = compile(&self.client, code)?;
+
+        let ret = String::from_utf8(compiled_bytes).map_err(|e| {
+            CompileError::Other(anyhow::anyhow!(
+                "cannot convert compiled bytes to string: {e}"
+            ))
+        })?;
+
+        Ok(ret)
+    }
+
+    // Wrapper for compile() for when we want to get a JSON string
+    fn compile_to_json(&self, code: &str) -> Result<JsonConfig, CompileError> {
         let compiled_bytes = compile(&self.client, code)?;
 
         let raw_json = String::from_utf8(compiled_bytes).map_err(|e| {
@@ -211,9 +230,13 @@ fn compile(client: &JanetClient, code: &str) -> Result<Vec<u8>, CompileError> {
     match client.run(&wrapped_code) {
         Ok(buf) => match buf.unwrap() {
             // Successful compilation to JSON gives us a JSON String
-            TaggedJanet::String(str) => Ok(str.bytes().collect()),
+            TaggedJanet::String(str) => {
+                tracing::debug!("successfully compiled to string");
+                Ok(str.bytes().collect())
+            }
             // Successful compilation to an image gives us a Buffer
             TaggedJanet::Buffer(buf) => {
+                tracing::debug!("successfully compiled to buffer");
                 let bytes = buf.as_bytes();
                 if bytes.starts_with(b"ERR:") {
                     let msg = String::from_utf8_lossy(&bytes[4..]).into_owned();
@@ -222,14 +245,23 @@ fn compile(client: &JanetClient, code: &str) -> Result<Vec<u8>, CompileError> {
                     Ok(bytes.to_vec())
                 }
             }
-            // A compilation error gives us a struct
-            TaggedJanet::Struct(jstruct) => Err(destructure_wrapped_error(jstruct)),
+            // A compilation error gives us a struct, but so does successful compilation to
+            // a Janet struct
+            TaggedJanet::Struct(jstruct) => {
+                tracing::debug!("compilation failed: destructuring error");
+                Err(destructure_wrapped_error(jstruct))
+            }
             // We shouldn't see anything else
-            _ => Err(CompileError::Other(anyhow::anyhow!(
-                "Janet eval returned unexpected type: expected String or Struct, got {buf:?}"
-            ))),
+            _ => {
+                tracing::debug!("compilation failed: something crazy happened");
+                Err(CompileError::Other(anyhow::anyhow!(
+                    "Janet eval returned unexpected type: expected String or Struct, got {buf:?}"
+                )))
+            }
         },
         Err(e) => {
+            tracing::debug!("compilation failed");
+
             let err_desc = match e {
                 janetrs::client::Error::AlreadyInit => "AlreadyInit",
                 janetrs::client::Error::CompileError => "CompileError",

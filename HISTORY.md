@@ -1,5 +1,7 @@
 - Apply system certs before adding publishers.
 - Fix regression where numeric ZFS properties were always set.
+- Fix regression on `compile` command for Janet output.
+- Bring back fancy printing in `compile` command.
 - Add `--no-update` to `apply` command.
 
 ## v2.3.3 (2026-09-08)

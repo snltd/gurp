@@ -103,7 +103,7 @@ enum Commands {
         #[arg(short = 'N', long)]
         line_no: bool,
         /// When displaying compile Janet, use syntax colouring
-        #[arg(short = 'C', long)]
+        #[arg(short = 'C', long, alias = "color")]
         colour: bool,
         /// Output in the given format: 'jimage', 'janet', or 'json'
         #[arg(short, long, required = true, default_value = "json")]

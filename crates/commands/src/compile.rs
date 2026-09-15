@@ -1,5 +1,6 @@
 use anyhow::Context;
 use camino::Utf8Path;
+use common::info;
 use common::types::{ApplyOutputOpts, ApplyVmOpts, CompileOpts};
 use embed::compiler::{self, ConfigCompiler};
 use std::fs;
@@ -11,7 +12,11 @@ pub fn run(host_file: &Utf8Path, opts: &CompileOpts) -> ExitCode {
     let compiler = match compiler::ConfigCompiler::new(
         &ApplyVmOpts::default(),
         false,
-        ApplyOutputOpts::default(),
+        ApplyOutputOpts {
+            colour: opts.colour,
+            line_no: opts.line_no,
+            ..Default::default()
+        },
     ) {
         Ok(c) => c,
         Err(e) => {
@@ -35,7 +40,7 @@ pub fn run(host_file: &Utf8Path, opts: &CompileOpts) -> ExitCode {
     match result {
         Ok(_) => ExitCode::SUCCESS,
         Err(e) => {
-            tracing::error!("error compiling JSON: {e:#}");
+            tracing::error!("error compiling to {}: {e:#}", opts.format);
             ExitCode::FAILURE
         }
     }
@@ -49,11 +54,9 @@ fn compile_to_json(
     let compiled = compiler.janet_file(path, true)?;
 
     if let Some(out_file) = &opts.output_file {
-        fs::write(out_file, compiled)
-            .with_context(|| format!("error writing JSON to {out_file}"))?;
-        tracing::info!("wrote JSON to {out_file}");
+        write_file(out_file, &compiled, "JSON")?
     } else {
-        println!("{compiled}");
+        print_output(&compiled, opts.line_no)
     }
 
     Ok(())
@@ -67,11 +70,9 @@ fn compile_to_janet(
     let compiled = compiler.janet_file(path, false)?;
 
     if let Some(out_file) = &opts.output_file {
-        fs::write(out_file, compiled)
-            .with_context(|| format!("error writing Janet to {out_file}"))?;
-        tracing::info!("wrote Janet to {out_file}");
+        write_file(out_file, &compiled, "janet")?
     } else {
-        println!("{compiled}");
+        print_output(&compiled, opts.line_no)
     }
 
     Ok(())
@@ -95,4 +96,29 @@ fn compile_to_image(
 
     tracing::info!("wrote image file to '{output_path}'");
     Ok(())
+}
+
+fn write_file(path: &Utf8Path, compiled: &str, fmt: &str) -> anyhow::Result<()> {
+    fs::write(path, compiled).with_context(|| format!("error writing {fmt} to {path}"))?;
+    tracing::info!("wrote {fmt} to {path}");
+
+    Ok(())
+}
+
+fn print_output(output: &str, line_nos: bool) {
+    if line_nos {
+        println!(
+            "{}",
+            info::dump_config(
+                output,
+                None,
+                &ApplyOutputOpts {
+                    line_no: true,
+                    ..Default::default()
+                },
+            )
+        )
+    } else {
+        println!("{output}");
+    }
 }
