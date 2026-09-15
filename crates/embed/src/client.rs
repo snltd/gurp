@@ -6,7 +6,7 @@ use janetrs::env::CFunOptions;
 
 /// Returns a standard Janet client, with no Gurp library.
 pub fn vanilla() -> JanetClient {
-    tracing::debug!("Initialising janet client");
+    tracing::debug!("Initialising vanilla Janet client");
     JanetClient::init_with_default_env().expect("Failed to create Janet client")
 }
 
@@ -14,10 +14,13 @@ pub fn vanilla() -> JanetClient {
 /// (to-json) which turns any suitable Janet object into JSON.
 pub fn gurp(vmopts: &ApplyVmOpts, destroy: bool) -> anyhow::Result<JanetClient> {
     let mut client = vanilla();
+    tracing::debug!("Enriching Janet client");
+
     client.add_c_fn(CFunOptions::new(
         c"gurp-library",
         janet_cfuncs::gurp_library_c,
     ));
+
     client.add_c_fn(CFunOptions::new(c"to-json", janet_cfuncs::to_json_c));
 
     let mut janet_instructions =
@@ -28,6 +31,7 @@ pub fn gurp(vmopts: &ApplyVmOpts, destroy: bool) -> anyhow::Result<JanetClient> 
         c"run-safe-cmd",
         janet_cfuncs::run_safe_cmd_c,
     ));
+
     client.add_c_fn(CFunOptions::new(c"run-cmd", janet_cfuncs::run_cmd_c));
 
     janet_instructions.push_str(&format!(
@@ -45,9 +49,10 @@ pub fn gurp(vmopts: &ApplyVmOpts, destroy: bool) -> anyhow::Result<JanetClient> 
         janet_instructions.push_str(&define_string(vmopts));
     }
 
-    tracing::debug!("creating Janet client with Gurp environment");
+    tracing::debug!("creating new Janet client with Gurp environment");
     client.run(janet_instructions)?;
     tracing::debug!("successfully created Gurp client");
+
     Ok(client)
 }
 

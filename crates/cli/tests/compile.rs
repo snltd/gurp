@@ -4,23 +4,25 @@ mod test {
     use pretty_assertions::assert_eq;
     use snltest::{cwd, fixture, load_fixture};
 
+    const SOURCE_FILES: [&str; 9] = [
+        "backup",
+        "dev-server",
+        "grafana",
+        "mariadb",
+        "minidlna",
+        "pkg-server",
+        "records",
+        "remover",
+        "serv-zones",
+    ];
+
     #[test]
     #[ignore]
     fn test_compile_to_json() {
         let canonical_test_dir = "/home/rob/work/gurp/cli";
         let test_dir = cwd().to_string();
 
-        for host in [
-            "backup",
-            "dev-server",
-            "grafana",
-            "mariadb",
-            "minidlna",
-            "pkg-server",
-            "records",
-            "remover",
-            "serv-zones",
-        ] {
+        for host in SOURCE_FILES {
             let canonical_json = load_fixture!(&format!("compile/outputs/{host}.json"));
             let expected_json = canonical_json.replace(canonical_test_dir, &test_dir);
 
@@ -37,5 +39,57 @@ mod test {
 
             assert_eq!(actual, expected);
         }
+    }
+
+    #[test]
+    #[ignore]
+    fn test_compile_to_jimage() {
+        let (_tp, outdir) = snltest::fixture_dir("janet-test", vec![]);
+
+        for host in SOURCE_FILES {
+            assert!(outdir.exists());
+            let outfile = outdir.join("out.jimage");
+
+            cargo_bin_cmd!("gurp")
+                .arg("compile")
+                .arg(fixture!(&format!("compile/inputs/{host}.janet")))
+                .arg(format!("--output-file={outfile}"))
+                .arg("--format=jimage")
+                .assert()
+                .success();
+
+            assert!(outfile.exists());
+
+            let size = outfile.metadata().unwrap().len();
+            // Failed compiles will be about 100 bytes long.
+            println!("{size}");
+            assert!(size > 10000);
+        }
+    }
+
+    #[test]
+    #[ignore]
+    fn test_compile_to_janet() {
+        // let (_tp, outdir) = snltest::fixture_dir("janet-test", vec![]);
+
+        // for host in SOURCE_FILES {
+        // assert!(outdir.exists());
+        // let outfile = outdir.join("out.jimage");
+
+        // .arg(fixture!(&format!("compile/inputs/{host}.janet")))
+
+        cargo_bin_cmd!("gurp")
+            .arg("compile")
+            .arg(fixture!("compile/inputs/grafana.janet"))
+            .arg("--format=janet")
+            .assert()
+            .stdout("GIB");
+
+        // assert!(outfile.exists());
+
+        // let size = outfile.metadata().unwrap().len();
+        // println!("{size}");
+        // assert!(size > 100);
+        // }
     }
 }

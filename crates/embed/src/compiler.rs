@@ -12,7 +12,7 @@ use util::json;
 //
 /// A JsonCompiler turns Janet config into a JSON string
 pub struct ConfigCompiler {
-    client: JanetClient,
+    pub client: JanetClient,
     output_opts: ApplyOutputOpts,
 }
 
@@ -246,7 +246,7 @@ fn compile(client: &JanetClient, code: &str) -> Result<Vec<u8>, CompileError> {
 }
 
 /// Used in server mode to create a Janet jimage of a machine config
-pub fn to_jimage(path: &Utf8Path) -> Result<Vec<u8>, CompileError> {
+pub fn to_jimage(client: Option<&JanetClient>, path: &Utf8Path) -> Result<Vec<u8>, CompileError> {
     if !path.exists() {
         return Err(CompileError::FileNotFound(path.to_owned()));
     }
@@ -257,8 +257,12 @@ pub fn to_jimage(path: &Utf8Path) -> Result<Vec<u8>, CompileError> {
         .context("cannot get host config dir")
         .map_err(CompileError::Other)?;
 
-    let client =
-        client::gurp(&ApplyVmOpts::default(), false).map_err(CompileError::ClientCreate)?;
+    let client = match client {
+        Some(c) => c,
+        None => {
+            &client::gurp(&ApplyVmOpts::default(), false).map_err(CompileError::ClientCreate)?
+        }
+    };
 
     let janet_instructions = indoc::formatdoc! { r#"
         (def build-env (make-env (fiber/getenv (fiber/root))))
@@ -268,7 +272,7 @@ pub fn to_jimage(path: &Utf8Path) -> Result<Vec<u8>, CompileError> {
         (make-image build-env)
         "#};
 
-    compile(&client, &janet_instructions)
+    compile(client, &janet_instructions)
 }
 
 #[cfg(test)]
@@ -298,7 +302,7 @@ mod test {
 
     #[test]
     fn test_to_jimage() {
-        let image = to_jimage(&fixture("basic_config.janet")).unwrap();
+        let image = to_jimage(None, &fixture("basic_config.janet")).unwrap();
         assert!(image.len() > 100); // if it fails it's 10b long
     }
 

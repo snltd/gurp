@@ -6,6 +6,8 @@ use std::fs;
 use std::process::ExitCode;
 
 pub fn run(host_file: &Utf8Path, opts: &CompileOpts) -> ExitCode {
+    tracing::debug!("creating ConfigCompiler");
+
     let compiler = match compiler::ConfigCompiler::new(
         &ApplyVmOpts::default(),
         false,
@@ -18,10 +20,12 @@ pub fn run(host_file: &Utf8Path, opts: &CompileOpts) -> ExitCode {
         }
     };
 
+    tracing::debug!("compiling source");
+
     let result = match opts.format.as_str() {
         "json" => compile_to_json(&compiler, host_file, opts),
         "janet" => compile_to_janet(&compiler, host_file, opts),
-        "jimage" => compile_to_image(host_file, opts),
+        "jimage" => compile_to_image(&compiler, host_file, opts),
         _ => {
             tracing::error!("format must be janet, json or jimage");
             return ExitCode::FAILURE;
@@ -73,13 +77,18 @@ fn compile_to_janet(
     Ok(())
 }
 
-fn compile_to_image(path: &Utf8Path, opts: &CompileOpts) -> anyhow::Result<()> {
+fn compile_to_image(
+    compiler: &ConfigCompiler,
+    path: &Utf8Path,
+    opts: &CompileOpts,
+) -> anyhow::Result<()> {
     let output_path = &opts
         .output_file
         .as_ref()
         .context("writing an image requires an output path")?;
 
-    let image_data = compiler::to_jimage(path).context("error compiling image file")?;
+    let image_data =
+        compiler::to_jimage(Some(&compiler.client), path).context("error compiling image file")?;
 
     fs::write(output_path, image_data)
         .with_context(|| format!("error writing image file {output_path}"))?;

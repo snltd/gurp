@@ -72,7 +72,7 @@ pub async fn config(
 
         match params.format.as_str() {
             "jimage" => {
-                match compiler::to_jimage(&host_file) {
+                match compiler::to_jimage(None, &host_file) {
                     Ok(body) => {
                         // jimage is a vec<u8> so it's automatically application/octet-stream
                         let bytes = body.len();
