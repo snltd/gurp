@@ -67,7 +67,9 @@ pub(crate) fn compile(
         let mut json_compiler =
             compiler::ConfigCompiler::new(&opts.vm, opts.destroy, opts.output.clone())?;
 
-        if let Some(path) = path {
+        if let Some(path) = path
+            && !opts.image
+        {
             // local Janet config
             json_compiler.janet_file(path, true)
         } else if let Some(snippet) = &opts.exec {

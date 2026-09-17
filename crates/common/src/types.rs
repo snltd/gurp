@@ -54,6 +54,8 @@ pub struct ApplyOutputOpts {
 #[derive(Debug, Default, Clone)]
 pub struct ApplyVmOpts {
     pub define: Vec<String>,
+    pub syspath: Utf8PathBuf,
+    pub gurp_config_root: Utf8PathBuf,
 }
 
 /// User-supplied flags which affect behaviour in client mode
