@@ -913,7 +913,6 @@ dependencies = [
  "pretty_assertions",
  "serde_json",
  "snltest",
- "tester",
  "tracing",
  "util",
  "walkdir",

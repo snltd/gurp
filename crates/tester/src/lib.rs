@@ -12,12 +12,9 @@ pub fn my_group() -> String {
     Group::from_gid(getgid()).unwrap().unwrap().name
 }
 
-pub fn test_vm_opts() -> ApplyVmOpts {
-    ApplyVmOpts::from_file("/tmp".into()).unwrap()
-}
-
 pub fn janet2json(janet_defn: &str) -> String {
-    let client = client::gurp(&test_vm_opts()).expect("janet2json failed to create gurp client");
+    let client = client::gurp(&ApplyVmOpts::from_file("/tmp".into()).unwrap())
+        .expect("janet2json failed to create gurp client");
     let janet_instructions = format!("(to-json {janet_defn})");
 
     let ret = match client.run(&janet_instructions) {

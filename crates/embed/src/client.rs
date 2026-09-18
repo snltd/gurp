@@ -119,7 +119,6 @@ pub fn define_string(vmopts: &ApplyVmOpts) -> String {
 mod tests {
     use super::*;
     use crate::convert;
-    use tester::test_vm_opts;
 
     #[test]
     fn test_vanilla_client() {
@@ -129,7 +128,7 @@ mod tests {
 
     #[test]
     fn test_gurp_client() {
-        let client = gurp(&test_vm_opts()).unwrap();
+        let client = gurp(&ApplyVmOpts::from_file("/tmp".into()).unwrap()).unwrap();
         assert_eq!(3, convert::janet_to_json(&client.run("(+ 1 2)").unwrap()));
 
         assert_eq!(

@@ -291,7 +291,6 @@ mod test {
     use snltest::fixture;
     use std::fs;
     use std::io::Write;
-    use tester::test_vm_opts;
 
     fn compiled_file(path: &Utf8Path) -> Result<String, common::types::CompileError> {
         ConfigCompiler::new(
@@ -403,6 +402,10 @@ mod test {
     }
 
     fn snippet_compiler() -> ConfigCompiler {
-        ConfigCompiler::new(&test_vm_opts(), ApplyOutputOpts::default()).unwrap()
+        ConfigCompiler::new(
+            &ApplyVmOpts::from_file("/tmp".into()).unwrap(),
+            ApplyOutputOpts::default(),
+        )
+        .unwrap()
     }
 }
