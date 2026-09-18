@@ -24,9 +24,14 @@ fn check_config(path: &Utf8Path) -> anyhow::Result<bool> {
 
     let parent = path
         .parent()
-        .with_context(|| format!("cannot get parent of {path}"))?;
+        .with_context(|| format!("cannot get parent of {path}"))?
+        .to_owned();
 
-    let client = client::gurp(&ApplyVmOpts::default(), false)?;
+    let client = client::gurp(&ApplyVmOpts {
+        syspath: parent.clone(),
+        gurp_config_root: parent.clone(),
+        ..Default::default()
+    })?;
 
     // flycheck always returns nil, so the easiest thing to do is pass the
     // exit flag and let the interpreter exit for us

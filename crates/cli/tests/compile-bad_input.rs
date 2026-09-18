@@ -39,7 +39,7 @@ mod test {
             .assert()
             .failure()
             .stdout(predicate::str::contains(
-                "missing file error: /no/such/file.janet",
+                "/no/such/file.janet: No such file or directory",
             ));
     }
 

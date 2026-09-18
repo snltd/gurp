@@ -63,7 +63,7 @@ mod test {
             .arg(fixture!("apply/def-test.jimage"))
             .assert()
             .success()
-            // .stdout(predicate::str::contains("crates/cli/tests/resources/apply"))
+            .stdout(predicate::str::contains("crates/cli/tests/resources/apply"))
             .stdout(predicate::str::contains("found a definition"));
     }
 }

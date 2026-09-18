@@ -220,7 +220,7 @@ mod test {
         );
 
         assert!(logs_contain(
-            "ERROR file_does_not_compile: commands::apply::command: could not generate \
+            "ERROR file_does_not_compile: cmd::apply::command: could not generate \
             config: compilation error: In directory/ensure /tmp/testdir: unexpected \
             property :bad-key."
         ));

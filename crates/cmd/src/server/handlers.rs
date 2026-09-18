@@ -6,7 +6,7 @@ use axum::response::IntoResponse;
 use camino::{Utf8Path, Utf8PathBuf};
 use common::constants::GURP_VERSION;
 use common::types::{ApplyOutputOpts, ApplyVmOpts, ServerOpts};
-use embed::compiler;
+use embed::{client, compiler};
 use mime_guess::from_path;
 use serde::Serialize;
 use serde_json::json;
@@ -70,9 +70,29 @@ pub async fn config(
             params.format
         );
 
+        // I think we should spawn a new client for each request. It's lightweight.
+
+        let vm_opts = ApplyVmOpts {
+            define: Vec::new(),
+            syspath: opts.config_dir.clone(),
+            gurp_config_root: opts.config_dir.clone(),
+            destroy_everything_you_touch: false,
+        };
+
+        let client = match client::gurp(&vm_opts) {
+            Ok(client) => client,
+            Err(e) => {
+                tracing::error!(
+                    remote_host = remote_host_name.to_string(),
+                    message = format!("failed to initialize Janet client: {e}"),
+                );
+                return error_response(e);
+            }
+        };
+
         match params.format.as_str() {
             "jimage" => {
-                match compiler::to_jimage(None, &host_file) {
+                match compiler::to_jimage(&client, &host_file) {
                     Ok(body) => {
                         // jimage is a vec<u8> so it's automatically application/octet-stream
                         let bytes = body.len();
@@ -98,17 +118,14 @@ pub async fn config(
                 }
             }
             "json" => {
-                let compiler = match compiler::ConfigCompiler::new(
-                    &ApplyVmOpts::default(),
-                    false,
-                    ApplyOutputOpts::default(),
-                ) {
-                    Ok(c) => c,
-                    Err(e) => {
-                        tracing::error!("cannot create ConfigCompiler");
-                        return error_response(e.into());
-                    }
-                };
+                let compiler =
+                    match compiler::ConfigCompiler::new(&vm_opts, ApplyOutputOpts::default()) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            tracing::error!("cannot create ConfigCompiler");
+                            return error_response(e.into());
+                        }
+                    };
 
                 match compiler.janet_file(&host_file, true) {
                     Ok(config) => {

@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{Context, bail};
 use camino::Utf8Path;
 use common::info;
 use common::types::{ApplyOutputOpts, ApplyVmOpts, CompileOpts};
@@ -7,42 +7,35 @@ use std::fs;
 use std::process::ExitCode;
 
 pub fn run(host_file: &Utf8Path, opts: &CompileOpts) -> ExitCode {
-    tracing::debug!("creating ConfigCompiler");
+    match _run(host_file, opts) {
+        Ok(_) => ExitCode::SUCCESS,
+        Err(e) => {
+            tracing::error!("error: {e:#}");
+            ExitCode::FAILURE
+        }
+    }
+}
 
-    let compiler = match compiler::ConfigCompiler::new(
-        &ApplyVmOpts::default(),
-        false,
+fn _run(host_file: &Utf8Path, opts: &CompileOpts) -> anyhow::Result<()> {
+    tracing::debug!("creating ConfigCompiler");
+    let vm_opts = ApplyVmOpts::from_file(host_file)?;
+
+    let compiler = compiler::ConfigCompiler::new(
+        &vm_opts,
         ApplyOutputOpts {
             colour: opts.colour,
             line_no: opts.line_no,
             ..Default::default()
         },
-    ) {
-        Ok(c) => c,
-        Err(e) => {
-            tracing::error!("cannot create ConfigCompiler: {e:#}");
-            return ExitCode::FAILURE;
-        }
-    };
+    )?;
 
     tracing::debug!("compiling source");
 
-    let result = match opts.format.as_str() {
+    match opts.format.as_str() {
         "json" => compile_to_json(&compiler, host_file, opts),
         "janet" => compile_to_janet(&compiler, host_file, opts),
         "jimage" => compile_to_image(&compiler, host_file, opts),
-        _ => {
-            tracing::error!("format must be janet, json or jimage");
-            return ExitCode::FAILURE;
-        }
-    };
-
-    match result {
-        Ok(_) => ExitCode::SUCCESS,
-        Err(e) => {
-            tracing::error!("error compiling to {}: {e:#}", opts.format);
-            ExitCode::FAILURE
-        }
+        _ => bail!("format must be janet, json or jimage"),
     }
 }
 
@@ -89,7 +82,7 @@ fn compile_to_image(
         .context("writing an image requires an output path")?;
 
     let image_data =
-        compiler::to_jimage(Some(&compiler.client), path).context("error compiling image file")?;
+        compiler::to_jimage(&compiler.client, path).context("error compiling image file")?;
 
     fs::write(output_path, image_data)
         .with_context(|| format!("error writing image file {output_path}"))?;
