@@ -1,6 +1,7 @@
 //! Collections of types mostly relating to user input
 
-use camino::Utf8PathBuf;
+use anyhow::Context;
+use camino::{Utf8Path, Utf8PathBuf};
 use os_types::GurpId;
 use std::collections::BTreeSet;
 use std::ops::{Add, AddAssign};
@@ -18,7 +19,6 @@ pub struct ApplyOpts {
     pub noop: bool,
     pub precompiled: bool,
     pub image: bool,
-    pub destroy: bool,
     pub exec: Option<String>,
     pub no_lock: bool,
     pub no_report: bool,
@@ -32,6 +32,8 @@ pub struct ApplyOpts {
     pub client: ApplyClientOpts,
     pub globals: GlobalOpts,
     pub splay: Option<u64>,
+    pub syspath: Option<Utf8PathBuf>,
+    pub gurp_config_root: Option<Utf8PathBuf>,
 }
 
 /// Used to pass checksums around
@@ -54,6 +56,38 @@ pub struct ApplyOutputOpts {
 #[derive(Debug, Default, Clone)]
 pub struct ApplyVmOpts {
     pub define: Vec<String>,
+    pub syspath: Utf8PathBuf,
+    pub gurp_config_root: Utf8PathBuf,
+    pub destroy_everything_you_touch: bool,
+}
+
+impl ApplyVmOpts {
+    pub fn from_file(path: &Utf8Path) -> anyhow::Result<Self> {
+        let host_file = path
+            .canonicalize_utf8()
+            .with_context(|| format!("cannot canonicalize from_file {path}"))?;
+
+        let host_config_dir = host_file
+            .parent()
+            .with_context(|| format!("cannot get parent of {host_file}"))?;
+
+        Self::from_dir(host_config_dir)
+    }
+
+    pub fn from_dir(path: &Utf8Path) -> anyhow::Result<Self> {
+        let dir = path
+            .canonicalize_utf8()
+            .with_context(|| format!("cannot canonicalize from_dir {path}"))?
+            .to_owned();
+
+        let ret = Self {
+            syspath: dir.clone(),
+            gurp_config_root: dir,
+            ..Default::default()
+        };
+
+        Ok(ret)
+    }
 }
 
 /// User-supplied flags which affect behaviour in client mode
@@ -165,4 +199,4 @@ pub type JsonConfig = String;
 pub type VlanID = u16;
 pub type ChangedIds = BTreeSet<GurpId>;
 
-pub type GurpMetric<'a> = (&'a str, &'a str, u128);
+pub type GurpMetric<'a> = (&'a str, &'a str, u128); //

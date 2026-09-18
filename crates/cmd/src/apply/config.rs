@@ -1,12 +1,13 @@
 //! Functions which load user config
 
+use anyhow::Context;
 use camino::Utf8Path;
 use common::info;
-use common::types::{ApplyClientOpts, ApplyOpts, CompileError, JsonConfig};
+use common::types::{ApplyClientOpts, ApplyOpts, ApplyVmOpts, CompileError, JsonConfig};
 use embed::compiler;
-use std::{env, fs};
+use std::fs;
 use util::info as util_info;
-use util::{http, json};
+use util::{file, http, json};
 
 /// Get content from either a remote server or a local file. Used for precompiled JSON
 /// and jimages
@@ -33,15 +34,7 @@ pub(crate) fn load(
 
 /// Turn a snippet supplied with --exec into runnable config
 pub(crate) fn from_snippet(snippet: &str) -> Result<String, CompileError> {
-    let cwd = env::current_dir()
-        .map_err(CompileError::Io)?
-        .to_string_lossy()
-        .to_string();
-
     Ok(indoc::formatdoc! { r#"
-        (setdyn *syspath* "{cwd}")
-        (setdyn :gurp-config-root "{cwd}")
-
         (host "gurp-runner"
             {snippet})
 
@@ -64,10 +57,53 @@ pub(crate) fn compile(
         let raw = load(path, &opts.client, "json")?;
         String::from_utf8(raw).map_err(|e| CompileError::Other(e.into()))
     } else {
-        let mut json_compiler =
-            compiler::ConfigCompiler::new(&opts.vm, opts.destroy, opts.output.clone())?;
+        let config_dir = if let Some(path) = path {
+            if !path.exists() {
+                return Err(CompileError::FileNotFound(path.to_path_buf()));
+            }
 
-        if let Some(path) = path {
+            let host_file = path
+                .canonicalize_utf8()
+                .with_context(|| format!("failed to canonicalize host file at {path}"))
+                .map_err(CompileError::Other)?;
+
+            let config_dir = host_file
+                .parent()
+                .with_context(|| format!("cannot get parent of host file at {path}"))
+                .map_err(CompileError::Other)?;
+
+            config_dir.to_owned()
+        } else {
+            file::current_dir().map_err(CompileError::Other)?
+        };
+
+        let syspath = match &opts.syspath {
+            Some(path) => path
+                .canonicalize_utf8()
+                .with_context(|| format!("failed to canonicalize syspath {path}"))
+                .map_err(CompileError::Other)?,
+            None => config_dir.clone(),
+        };
+
+        let gurp_config_root = match &opts.gurp_config_root {
+            Some(path) => path
+                .canonicalize_utf8()
+                .with_context(|| format!("failed to canonicalize gurp_config_root {path}"))
+                .map_err(CompileError::Other)?,
+            None => config_dir.clone(),
+        };
+
+        let vm_opts = ApplyVmOpts {
+            syspath,
+            gurp_config_root,
+            ..opts.vm.clone()
+        };
+
+        let mut json_compiler = compiler::ConfigCompiler::new(&vm_opts, opts.output.clone())?;
+
+        if let Some(path) = path
+            && !opts.image
+        {
             // local Janet config
             json_compiler.janet_file(path, true)
         } else if let Some(snippet) = &opts.exec {

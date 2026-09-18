@@ -2,4 +2,5 @@
 /target
 *.tested
 *.jimage
+!crates/cli/tests/resources/apply/def-test.jimage
 *.hash

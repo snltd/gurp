@@ -41,6 +41,12 @@ enum Commands {
         /// Say what would happen, without actually doing it
         #[arg(short, long)]
         noop: bool,
+        /// Set the *syspath* dyn (defaults to parent of HOST_CONFIG_FILE, or cwd if used with --execute)
+        #[arg(long, conflicts_with = "server")]
+        syspath: Option<Utf8PathBuf>,
+        /// Set the :gurp-config-root dyn (defaults parent of HOST_CONFIG_FILE, or cwd if used with --execute)
+        #[arg(long, conflicts_with = "server")]
+        gurp_config_root: Option<Utf8PathBuf>,
         /// Define a constant which can be accessed from config
         #[arg(short = 'D', long = "define")]
         define: Vec<String>,
@@ -103,7 +109,7 @@ enum Commands {
         #[arg(short = 'N', long)]
         line_no: bool,
         /// When displaying compile Janet, use syntax colouring
-        #[arg(short = 'C', long)]
+        #[arg(short = 'C', long, alias = "color")]
         colour: bool,
         /// Output in the given format: 'jimage', 'janet', or 'json'
         #[arg(short, long, required = true, default_value = "json")]
@@ -137,10 +143,10 @@ enum Commands {
     },
     /// Open a Janet REPL with the Gurp library already loaded into the root environment
     Repl {
-        /// Set the *syspath* dyn
+        /// Set the *syspath* dyn (defaults to cwd)
         #[arg(long, default_value_t = file::current_dir().expect("cannot get cwd"))]
         syspath: Utf8PathBuf,
-        /// Set the :gurp-config-root dyn
+        /// Set the :gurp-config-root dyn (defaults to cwd)
         #[arg(long, default_value_t = file::current_dir().expect("cannot get cwd"))]
         gurp_config_root: Utf8PathBuf,
         /// Define a constant which can be accessed from the REPL
@@ -158,40 +164,41 @@ enum Commands {
 fn main() -> ExitCode {
     let cli = Cli::parse();
 
-    let global_opts = GlobalOpts {
+    let globals = GlobalOpts {
         metrics_to: cli.metrics_to,
         logs_to: cli.logs_to,
     };
 
     match cli.command {
         Commands::Apply {
-            host_config_file,
-            noop,
+            colour,
+            define,
+            destroy_everything_you_touch,
             dump_configs,
             dump_diffs,
-            colour,
-            line_no,
-            precompiled,
-            server,
-            hostname,
             exec,
-            destroy_everything_you_touch,
+            gurp_config_root,
+            host_config_file,
+            hostname,
             image,
+            line_no,
             no_lock,
             no_report,
             no_update,
-            pre_run_noop,
-            post_run_noop,
-            remove_first,
+            noop,
             only,
+            post_run_noop,
+            pre_run_noop,
+            precompiled,
+            remove_first,
+            server,
             splay,
-            define,
+            syspath,
         } => {
             let opts = ApplyOpts {
                 noop,
                 precompiled,
                 exec,
-                destroy: destroy_everything_you_touch,
                 image,
                 no_lock,
                 no_report,
@@ -207,9 +214,15 @@ fn main() -> ExitCode {
                     dump_configs,
                     dump_diffs,
                 },
-                vm: ApplyVmOpts { define },
+                syspath,
+                gurp_config_root,
+                vm: ApplyVmOpts {
+                    destroy_everything_you_touch,
+                    define,
+                    ..Default::default()
+                },
                 client: ApplyClientOpts { server, hostname },
-                globals: global_opts,
+                globals,
             };
 
             let providers = match init::init_telemetry("gurp", &opts.globals) {
@@ -220,9 +233,9 @@ fn main() -> ExitCode {
                 }
             };
 
-            commands::apply::command::run(host_config_file.as_deref(), &opts, providers)
+            cmd::apply::command::run(host_config_file.as_deref(), &opts, providers)
         }
-        Commands::Check { path } => commands::check::run(&path),
+        Commands::Check { path } => cmd::check::run(&path),
         Commands::Compile {
             line_no,
             host_config_file,
@@ -238,7 +251,7 @@ fn main() -> ExitCode {
             };
 
             init::init_stdout_logging();
-            commands::compile::run(&host_config_file, &opts)
+            cmd::compile::run(&host_config_file, &opts)
         }
         Commands::Completions { shell } => {
             match shell.as_str() {
@@ -261,18 +274,23 @@ fn main() -> ExitCode {
         Commands::Describe {
             resource,
             no_colour,
-        } => commands::describe::run(&resource, no_colour),
-        Commands::Doers { no_colour } => commands::doers::run(no_colour),
+        } => cmd::describe::run(&resource, no_colour),
+        Commands::Doers { no_colour } => cmd::doers::run(no_colour),
         Commands::Repl {
             define,
             syspath,
             gurp_config_root,
         } => {
-            let opts = ApplyVmOpts { define };
-            commands::repl::run(&opts, &syspath, &gurp_config_root)
+            let vm_opts = ApplyVmOpts {
+                define,
+                syspath,
+                gurp_config_root,
+                destroy_everything_you_touch: false,
+            };
+            cmd::repl::run(&vm_opts)
         }
         Commands::Server { config_dir } => {
-            let providers = match init::init_telemetry("gurp.server", &global_opts) {
+            let providers = match init::init_telemetry("gurp.server", &globals) {
                 Ok(p) => p,
                 Err(e) => {
                     eprintln!("error initialising telemetry: {e}");
@@ -280,7 +298,7 @@ fn main() -> ExitCode {
                 }
             };
 
-            commands::server::command::run(ServerOpts { config_dir }, providers)
+            cmd::server::command::run(ServerOpts { config_dir }, providers)
         }
     }
 }

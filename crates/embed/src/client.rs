@@ -1,4 +1,5 @@
 use super::janet_cfuncs;
+use anyhow::Context;
 use common::constants::SANDBOX_FORBIDDEN_CAPABILITIES;
 use common::types::ApplyVmOpts;
 use janetrs::client::JanetClient;
@@ -6,28 +7,50 @@ use janetrs::env::CFunOptions;
 
 /// Returns a standard Janet client, with no Gurp library.
 pub fn vanilla() -> JanetClient {
-    tracing::debug!("Initialising janet client");
+    tracing::debug!("Initialising vanilla Janet client");
     JanetClient::init_with_default_env().expect("Failed to create Janet client")
 }
 
 /// Returns a Janet client with the Gurp library in the root environment. Also includes
 /// (to-json) which turns any suitable Janet object into JSON.
-pub fn gurp(vmopts: &ApplyVmOpts, destroy: bool) -> anyhow::Result<JanetClient> {
+pub fn gurp(vm_opts: &ApplyVmOpts) -> anyhow::Result<JanetClient> {
     let mut client = vanilla();
+    tracing::debug!("enriching Janet client");
+
+    let c_syspath = vm_opts
+        .syspath
+        .canonicalize_utf8()
+        .with_context(|| format!("cannot canonicalize syspath: {}", vm_opts.syspath))?;
+
+    let c_config_root = vm_opts
+        .gurp_config_root
+        .canonicalize_utf8()
+        .with_context(|| {
+            format!(
+                "cannot canonicalize gurp_config_root: {}",
+                vm_opts.gurp_config_root
+            )
+        })?;
+
     client.add_c_fn(CFunOptions::new(
         c"gurp-library",
         janet_cfuncs::gurp_library_c,
     ));
+
     client.add_c_fn(CFunOptions::new(c"to-json", janet_cfuncs::to_json_c));
 
-    let mut janet_instructions =
-        r#"(merge-module (fiber/getenv (fiber/root)) (load-image (gurp-library)) "" true)"#
-            .to_owned();
+    let mut janet_instructions = indoc::formatdoc! {r#"
+        (setdyn *syspath* "{c_syspath}")
+        (setdyn :gurp-config-root "{c_config_root}")
+        (merge-module (fiber/getenv (fiber/root)) (load-image (gurp-library)) "" true)
+        "#
+    };
 
     client.add_c_fn(CFunOptions::new(
         c"run-safe-cmd",
         janet_cfuncs::run_safe_cmd_c,
     ));
+
     client.add_c_fn(CFunOptions::new(c"run-cmd", janet_cfuncs::run_cmd_c));
 
     janet_instructions.push_str(&format!(
@@ -35,19 +58,20 @@ pub fn gurp(vmopts: &ApplyVmOpts, destroy: bool) -> anyhow::Result<JanetClient> 
         SANDBOX_FORBIDDEN_CAPABILITIES.join(" ")
     ));
 
-    if destroy {
+    if vm_opts.destroy_everything_you_touch {
         janet_instructions.push_str(&destroyer_string());
     }
 
-    if vmopts.define.is_empty() {
+    if vm_opts.define.is_empty() {
         janet_instructions.push_str(r#"(setdyn :gurp-user-defs {})"#);
     } else {
-        janet_instructions.push_str(&define_string(vmopts));
+        janet_instructions.push_str(&define_string(vm_opts));
     }
 
-    tracing::debug!("creating Janet client with Gurp environment");
+    tracing::debug!("creating new Janet client with Gurp environment");
     client.run(janet_instructions)?;
     tracing::debug!("successfully created Gurp client");
+
     Ok(client)
 }
 
@@ -104,7 +128,7 @@ mod tests {
 
     #[test]
     fn test_gurp_client() {
-        let client = gurp(&ApplyVmOpts::default(), false).unwrap();
+        let client = gurp(&ApplyVmOpts::from_file("/tmp".into()).unwrap()).unwrap();
         assert_eq!(3, convert::janet_to_json(&client.run("(+ 1 2)").unwrap()));
 
         assert_eq!(
@@ -122,6 +146,7 @@ mod tests {
     fn test_define_string() {
         let opts = ApplyVmOpts {
             define: vec!["boolean".to_owned(), "key=value".to_owned()],
+            ..Default::default()
         };
 
         assert_eq!(

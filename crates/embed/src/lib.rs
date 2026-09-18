@@ -1,6 +1,3 @@
-#[cfg(test)]
-pub mod tester;
-
 pub mod client;
 pub mod compiler;
 pub mod constants;

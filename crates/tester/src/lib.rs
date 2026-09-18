@@ -13,7 +13,7 @@ pub fn my_group() -> String {
 }
 
 pub fn janet2json(janet_defn: &str) -> String {
-    let client = client::gurp(&ApplyVmOpts::default(), false)
+    let client = client::gurp(&ApplyVmOpts::from_file("/tmp".into()).unwrap())
         .expect("janet2json failed to create gurp client");
     let janet_instructions = format!("(to-json {janet_defn})");
 

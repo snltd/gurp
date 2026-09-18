@@ -12,18 +12,13 @@ use util::json;
 //
 /// A JsonCompiler turns Janet config into a JSON string
 pub struct ConfigCompiler {
-    client: JanetClient,
+    pub client: JanetClient,
     output_opts: ApplyOutputOpts,
 }
 
 impl ConfigCompiler {
-    pub fn new(
-        vm_opts: &ApplyVmOpts,
-        destroy_everything_you_touch: bool,
-        output_opts: ApplyOutputOpts,
-    ) -> Result<Self, CompileError> {
-        let client =
-            client::gurp(vm_opts, destroy_everything_you_touch).map_err(CompileError::Other)?;
+    pub fn new(vm_opts: &ApplyVmOpts, output_opts: ApplyOutputOpts) -> Result<Self, CompileError> {
+        let client = client::gurp(vm_opts).map_err(CompileError::Other)?;
 
         Ok(Self {
             client,
@@ -37,26 +32,16 @@ impl ConfigCompiler {
             return Err(CompileError::FileNotFound(path.to_owned()));
         }
 
-        let host_file = path
-            .canonicalize_utf8()
-            .with_context(|| format!("failed to canonicalize {path}"))
-            .map_err(CompileError::Other)?;
-
-        let config_dir = host_file
-            .parent()
-            .context("cannot get parent of config file")
-            .map_err(CompileError::Other)?;
-
         let final_cmd = if to_json {
             "(to-json (eval '(machine-config)))"
+        } else if self.output_opts.colour {
+            r#"(string/format "%M" (eval '(machine-config)))"#
         } else {
-            "(eval '(machine-config))"
+            r#"(string/format "%m" (eval '(machine-config)))"#
         };
 
         let janet_instructions = indoc::formatdoc! { r#"
-            (setdyn *syspath* "{config_dir}")
-            (setdyn :gurp-config-root "{config_dir}")
-            (merge-module (curenv) (dofile "{host_file}" :env (curenv)) "" true)
+            (merge-module (curenv) (dofile "{path}" :env (curenv)) "" true)
             {final_cmd}"#};
 
         if self.output_opts.dump_configs {
@@ -66,7 +51,11 @@ impl ConfigCompiler {
             );
         }
 
-        self.compile_to_string(&janet_instructions)
+        if to_json {
+            self.compile_to_json(&janet_instructions)
+        } else {
+            self.compile_to_string(&janet_instructions)
+        }
     }
 
     // Get a string by compiling a snippet of Janet
@@ -92,7 +81,7 @@ impl ConfigCompiler {
             );
         }
 
-        self.compile_to_string(&janet_instructions)
+        self.compile_to_json(&janet_instructions)
     }
 
     pub fn janet_image(
@@ -125,11 +114,24 @@ impl ConfigCompiler {
             (to-json (eval '(machine-config)))
     "#};
 
-        self.compile_to_string(&janet_instructions)
+        self.compile_to_json(&janet_instructions)
     }
 
     // Wrapper for compile() for when we want to get a JSON string
-    fn compile_to_string(&self, code: &str) -> Result<JsonConfig, CompileError> {
+    fn compile_to_string(&self, code: &str) -> Result<String, CompileError> {
+        let compiled_bytes = compile(&self.client, code)?;
+
+        let ret = String::from_utf8(compiled_bytes).map_err(|e| {
+            CompileError::Other(anyhow::anyhow!(
+                "cannot convert compiled bytes to string: {e}"
+            ))
+        })?;
+
+        Ok(ret)
+    }
+
+    // Wrapper for compile() for when we want to get a JSON string
+    fn compile_to_json(&self, code: &str) -> Result<JsonConfig, CompileError> {
         let compiled_bytes = compile(&self.client, code)?;
 
         let raw_json = String::from_utf8(compiled_bytes).map_err(|e| {
@@ -143,20 +145,17 @@ impl ConfigCompiler {
     }
 }
 
-/// Trying to compile invalid Janet causes a Janet panic, with a stack trace
-/// dumped to stderr. We want to capture the error so we can act accordingly,
-/// and the stack trace so we can pass it back to a client from a server.
+/// Trying to compile invalid Janet causes a Janet panic, with a stack trace dumped to stderr. We
+/// want to capture the error so we can act accordingly, as well as the stack trace so we can pass
+/// it back to a client from a server.
 ///
-/// To do this we wrap the Janet so it runs in a fiber. Said fiber receives
-/// the current environment as `outer-env` (which is resumed after the Janet
-/// runs)
+/// To do this we wrap the Janet so it runs in a fiber. Said fiber receives the current environment
+/// as `outer-env` (which is resumed after the Janet runs)
 ///
-/// If the fiber errors,
-/// `debug/stacktrace` puts the trace into a buffer (using
-/// `with-dyns` to `:err`).The buffer is prefixed with
+/// If the fiber errors, `debug/stacktrace` puts the trace into a buffer (using `with-dyns` to
+/// `:err`).
 ///
-/// If the fiber completes without error, the wrapped code's own result is
-/// returned unchanged.
+/// If the fiber completes without error, the wrapped code's own result is returned unchanged.
 ///
 fn wrapped_config(code: &str) -> String {
     indoc::formatdoc! { r#"
@@ -211,9 +210,13 @@ fn compile(client: &JanetClient, code: &str) -> Result<Vec<u8>, CompileError> {
     match client.run(&wrapped_code) {
         Ok(buf) => match buf.unwrap() {
             // Successful compilation to JSON gives us a JSON String
-            TaggedJanet::String(str) => Ok(str.bytes().collect()),
+            TaggedJanet::String(str) => {
+                tracing::debug!("successfully compiled to string");
+                Ok(str.bytes().collect())
+            }
             // Successful compilation to an image gives us a Buffer
             TaggedJanet::Buffer(buf) => {
+                tracing::debug!("successfully compiled to buffer");
                 let bytes = buf.as_bytes();
                 if bytes.starts_with(b"ERR:") {
                     let msg = String::from_utf8_lossy(&bytes[4..]).into_owned();
@@ -222,14 +225,23 @@ fn compile(client: &JanetClient, code: &str) -> Result<Vec<u8>, CompileError> {
                     Ok(bytes.to_vec())
                 }
             }
-            // A compilation error gives us a struct
-            TaggedJanet::Struct(jstruct) => Err(destructure_wrapped_error(jstruct)),
+            // A compilation error gives us a struct, but so does successful compilation to
+            // a Janet struct
+            TaggedJanet::Struct(jstruct) => {
+                tracing::debug!("compilation failed: destructuring error");
+                Err(destructure_wrapped_error(jstruct))
+            }
             // We shouldn't see anything else
-            _ => Err(CompileError::Other(anyhow::anyhow!(
-                "Janet eval returned unexpected type: expected String or Struct, got {buf:?}"
-            ))),
+            _ => {
+                tracing::debug!("compilation failed: something crazy happened");
+                Err(CompileError::Other(anyhow::anyhow!(
+                    "Janet eval returned unexpected type: expected String or Struct, got {buf:?}"
+                )))
+            }
         },
         Err(e) => {
+            tracing::debug!("compilation failed");
+
             let err_desc = match e {
                 janetrs::client::Error::AlreadyInit => "AlreadyInit",
                 janetrs::client::Error::CompileError => "CompileError",
@@ -246,19 +258,18 @@ fn compile(client: &JanetClient, code: &str) -> Result<Vec<u8>, CompileError> {
 }
 
 /// Used in server mode to create a Janet jimage of a machine config
-pub fn to_jimage(path: &Utf8Path) -> Result<Vec<u8>, CompileError> {
+pub fn to_jimage(client: &JanetClient, path: &Utf8Path) -> Result<Vec<u8>, CompileError> {
     if !path.exists() {
         return Err(CompileError::FileNotFound(path.to_owned()));
     }
 
     let host_file = path.canonicalize_utf8().map_err(CompileError::Io)?;
+
     let host_config_dir = host_file
         .parent()
         .context("cannot get host config dir")
-        .map_err(CompileError::Other)?;
-
-    let client =
-        client::gurp(&ApplyVmOpts::default(), false).map_err(CompileError::ClientCreate)?;
+        .map_err(CompileError::Other)?
+        .to_owned();
 
     let janet_instructions = indoc::formatdoc! { r#"
         (def build-env (make-env (fiber/getenv (fiber/root))))
@@ -268,27 +279,51 @@ pub fn to_jimage(path: &Utf8Path) -> Result<Vec<u8>, CompileError> {
         (make-image build-env)
         "#};
 
-    compile(&client, &janet_instructions)
+    compile(client, &janet_instructions)
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::tester::fixture;
     use camino_tempfile::NamedUtf8TempFile;
     use common::types::ApplyVmOpts;
     use serde_json::Value;
+    use snltest::fixture;
     use std::fs;
     use std::io::Write;
+
+    fn compiled_file(path: &Utf8Path) -> Result<String, common::types::CompileError> {
+        ConfigCompiler::new(
+            &ApplyVmOpts::from_file(path).unwrap(),
+            ApplyOutputOpts::default(),
+        )
+        .unwrap()
+        .janet_file(path, true)
+    }
 
     #[test]
     fn test_janet_file() {
         let expected: Value = serde_json::from_str(
             r#"{"control-data":{},"metadata":{"name":"test"},"resources":{"ensure":{"file":[{"_id":"/basenode/file/_tmp_tester","content":"blah","group":"root","mode":"0644","name":"/tmp/tester","owner":"root","role":"basenode"}]},"remove":{}}}"#).unwrap();
 
+        let actual: Value =
+            serde_json::from_str(&compiled_file(&fixture!("basic_config.janet")).unwrap()).unwrap();
+
+        assert_eq!(expected, actual,);
+    }
+
+    #[test]
+    fn test_jimage() {
+        let path = fixture!("basic_image.jimage");
+        let vm_opts = ApplyVmOpts::from_file(&path).unwrap();
+
+        let expected: Value = serde_json::from_str(
+            r#"{"metadata":{"name":"test"},"resources":{"ensure":{"file":[{"_id":"/NO-ROLE/file/_tmp_tester","content":"blah","group":"root","mode":"0644","name":"/tmp/tester","owner":"root"}]},"remove":{}}}"#).unwrap();
+
         let actual: Value = serde_json::from_str(
-            &test_compiler()
-                .janet_file(&fixture("basic_config.janet"), true)
+            &ConfigCompiler::new(&vm_opts, ApplyOutputOpts::default())
+                .unwrap()
+                .janet_image(&fs::read(&path).unwrap(), None, &vm_opts)
                 .unwrap(),
         )
         .unwrap();
@@ -298,27 +333,10 @@ mod test {
 
     #[test]
     fn test_to_jimage() {
-        let image = to_jimage(&fixture("basic_config.janet")).unwrap();
+        let path = fixture!("basic_config.janet");
+        let client = client::gurp(&ApplyVmOpts::from_file(&path).unwrap()).unwrap();
+        let image = to_jimage(&client, &path).unwrap();
         assert!(image.len() > 100); // if it fails it's 10b long
-    }
-
-    #[test]
-    fn test_jimage() {
-        let expected: Value = serde_json::from_str(
-            r#"{"metadata":{"name":"test"},"resources":{"ensure":{"file":[{"_id":"/NO-ROLE/file/_tmp_tester","content":"blah","group":"root","mode":"0644","name":"/tmp/tester","owner":"root"}]},"remove":{}}}"#).unwrap();
-
-        let actual: Value = serde_json::from_str(
-            &test_compiler()
-                .janet_image(
-                    &fs::read(fixture("basic_image.jimage")).unwrap(),
-                    None,
-                    &ApplyVmOpts::default(),
-                )
-                .unwrap(),
-        )
-        .unwrap();
-
-        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -326,7 +344,7 @@ mod test {
         let mut file = NamedUtf8TempFile::new().unwrap();
         write!(file, "(unknown-function)").unwrap();
 
-        let err = test_compiler().janet_file(file.path(), true).unwrap_err();
+        let err = compiled_file(file.path()).unwrap_err();
 
         match err {
             CompileError::Compile { message, trace } => {
@@ -341,9 +359,7 @@ mod test {
 
     #[test]
     fn test_file_is_not_even_janet() {
-        let err = test_compiler()
-            .janet_file(&fixture("not_even_janet.janet"), true)
-            .unwrap_err();
+        let err = compiled_file(&fixture!("not_even_janet.janet")).unwrap_err();
 
         match err {
             CompileError::Compile { message, trace } => {
@@ -362,7 +378,7 @@ mod test {
             r#"{"control-data":{},"metadata":{"name":"gurp-runner"},"resources":{"ensure":{"directory":[{"_id":"/NO-ROLE/directory/_tmp_test1","group":"root","mode":"0755","name":"/tmp/test1","owner":"root","role":"NO-ROLE"}]},"remove":{}}}"#).unwrap();
 
         let actual: Value = serde_json::from_str(
-            &test_compiler()
+            &snippet_compiler()
                 .janet_snippet(r#"(directory/ensure "/tmp/test1")"#)
                 .unwrap(),
         )
@@ -373,7 +389,7 @@ mod test {
 
     #[test]
     fn test_snippet_is_not_even_janet() {
-        let err = test_compiler().janet_snippet("123abc").unwrap_err();
+        let err = snippet_compiler().janet_snippet("123abc").unwrap_err();
 
         match err {
             CompileError::Other(e) => {
@@ -385,7 +401,11 @@ mod test {
         }
     }
 
-    fn test_compiler() -> ConfigCompiler {
-        ConfigCompiler::new(&ApplyVmOpts::default(), false, ApplyOutputOpts::default()).unwrap()
+    fn snippet_compiler() -> ConfigCompiler {
+        ConfigCompiler::new(
+            &ApplyVmOpts::from_file("/tmp".into()).unwrap(),
+            ApplyOutputOpts::default(),
+        )
+        .unwrap()
     }
 }
