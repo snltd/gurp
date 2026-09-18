@@ -21,11 +21,11 @@ mod test {
     fn test_repl_sets_syspath() {
         cargo_bin_cmd!("gurp")
             .arg("repl")
-            .arg("--syspath=/var/tmp")
+            .arg("--syspath=/usr/bin")
             .write_stdin("(dyn *syspath*)")
             .assert()
             .success()
-            .stdout(predicate::str::contains(r#"repl:1:> "/var/tmp""#));
+            .stdout(predicate::str::contains(r#"repl:1:> "/usr/bin""#));
     }
 
     #[test]
@@ -33,11 +33,11 @@ mod test {
     fn test_repl_sets_config_root() {
         cargo_bin_cmd!("gurp")
             .arg("repl")
-            .arg("--gurp-config-root=/tmp")
+            .arg("--gurp-config-root=/usr")
             .write_stdin("(dyn :gurp-config-root)")
             .assert()
             .success()
-            .stdout(predicate::str::contains(r#"repl:1:> "/tmp""#));
+            .stdout(predicate::str::contains(r#"repl:1:> "/usr""#));
     }
 
     #[test]
