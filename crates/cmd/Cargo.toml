@@ -1,5 +1,5 @@
 [package]
-name = "commands"
+name = "cmd"
 version = "2.4.0"
 edition = "2024"
 
