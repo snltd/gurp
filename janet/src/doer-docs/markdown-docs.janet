@@ -7,8 +7,10 @@
 (use ./markdown-dsl)
 (import ../dsl :prefix "" :only [pathcat])
 (use ../../test/doers/test-lib)
+(use ../facts)
 
-(def doc-dir (pathcat (repo-root) "/doc/doers"))
+(def doc-dir (pathcat (repo-root) "doc"))
+(def doer-doc-dir (pathcat doc-dir "doers"))
 
 (defn markdown-note
   [note]
@@ -140,15 +142,43 @@
       (markdown-for-doer arg)
       (markdown-for-helperss arg))))
 
+(defn generate-facts-doc
+  "Fills in a block of doc/facts.md"
+  []
+  (def marker "## Full List of Facts")
+  (def facts-file (pathcat doc-dir "facts.md"))
+
+  (if-not (os/stat facts-file)
+    (errorf "no facts doc at %s" facts-file))
+
+  (let [orig (slurp facts-file)
+        marker-index (string/find marker orig)
+        sorted-fact-names (sorted (keys fact->fn))
+        frontspiece (string/slice orig 0 (+ marker-index (length marker) 1))
+        facts-list (join-lines
+                     (catseq [name :in sorted-fact-names]
+                       (let [fact (fact->fn name)]
+                         (string/format "- %s (%s) %s"
+                                        (code (keyword name))
+                                        (fact :type)
+                                        (squeeze (fact :description))))))]
+
+    (print "writing facts doc -> " facts-file)
+    (def fh (file/open facts-file :w))
+    (file/write fh
+                (string frontspiece facts-list))))
+
 (defn generate-all-docs
   "For each doer, create a doer.md file under /doc/doers. Each markdown file
   documents the core doer and any helperss"
   []
-  (if-not (os/stat doc-dir)
-    (os/mkdir doc-dir))
+  (generate-facts-doc)
+  
+  (if-not (os/stat doer-doc-dir)
+    (os/mkdir doer-doc-dir))
 
   (loop [doer :in (doers) :unless (= doer "lib")]
-    (def md-file (string doc-dir "/" doer ".md"))
+    (def md-file (string doer-doc-dir "/" doer ".md"))
     (print "writing " doer " -> " md-file)
     (def fh (file/open md-file :w))
     (file/write fh

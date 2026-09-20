@@ -5,6 +5,7 @@
 (use ./doer-docs/describe-docs)
 (use ./doer-docs/formatting)
 (use ./doer-docs/lib)
+(use ./facts)
 (import ./control-data :only [describe])
 
 (def doers (doers))
@@ -33,3 +34,18 @@
         (doer-lookup (keyword doer) :description)
         28
         (term-width)))))
+
+(defn list-facts
+  "Returns a multiline string, pairing facts with their descriptions. Used by
+  Gurp's 'facts' command"
+  []
+  (def sorted-fact-names (sorted (keys fact->fn)))
+
+  (join-lines
+    (catseq [name :in sorted-fact-names]
+      (let [fact (fact->fn name)]
+        (lay-out-help
+          (bold (string ":" name))
+          (fact :description)
+          28
+          (term-width))))))
