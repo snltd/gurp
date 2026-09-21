@@ -143,7 +143,7 @@
                   `zfs list`."
     :type :struct
     :fn (fn []
-          (-> (run-wrapper "/usr/sbin/zfs list -Hp")
+          (-> (run-wrapper "/usr/sbin/zfs list -p")
               (tabular-output->struct)))}
 
    :zone-brand
@@ -171,7 +171,7 @@
                   properties as values. Value keys are the headers of
                   `zpool list`."
     :type :struct
-    :fn (fn [] (-> (run-wrapper "/usr/sbin/zpool list -Hp")
+    :fn (fn [] (-> (run-wrapper "/usr/sbin/zpool list -p")
                    (tabular-output->struct)))}})
 
 # Don't forget to update RUN_SAVE_CMDS in crates/common/src/constants.rs
@@ -179,7 +179,7 @@
   [name]
   (def value
     (if-let [fun (fact->fn name)]
-      (fun)
+      ((fun :fn))
       (errorf "unknown fact: %s" name)))
   (set (*fact-cache* name) value))
 

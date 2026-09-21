@@ -49,9 +49,9 @@ pub const RUN_SAFE_CMDS: &[&str] = &[
     "/usr/sbin/ipadm show-addr",
     "/usr/sbin/ipadm show-if",
     "/usr/sbin/mount",
-    "/usr/sbin/zfs list -Hp",
+    "/usr/sbin/zfs list -p",
     "/usr/sbin/zoneadm list -cv",
-    "/usr/sbin/zpool list -Hp",
+    "/usr/sbin/zpool list -p",
 ];
 
 // RUN_CMDS can be called though run-cmd. If the command matches, that's good enough: it will

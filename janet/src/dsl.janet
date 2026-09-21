@@ -304,7 +304,7 @@
   converted into numbers, they are."
   [tabular-output &opt key-column]
   (if (empty? tabular-output)
-    []
+    {}
     (do
       (default key-column 0)
       (tabular-rows->struct (lines tabular-output) key-column))))
