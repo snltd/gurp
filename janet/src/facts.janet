@@ -88,30 +88,106 @@
           "lx" :lx
           _ (nil))))))
 
-# Don't forget to update RUN_SAVE_CMDS in common/src/constants.rs
+(def fact->fn
+  {:hostname
+   {:description "The name of the host on which Gurp is running, taken from
+                  `hostname.`"
+    :type :string
+    :fn (fn [] (run-wrapper "/bin/uname -n"))}
+
+   :ip-addresses
+   {:description "A struct with address names as keys, and structs of properties
+                  as values. Value keys are the headers of `ipadm show-addr`."
+    :type :struct
+    :fn (fn []
+          (-> (run-wrapper "/usr/sbin/ipadm show-addr")
+              ip-no-loopback))}
+
+   :ip-interfaces
+   {:description "A struct with interface names as keys, and structs of
+                  properties as values. Value keys are the headers of
+                  `ipadm show-if`."
+    :type :struct
+    :fn (fn []
+          (-> (run-wrapper "/usr/sbin/ipadm show-if")
+              ip-no-loopback))}
+
+   :links
+   {:description "A struct with link names names as keys, and structs of
+                  properties as values. Value keys are the headers of
+                  `dladm show-link`."
+    :type :struct
+    :fn (fn []
+          (-> (run-wrapper "/usr/sbin/dladm show-link")
+              (tabular-output->struct)))}
+
+   :physical-links
+   {:description "A struct with link names names as keys, and structs of
+                  properties as values. Value keys are the headers of
+                  `dladm show-link`."
+    :type :struct
+    :fn (fn []
+          (-> (run-wrapper "/usr/sbin/dladm show-phys")
+              (tabular-output->struct)))}
+
+   :uname
+   {:description "A struct made of the output of `uname -X`."
+    :type :struct
+    :fn (fn []
+          (-> (run-wrapper "/bin/uname -X")
+              (uname-x->struct)))}
+
+   :zfs-filesystems
+   {:description "A struct with ZFS filesystem names names as keys, and structs
+                  of properties as values. Value keys are the headers of
+                  `zfs list`."
+    :type :struct
+    :fn (fn []
+          (-> (run-wrapper "/usr/sbin/zfs list -p")
+              (tabular-output->struct)))}
+
+   :zone-brand
+   {:description "The brand of the zone in which Gurp is running. If Gurp
+                  created the zone, it will have left a fact from which this
+                  value is derived, otherwise a best-guess effort is made."
+    :type :string
+    :fn (fn [] (zone-brand-fact))}
+
+   :zonename
+   {:description "The name of the host on which Gurp is running, taken from
+                  `hostname`."
+    :type :string
+    :fn (fn [] (zonename-fact))}
+
+   :zones
+   {:description "A struct with zone names names as keys, and structs of
+                  properties as values. Value keys are the headers of
+                  `zoneadm list -cv`."
+    :type :struct
+    :fn (fn [] (zones-fact))}
+
+   :zpools
+   {:description "A struct with ZFS pool names names as keys, and structs of
+                  properties as values. Value keys are the headers of
+                  `zpool list`."
+    :type :struct
+    :fn (fn [] (-> (run-wrapper "/usr/sbin/zpool list -p")
+                   (tabular-output->struct)))}})
+
+# Don't forget to update RUN_SAVE_CMDS in crates/common/src/constants.rs
 (defn fetch-and-cache
   [name]
   (def value
-    (match (keyword name)
-      :hostname (run-wrapper "/bin/uname -n")
-      :zonename (zonename-fact)
-      :zone-brand (zone-brand-fact)
-      :uname (-> (run-wrapper "/bin/uname -X") (uname-x->struct))
-      :zones (zones-fact)
-      :links (-> (run-wrapper "/usr/sbin/dladm show-link") (tabular-output->struct))
-      :physical-links (-> (run-wrapper "/usr/sbin/dladm show-phys") (tabular-output->struct))
-      :ip-interfaces (-> (run-wrapper "/usr/sbin/ipadm show-if") ip-no-loopback)
-      :ip-addresses (-> (run-wrapper "/usr/sbin/ipadm show-addr") ip-no-loopback)
-      _ (errorf "unknown fact: %s" name)))
+    (if-let [fun (fact->fn name)]
+      ((fun :fn))
+      (errorf "unknown fact: %s" name)))
   (set (*fact-cache* name) value))
-
 
 (defn fact
   "Return, if it exists, the built-in fact with the given name. Facts are
   evaluated lazily and cached in the *fact-cache* global. If you want to bypass
   the cache, pass in a truthy second argument."
   [name &opt bypass-cache]
-
   (if-let [_ (not bypass-cache)
            value (get *fact-cache* name)]
     value

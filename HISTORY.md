@@ -1,3 +1,5 @@
+- Add `facts` command, and auto-generated facts documentation.
+
 ## v2.4.0 (2026-09-19)
 
 - Apply system certs before adding publishers.

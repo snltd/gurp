@@ -141,6 +141,12 @@ enum Commands {
         #[arg(short = 'C', long, alias = "no-color")]
         no_colour: bool,
     },
+    /// List the facts in this version of Gurp
+    Facts {
+        /// Do not use any ANSI colouring
+        #[arg(short = 'C', long, alias = "no-color")]
+        no_colour: bool,
+    },
     /// Open a Janet REPL with the Gurp library already loaded into the root environment
     Repl {
         /// Set the *syspath* dyn (defaults to cwd)
@@ -276,6 +282,7 @@ fn main() -> ExitCode {
             no_colour,
         } => cmd::describe::run(&resource, no_colour),
         Commands::Doers { no_colour } => cmd::doers::run(no_colour),
+        Commands::Facts { no_colour } => cmd::facts::run(no_colour),
         Commands::Repl {
             define,
             syspath,

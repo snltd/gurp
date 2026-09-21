@@ -41,15 +41,17 @@ pub const SANDBOX_FORBIDDEN_CAPABILITIES: &[&str] = &[
 // RUN_SAFE_CMDS can be executed through run-safe-cmd. Only commands which exactly match
 // will be executed. This is used for facts.
 pub const RUN_SAFE_CMDS: &[&str] = &[
-    "/bin/uname -n",
     "/bin/uname -X",
+    "/bin/uname -n",
     "/bin/zonename",
     "/usr/sbin/dladm show-link",
     "/usr/sbin/dladm show-phys",
     "/usr/sbin/ipadm show-addr",
     "/usr/sbin/ipadm show-if",
     "/usr/sbin/mount",
+    "/usr/sbin/zfs list -p",
     "/usr/sbin/zoneadm list -cv",
+    "/usr/sbin/zpool list -p",
 ];
 
 // RUN_CMDS can be called though run-cmd. If the command matches, that's good enough: it will

@@ -303,8 +303,11 @@
   whose values are the values in the table. If any of those values can be safely
   converted into numbers, they are."
   [tabular-output &opt key-column]
-  (default key-column 0)
-  (tabular-rows->struct (lines tabular-output) key-column))
+  (if (empty? tabular-output)
+    {}
+    (do
+      (default key-column 0)
+      (tabular-rows->struct (lines tabular-output) key-column))))
 
 (defn user-def
   "Returns the value of the given user-def"

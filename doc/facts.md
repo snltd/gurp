@@ -26,20 +26,18 @@ repl:5:> ((fact :uname) :kernelid)
 "omnios-r151056-1acbca4f5bd"
 ```
 
-Current facts are:
-
-- `:hostname` (string) the output of `uname -n`.
-- `:zonename` (string) the output of `zonename`.
-- `:zones` (struct) a struct of the output of `zoneadm -cv`, keyed on zone name.
-- `:links` (struct) a struct of the output of `dladm show-link`, keyed on link
-  name,
-- `:ip-addresses` (struct) a struct of the output of `ipadm show-addr`, keyed on
-  address name,
-- `:ip-interfaces` (struct) a struct of the output of `ipadm show-if`, keyed on
-  address name,
-- `:zone-brand` (keyword) When Gurp creates a zone it installs a static fact
-  equal to the zone brand. If that fact exists, Gurp retrieves it; if not, Gurp
-  tries to work out the brand of the zone.
-
 Facts are cached on each Gurp run. To avoid the cache, pass `true` as a second
 argument to `fact`.
+
+## Full List of Facts
+- `hostname` (string) The name of the host on which Gurp is running, taken from `hostname.`
+- `ip-addresses` (struct) A struct with address names as keys, and structs of properties as values. Value keys are the headers of `ipadm show-addr`.
+- `ip-interfaces` (struct) A struct with interface names as keys, and structs of properties as values. Value keys are the headers of `ipadm show-if`.
+- `links` (struct) A struct with link names names as keys, and structs of properties as values. Value keys are the headers of `dladm show-link`.
+- `physical-links` (struct) A struct with link names names as keys, and structs of properties as values. Value keys are the headers of `dladm show-link`.
+- `uname` (struct) A struct made of the output of `uname -X`.
+- `zfs-filesystems` (struct) A struct with ZFS filesystem names names as keys, and structs of properties as values. Value keys are the headers of `zfs list`.
+- `zone-brand` (string) The brand of the zone in which Gurp is running. If Gurp created the zone, it will have left a fact from which this value is derived, otherwise a best-guess effort is made.
+- `zonename` (string) The name of the host on which Gurp is running, taken from `hostname`.
+- `zones` (struct) A struct with zone names names as keys, and structs of properties as values. Value keys are the headers of `zoneadm list -cv`.
+- `zpools` (struct) A struct with ZFS pool names names as keys, and structs of properties as values. Value keys are the headers of `zpool list`.
