@@ -52,7 +52,9 @@ pub fn run(
                             .write(&Utf8PathBuf::from(REPORT_DIR));
                         }
 
-                        metrics::send(ApplyStatus::Ok(apply_summary), &elapsed_time);
+                        if providers.are_active() {
+                            metrics::send(ApplyStatus::Ok(apply_summary), &elapsed_time);
+                        }
                         ExitCode::SUCCESS
                     }
                     Err(e) => {
@@ -77,7 +79,9 @@ pub fn run(
                             .write(&Utf8PathBuf::from(REPORT_DIR));
                         }
 
-                        metrics::send(ApplyStatus::Fail(FailPhase::Apply), &elapsed_time);
+                        if providers.are_active() {
+                            metrics::send(ApplyStatus::Fail(FailPhase::Apply), &elapsed_time);
+                        }
                         ExitCode::FAILURE
                     }
                 };
@@ -100,12 +104,17 @@ pub fn run(
                 }
             };
 
-            metrics::send(ApplyStatus::Fail(e.into()), &run_timer.elapsed());
+            if providers.are_active() {
+                metrics::send(ApplyStatus::Fail(e.into()), &run_timer.elapsed());
+            }
             ExitCode::FAILURE
         }
     };
 
-    flush::flush(providers);
+    if providers.are_active() {
+        flush::flush(providers);
+    }
+
     exit_code
 }
 
