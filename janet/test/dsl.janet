@@ -159,13 +159,23 @@
 
   (test-error
     (template-out
+      "I am writing a test in {{ missing }}, {{ missing }} {{ language }}"
+      {:language "Janet"})
+    "unpopulated fields in template 'I am writi...': {{ missing }}")
+
+  (test-error
+    (template-out
       "I also {{ sentiment }} {{ verb }} {{ amount }} of {{ language }}"
       {:sentiment "enjoy" :language "Ruby"})
-    "unpopulated fields in template: {{ verb }}, {{ amount }}"))
+    "unpopulated fields in template 'I also {{ ...': {{ amount }}, {{ verb }}"))
 
 (deftest qualified-path?
   (test (qualified-path? "/this/is/qualified") true)
   (test (qualified-path? "and/this/is/not") false))
+
+(deftest uniq
+  (test (uniq [1 2 3 4 5]) @[1 2 3 4 5])
+  (test (uniq [1 1 2 1 2 3 3 3 1 3]) @[1 2 3]))
 
 (deftest qualify-from-path-without-dyn
   (test (qualify-from-path "/this/is/qualified") "/this/is/qualified")
