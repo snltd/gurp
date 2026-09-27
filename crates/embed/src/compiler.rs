@@ -182,7 +182,7 @@ fn destructure_wrapped_error(st: JanetStruct) -> CompileError {
         }
     };
 
-    let jtrace = match st.get_owned(":trace") {
+    let jtrace: Vec<_> = match st.get_owned(":trace") {
         Some(trace) => trace
             .to_string()
             .split('\n')
@@ -194,6 +194,8 @@ fn destructure_wrapped_error(st: JanetStruct) -> CompileError {
             ));
         }
     };
+
+    tracing::error!(janet_trace = (jtrace.join("\n")).to_string());
 
     CompileError::Compile {
         message: jerror,
