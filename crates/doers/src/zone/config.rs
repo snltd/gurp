@@ -132,6 +132,9 @@ pub struct BootstrapConf {
     pub file: Option<String>,
     pub hostname: Option<String>,
     pub server: Option<String>,
+    pub gurp_binary: Utf8PathBuf,
+    pub copy_self: bool,
+    pub debug: bool,
 }
 
 #[derive(Debug, Deserialize)]

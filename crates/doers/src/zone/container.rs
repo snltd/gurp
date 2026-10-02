@@ -157,17 +157,24 @@ fn copy_to_zone(zonepath: &Utf8Path, src: &Utf8Path, dest: &str) -> anyhow::Resu
 
 fn bootstrap(zone: &str, conf: &ZoneConfig, opts: &ApplyOpts) -> anyhow::Result<()> {
     let bootstrap_conf = conf.bootstrap.as_ref().context("no bootstrap config")?;
-    let bootstrap_bin = "/var/tmp/gurp";
     let mut bootstrap_args: Vec<String> = Vec::new();
 
-    // Passing the env var breaks zlogin on LX zones
-    if let Some(log_level) = env::var_os("RUST_LOG")
-        && conf.brand != Brand::Lx
-    {
-        bootstrap_args.push(format!("RUST_LOG={}", log_level.to_string_lossy()));
+    // Passing the RUST_LOG env var breaks zlogin on LX zones
+    if bootstrap_conf.debug {
+        if conf.brand == Brand::Lx {
+            tracing::warn!("cannot bootstrap LX zones with RUST_LOG=debug");
+        } else {
+            bootstrap_args.push("RUST_LOG=debug".to_owned());
+        }
+    } else if let Some(log_level) = env::var_os("RUST_LOG") {
+        if conf.brand == Brand::Lx {
+            tracing::warn!("cannot bootstrap LX zones with RUST_LOG=debug");
+        } else {
+            bootstrap_args.push(format!("RUST_LOG={}", log_level.to_string_lossy()));
+        }
     }
 
-    bootstrap_args.push(bootstrap_bin.to_owned());
+    bootstrap_args.push(bootstrap_conf.gurp_binary.to_string());
     bootstrap_args.push("apply".to_owned());
 
     if opts.output.dump_configs {
@@ -213,7 +220,14 @@ fn bootstrap(zone: &str, conf: &ZoneConfig, opts: &ApplyOpts) -> anyhow::Result<
         Err(_) => bail!("failed to get Gurp path"),
     };
 
-    copy_to_zone(&conf.zonepath, &this_exec, bootstrap_bin)?;
+    if bootstrap_conf.copy_self {
+        copy_to_zone(
+            &conf.zonepath,
+            &this_exec,
+            bootstrap_conf.gurp_binary.as_str(),
+        )?;
+    }
+
     let bootstrap_cmd = bootstrap_args.join(" ");
 
     exec_in(zone, &bootstrap_cmd).with_context(|| {
