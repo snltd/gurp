@@ -19,10 +19,10 @@ pub fn current_state(svc: &str) -> anyhow::Result<String> {
                     bail!("failed to get state of service {svc}: {e}")
                 } else {
                     let sleepy_time = attempt * attempt * 500;
-                    tracing::debug!(
-                        "attempt {attempt} failed to get state of {svc}: retrying in {sleepy_time}s"
+                    tracing::info!(
+                        "attempt {attempt}/{STATE_RETRIES} failed to get state of {svc}: retrying in {sleepy_time}ms"
                     );
-                    thread::sleep(Duration::from_micros(sleepy_time));
+                    thread::sleep(Duration::from_millis(sleepy_time));
                     attempt += 1;
                 }
             }
@@ -102,5 +102,37 @@ pub fn wait_for_state(svc: &str, state: &str) -> anyhow::Result<bool> {
         if elapsed >= SVC_WAIT_TIMEOUT {
             bail!("Timed out waiting for {} be {}", svc, state)
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use tracing_test::traced_test;
+
+    #[cfg(target_os = "illumos")]
+    #[test]
+    fn test_current_state_svc_is_always_online() {
+        assert_eq!(
+            "online".to_owned(),
+            current_state("svc:/system/boot-archive:default").unwrap()
+        )
+    }
+
+    #[cfg(target_os = "illumos")]
+    #[ignore]
+    #[traced_test]
+    #[test]
+    fn test_current_state_svc_is_never_online() {
+        let res = current_state("svc:/does/not/exist:default");
+
+        assert!(res.is_err());
+        assert!(
+            res.unwrap_err()
+                .to_string()
+                .starts_with("failed to get state of service svc:/does/not/exist:default")
+        );
+
+        assert!(logs_contain("failed to get state"));
     }
 }
