@@ -1,6 +1,10 @@
 - Add `facts` command, and auto-generated facts documentation.
-- Fix svc state retry -- it never worked.
 - Add `:copy-self`, `:gurp-binary`, and `:debug` parameters to `zone/bootstrap`.
+- Fix svc state retry -- it never worked.
+- Fix `publisher` doer which, with the wrong (right?) configuration could leave
+  you with no publishers at all.
+- Improve debug information for broken Janet configs.
+- Add `uniq` function to DSL.
 
 ## v2.4.0 (2026-09-19)
 
