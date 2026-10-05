@@ -1,4 +1,4 @@
-use super::types::{OriginOrMirror, Publisher, PublisherName, TargetType};
+use super::types::{Publisher, PublisherName};
 use super::{functions, parse};
 use anyhow::Context;
 use common::cmd;
@@ -24,170 +24,171 @@ impl PublisherEnsure {
             let raw_publisher_info = cmd_output!(PKG_BIN, "publisher", &self.name)
                 .with_context(|| format!("cannot get info for publisher: {}", self.name))?;
 
-            let current_state =
-                parse::parse_publisher(&raw_publisher_info).context("failed to parse publisher")?;
+            let current_state = parse::parse_publisher(&raw_publisher_info)
+                .with_context(|| format!("failed to parse raw publisher info for {}", self.name))?;
 
             if self.desired_state == current_state {
                 tracing::debug!("publisher {} is correct", self.name);
                 Ok(ONE_RESOURCE_NO_CHANGE)
             } else {
-                self.align_publisher(&current_state, opts)
+                tracing::info!("modifying publisher {}", self.name);
+                self.set_publisher(Some(current_state), opts)
             }
         } else {
-            self.create_publisher(opts)
+            tracing::info!("creating publisher {}", self.name);
+            self.set_publisher(None, opts)
         }
     }
 
-    fn add_items(&self, mut cmd: Command, items: &[OriginOrMirror], ttype: TargetType) -> Command {
-        for item in items {
-            cmd.arg(match ttype {
-                TargetType::Origin => "-g",
-                TargetType::Mirror => "-m",
-            });
-
-            cmd.arg(item.uri.as_str());
-
-            if let Some(proxy) = &item.proxy {
-                tracing::info!(
-                    "publisher {} origin {}: adding proxy {proxy}",
-                    self.name,
-                    item.uri
-                );
-                cmd.args(["--proxy", proxy.as_str()]);
-            }
-        }
-
-        cmd
-    }
-
-    fn create_publisher(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        tracing::info!("creating publisher {}", self.name);
-
-        let mut cmd = Command::new(PKG_BIN);
-        cmd.arg("set-publisher");
-        cmd = self.add_items(cmd, self.desired_state.origins.as_ref(), TargetType::Origin);
-
-        if let Some(mirrors) = &self.desired_state.mirrors {
-            cmd = self.add_items(cmd, mirrors, TargetType::Mirror);
-        }
-
-        cmd.arg(&self.name);
-
-        tracing::debug!(command = cmd::to_string(&cmd));
-
-        if !opts.noop {
-            run_cmd!(cmd).with_context(|| format!("failed to create publisher {}", self.name))?;
-        }
-
-        Ok(ONE_RESOURCE_ONE_CHANGE)
-    }
-
-    fn set_origin_or_mirror(
+    fn set_publisher(
         &self,
-        target_type: TargetType,
-        target: &OriginOrMirror,
-        opts: &ApplyOpts,
-    ) -> anyhow::Result<()> {
-        let mut cmd = Command::new(PKG_BIN);
-        cmd.arg("set-publisher");
-
-        tracing::info!(
-            "publisher {}: setting {} {}",
-            self.name,
-            target_type,
-            target.uri
-        );
-
-        cmd.arg("-p");
-        cmd.arg(target.uri.as_str());
-
-        if let Some(proxy) = &target.proxy {
-            tracing::info!(
-                "publisher {} origin {}: adding proxy {proxy}",
-                self.name,
-                target.uri
-            );
-            cmd.args(["--proxy", proxy.as_str()]);
-        }
-
-        cmd.arg(&self.name);
-
-        tracing::debug!(command = cmd::to_string(&cmd));
-
-        if !opts.noop {
-            run_cmd!(cmd).with_context(|| format!("failed to create publisher {}", self.name))?;
-        }
-
-        Ok(())
-    }
-
-    fn align_publisher(
-        &self,
-        current: &Publisher,
+        current: Option<Publisher>,
         opts: &ApplyOpts,
     ) -> anyhow::Result<ApplySummary> {
-        tracing::info!("modifying publisher {}", self.name);
+        let origin_cmds = self.origin_cmds(current.as_ref());
+        let mirror_cmds = self.mirror_cmds(current.as_ref());
 
-        // The pkg interface is a bit clunky, and though you can add an origin and one or more
-        // mirrors in the same command, you can only add one proxy per command. So, to be on the
-        // safe side, we'll issue separate commands for each action. Slow, but you probably only
-        // ever do it once per host.
-        for origin in &self.desired_state.origins {
-            if !current.origins.contains(origin) {
-                self.set_origin_or_mirror(TargetType::Origin, origin, opts)?;
+        if !opts.noop {
+            for mut cmd in origin_cmds {
+                run_cmd!(cmd)?;
             }
-        }
 
-        for mirror in self.desired_state.mirrors.iter().flatten() {
-            if !current.mirrors.as_ref().is_some_and(|m| m.contains(mirror)) {
-                self.set_origin_or_mirror(TargetType::Mirror, mirror, opts)?;
-            }
-        }
-
-        for origin in &current.origins {
-            if !self.desired_state.origins.contains(origin) {
-                tracing::info!("publisher {}: removing origin {}", self.name, origin.uri);
-                let _ = cmd_change_or_noop!(
-                    opts,
-                    PKG_BIN,
-                    "set-publisher",
-                    "-G",
-                    &origin.uri.as_str(),
-                    &self.name
-                )?;
-            }
-        }
-
-        for mirror in current.mirrors.iter().flatten() {
-            if !self
-                .desired_state
-                .mirrors
-                .as_ref()
-                .is_some_and(|m| m.contains(mirror))
-            {
-                tracing::info!("publisher {}: removing mirror {}", self.name, mirror.uri);
-                let _ = cmd_change_or_noop!(
-                    opts,
-                    PKG_BIN,
-                    "set-publisher",
-                    "-M",
-                    &mirror.uri.as_str(),
-                    &self.name
-                )?;
+            for mut cmd in mirror_cmds {
+                run_cmd!(cmd)?;
             }
         }
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
+    }
+
+    fn origin_cmds(&self, current: Option<&Publisher>) -> Vec<Command> {
+        self.desired_state
+            .origins
+            .iter()
+            .filter_map(|origin| {
+                if let Some(c) = &current
+                    && c.origins.contains(origin)
+                {
+                    tracing::debug!("found existing origin for {}: {}", self.name, origin.uri);
+                    None
+                } else {
+                    let mut cmd_vec = vec!["-G", "*", "-g", origin.uri.as_str()];
+
+                    if let Some(proxy) = &origin.proxy {
+                        cmd_vec.push("--proxy");
+                        cmd_vec.push(proxy.as_str());
+                    }
+
+                    cmd_vec.push(&self.name);
+                    Some(self.prep_cmd(cmd_vec.as_ref()))
+                }
+            })
+            .collect()
+    }
+
+    fn mirror_cmds(&self, current: Option<&Publisher>) -> Vec<Command> {
+        self.desired_state
+            .mirrors
+            .iter()
+            .flatten()
+            .filter_map(|mirror| {
+                if current
+                    .as_ref()
+                    .and_then(|c| c.mirrors.as_ref())
+                    .is_some_and(|m| m.contains(mirror))
+                {
+                    tracing::debug!("found existing mirror for {}: {}", self.name, mirror.uri);
+                    None
+                } else {
+                    let mut cmd_vec = vec!["-M", "*", "-m", mirror.uri.as_str()];
+
+                    if let Some(proxy) = &mirror.proxy {
+                        cmd_vec.push("--proxy");
+                        cmd_vec.push(proxy.as_str());
+                    }
+
+                    cmd_vec.push(&self.name);
+                    Some(self.prep_cmd(cmd_vec.as_ref()))
+                }
+            })
+            .collect()
+    }
+
+    fn prep_cmd(&self, args: &[&str]) -> Command {
+        let mut cmd = Command::new(PKG_BIN);
+        cmd.arg("set-publisher");
+
+        for arg in args {
+            cmd.arg(arg);
+        }
+
+        tracing::debug!(command = cmd::to_string(&cmd));
+        cmd
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::publisher::types::{Mirror, Origin};
+    use crate::publisher::types::{Mirror, Origin, OriginOrMirror};
     use pretty_assertions::assert_eq;
-    use tester::deserialized_example;
+    use tester::{deserialized_example, janet2json};
     use url::Url;
+
+    #[test]
+    fn test_change_origin_cmds_everything_is_correct() {
+        let example_json = janet2json(indoc::indoc! {
+                r#"
+                (publisher/ensure "tester"
+                    (publisher/origin "https://pkg.lan.id264.net"
+                                      :proxy "http://10.0.2.11:3128"))
+                "#
+        });
+
+        let sut: PublisherEnsure = serde_json::from_str(&example_json).unwrap();
+
+        let existing_publisher = Publisher {
+            origins: vec![OriginOrMirror {
+                uri: Url::parse("https://pkg.lan.id264.net").unwrap(),
+                proxy: Some(Url::parse("http://10.0.2.11:3128").unwrap()),
+            }],
+            mirrors: None,
+        };
+
+        assert!(sut.origin_cmds(Some(&existing_publisher)).is_empty());
+        assert!(sut.mirror_cmds(Some(&existing_publisher)).is_empty());
+    }
+
+    #[test]
+    fn test_change_origin_cmds_add_mirror() {
+        let example_json = janet2json(indoc::indoc! {
+                r#"
+                (publisher/ensure "tester"
+                    (publisher/origin "https://pkg.lan.id264.net"
+                                      :proxy "http://10.0.2.11:3128")
+                    (publisher/mirror "https://mirror.lan.id264.net"))
+                "#
+        });
+
+        let sut: PublisherEnsure = serde_json::from_str(&example_json).unwrap();
+
+        let existing_publisher = Publisher {
+            origins: vec![OriginOrMirror {
+                uri: Url::parse("https://pkg.lan.id264.net").unwrap(),
+                proxy: Some(Url::parse("http://10.0.2.11:3128").unwrap()),
+            }],
+            mirrors: None,
+        };
+
+        assert!(sut.origin_cmds(Some(&existing_publisher)).is_empty());
+        let m_result = sut.mirror_cmds(Some(&existing_publisher));
+
+        assert_eq!(1, m_result.len());
+        assert_eq!(
+            "/bin/pkg set-publisher -M * -m https://mirror.lan.id264.net/ tester",
+            cmd::to_string(&m_result[0])
+        );
+    }
 
     #[test]
     fn test_deserialize_publisher_ensure_new_publisher() {
