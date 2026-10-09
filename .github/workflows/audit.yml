@@ -3,7 +3,7 @@ permissions:
   contents: read
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
 
 concurrency:
   group: audit
@@ -18,8 +18,8 @@ jobs:
       issues: write # to open issues for unsafe dependencies
     steps:
       - name: Checkout Code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Audit Rust Dependencies
-        uses: actions-rust-lang/audit@72c09e02f132669d52284a3323acdb503cfc1a24 # 1.2.7
+        uses: actions-rust-lang/audit@72c09e02f132669d52284a3323acdb503cfc1a24 # v1.2.7

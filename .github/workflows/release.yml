@@ -3,7 +3,7 @@ name: illumos Build
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
 
 permissions:
   contents: read
@@ -19,43 +19,43 @@ jobs:
     permissions:
       contents: write # To upload release
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
-      with:
-        persist-credentials: false
-    - name: Build in OmniOS VM
-      id: test
-      uses: vmactions/omnios-vm@9576f0b6d15e7696548409baa533bc0a339caf42 # 1.3.7
-      with:
-        usesh: true
-        prepare: |
-          pkg install developer/gcc14 developer/clang-19 system/header developer/versioning/git
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build in OmniOS VM
+        id: test
+        uses: vmactions/omnios-vm@9576f0b6d15e7696548409baa533bc0a339caf42 # v1.3.7
+        with:
+          usesh: true
+          prepare: |
+            pkg install developer/gcc14 developer/clang-19 system/header developer/versioning/git
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          run: |
+            git config --global --add safe.directory "$GITHUB_WORKSPACE"
+            . ${HOME}/.cargo/env
+            export CFLAGS="-std=c99 -D_XOPEN_SOURCE=700 -D__EXTENSIONS__"
+            cd $GITHUB_WORKSPACE
+            cargo test
+            cargo build --release
+            cp target/release/gurp .
+            strip gurp
+            cargo clean
+
+      - name: Package Binary
         run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          . ${HOME}/.cargo/env 
-          export CFLAGS="-std=c99 -D_XOPEN_SOURCE=700 -D__EXTENSIONS__"
-          cd $GITHUB_WORKSPACE
-          cargo test
-          cargo build --release
-          cp target/release/gurp .
-          strip gurp
-          cargo clean
+          mkdir -p release
+          BINARY_NAME=gurp
+          VERSION=${GITHUB_REF_NAME}
+          TAR_NAME=${BINARY_NAME}-${VERSION}-omnios.tar.gz
+          tar czf release/$TAR_NAME $BINARY_NAME
+          echo "PACKAGE_PATH=release/$TAR_NAME" >>$GITHUB_ENV
 
-    - name: Package Binary
-      run: |
-        mkdir -p release
-        BINARY_NAME=gurp
-        VERSION=${GITHUB_REF_NAME}
-        TAR_NAME=${BINARY_NAME}-${VERSION}-omnios.tar.gz
-        tar czf release/$TAR_NAME $BINARY_NAME
-        echo "PACKAGE_PATH=release/$TAR_NAME" >>$GITHUB_ENV
-
-    - name: Create GitHub Release and upload asset
-      run: |
-        gh release create "${GITHUB_REF_NAME}" "${PACKAGE_PATH}" \
-          --title "Release ${GITHUB_REF_NAME}" \
-          --notes "Automated release for OmniOS"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        PACKAGE_PATH: ${{ env.PACKAGE_PATH }}
+      - name: Create GitHub Release and upload asset
+        run: |
+          gh release create "${GITHUB_REF_NAME}" "${PACKAGE_PATH}" \
+            --title "Release ${GITHUB_REF_NAME}" \
+            --notes "Automated release for OmniOS"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGE_PATH: ${{ env.PACKAGE_PATH }}
