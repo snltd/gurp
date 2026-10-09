@@ -1,3 +1,5 @@
+## v2.5.0 (2026-10-23)
+
 - Add `facts` command, and auto-generated facts documentation.
 - Add `:copy-self`, `:gurp-binary`, and `:debug` parameters to `zone/bootstrap`.
 - Fix svc state retry -- it never worked.
