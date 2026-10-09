@@ -1,49 +1,65 @@
 {
   "control-data": {},
-  "metadata": { "name": "serv" },
+  "metadata": {
+    "name": "serv"
+  },
   "resources": {
     "ensure": {
       "zfs": [
         {
           "_id": "/zones/zfs/fast_zone_pkg",
           "name": "fast/zone/pkg",
-          "properties": { "mountpoint": "none" },
+          "properties": {
+            "mountpoint": "none"
+          },
           "role": "zones"
         },
         {
           "_id": "/zones/zfs/fast_zone_backup",
           "name": "fast/zone/backup",
-          "properties": { "mountpoint": "none" },
+          "properties": {
+            "mountpoint": "none"
+          },
           "role": "zones"
         },
         {
           "_id": "/zones/zfs/fast_zone_build",
           "name": "fast/zone/build",
-          "properties": { "mountpoint": "none" },
+          "properties": {
+            "mountpoint": "none"
+          },
           "role": "zones"
         },
         {
           "_id": "/zones/zfs/big_zone_fs",
           "name": "big/zone/fs",
-          "properties": { "mountpoint": "none" },
+          "properties": {
+            "mountpoint": "none"
+          },
           "role": "zones"
         },
         {
           "_id": "/zones/zfs/fast_zone_mariadb",
           "name": "fast/zone/mariadb",
-          "properties": { "mountpoint": "none" },
+          "properties": {
+            "mountpoint": "none"
+          },
           "role": "zones"
         },
         {
           "_id": "/zones/zfs/fast_zone_metrics",
           "name": "fast/zone/metrics",
-          "properties": { "mountpoint": "none" },
+          "properties": {
+            "mountpoint": "none"
+          },
           "role": "zones"
         },
         {
           "_id": "/zones/zfs/fast_zone_grafana",
           "name": "fast/zone/grafana",
-          "properties": { "mountpoint": "none" },
+          "properties": {
+            "mountpoint": "none"
+          },
           "role": "zones"
         }
       ],
@@ -52,9 +68,20 @@
           "_id": "/zones/zone/lipkg-blue",
           "autoboot": false,
           "boot-after-install": true,
-          "bootstrap": { "file": "/home/rob/work/my-gurp/zone-gold.janet" },
+          "bootstrap": {
+            "copy-self": true,
+            "debug": false,
+            "file": "/home/rob/work/my-gurp/zone-gold.janet",
+            "gurp-binary": "/var/tmp/gurp"
+          },
           "brand": "lipkg",
-          "dns": { "domain": "lan.id264.net", "nameservers": ["192.168.1.53", "192.168.1.1"] },
+          "dns": {
+            "domain": "lan.id264.net",
+            "nameservers": [
+              "192.168.1.53",
+              "192.168.1.1"
+            ]
+          },
           "exec-in": [
             "/usr/bin/pkg refresh",
             "/usr/bin/pkg update pkg | cat ",
@@ -62,7 +89,13 @@
             "/usr/sbin/shutdown -y -i5 -g0"
           ],
           "final-state": "installed",
-          "fs": [{ "dir": "/home", "special": "/export/home", "type": "lofs" }],
+          "fs": [
+            {
+              "dir": "/home",
+              "special": "/export/home",
+              "type": "lofs"
+            }
+          ],
           "name": "lipkg-blue",
           "net": [
             {
@@ -80,12 +113,31 @@
           "_id": "/zones/zone/serv-pkg",
           "autoboot": true,
           "boot-after-install": true,
-          "bootstrap": { "file": "/home/rob/work/my-gurp/zone-pkg.janet" },
+          "bootstrap": {
+            "copy-self": true,
+            "debug": false,
+            "file": "/home/rob/work/my-gurp/zone-pkg.janet",
+            "gurp-binary": "/var/tmp/gurp"
+          },
           "brand": "lipkg",
           "clone-from": "lipkg-blue",
-          "datasets": ["fast/zone/pkg"],
-          "dns": { "domain": "lan.id264.net", "nameservers": ["192.168.1.53", "192.168.1.1"] },
-          "fs": [{ "dir": "/home", "special": "/export/home", "type": "lofs" }],
+          "datasets": [
+            "fast/zone/pkg"
+          ],
+          "dns": {
+            "domain": "lan.id264.net",
+            "nameservers": [
+              "192.168.1.53",
+              "192.168.1.1"
+            ]
+          },
+          "fs": [
+            {
+              "dir": "/home",
+              "special": "/export/home",
+              "type": "lofs"
+            }
+          ],
           "name": "serv-pkg",
           "net": [
             {
@@ -103,11 +155,28 @@
           "_id": "/zones/zone/serv-dns",
           "autoboot": true,
           "boot-after-install": true,
-          "bootstrap": { "file": "/home/rob/work/my-gurp/zone-dns.janet" },
+          "bootstrap": {
+            "copy-self": true,
+            "debug": false,
+            "file": "/home/rob/work/my-gurp/zone-dns.janet",
+            "gurp-binary": "/var/tmp/gurp"
+          },
           "brand": "lipkg",
           "clone-from": "lipkg-blue",
-          "dns": { "domain": "lan.id264.net", "nameservers": ["192.168.1.53", "192.168.1.1"] },
-          "fs": [{ "dir": "/home", "special": "/export/home", "type": "lofs" }],
+          "dns": {
+            "domain": "lan.id264.net",
+            "nameservers": [
+              "192.168.1.53",
+              "192.168.1.1"
+            ]
+          },
+          "fs": [
+            {
+              "dir": "/home",
+              "special": "/export/home",
+              "type": "lofs"
+            }
+          ],
           "name": "serv-dns",
           "net": [
             {
@@ -125,13 +194,35 @@
           "_id": "/zones/zone/serv-backup",
           "autoboot": true,
           "boot-after-install": true,
-          "bootstrap": { "file": "/home/rob/work/my-gurp/zone-backup.janet" },
+          "bootstrap": {
+            "copy-self": true,
+            "debug": false,
+            "file": "/home/rob/work/my-gurp/zone-backup.janet",
+            "gurp-binary": "/var/tmp/gurp"
+          },
           "brand": "lipkg",
-          "capped-memory": { "physical": "300m", "swap": "300m" },
+          "capped-memory": {
+            "physical": "300m",
+            "swap": "300m"
+          },
           "clone-from": "lipkg-blue",
-          "datasets": ["fast/zone/backup"],
-          "dns": { "domain": "lan.id264.net", "nameservers": ["192.168.1.53", "192.168.1.1"] },
-          "fs": [{ "dir": "/home", "special": "/export/home", "type": "lofs" }],
+          "datasets": [
+            "fast/zone/backup"
+          ],
+          "dns": {
+            "domain": "lan.id264.net",
+            "nameservers": [
+              "192.168.1.53",
+              "192.168.1.1"
+            ]
+          },
+          "fs": [
+            {
+              "dir": "/home",
+              "special": "/export/home",
+              "type": "lofs"
+            }
+          ],
           "name": "serv-backup",
           "net": [
             {
@@ -149,12 +240,31 @@
           "_id": "/zones/zone/serv-build",
           "autoboot": true,
           "boot-after-install": true,
-          "bootstrap": { "file": "/home/rob/work/my-gurp/zone-build.janet" },
+          "bootstrap": {
+            "copy-self": true,
+            "debug": false,
+            "file": "/home/rob/work/my-gurp/zone-build.janet",
+            "gurp-binary": "/var/tmp/gurp"
+          },
           "brand": "lipkg",
           "clone-from": "lipkg-blue",
-          "datasets": ["fast/zone/build"],
-          "dns": { "domain": "lan.id264.net", "nameservers": ["192.168.1.53", "192.168.1.1"] },
-          "fs": [{ "dir": "/home", "special": "/export/home", "type": "lofs" }],
+          "datasets": [
+            "fast/zone/build"
+          ],
+          "dns": {
+            "domain": "lan.id264.net",
+            "nameservers": [
+              "192.168.1.53",
+              "192.168.1.1"
+            ]
+          },
+          "fs": [
+            {
+              "dir": "/home",
+              "special": "/export/home",
+              "type": "lofs"
+            }
+          ],
           "name": "serv-build",
           "net": [
             {
@@ -172,12 +282,32 @@
           "_id": "/zones/zone/serv-cron",
           "autoboot": true,
           "boot-after-install": true,
-          "bootstrap": { "file": "/home/rob/work/my-gurp/zone-cron.janet" },
+          "bootstrap": {
+            "copy-self": true,
+            "debug": false,
+            "file": "/home/rob/work/my-gurp/zone-cron.janet",
+            "gurp-binary": "/var/tmp/gurp"
+          },
           "brand": "lipkg",
-          "capped-memory": { "physical": "300m", "swap": "300m" },
+          "capped-memory": {
+            "physical": "300m",
+            "swap": "300m"
+          },
           "clone-from": "lipkg-blue",
-          "dns": { "domain": "lan.id264.net", "nameservers": ["192.168.1.53", "192.168.1.1"] },
-          "fs": [{ "dir": "/home", "special": "/export/home", "type": "lofs" }],
+          "dns": {
+            "domain": "lan.id264.net",
+            "nameservers": [
+              "192.168.1.53",
+              "192.168.1.1"
+            ]
+          },
+          "fs": [
+            {
+              "dir": "/home",
+              "special": "/export/home",
+              "type": "lofs"
+            }
+          ],
           "name": "serv-cron",
           "net": [
             {
@@ -195,12 +325,31 @@
           "_id": "/zones/zone/serv-fs",
           "autoboot": false,
           "boot-after-install": true,
-          "bootstrap": { "file": "/home/rob/work/my-gurp/zone-fs.janet" },
+          "bootstrap": {
+            "copy-self": true,
+            "debug": false,
+            "file": "/home/rob/work/my-gurp/zone-fs.janet",
+            "gurp-binary": "/var/tmp/gurp"
+          },
           "brand": "lipkg",
           "clone-from": "lipkg-blue",
-          "datasets": ["big/zone/fs"],
-          "dns": { "domain": "lan.id264.net", "nameservers": ["192.168.1.53", "192.168.1.1"] },
-          "fs": [{ "dir": "/home", "special": "/export/home", "type": "lofs" }],
+          "datasets": [
+            "big/zone/fs"
+          ],
+          "dns": {
+            "domain": "lan.id264.net",
+            "nameservers": [
+              "192.168.1.53",
+              "192.168.1.1"
+            ]
+          },
+          "fs": [
+            {
+              "dir": "/home",
+              "special": "/export/home",
+              "type": "lofs"
+            }
+          ],
           "name": "serv-fs",
           "net": [
             {
@@ -218,12 +367,31 @@
           "_id": "/zones/zone/serv-mariadb",
           "autoboot": true,
           "boot-after-install": true,
-          "bootstrap": { "file": "/home/rob/work/my-gurp/zone-mariadb.janet" },
+          "bootstrap": {
+            "copy-self": true,
+            "debug": false,
+            "file": "/home/rob/work/my-gurp/zone-mariadb.janet",
+            "gurp-binary": "/var/tmp/gurp"
+          },
           "brand": "lipkg",
           "clone-from": "lipkg-blue",
-          "datasets": ["fast/zone/mariadb"],
-          "dns": { "domain": "lan.id264.net", "nameservers": ["192.168.1.53", "192.168.1.1"] },
-          "fs": [{ "dir": "/home", "special": "/export/home", "type": "lofs" }],
+          "datasets": [
+            "fast/zone/mariadb"
+          ],
+          "dns": {
+            "domain": "lan.id264.net",
+            "nameservers": [
+              "192.168.1.53",
+              "192.168.1.1"
+            ]
+          },
+          "fs": [
+            {
+              "dir": "/home",
+              "special": "/export/home",
+              "type": "lofs"
+            }
+          ],
           "name": "serv-mariadb",
           "net": [
             {
@@ -241,12 +409,31 @@
           "_id": "/zones/zone/serv-metrics",
           "autoboot": true,
           "boot-after-install": true,
-          "bootstrap": { "file": "/home/rob/work/my-gurp/zone-metrics.janet" },
+          "bootstrap": {
+            "copy-self": true,
+            "debug": false,
+            "file": "/home/rob/work/my-gurp/zone-metrics.janet",
+            "gurp-binary": "/var/tmp/gurp"
+          },
           "brand": "lipkg",
           "clone-from": "lipkg-blue",
-          "datasets": ["fast/zone/metrics"],
-          "dns": { "domain": "lan.id264.net", "nameservers": ["192.168.1.53", "192.168.1.1"] },
-          "fs": [{ "dir": "/home", "special": "/export/home", "type": "lofs" }],
+          "datasets": [
+            "fast/zone/metrics"
+          ],
+          "dns": {
+            "domain": "lan.id264.net",
+            "nameservers": [
+              "192.168.1.53",
+              "192.168.1.1"
+            ]
+          },
+          "fs": [
+            {
+              "dir": "/home",
+              "special": "/export/home",
+              "type": "lofs"
+            }
+          ],
           "name": "serv-metrics",
           "net": [
             {
@@ -264,14 +451,43 @@
           "_id": "/zones/zone/serv-media",
           "autoboot": true,
           "boot-after-install": true,
-          "bootstrap": { "file": "/home/rob/work/my-gurp/zone-media.janet" },
+          "bootstrap": {
+            "copy-self": true,
+            "debug": false,
+            "file": "/home/rob/work/my-gurp/zone-media.janet",
+            "gurp-binary": "/var/tmp/gurp"
+          },
           "brand": "lipkg",
           "clone-from": "lipkg-blue",
-          "dns": { "domain": "lan.id264.net", "nameservers": ["192.168.1.53", "192.168.1.1"] },
+          "dns": {
+            "domain": "lan.id264.net",
+            "nameservers": [
+              "192.168.1.53",
+              "192.168.1.1"
+            ]
+          },
           "fs": [
-            { "dir": "/home", "special": "/export/home", "type": "lofs" },
-            { "dir": "/storage/mp3", "options": ["ro"], "special": "/export/mp3", "type": "lofs" },
-            { "dir": "/storage/flac", "options": ["ro"], "special": "/export/flac", "type": "lofs" }
+            {
+              "dir": "/home",
+              "special": "/export/home",
+              "type": "lofs"
+            },
+            {
+              "dir": "/storage/mp3",
+              "options": [
+                "ro"
+              ],
+              "special": "/export/mp3",
+              "type": "lofs"
+            },
+            {
+              "dir": "/storage/flac",
+              "options": [
+                "ro"
+              ],
+              "special": "/export/flac",
+              "type": "lofs"
+            }
           ],
           "name": "serv-media",
           "net": [
@@ -288,15 +504,40 @@
         },
         {
           "_id": "/zones/zone/serv-grafana",
-          "attr": [{ "name": "kernel-version", "type": "string", "value": "\"4.4\"" }],
+          "attr": [
+            {
+              "name": "kernel-version",
+              "type": "string",
+              "value": "\"4.4\""
+            }
+          ],
           "autoboot": true,
           "boot-after-install": true,
-          "bootstrap": { "file": "/home/rob/work/my-gurp/zone-grafana.janet" },
+          "bootstrap": {
+            "copy-self": true,
+            "debug": false,
+            "file": "/home/rob/work/my-gurp/zone-grafana.janet",
+            "gurp-binary": "/var/tmp/gurp"
+          },
           "brand": "lx",
-          "datasets": ["fast/zone/grafana"],
-          "dns": { "domain": "lan.id264.net", "nameservers": ["192.168.1.53", "192.168.1.1"] },
+          "datasets": [
+            "fast/zone/grafana"
+          ],
+          "dns": {
+            "domain": "lan.id264.net",
+            "nameservers": [
+              "192.168.1.53",
+              "192.168.1.1"
+            ]
+          },
           "final-state": "reboot",
-          "fs": [{ "dir": "/home", "special": "/export/home", "type": "lofs" }],
+          "fs": [
+            {
+              "dir": "/home",
+              "special": "/export/home",
+              "type": "lofs"
+            }
+          ],
           "image": "alpine",
           "name": "serv-grafana",
           "net": [
@@ -315,13 +556,32 @@
           "_id": "/zones/zone/serv-ws",
           "autoboot": true,
           "boot-after-install": true,
-          "bootstrap": { "file": "/home/rob/work/my-gurp/zone-ws.janet" },
+          "bootstrap": {
+            "copy-self": true,
+            "debug": false,
+            "file": "/home/rob/work/my-gurp/zone-ws.janet",
+            "gurp-binary": "/var/tmp/gurp"
+          },
           "brand": "lipkg",
           "clone-from": "lipkg-blue",
-          "dns": { "domain": "lan.id264.net", "nameservers": ["192.168.1.53", "192.168.1.1"] },
+          "dns": {
+            "domain": "lan.id264.net",
+            "nameservers": [
+              "192.168.1.53",
+              "192.168.1.1"
+            ]
+          },
           "fs": [
-            { "dir": "/home", "special": "/export/home", "type": "lofs" },
-            { "dir": "/storage", "special": "/export", "type": "lofs" }
+            {
+              "dir": "/home",
+              "special": "/export/home",
+              "type": "lofs"
+            },
+            {
+              "dir": "/storage",
+              "special": "/export",
+              "type": "lofs"
+            }
           ],
           "name": "serv-ws",
           "net": [
@@ -340,11 +600,28 @@
           "_id": "/zones/zone/serv-proxy",
           "autoboot": true,
           "boot-after-install": true,
-          "bootstrap": { "file": "/home/rob/work/my-gurp/zone-proxy.janet" },
+          "bootstrap": {
+            "copy-self": true,
+            "debug": false,
+            "file": "/home/rob/work/my-gurp/zone-proxy.janet",
+            "gurp-binary": "/var/tmp/gurp"
+          },
           "brand": "lipkg",
           "clone-from": "lipkg-blue",
-          "dns": { "domain": "lan.id264.net", "nameservers": ["192.168.1.53", "192.168.1.1"] },
-          "fs": [{ "dir": "/home", "special": "/export/home", "type": "lofs" }],
+          "dns": {
+            "domain": "lan.id264.net",
+            "nameservers": [
+              "192.168.1.53",
+              "192.168.1.1"
+            ]
+          },
+          "fs": [
+            {
+              "dir": "/home",
+              "special": "/export/home",
+              "type": "lofs"
+            }
+          ],
           "name": "serv-proxy",
           "net": [
             {
@@ -362,10 +639,27 @@
           "_id": "/zones/zone/serv-records",
           "autoboot": true,
           "boot-after-install": true,
-          "bootstrap": { "file": "/home/rob/work/my-gurp/zone-records.janet" },
+          "bootstrap": {
+            "copy-self": true,
+            "debug": false,
+            "file": "/home/rob/work/my-gurp/zone-records.janet",
+            "gurp-binary": "/var/tmp/gurp"
+          },
           "brand": "pkgsrc",
-          "dns": { "domain": "lan.id264.net", "nameservers": ["192.168.1.53", "192.168.1.1"] },
-          "fs": [{ "dir": "/home", "special": "/export/home", "type": "lofs" }],
+          "dns": {
+            "domain": "lan.id264.net",
+            "nameservers": [
+              "192.168.1.53",
+              "192.168.1.1"
+            ]
+          },
+          "fs": [
+            {
+              "dir": "/home",
+              "special": "/export/home",
+              "type": "lofs"
+            }
+          ],
           "name": "serv-records",
           "net": [
             {

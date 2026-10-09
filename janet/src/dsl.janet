@@ -218,6 +218,15 @@
     outdented-block
     (string outdented-block "\n")))
 
+(defn uniq
+  "Returns the given tuple or array as a sorted array with duplicate elements
+   removed"
+  [list]
+  (-> list
+      (zipcoll (map nil? list))
+      keys
+      sorted))
+
 (defn template-out
   "Takes a template with vars in {{ brackets }} and a table of vars to values.
    Returns a string or an error"
@@ -239,8 +248,9 @@
   (def leftovers (peg/match peg result))
 
   (if-not (empty? leftovers)
-    (errorf "unpopulated fields in template: %s"
-            (string/join (filter |(not (nil? $)) leftovers) ", ")))
+    (errorf "unpopulated fields in template '%s...': %s"
+            (string/slice template 0 10)
+            (string/join (uniq (filter |(not (nil? $)) leftovers)) ", ")))
 
   (def patterns
     (map

@@ -93,16 +93,16 @@ macro_rules! cmd_with_stdin {
 #[macro_export]
 macro_rules! cmd_output {
     ( $bin:expr, $( $arg:expr ),+ $(,)? ) => {{
-        let mut cmd = cmd!($bin, $($arg), +);
-        let output = cmd.output()?;
+        (|| -> anyhow::Result<String> {
+            let mut cmd = cmd!($bin, $($arg),+);
+            let output = cmd.output()?;
 
-        if output.status.success() {
-            Result::<String, anyhow::Error>::Ok(
-                String::from_utf8_lossy(&output.stdout).trim().to_owned()
-            )
-        } else {
-            anyhow::bail!($crate::log_error(&cmd, output))
-        }
+            if output.status.success() {
+                Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
+            } else {
+                anyhow::bail!($crate::log_error(&cmd, output))
+            }
+        })()
     }};
 }
 

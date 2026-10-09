@@ -61,7 +61,10 @@
                         {:_id "/test-role/zone/native-zone"
                          :autoboot true
                          :boot-after-install true
-                         :bootstrap @{:hostname "native-zone"
+                         :bootstrap @{:copy-self true
+                                      :debug false
+                                      :gurp-binary "/var/tmp/gurp"
+                                      :hostname "native-zone"
                                       :server "gurp.localnet"}
                          :brand "lipkg"
                          :clone-from "gold-zone"
@@ -135,7 +138,10 @@
                         {:_id "/test-role/zone/test-zone-bootstrap-file"
                          :autoboot true
                          :boot-after-install true
-                         :bootstrap @{:file "/var/tmp/bootstrap.janet"}
+                         :bootstrap @{:copy-self true
+                                      :debug false
+                                      :file "/var/tmp/bootstrap.janet"
+                                      :gurp-binary "/var/tmp/gurp"}
                          :brand "lipkg"
                          :name "test-zone-bootstrap-file"
                          :net @[@{:allowed-address "192.168.1.33/24"

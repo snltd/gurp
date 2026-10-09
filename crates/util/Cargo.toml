@@ -29,6 +29,7 @@ indoc = "2.0.7"
 pretty_assertions = "1.4.1"
 tester = { path = "../tester" }
 snltest = { git = "https://github.com/snltd/snltest.git" }
+tracing-test = "0.2.6" 
 
 [build-dependencies]
 vergen-git2 = { version = "10.0.0", features = ["build", "cargo", "rustc", "si"] }

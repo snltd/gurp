@@ -242,7 +242,10 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
+| `:copy-self` | `boolean` | copy the running gurp binary into the zone at `/var/tmp/gurp` | `true` |
+| `:debug` | `boolean` | run the bootstrapping gurp in debug mode |  |
 | `:file` | `string` | fully qualified path of file in zone which will be used to bootstrap |  |
+| `:gurp-binary` | `string buffer` | path to the in-zone gurp used for bootstrapping | `"/var/tmp/gurp"` |
 | `:hostname` | `string` | hostname of client being bootstrapped |  |
 | `:server` | `string` | hostname/IP address of server to install from |  |
 
