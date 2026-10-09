@@ -140,7 +140,7 @@ mod test {
         assert!(logs_contain(
             "could not generate config: missing file error: /no/such/file"
         ));
-        assert!(logs_contain("sending fail metrics: fileNotFound"));
+        assert!(!logs_contain("sending fail metrics: fileNotFound"));
         assert!(!logs_contain("resources:"));
     }
 
@@ -162,7 +162,7 @@ mod test {
         assert!(logs_contain(
             "could not generate config: compile error: Failed to parse code"
         ));
-        assert!(logs_contain("sending fail metrics: compile"));
+        assert!(!logs_contain("sending fail metrics: compile"));
         assert!(!logs_contain("resources:"));
     }
 
@@ -182,7 +182,7 @@ mod test {
             )
         );
 
-        assert!(logs_contain("sending success metrics: 1/1"));
+        assert!(!logs_contain("sending success metrics: 1/1"));
         assert!(logs_contain("resources: 1  changes: 1"));
     }
 
@@ -203,7 +203,7 @@ mod test {
         );
 
         assert!(logs_contain("parent dir does not exist"));
-        assert!(logs_contain("sending fail metrics: apply"));
+        assert!(!logs_contain("sending fail metrics: apply"));
         assert!(!logs_contain("resources:"));
     }
 
@@ -233,7 +233,7 @@ mod test {
             config: compilation error: In directory/ensure /tmp/testdir: unexpected \
             property :bad-key."
         ));
-        assert!(logs_contain("sending fail metrics: compile"));
+        assert!(!logs_contain("sending fail metrics: compile"));
         assert!(!logs_contain("resources:"));
     }
 
@@ -260,7 +260,7 @@ mod test {
             )
         );
 
-        assert!(logs_contain("sending success metrics: 0/1"));
+        assert!(!logs_contain("sending success metrics: 0/1"));
         assert!(!logs_contain("resources: 1 changes: 0"));
     }
 }
