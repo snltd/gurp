@@ -21,5 +21,7 @@ pub fn flush(providers: TelemetryProviders) {
         if let Err(e) = p.shutdown() {
             tracing::warn!("failed to shut down log provider: {e:#}");
         }
+    } else {
+        tracing::debug!("no log provider, so not sending logs");
     }
 }
