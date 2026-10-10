@@ -1,3 +1,5 @@
+- Fix misc doer: scheduling class would not be changed if it was unset.
+
 ## v2.5.0 (2026-10-23)
 
 - Add `facts` command, and auto-generated facts documentation.
