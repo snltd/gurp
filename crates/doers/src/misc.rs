@@ -132,28 +132,33 @@ impl MiscEnsure {
         let dispadmin_output = get_cmd.output()?;
         let dispadmin_stdout = String::from_utf8_lossy(&dispadmin_output.stdout);
         let dispadmin_stderr = String::from_utf8_lossy(&dispadmin_output.stderr);
-        let chunks: Vec<_> = dispadmin_stdout.split_whitespace().collect();
 
-        if chunks.len() < 2 {
-            tracing::debug!(
-                stdout = dispadmin_stdout.as_ref(),
-                stderr = dispadmin_stderr.as_ref()
+        if dispadmin_stderr.contains("scheduling class is not set") {
+            tracing::info!("no scheduling class set: setting to {desired_class}");
+        } else {
+            let chunks: Vec<_> = dispadmin_stdout.split_whitespace().collect();
+
+            if chunks.len() < 2 {
+                tracing::debug!(
+                    stdout = dispadmin_stdout.as_ref(),
+                    stderr = dispadmin_stderr.as_ref()
+                );
+                bail!("unexpected dispadmin output: '{}'", dispadmin_stdout);
+            }
+
+            let current_class = chunks.first().unwrap().trim();
+
+            if current_class == desired_class {
+                tracing::debug!("no change to scheduler class: {}", current_class);
+                return Ok(ONE_RESOURCE_NO_CHANGE);
+            }
+
+            tracing::info!(
+                "change scheduler class: {} -> {}",
+                current_class,
+                desired_class
             );
-            bail!("unexpected dispadmin output: run with debug to see output");
         }
-
-        let current_class = chunks.first().unwrap().trim();
-
-        if current_class == desired_class {
-            tracing::debug!("no change to scheduler class: {}", current_class);
-            return Ok(ONE_RESOURCE_NO_CHANGE);
-        }
-
-        tracing::info!(
-            "change scheduler class: {} -> {}",
-            current_class,
-            desired_class
-        );
 
         let _ = cmd_change_or_noop!(opts, DISPADMIN_BIN, "-d", desired_class)
             .with_context(|| format!("failed to set scheduler class to {desired_class}"))?;
