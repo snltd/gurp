@@ -16,6 +16,14 @@
    :owner {:types [:string :number]
            :help "The username or UID of the user who owns this directory"}}
 
+  :optional-props-ensure
+  {:create-from {:types [:hash]
+                 :help "If the directory does not exist, create it by unpacking
+                 a tar[.gz] file. It is assumed that the archive contains the
+                 directory itself. Keys are `:file` if the source is a tar[.gz]
+                 file; or `:url` if the source is a URL, with either case
+                 accepting an optional SHA256 `:checksum`."}}
+
   :defaults-ensure
   {:owner "root"
    :mode "0755"
@@ -32,5 +40,20 @@
    "Removing a directory removes all its contents, but does not remove any
     empty ancestors."])
 
-(defensure "directory")
+(defn ensure
+  "Given a directory path and spec, put an ensure struct in the collector. If
+  Gurp is running as a remote client, changes local file references into HTTP
+  ones."
+  [name & spec]
+  (let [user-table (struct/to-table (make-spec-struct ;spec))
+        spec-table (expand-from-value user-table)
+        all-specs (spec-with-defaults defaults-ensure spec-table)
+        safe-specs (pinpoint-error
+                     :ensure
+                     (checked-spec all-specs
+                                   mandatory-props-ensure
+                                   optional-props-ensure))]
+
+    (collector/push :ensure doer (spec->resource doer name safe-specs))))
+
 (defremove "directory")

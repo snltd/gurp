@@ -38,7 +38,9 @@ Fully qualified path to directory (`:string`)
 
 ### Optional Properties
 
-None
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:create-from` | `string` | If the directory does not exist, create it from the given SOURCE. If SOURCE is a file, Gurp assumes an archive, and tries to unpack it. If SOURCE is a directory, it is copied |  |
 
 ## directory/remove
 
