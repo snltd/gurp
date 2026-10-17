@@ -3,6 +3,7 @@
 (defhelper :zone :cloudinit
   "Describe cloudinit config inside a zone resource"
   :name-is "cloudinit file name"
+  :exactly-one-of [:from :from-struct]
 
   :optional-props
   {:from {:types [:string]
@@ -18,19 +19,4 @@
 
   :notes ["You must supply exactly one of :from or :from-struct"])
 
-(defn cloudinit
-  "Given a spec, return cloudinit config"
-  [name & spec]
-  (if-not (has-exactly-one-of? [:from :from-struct] spec)
-    (pinpoint-error
-      :ensure
-      (error "need exactly one of :from, :from-struct")))
-
-  (let [spec-struct (make-spec-struct :name name ;spec)
-        expanded-spec (spec-with-defaults defaults-cloudinit spec-struct)
-        spec-table (pinpoint-error :cloudinit
-                                   (checked-spec expanded-spec
-                                                 mandatory-props-cloudinit
-                                                 optional-props-cloudinit))]
-
-    (struct :cloudinit spec-table)))
+(make-helper-fn "cloudinit")

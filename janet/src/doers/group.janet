@@ -9,5 +9,5 @@
   {:gid {:types [:number]
          :help "The group ID"}})
 
-(defensure "group")
-(defremove "group")
+(make-ensure-fn "group")
+(make-remove-fn "group")

@@ -58,13 +58,13 @@
 (deftest route-error
   (test-error
     (route/ensure "192.168.1.1")
-    "Provide exactly one of :gateway and :interface")
+    "In route/ensure 192.168.1.1: need exactly one of :gateway, :interface")
 
   (test-error
     (route/ensure "192.168.1.1"
                   :gateway "default"
                   :interface "e1000g")
-    "Provide exactly one of :gateway and :interface")
+    "In route/ensure 192.168.1.1: need exactly one of :gateway, :interface")
 
   (test-error
     (route/ensure "192.168.1.1"

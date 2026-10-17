@@ -45,6 +45,19 @@
               spec
               e))))
 
+(defn check-key-value
+  "Compares a given value against a list of permissible values. If the list is
+   nil, which it usually is, anything is allowed"
+  [property value possible-values]
+  (when (and (not (nil? possible-values))
+             (not (has-value? possible-values value)))
+    (errorf "%s must be one of %s [Got '%s']"
+            property
+            (comma-sep possible-values)
+            value))
+
+  true)
+
 (defn checked-spec
   "Compares a user's spec against what a resource definition expects. Raises
   an error if anything is not as it should be, otherwise returns the given spec
@@ -62,12 +75,20 @@
         (errorf "did not find mandatory property %p. Mandatory properties are %s"
                 prop-name
                 (comma-sep (keys mandatory-props)))
-        (check-key-type prop-name prop-value (prop-spec :types)))))
+        (do
+          (when-let [sub-spec (prop-spec :definition)]
+            (checked-spec prop-value sub-spec {}))
+          (check-key-type prop-name prop-value (prop-spec :types))
+          (check-key-value prop-name prop-value (prop-spec :values))))))
 
   (loop [[prop-name prop-value] :pairs spec-struct]
     (if-not (has-key? mandatory-props prop-name) # we've already checked these
       (if-let [prop-spec (get optional-props prop-name)]
-        (check-key-type prop-name prop-value (prop-spec :types))
+        (do
+          (when-let [sub-spec (prop-spec :definition)]
+            (checked-spec prop-value {} sub-spec))
+          (check-key-type prop-name prop-value (prop-spec :types))
+          (check-key-value prop-name prop-value (prop-spec :values)))
         (errorf "unexpected property %p. Valid properties are %s"
                 prop-name
                 (comma-sep (array/concat @[]
@@ -78,10 +99,7 @@
 (defn resource-id
   "Safely generate a resource ID"
   [resource-type role name]
-  (let [name (if (nil? name)
-               "NO-NAME"
-               (string/replace-all "/" "_" name))]
-
+  (let [name (if (nil? name) "NO-NAME" (string/replace-all "/" "_" name))]
     (string/format "/%s/%s/%s" role resource-type name)))
 
 (defn spec->resource
@@ -154,33 +172,27 @@
   (<= (length (keys-in-struct required-keys (make-spec-struct ;spec))) 1))
 
 (defn key-has-value?
-  "Checks whether the given key has an acceptable value"
+  "Checks whether the given key has an acceptable value, errors if key is not
+   set"
   [spec key acceptable-values]
   (if-let [given-value (get (struct ;spec) key)]
-    (if (has-value? acceptable-values given-value)
-      true
-      (errorf "%q must be one of %p Got %p"
-              key
-              acceptable-values
-              given-value))
+    (check-key-value key given-value acceptable-values)
     (errorf "key-has-value? did not find key %p" key)))
 
-
 (defmacro expand-resource
-  "Group the results of in-resource functions like (zone-fs) into a list under
-  a single key. Partitions `modified-spec` items whose keys do or do not match
+  "Group the results of helpers (e.g. zone/fs) into a list under a single key.
+  Partitions `modified-spec` items whose keys do or do not match
   the given `key`. The matches ('is' group) are flattened into a single array
   (or, if `:as-struct` is passed, reduced to the first matching struct) and
   stored under `key`. Non-matching items ('is-not' group) are preserved."
   [key &keys {:as-struct as-struct}]
   (with-syms [$is-key $key-list $vals]
     ~(do
-       (let [$is-key
-             (group-by
-               |(and (struct? $) (deep= @[,key] (keys $)))
-               modified-spec)]
+       (let [$is-key (group-by
+                       |(and (struct? $) (deep= @[,key] (keys $)))
+                       modified-spec)]
 
-         (if-let [$key-list ($is-key true)]
+         (when-let [$key-list ($is-key true)]
            (let [$vals (mapcat values $key-list)]
              (set modified-spec
                   (tuple
@@ -216,8 +228,8 @@
 
         spec-table (table ;(get parts 1 []))]
 
-    (if-let [protocol-parts (get parts 0)
-             protocol-table (struct ;protocol-parts)]
+    (when-let [protocol-parts (get parts 0)
+               protocol-table (struct ;protocol-parts)]
       (set (spec-table :protocols) protocol-table))
 
     spec-table))
@@ -232,7 +244,7 @@
   or server references, depending on the current execution environment. Returns
   a modified spec-table."
   [spec-table]
-  (if-let [from-path (spec-table :from)]
+  (when-let [from-path (spec-table :from)]
     (if-let [server-name (dyn :server-name)]
       (do
         (set (spec-table :from) nil)
@@ -275,6 +287,12 @@
                        :optional-props {}
                        :defaults {}})
 
+(defmacro when-defined
+  "Expand to body only if sym is already defined"
+  [sym & body]
+  (when (get (curenv) sym)
+    ~(do ,;body)))
+
 (defmacro defhelper
   "Creates the defs required for a helper"
   [doer-name helper-name description & spec]
@@ -288,19 +306,53 @@
      ,;(seq [[k v] :pairs spec-struct]
          ~(def ,(symbol (string k "-" helper-name)) ,v))))
 
-(defmacro defensure
+(defmacro make-ensure-fn
   "Generates a boilerplate ensure function"
   [name]
   ~(defn ensure
      [name & spec]
+     (when-defined exactly-one-of
+       (if (not (has-exactly-one-of? exactly-one-of spec))
+         (pinpoint-error
+           :ensure
+           (errorf "need exactly one of %s" (comma-sep exactly-one-of)))))
      (collector/push :ensure doer (make-ensure-resource))))
 
-(defmacro defremove
+(defmacro make-remove-fn
   "Generates a boilerplate remove function"
   [name]
   ~(defn remove
      [name & spec]
      (collector/push :remove doer (make-remove-resource))))
+
+(defmacro make-helper-fn
+  "Generates a boilerplate helper function"
+  [helper-name &named without-name]
+  (with-syms [$mandatory-props $optional-props $defaults $exactly-one-of]
+    (def $mandatory-props (symbol (string "mandatory-props-" helper-name)))
+    (def $optional-props (symbol (string "optional-props-" helper-name)))
+    (def $defaults (symbol (string "defaults-" helper-name)))
+    (def $exactly-one-of (symbol (string "exactly-one-of-" helper-name)))
+    ~(defn ,(symbol helper-name)
+       ,(if without-name
+          '[& spec]
+          '[name & spec])
+       ,(when without-name '(def name "NO-NAME"))
+       (when-defined ,$exactly-one-of
+         (if (not (has-exactly-one-of? ,$exactly-one-of spec))
+           (pinpoint-error
+             (string ,helper-name)
+             (errorf "need exactly one of %s" (comma-sep ,$exactly-one-of)))))
+       (let [user-spec ,(if without-name
+                          '(make-spec-struct ;spec)
+                          '(make-spec-struct :name name ;spec))
+             expanded-spec (spec-with-defaults ,$defaults user-spec)
+             spec-struct (pinpoint-error ,(keyword helper-name)
+                                         (checked-spec expanded-spec
+                                                       ,$mandatory-props
+                                                       ,$optional-props))]
+
+         (struct ,(keyword helper-name) spec-struct)))))
 
 (defn expand-list-struct
   "If any keys of strct are arrays or tuples, expand each key into a new entry

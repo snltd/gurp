@@ -25,5 +25,5 @@
    "Only version numbers are supported, so `latest` won't work."
    "`gem/remove` takes no options, so removes all versions of the given gem."])
 
-(defensure "gem")
-(defremove "gem")
+(make-ensure-fn "gem")
+(make-remove-fn "gem")

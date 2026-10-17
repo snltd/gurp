@@ -13,10 +13,10 @@
           :help "Service FMRI"}}
 
   :optional-props-ensure
-  {:dependencies {:types [:array]
-                  :help "See 'smf-dependency'"}
-   :dependents {:types [:array]
-                :help "See 'smf-dependent'"}
+  {:dependency {:types [:array]
+                :help "See 'smf-dependency'"}
+   :dependent {:types [:array]
+               :help "See 'smf-dependent'"}
    :description {:types [:string]
                  :help "What the service does"}
    :duration {:types [:string]
@@ -56,8 +56,8 @@
   "Given a name and a manifest description, return an SMF service ensure struct"
   [name & spec]
   (var modified-spec spec)
-  (expand-resource :dependencies)
-  (expand-resource :dependents)
+  (expand-resource :dependency)
+  (expand-resource :dependent)
   (expand-resource :start-method :as-struct true)
   (expand-resource :stop-method :as-struct true)
   (expand-resource :restart-method :as-struct true)
@@ -82,4 +82,4 @@
 
     (collector/push :ensure doer (spec->resource doer name spec-table))))
 
-(defremove "smf")
+(make-remove-fn "smf")

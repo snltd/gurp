@@ -23,15 +23,4 @@
    :grouping "require_all"
    :type "service"})
 
-(defn dependent
-  "A convenience function to help produce an SMF dependent"
-  [name & spec]
-  (let [doer "smf"
-        user-spec (make-spec-struct :name name ;spec)
-        spec-struct (pinpoint-error :dependent
-                                    (checked-spec user-spec
-                                                  mandatory-props-dependent
-                                                  optional-props-dependent))
-        all-specs (spec-with-defaults defaults-dependent spec-struct)]
-
-    (struct :dependencies all-specs)))
+(make-helper-fn "dependent")

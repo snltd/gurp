@@ -36,15 +36,4 @@
     clobbering it if it already exists. For any other image type, it is the 
     user's responsibility to create the `:boot-volume`."])
 
-(defn bhyve
-  "Given a spec, return config for a bhyve zone"
-  [& spec]
-  (let [name "NO-NAME"
-        spec-struct (make-spec-struct ;spec)
-        expanded-spec (spec-with-defaults defaults-bhyve spec-struct)
-        spec-table (pinpoint-error :bhyve
-                                   (checked-spec expanded-spec
-                                                 mandatory-props-bhyve
-                                                 optional-props-bhyve))]
-
-    (struct :bhyve spec-table)))
+(make-helper-fn bhyve :without-name true)

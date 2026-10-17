@@ -5,5 +5,5 @@
   "Create and destroy etherstubs."
   :name-is "Name of etherstub")
 
-(defensure "etherstub")
-(defremove "etherstub")
+(make-ensure-fn "etherstub")
+(make-remove-fn "etherstub")

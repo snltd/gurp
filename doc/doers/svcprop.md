@@ -33,7 +33,7 @@ Any valid FMRI of the service whose properties you wish to set (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:on-change` | `string` | Take this action when a value is changed. One of restart, refresh |  |
+| `:on-change` | `string` | Take this action when a value is changed |  |
 | `:property-groups` | `struct` | Property groups to create. Key is name, value is type |  |
 
 ## svcprop/remove

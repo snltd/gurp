@@ -15,5 +15,5 @@
   ["You must specify the VLAN link name. Gurp does not support automatic naming,
     as it goes against its policy of assuming nothing."])
 
-(defensure "vlan")
-(defremove "vlan")
+(make-ensure-fn "vlan")
+(make-remove-fn "vlan")

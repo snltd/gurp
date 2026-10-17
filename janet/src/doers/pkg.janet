@@ -17,5 +17,5 @@
     two calls to `pkg(1)`. This is a huge speed win over dealing with each package
     individually"])
 
-(defensure "pkg")
-(defremove "pkg")
+(make-ensure-fn "pkg")
+(make-remove-fn "pkg")

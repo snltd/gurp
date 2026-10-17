@@ -43,8 +43,8 @@ Short name of service. Not used internally (`:string`)
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:default-enabled` | `boolean` | Start the service when the manifest installs | `true` |
-| `:dependencies` | `array` | See 'smf-dependency' |  |
-| `:dependents` | `array` | See 'smf-dependent' |  |
+| `:dependency` | `array` | See 'smf-dependency' |  |
+| `:dependent` | `array` | See 'smf-dependent' |  |
 | `:description` | `string` | What the service does |  |
 | `:duration` | `string` | Use this to specify 'transient' or 'wait' services |  |
 | `:properties` | `struct table` | Create/set properties.(:keyword :string|:boolean|:number) |  |

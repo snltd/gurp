@@ -7,5 +7,5 @@
   :notes ["Only adds and removes packages. You cannot specify or pin package versions."
           "The package database is refreshed prior to an install"])
 
-(defensure "apk")
-(defremove "apk")
+(make-ensure-fn "apk")
+(make-remove-fn "apk")

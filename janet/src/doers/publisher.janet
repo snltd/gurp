@@ -46,4 +46,4 @@
 
     (collector/push :ensure doer (spec->resource doer name spec-table))))
 
-(defremove "publisher")
+(make-remove-fn "publisher")

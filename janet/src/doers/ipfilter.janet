@@ -4,6 +4,7 @@
 (defdoer :ipfilter
   "Set or remove ipfilter rules."
   :name-is "Any convenient name: not used internally"
+  :exactly-one-of [:content :from]
 
   :mandatory-props-ensure
   {:priority {:types [:number]
@@ -34,12 +35,5 @@
    "Using :always-reload means Gurp will always show a change to be made"
    "ipfilter/remove removes ALL filter rules"])
 
-(defn ensure
-  [name & spec]
-  (if (has-exactly-one-of? [:content :from] spec)
-    (collector/push :ensure doer (make-ensure-resource))
-    (pinpoint-error
-      :ensure
-      (error "need exactly one of :content or :from"))))
-
-(defremove "ipfilter")
+(make-ensure-fn "ipfilter")
+(make-remove-fn "ipfilter")

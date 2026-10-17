@@ -40,4 +40,4 @@
 
     (collector/push :ensure doer (spec->resource doer name safe-specs))))
 
-(defremove "system-cert")
+(make-remove-fn "system-cert")

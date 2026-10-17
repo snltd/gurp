@@ -11,9 +11,11 @@
 
   :optional-props-ensure
   {:reloaded-by {:types [:array]
-                 :help "Labels of resources whose alteration triggers service reload"}
+                 :help "Labels of resources whose alteration triggers service
+                        reload"}
    :restarted-by {:types [:array]
-                  :help "Labels of resources whose alteration triggers service restart"}}
+                  :help "Labels of resources whose alteration triggers service
+                         restart"}}
 
   :defaults-ensure {:restarted-by []
                     :reloaded-by []}

@@ -1,6 +1,6 @@
 (use ../lib)
 
-(defhelper :zone :attr
+(defhelper :zone attr
   "Set attributes on a zone being created by the zone doer."
   :name-is "Attribute name"
 

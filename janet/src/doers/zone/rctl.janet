@@ -18,14 +18,4 @@
   {:priv "privileged"
    :action "deny"})
 
-(defn rctl
-  "Given a spec, return a zone rctl struct."
-  [name & spec]
-  (let [spec-struct (make-spec-struct :name name ;spec)
-        expanded-spec (spec-with-defaults defaults-rctl spec-struct)
-        spec-table (pinpoint-error :rctl
-                                   (checked-spec expanded-spec
-                                                 mandatory-props-rctl
-                                                 optional-props-rctl))]
-
-    (struct :rctl spec-table)))
+(make-helper-fn rctl)

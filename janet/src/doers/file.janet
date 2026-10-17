@@ -83,4 +83,4 @@
 
     (collector/push :ensure doer (spec->resource doer name safe-specs))))
 
-(defremove "file")
+(make-remove-fn "file")

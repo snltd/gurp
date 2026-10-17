@@ -58,6 +58,53 @@
       {:group 14 :mode "0755" :owner 264 :oops "merp"} mandatory-keys optional-keys)
     "unexpected property :oops. Valid properties are :owner, :group, :mode, :label"))
 
+(deftest checked-spec-with-invalid-value
+  (def mandatory-keys
+    {:synth {:types [:string]
+             :help "Which synth?"
+             :values ["kronos" "blofeld"]}})
+
+  (test
+    (checked-spec {:synth "blofeld"} mandatory-keys {})
+    {:synth "blofeld"})
+
+  (test-error
+    (checked-spec {:synth "pro3"} mandatory-keys {})
+    "synth must be one of \"kronos\", \"blofeld\" [Got 'pro3']"))
+
+(deftest checked-spec-with-struct-values
+  (def mandatory-keys
+    {:from {:types [:string]
+            :help "Path or URL to resource"}})
+  (def optional-keys
+    {:checksum {:types [:struct]
+                :help "Define a checksum"
+                :definition {:algorithm {:types [:string]
+                                         :help "Hashing algorithm"
+                                         :values ["sha512" "blake3"]}
+                             :type {:types [:string]
+                                    :help "Type of value"
+                                    :values ["suffix" "url" "literal"]}
+                             :value {:types [:string]
+                                     :help "Checksum, suffix, or url"}}}})
+
+  (test
+    (checked-spec {:from "/path/to/file"
+                   :checksum {:algorithm "sha512"
+                              :type "suffix"
+                              :value ".sha256"}} mandatory-keys optional-keys)
+    {:checksum {:algorithm "sha512"
+                :type "suffix"
+                :value ".sha256"}
+     :from "/path/to/file"})
+
+  (test-error
+    (checked-spec {:from "/path/to/file"
+                   :checksum {:algorithm "des"
+                              :type "suffix"
+                              :value ".sha256"}} mandatory-keys optional-keys)
+    "algorithm must be one of \"sha512\", \"blake3\" [Got 'des']"))
+
 (deftest resource-id
   (test (resource-id :file :test-role :merp) "/test-role/file/merp")
   (test (resource-id :file :test-role nil) "/test-role/file/NO-NAME"))
@@ -103,7 +150,38 @@
       (def defaults-method {})
       (def mandatory-props-method {})
       (def optional-props-method {})
-      (def timeout-method 50))))
+      (def timeout-method 50)))
+
+  (test-macro
+    (defhelper :zone :bootstrap
+      "bootstrap a zone"
+      :exactly-one-of [:server :file])
+    (upscope
+      (def doer :zone)
+      (def description-bootstrap "bootstrap a zone")
+      (def defaults-bootstrap {})
+      (def mandatory-props-bootstrap {})
+      (def optional-props-bootstrap {})
+      (def exactly-one-of-bootstrap [:server :file]))))
+
+(deftest make-helper-fn
+  (test-macro
+    (make-helper-fn mirror)
+    (defn mirror
+      [name & spec]
+      nil
+      (when-defined exactly-one-of-mirror (if (not (has-exactly-one-of? exactly-one-of-mirror spec)) (pinpoint-error (string mirror) (errorf "need exactly one of %s" (comma-sep exactly-one-of-mirror)))))
+      (let [user-spec (make-spec-struct :name name (splice spec)) expanded-spec (spec-with-defaults defaults-mirror user-spec) spec-struct (pinpoint-error :mirror (checked-spec expanded-spec mandatory-props-mirror optional-props-mirror))]
+        (struct :mirror spec-struct))))
+
+  (test-macro
+    (make-helper-fn byhve :without-name true)
+    (defn byhve
+      [& spec]
+      (def name "NO-NAME")
+      (when-defined exactly-one-of-byhve (if (not (has-exactly-one-of? exactly-one-of-byhve spec)) (pinpoint-error (string byhve) (errorf "need exactly one of %s" (comma-sep exactly-one-of-byhve)))))
+      (let [user-spec (make-spec-struct (splice spec)) expanded-spec (spec-with-defaults defaults-byhve user-spec) spec-struct (pinpoint-error :byhve (checked-spec expanded-spec mandatory-props-byhve optional-props-byhve))]
+        (struct :byhve spec-struct)))))
 
 (deftest expand-list-struct
   (test
@@ -137,7 +215,7 @@
 
   (test-error (key-has-value?
                 [:a 1 :b 2] :a [3 4])
-              ":a must be one of (3 4) Got 1")
+              "bad slot #3, expected string, symbol, keyword or buffer, got 1")
 
   (test-error (key-has-value?
                 [:a 1 :b 2] :c [3 4])

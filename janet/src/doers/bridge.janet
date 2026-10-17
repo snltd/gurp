@@ -29,5 +29,5 @@
    :hello-time 2
    :max-age 20})
 
-(defensure "bridge")
-(defremove "bridge")
+(make-ensure-fn "bridge")
+(make-remove-fn "bridge")

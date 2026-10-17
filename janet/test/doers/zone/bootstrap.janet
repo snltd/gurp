@@ -20,4 +20,13 @@
 
   (test-error
     (zone/bootstrap :oops "wat?")
-    "In zone/bootstrap NO-NAME: unexpected property :oops. Valid properties are :label, :hostname, :copy-self, :debug, :gurp-binary, :server, :file"))
+    "In zone/bootstrap NO-NAME: need exactly one of :file, :server")
+
+  (test-error
+    (zone/bootstrap)
+    "In zone/bootstrap NO-NAME: need exactly one of :file, :server")
+    
+  (test-error
+    (zone/bootstrap :server "gurp.localnet"
+                    :file "/var/tmp/config.janet")
+    "In zone/bootstrap NO-NAME: need exactly one of :file, :server"))

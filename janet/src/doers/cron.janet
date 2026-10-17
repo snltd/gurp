@@ -50,5 +50,5 @@
     you'll have to use other methods to make sure your users are allowed to run
     the jobs you define."])
 
-(defensure "cron")
-(defremove "cron")
+(make-ensure-fn "cron")
+(make-remove-fn "cron")
