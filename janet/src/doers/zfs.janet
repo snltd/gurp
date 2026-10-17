@@ -43,4 +43,4 @@
 
       (collector/push :ensure doer (spec->resource doer name safe-specs)))))
 
-(defremove "zfs")
+(make-remove-fn "zfs")

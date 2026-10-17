@@ -4,6 +4,7 @@
 
 (defhelper :zone :bootstrap
   "Tells gurp how to bootstrap a newly created zone."
+  :exactly-one-of [:file :server]
 
   :optional-props
   {:server {:types [:string]
@@ -35,16 +36,4 @@
    "On a bootstrap run, `gurp-user-defs` contains `:is-bootstrap true`, so
     you can change behaviour on an initial run."])
 
-
-(defn bootstrap
-  "Given a spec, return config to bootstrap a zone"
-  [& spec]
-  (let [name "NO-NAME"
-        spec-struct (make-spec-struct ;spec)
-        expanded-spec (spec-with-defaults defaults-bootstrap spec-struct)
-        spec-table (pinpoint-error :bootstrap
-                                   (checked-spec expanded-spec
-                                                 mandatory-props-bootstrap
-                                                 optional-props-bootstrap))]
-
-    (struct :bootstrap spec-table)))
+(make-helper-fn "bootstrap" :without-name true)

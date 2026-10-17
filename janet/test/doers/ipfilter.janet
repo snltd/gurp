@@ -33,4 +33,4 @@
 
   (test-error
     (ipfilter/ensure "error-test-2" :priority 0)
-    "In ipfilter/ensure error-test-2: need exactly one of :content or :from"))
+    "In ipfilter/ensure error-test-2: need exactly one of :content, :from"))

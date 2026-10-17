@@ -71,7 +71,7 @@
                             :value can be a literal checksum, a URI, or a dot-
                             prefixed suffix which will be appended to the image URL"
                             (comma-sep checksum-types))}
-   :net {:types [:array]
+   :network {:types [:array]
          :help "See zone/network"}
    :pool {:types [:string]
           :help "Resource pool to which zone should belong"}
@@ -115,7 +115,7 @@
   "Given a zone name and spec, put an ensure struct in the collector"
   [name & spec]
   (var modified-spec spec)
-  (expand-resource :net)
+  (expand-resource :network)
   (expand-resource :attr)
   (expand-resource :fs)
   (expand-resource :rctl)
@@ -155,4 +155,4 @@
 
     (collector/push :ensure doer (spec->resource doer name spec-table))))
 
-(defremove "zone")
+(make-remove-fn "zone")

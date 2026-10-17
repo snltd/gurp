@@ -1,4 +1,4 @@
-use crate::zone::config::{EmulConfig, GurpZoneEmu, ImageSource, ZoneConfig};
+use crate::zone::config::{EmuConfig, EmulConfig, ImageSource, ZoneConfig};
 use crate::zone::{console_watcher, control, image};
 use anyhow::Context;
 use camino::Utf8Path;
@@ -61,7 +61,7 @@ fn setup_bios(bios_src: &ImageSource, zonepath: &Utf8Path, opts: &ApplyOpts) -> 
     Ok(())
 }
 
-pub fn zone_config(config: &GurpZoneEmu) -> String {
+pub fn zone_config(config: &EmuConfig) -> String {
     let mut ret = String::new();
 
     ret.push_str(zone_device!(config.boot_device()));

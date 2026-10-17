@@ -51,8 +51,8 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:apply-to` | `string` | Which matches to act on: "all", "first", "last" | `"all"` |
-| `:match` | `string` | How to match the line: "exact", "starts-with", "ends-with", "contains", "regex" | `"exact"` |
+| `:apply-to` | `string` | Which matches to act on | `"all"` |
+| `:match` | `string` | How to match the line | `"exact"` |
 | `:pattern` | `string` | The line or pattern which must be removed |  |
 
 ### Optional Properties

@@ -32,5 +32,5 @@
    "Removing a directory removes all its contents, but does not remove any
     empty ancestors."])
 
-(defensure "directory")
-(defremove "directory")
+(make-ensure-fn "directory")
+(make-remove-fn "directory")

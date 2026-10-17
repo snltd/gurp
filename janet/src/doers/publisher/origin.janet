@@ -12,13 +12,4 @@
   {:proxy {:types [:string]
            :help "Proxy URI for this origin"}})
 
-(defn origin
-  "Given a spec, return a publisher origin struct."
-  [name & spec]
-  (let [spec-struct (make-spec-struct :name name ;spec)
-        spec-table (pinpoint-error :origin
-                                   (checked-spec spec-struct
-                                                 mandatory-props-origin
-                                                 optional-props-origin))]
-
-    (struct :origin spec-table)))
+(make-helper-fn "origin")
