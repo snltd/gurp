@@ -11,16 +11,16 @@
   (test *collector*
     @{:ensure @{:smf @[{:_id "/NO-ROLE/smf/example"
                         :default-enabled true
-                        :dependencies @[@{:fmri "svc:/milestone/name-services:default"
-                                          :grouping "require_all"
-                                          :name "dependency1"
-                                          :restart-on "none"
-                                          :type "service"}
-                                        @{:fmri "svc:/system/pkgserv:default"
-                                          :grouping "optional_all"
-                                          :name "dependency2"
-                                          :restart-on "error"
-                                          :type "service"}]
+                        :dependency @[@{:fmri "svc:/milestone/name-services:default"
+                                        :grouping "require_all"
+                                        :name "dependency1"
+                                        :restart-on "none"
+                                        :type "service"}
+                                      @{:fmri "svc:/system/pkgserv:default"
+                                        :grouping "optional_all"
+                                        :name "dependency2"
+                                        :restart-on "error"
+                                        :type "service"}]
                         :description "Run example program"
                         :duration "child"
                         :fmri "snltd/example"

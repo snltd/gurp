@@ -27,5 +27,5 @@
    :priority {:types [:string]
               :help "Priority of link: high, medium, low"}})
 
-(defensure "network-flow")
-(defremove "network-flow")
+(make-ensure-fn "network-flow")
+(make-remove-fn "network-flow")

@@ -229,7 +229,7 @@ mod test {
                             }
                         )
                     ]),),
-                    dependencies: Some(vec![
+                    dependency: Some(vec![
                         SmfDefinitionDependencySvc {
                             name: "dependency1".to_owned(),
                             fmri: "svc:/milestone/name-services:default".to_owned(),
@@ -245,7 +245,7 @@ mod test {
                             dep_type: "service".to_owned(),
                         },
                     ]),
-                    dependents: None,
+                    dependent: None,
                 }
             },
             deserialized_example("smf/ensure-daemon-with-privs.janet")

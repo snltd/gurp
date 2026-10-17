@@ -24,5 +24,5 @@
    "Files and directories are ensured before links, so you can link
     Gurp-managed resources."])
 
-(defensure "link")
-(defremove "link")
+(make-ensure-fn "link")
+(make-remove-fn "link")

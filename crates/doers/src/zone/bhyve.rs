@@ -1,4 +1,4 @@
-use crate::zone::config::{EmulConfig, GurpZoneBhyve, ZoneConfig};
+use crate::zone::config::{BhyveConfig, EmulConfig, ZoneConfig};
 use crate::zone::{console_watcher, control, image};
 use anyhow::Context;
 use common::constants::ZONEADM_BIN;
@@ -40,7 +40,7 @@ pub fn build_zone(
     Ok(())
 }
 
-pub fn zone_config(config: &GurpZoneBhyve) -> String {
+pub fn zone_config(config: &BhyveConfig) -> String {
     let mut ret = String::new();
     ret.push_str(zone_device!(config.boot_device()));
     ret.push_str(zone_attr!("bootrom", "string", config.boot_rom));

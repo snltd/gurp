@@ -15,8 +15,8 @@
   {:property-groups {:types [:struct]
                      :help "Property groups to create. Key is name, value is type"}
    :on-change {:types [:string]
-               :help (string "Take this action when a value is changed. One of "
-                             (string/join allowed-actions ", "))}}
+               :help "Take this action when a value is changed"
+               :values allowed-actions}}
 
   :mandatory-props-remove
   {:properties {:types [:tuple :array]
@@ -46,14 +46,6 @@
                                     optional-props-ensure))
         spec-table (spec-with-defaults defaults-ensure spec-struct)]
 
-    (if-let [action (get spec-table :on-change)]
-      (pinpoint-error
-        :ensure
-        (if-not (has-value? allowed-actions action)
-          (errorf "on-change action must be one of %s [got '%s']"
-                  (string/join allowed-actions ", ")
-                  action))))
-
     # Properties must be expanded
     (set (spec-table :properties)
          (tabseq [[prop-name prop-val] :pairs (get spec-table :properties ())]
@@ -61,4 +53,4 @@
 
     (collector/push :ensure doer (spec->resource doer name spec-table))))
 
-(defremove "svcprop")
+(make-remove-fn "svcprop")

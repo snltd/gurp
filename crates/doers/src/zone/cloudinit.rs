@@ -1,4 +1,4 @@
-use crate::zone::config::{CloudInitConfig, GurpZoneFilesystem};
+use crate::zone::config::{CloudInitConfig, Filesystem};
 use anyhow::{Context, ensure};
 use camino::{Utf8Path, Utf8PathBuf};
 use camino_tempfile::Utf8TempDir;
@@ -61,7 +61,7 @@ pub fn iso_path(uuid: &Uuid) -> Utf8PathBuf {
 pub fn zone_config_snippet(uuid: &Uuid) -> String {
     let iso_path = iso_path(uuid);
 
-    let fs = zone_fs!(GurpZoneFilesystem {
+    let fs = zone_fs!(Filesystem {
         dir: "/cloudinit".into(),
         special: iso_path.clone(),
         fs_type: "lofs".to_owned(),

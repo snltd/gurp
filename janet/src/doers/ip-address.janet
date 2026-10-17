@@ -15,5 +15,5 @@
    :properties {:types [:struct]
                 :help "Struct of any valid ipadm addrprops"}})
 
-(defensure "ip-address")
-(defremove "ip-address")
+(make-ensure-fn "ip-address")
+(make-remove-fn "ip-address")
