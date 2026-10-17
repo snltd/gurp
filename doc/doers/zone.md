@@ -123,7 +123,7 @@ Zone name (`:string`)
 | `:image` | `string` | Install zone using this image. See docs for pattern rules |  |
 | `:ip-type` | `string` | IP type: exclusive or shared |  |
 | `:limitpriv` | `tuple` | List of privileges to add to zone |  |
-| `:net` | `array` | See zone/network |  |
+| `:network` | `array` | See zone/network |  |
 | `:pool` | `string` | Resource pool to which zone should belong |  |
 | `:rctl` | `array` | See zone/rctl |  |
 | `:recreate` | `number` | 1-in-n chance the zone will be destroyed and recreated | `0` |
@@ -343,7 +343,7 @@ The mountpoint inside the zone (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:dir` | `string` | Mountpoint in zone. This is the name of the resource, and is not specified with a key |  |
+| `:name` | `string` | Mountpoint in zone. This is the name of the resource, and is not specified with a key |  |
 | `:special` | `string` | The directory in the global zone |  |
 
 ### Optional Properties
@@ -374,7 +374,7 @@ Zone VNIC, which may already exist (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:physical` | `string` | Zone VNIC. This is the name of the resource, and is not specified with a key |  |
+| `:name` | `string` | Zone VNIC. This is the name of the resource, and is not specified with a key |  |
 
 ### Optional Properties
 

@@ -40,5 +40,5 @@
    "You can create non-primary groups for a new user, but not change them for
     an existing one."])
 
-(defensure "user")
-(defremove "user")
+(make-ensure-fn "user")
+(make-remove-fn "user")

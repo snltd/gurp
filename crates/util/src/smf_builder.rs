@@ -56,8 +56,8 @@ pub struct SmfDefinition {
     pub refresh_method: Option<SmfDefinitionExecMethod>,
     pub property_groups: Option<PropertyGroupMap>,
     pub properties: Option<PropertyMap>,
-    pub dependencies: Option<Vec<SmfDefinitionDependencySvc>>,
-    pub dependents: Option<Vec<SmfDefinitionDependentSvc>>,
+    pub dependency: Option<Vec<SmfDefinitionDependencySvc>>,
+    pub dependent: Option<Vec<SmfDefinitionDependentSvc>>,
 }
 
 #[derive(PartialEq, Debug, Deserialize, Hash)]
@@ -326,13 +326,13 @@ pub fn make_manifest(def: &SmfDefinition) -> anyhow::Result<String> {
                 fmri: "svc:/system/filesystem/local".to_owned(),
             });
 
-            if let Some(dependencies) = &def.dependencies {
+            if let Some(dependencies) = &def.dependency {
                 for dep in dependencies {
                     svc.add_svc_dependency(dep);
                 }
             }
 
-            if let Some(dependents) = &def.dependents {
+            if let Some(dependents) = &def.dependent {
                 for dep in dependents {
                     svc.add_svc_dependent(dep);
                 }
@@ -397,14 +397,14 @@ mod test {
             fmri: "sysdef/telegraf".to_owned(),
             single_instance: true,
             default_enabled: true,
-            dependencies: Some(vec![SmfDefinitionDependencySvc {
+            dependency: Some(vec![SmfDefinitionDependencySvc {
                 name: "test-dep".to_owned(),
                 restart_on: "none".to_owned(),
                 fmri: "svc:/example/service:default".to_owned(),
                 grouping: "require_all".to_owned(),
                 dep_type: "service".to_owned(),
             }]),
-            dependents: None,
+            dependent: None,
             start_method: Some(SmfDefinitionExecMethod {
                 exec: "/opt/site/lib/smf/method/telegraf.sh".to_owned(),
                 timeout: 60,

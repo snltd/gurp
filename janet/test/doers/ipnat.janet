@@ -31,4 +31,4 @@
 
   (test-error
     (ipnat/ensure "error-test-2" :priority 0)
-    "In ipnat/ensure error-test-2: need exactly one of :content or :from"))
+    "In ipnat/ensure error-test-2: need exactly one of :content, :from"))

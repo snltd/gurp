@@ -19,7 +19,7 @@
 
   (test-error
     (zone/cloudinit "user-data" :from "user-data" :from-struct {:network {}})
-    "In zone/ensure user-data: need exactly one of :from, :from-struct")
+    "In zone/cloudinit user-data: need exactly one of :from, :from-struct")
 
   (test-error
     (zone/cloudinit "user-data" :from "file" :oops "file")
@@ -27,4 +27,4 @@
 
   (test-error
     (zone/cloudinit "user-data")
-    "In zone/ensure user-data: need exactly one of :from, :from-struct"))
+    "In zone/cloudinit user-data: need exactly one of :from, :from-struct"))
