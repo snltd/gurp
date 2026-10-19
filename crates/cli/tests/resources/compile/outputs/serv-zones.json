@@ -91,18 +91,18 @@
           "final-state": "installed",
           "fs": [
             {
-              "dir": "/home",
+              "name": "/home",
               "special": "/export/home",
               "type": "lofs"
             }
           ],
           "name": "lipkg-blue",
-          "net": [
+          "network": [
             {
               "allowed-address": "192.168.1.19/24",
               "defrouter": "192.168.1.1",
               "global-nic": "auto",
-              "physical": "blue_net0"
+              "name": "blue_net0"
             }
           ],
           "recreate": 0,
@@ -133,18 +133,18 @@
           },
           "fs": [
             {
-              "dir": "/home",
+              "name": "/home",
               "special": "/export/home",
               "type": "lofs"
             }
           ],
           "name": "serv-pkg",
-          "net": [
+          "network": [
             {
               "allowed-address": "192.168.1.24/24",
               "defrouter": "192.168.1.1",
               "global-nic": "auto",
-              "physical": "pkg_net0"
+              "name": "pkg_net0"
             }
           ],
           "recreate": 200,
@@ -172,18 +172,18 @@
           },
           "fs": [
             {
-              "dir": "/home",
+              "name": "/home",
               "special": "/export/home",
               "type": "lofs"
             }
           ],
           "name": "serv-dns",
-          "net": [
+          "network": [
             {
               "allowed-address": "192.168.1.53/24",
               "defrouter": "192.168.1.1",
               "global-nic": "auto",
-              "physical": "dns_net0"
+              "name": "dns_net0"
             }
           ],
           "recreate": 200,
@@ -218,18 +218,18 @@
           },
           "fs": [
             {
-              "dir": "/home",
+              "name": "/home",
               "special": "/export/home",
               "type": "lofs"
             }
           ],
           "name": "serv-backup",
-          "net": [
+          "network": [
             {
               "allowed-address": "192.168.1.29/24",
               "defrouter": "192.168.1.1",
               "global-nic": "auto",
-              "physical": "backup_net0"
+              "name": "backup_net0"
             }
           ],
           "recreate": 200,
@@ -260,18 +260,18 @@
           },
           "fs": [
             {
-              "dir": "/home",
+              "name": "/home",
               "special": "/export/home",
               "type": "lofs"
             }
           ],
           "name": "serv-build",
-          "net": [
+          "network": [
             {
               "allowed-address": "192.168.1.23/24",
               "defrouter": "192.168.1.1",
               "global-nic": "auto",
-              "physical": "build_net0"
+              "name": "build_net0"
             }
           ],
           "recreate": 200,
@@ -303,18 +303,18 @@
           },
           "fs": [
             {
-              "dir": "/home",
+              "name": "/home",
               "special": "/export/home",
               "type": "lofs"
             }
           ],
           "name": "serv-cron",
-          "net": [
+          "network": [
             {
               "allowed-address": "192.168.1.31/24",
               "defrouter": "192.168.1.1",
               "global-nic": "auto",
-              "physical": "cron_net0"
+              "name": "cron_net0"
             }
           ],
           "recreate": 200,
@@ -345,18 +345,18 @@
           },
           "fs": [
             {
-              "dir": "/home",
+              "name": "/home",
               "special": "/export/home",
               "type": "lofs"
             }
           ],
           "name": "serv-fs",
-          "net": [
+          "network": [
             {
               "allowed-address": "192.168.1.28/24",
               "defrouter": "192.168.1.1",
               "global-nic": "auto",
-              "physical": "fs_net0"
+              "name": "fs_net0"
             }
           ],
           "recreate": 200,
@@ -387,18 +387,18 @@
           },
           "fs": [
             {
-              "dir": "/home",
+              "name": "/home",
               "special": "/export/home",
               "type": "lofs"
             }
           ],
           "name": "serv-mariadb",
-          "net": [
+          "network": [
             {
               "allowed-address": "192.168.1.27/24",
               "defrouter": "192.168.1.1",
               "global-nic": "auto",
-              "physical": "mariadb_net0"
+              "name": "mariadb_net0"
             }
           ],
           "recreate": 200,
@@ -429,18 +429,18 @@
           },
           "fs": [
             {
-              "dir": "/home",
+              "name": "/home",
               "special": "/export/home",
               "type": "lofs"
             }
           ],
           "name": "serv-metrics",
-          "net": [
+          "network": [
             {
               "allowed-address": "192.168.1.30/24",
               "defrouter": "192.168.1.1",
               "global-nic": "auto",
-              "physical": "metrics_net0"
+              "name": "metrics_net0"
             }
           ],
           "recreate": 200,
@@ -468,12 +468,12 @@
           },
           "fs": [
             {
-              "dir": "/home",
+              "name": "/home",
               "special": "/export/home",
               "type": "lofs"
             },
             {
-              "dir": "/storage/mp3",
+              "name": "/storage/mp3",
               "options": [
                 "ro"
               ],
@@ -481,7 +481,7 @@
               "type": "lofs"
             },
             {
-              "dir": "/storage/flac",
+              "name": "/storage/flac",
               "options": [
                 "ro"
               ],
@@ -490,12 +490,12 @@
             }
           ],
           "name": "serv-media",
-          "net": [
+          "network": [
             {
               "allowed-address": "192.168.1.25/24",
               "defrouter": "192.168.1.1",
               "global-nic": "auto",
-              "physical": "media_net0"
+              "name": "media_net0"
             }
           ],
           "recreate": 200,
@@ -533,19 +533,19 @@
           "final-state": "reboot",
           "fs": [
             {
-              "dir": "/home",
+              "name": "/home",
               "special": "/export/home",
               "type": "lofs"
             }
           ],
           "image": "alpine",
           "name": "serv-grafana",
-          "net": [
+          "network": [
             {
               "allowed-address": "192.168.1.26/24",
               "defrouter": "192.168.1.1",
               "global-nic": "auto",
-              "physical": "grafana_net0"
+              "name": "grafana_net0"
             }
           ],
           "recreate": 200,
@@ -573,23 +573,23 @@
           },
           "fs": [
             {
-              "dir": "/home",
+              "name": "/home",
               "special": "/export/home",
               "type": "lofs"
             },
             {
-              "dir": "/storage",
+              "name": "/storage",
               "special": "/export",
               "type": "lofs"
             }
           ],
           "name": "serv-ws",
-          "net": [
+          "network": [
             {
               "allowed-address": "192.168.1.21/24",
               "defrouter": "192.168.1.1",
               "global-nic": "auto",
-              "physical": "ws_net0"
+              "name": "ws_net0"
             }
           ],
           "recreate": 200,
@@ -617,18 +617,18 @@
           },
           "fs": [
             {
-              "dir": "/home",
+              "name": "/home",
               "special": "/export/home",
               "type": "lofs"
             }
           ],
           "name": "serv-proxy",
-          "net": [
+          "network": [
             {
               "allowed-address": "192.168.1.22/24",
               "defrouter": "192.168.1.1",
               "global-nic": "auto",
-              "physical": "proxy_net0"
+              "name": "proxy_net0"
             }
           ],
           "recreate": 200,
@@ -655,18 +655,18 @@
           },
           "fs": [
             {
-              "dir": "/home",
+              "name": "/home",
               "special": "/export/home",
               "type": "lofs"
             }
           ],
           "name": "serv-records",
-          "net": [
+          "network": [
             {
               "allowed-address": "192.168.1.32/24",
               "defrouter": "192.168.1.1",
               "global-nic": "auto",
-              "physical": "records_net0"
+              "name": "records_net0"
             }
           ],
           "recreate": 200,
