@@ -18,8 +18,8 @@
    :with {:types [:string]
           :help "Counterpart to :replace"}
    :apply-to {:types [:string]
-              :help (string "Which matches to act on when replacing: "
-                            (comma-sep apply-to-allowed))}}
+              :help "Which matches to act on when replacing"
+              :values apply-to-allowed}}
 
   :mandatory-props-remove
   {:pattern {:types [:string]
