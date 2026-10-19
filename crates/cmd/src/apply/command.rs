@@ -176,6 +176,7 @@ mod test {
                 &ApplyOpts {
                     exec: Some(r#"(directory/ensure "/tmp/test")"#.to_owned()),
                     noop: true,
+                    no_lock: true,
                     ..Default::default()
                 },
                 TelemetryProviders::default(),
@@ -196,6 +197,7 @@ mod test {
                 None,
                 &ApplyOpts {
                     exec: Some(r#"(file/ensure "/parent/does/not/exist" :content "x")"#.to_owned()),
+                    no_lock: true,
                     ..Default::default()
                 },
                 TelemetryProviders::default(),
@@ -254,6 +256,7 @@ mod test {
                 Some(file.as_path()),
                 &ApplyOpts {
                     no_report: true,
+                    no_lock: true,
                     ..Default::default()
                 },
                 TelemetryProviders::default(),
