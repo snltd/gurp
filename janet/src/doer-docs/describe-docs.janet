@@ -5,8 +5,10 @@
 (use ./formatting)
 (use ../command-lib)
 (use ../lib)
+(import ../doers/lib :prefix "" :only [comma-sep])
 (use ../../test/doers/test-lib)
-(import ../dsl :prefix "" :only [files-in basename lines drop-empties pathcat parent])
+(import ../dsl :prefix ""
+        :only [files-in basename lines drop-empties pathcat parent])
 (import ../doers :prefix "")
 
 (defn- indent [text]
@@ -71,6 +73,12 @@
       (join-lines
         (flatten
           (seq [[prop-name prop-vals] :pairs props]
+            (def full-prop-vals
+              (if-let [allowed-values (prop-vals :values)]
+                (string/format "%s. Allowed values: %s."
+                               (prop-vals :help)
+                               (comma-sep allowed-values))
+                (prop-vals :help)))
             (def leader
               (string/format leader-format-string
                              (bold prop-name)
@@ -78,7 +86,7 @@
 
             (lay-out-help
               leader
-              (prop-vals :help)
+              full-prop-vals
               (- leader-width 3)
               (term-width))))))))
 
@@ -167,7 +175,6 @@
 (defn help-for-helpers
   "Returns a multiline string showing keys supported by the given helpers"
   [doer helpers]
-
   (string
     (bold-underline (a/b doer helpers))
     "\n"

@@ -21,7 +21,7 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:apply-to` | `string` | Which matches to act on when replacing: "all", "first", "last" |  |
+| `:apply-to` | `string` | Which matches to act on when replacing |  |
 | `:insert-at` | `number` | If a new line must be added, it will go at this index |  |
 | `:line` | `string` | The line which must exist |  |
 | `:replace` | `string` | Pattern to replace. Rust regex |  |
