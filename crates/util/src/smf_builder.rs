@@ -461,8 +461,8 @@ mod test {
             single_instance: true,
             default_enabled: true,
             property_groups: None,
-            dependencies: None,
-            dependents: None,
+            dependency: None,
+            dependent: None,
             properties: None,
             start_method: Some(SmfDefinitionExecMethod {
                 exec: "/opt/site/lib/smf/method/boot-service.sh".to_owned(),
