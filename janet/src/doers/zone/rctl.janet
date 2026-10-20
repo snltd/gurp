@@ -6,16 +6,14 @@
 
   :mandatory-props
   {:priv {:types [:string]
-          :help "rctl privilege"}
+          :help "rctl privilege"
+          :default "privileged"}
    :action {:types [:string]
-            :help "rctl action"}
+            :help "rctl action"
+            :default "deny"}
    :name {:types [:string]
           :help "private field managed by Gurp"}
    :limit {:types [:number]
-           :help "rctl limit value"}}
-
-  :defaults
-  {:priv "privileged"
-   :action "deny"})
+           :help "rctl limit value"}})
 
 (make-helper-fn rctl)

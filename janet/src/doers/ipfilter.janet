@@ -8,20 +8,20 @@
 
   :mandatory-props-ensure
   {:priority {:types [:number]
-              :help "rule resources are ordered by priority, lowest number first"}
-   :always-reload {:types [:boolean]
-                   :help "if any ipfilter/ensure resource sets this to true, then the
-                    firewall rules will be reloaded every time Gurp runs,
-                    regardless of whether the aggregated ipf.conf file has changed"}}
+              :help "rule resources are ordered by priority, lowest number
+                     first"}}
 
   :optional-props-ensure
   {:from {:types [:string]
-          :help "Apply rules in the given file. If relative, looks in ../files"}
+          :help "Apply rules in the given file. If relative, looks in
+                 `../files`"}
    :content {:types [:string]
-             :help "Apply these rules. Must have :content xor :from"}}
-
-  :defaults-ensure
-  {:always-reload false}
+             :help "Apply these rules. Must have `:content` xor `:from`"}
+   :always-reload {:types [:boolean]
+                   :help "if any `ipfilter/ensure` resource sets this to true,
+                          then the firewall rules will be reloaded every time
+                          Gurp runs, regardless of whether the aggregated
+                          `ipf.conf` file has changed"}}
 
   :notes
   ["We build a single big set of filter rules from multiple sources, check its
@@ -32,8 +32,8 @@
    "The doer automatically enables the ipfilter service."
    "We do not (currently) support any additional `ipf` options."
    "Per-zone rules are not supported."
-   "Using :always-reload means Gurp will always show a change to be made"
-   "ipfilter/remove removes ALL filter rules"])
+   "Using `:always-reload` means Gurp will always show a change to be made"
+   "`ipfilter/remove` removes ALL filter rules"])
 
 (make-ensure-fn "ipfilter")
 (make-remove-fn "ipfilter")

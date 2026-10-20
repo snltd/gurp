@@ -26,14 +26,12 @@
              :help "The line or pattern which must be removed"}
    :match {:types [:string]
            :help "How to match the line"
-           :values match-allowed}
+           :values match-allowed
+           :default (first match-allowed)}
    :apply-to {:types [:string]
               :help "Which matches to act on"
-              :values apply-to-allowed}}
-
-  :defaults-remove
-  {:match "exact"
-   :apply-to "all"}
+              :values apply-to-allowed
+              :default (first apply-to-allowed)}}
 
   :notes
   ["The file is not managed here. Use a file resource."

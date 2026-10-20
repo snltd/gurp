@@ -40,7 +40,7 @@
 (deftest cron-error
   (test-error
     (cron/ensure "missing-data" :hour 6)
-    "In cron/ensure missing-data: did not find mandatory property :command. Mandatory properties are :command, :user")
+    "In cron/ensure missing-data: did not find mandatory property :command. Mandatory properties are :minute, :day-of-week, :hour, :month-of-year, :user, :command, :day-of-month")
 
   (test-error
     (cron/ensure "junk-keys"
@@ -49,4 +49,4 @@
                  :day "monday"
                  :colour "blue"
                  :hour 6)
-    "In cron/ensure junk-keys: unexpected property :colour. Valid properties are :command, :user, :minute, :hour, :month-of-year, :day-of-month, :label, :day-of-week"))
+    "In cron/ensure junk-keys: unexpected property :colour. Valid properties are :command, :day-of-month, :day-of-week, :hour, :label, :minute, :month-of-year, :user"))

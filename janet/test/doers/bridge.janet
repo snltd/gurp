@@ -36,7 +36,7 @@
 (deftest bridge-error
   (test-error
     (bridge/ensure "test_d" :oops "wat?")
-    "In bridge/ensure test_d: unexpected property :oops. Valid properties are :priority, :links, :label, :max-age, :force-protocol, :protect, :forward-delay, :hello-time")
+    "In bridge/ensure test_d: unexpected property :oops. Valid properties are :force-protocol, :forward-delay, :hello-time, :label, :links, :max-age, :priority, :protect")
   (test-error
     (bridge/ensure "test_e" :priority "high!")
     "In bridge/ensure test_e: priority is of type :string. Allowed types :number"))

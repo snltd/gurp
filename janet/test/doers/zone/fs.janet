@@ -17,8 +17,8 @@
     (zone/fs "/home"
              :special "/export/home"
              :oops "wat?")
-    "In zone/fs /home: unexpected property :oops. Valid properties are :name, :special, :type, :options, :label")
+    "In zone/fs /home: unexpected property :oops. Valid properties are :label, :name, :options, :special, :type")
 
   (test-error
     (zone/fs "/dir")
-    "In zone/fs /dir: did not find mandatory property :special. Mandatory properties are :name, :special"))
+    "In zone/fs /dir: did not find mandatory property :special. Mandatory properties are :special, :name, :type"))

@@ -40,4 +40,4 @@
     (zfs/ensure "pool/fs"
                 :properties {:mountpoint "none"}
                 :volume-size "100M")
-    "In zfs/ensure pool/fs: unexpected property :volume-size. Valid properties are :properties, :size, :label"))
+    "In zfs/ensure pool/fs: unexpected property :volume-size. Valid properties are :label, :properties, :size"))

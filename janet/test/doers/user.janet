@@ -39,4 +39,4 @@
                  :shell "/bin/zsh"
                  :gecos "Test User"
                  :password-hash "w0934cm-4i5c-42u5cn492hrc97h234ui")
-    "In user/ensure rob: unexpected property :height. Valid properties are :home-dir, :primary-group, :uid, :gecos, :shell, :other-groups, :password-hash, :profiles, :label"))
+    "In user/ensure rob: unexpected property :height. Valid properties are :gecos, :home-dir, :label, :other-groups, :password-hash, :primary-group, :profiles, :shell, :uid"))
