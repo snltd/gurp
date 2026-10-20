@@ -37,8 +37,7 @@
   (test *collector*
     @{:ensure @{:zone @[{:_id "/test-role/zone/bhyve-zone"
                          :autoboot false
-                         :bhyve @{:acpi false
-                                  :boot-rom "BHYVE_RELEASE"
+                         :bhyve @{:boot-rom "BHYVE_RELEASE"
                                   :boot-volume "tank/bhyve/test"
                                   :ram "4G"
                                   :vcpus 4
@@ -55,14 +54,12 @@
                          :network @[@{:allowed-address "10.10.0.2/24"
                                       :global-nic "auto"
                                       :name "bhyve0"}]
-                         :recreate 0
                          :role "test-role"
                          :zonepath "/zones/bhyve-zone"}
                         {:_id "/test-role/zone/native-zone"
                          :autoboot true
                          :boot-after-install true
                          :bootstrap @{:copy-self true
-                                      :debug false
                                       :gurp-binary "/var/tmp/gurp"
                                       :hostname "native-zone"
                                       :server "gurp.localnet"}
@@ -76,7 +73,6 @@
                                       :defrouter "192.168.1.1"
                                       :global-nic "auto"
                                       :name "test_net0"}]
-                         :recreate 0
                          :role "test-role"
                          :zonepath "/zones/native-zone"}
                         {:_id "/test-role/zone/lx-zone"
@@ -91,13 +87,11 @@
                          :exec-in ["/bin/exec1" "/bin/exec2"]
                          :final-state "reboot"
                          :image "alpine"
-                         :image-checksum {:type "sha256" :value ".sha256"}
                          :name "lx-zone"
                          :network @[@{:allowed-address "192.168.1.103/24"
                                       :defrouter "192.168.1.1"
                                       :global-nic "auto"
                                       :name "znet0"}]
-                         :recreate 0
                          :role "test-role"
                          :zonepath "/zones/lx-zone"}
                         {:_id "/test-role/zone/emu-example"
@@ -139,7 +133,6 @@
                          :autoboot true
                          :boot-after-install true
                          :bootstrap @{:copy-self true
-                                      :debug false
                                       :file "/var/tmp/bootstrap.janet"
                                       :gurp-binary "/var/tmp/gurp"}
                          :brand "lipkg"
@@ -148,7 +141,6 @@
                                       :defrouter "192.168.1.1"
                                       :global-nic "auto"
                                       :name "test_net0"}]
-                         :recreate 0
                          :role "test-role"
                          :zonepath "/zones/test-zone-bootstrap-file"}
                         {:_id "/test-role/zone/test-zone-fat"
@@ -170,7 +162,6 @@
                                       :defrouter "192.168.1.1"
                                       :global-nic "auto"
                                       :name "test_net0"}]
-                         :recreate 0
                          :role "test-role"
                          :zonepath "/zones/test-zone-fat"}]}
       :remove @{:zone @[{:_id "/test-role/zone/unwanted-zone"
@@ -180,10 +171,10 @@
 (deftest zone-error
   (test-error
     (zone/ensure "wat-brand")
-    "In zone/ensure wat-brand: did not find mandatory property :brand. Mandatory properties are :brand")
+    "In zone/ensure wat-brand: did not find mandatory property :brand. Mandatory properties are :autoboot, :brand, :boot-after-install")
 
   (test-error
     (zone/ensure "bad-key"
                  :brand "sparse"
                  :oops "wat")
-    "In zone/ensure bad-key: unexpected property :oops. Valid properties are :brand, :rctl, :copy-in, :ip-type, :limitpriv, :bootstrap, :final-state, :bhyve, :emu, :boot-after-install, :clone-from, :attr, :fs, :image, :dns, :cloudinit, :datasets, :autoboot, :hostid, :network, :bootstrap-from, :zonepath, :image-checksum, :capped-memory, :label, :pool, :exec-in, :recreate"))
+    "In zone/ensure bad-key: unexpected property :oops. Valid properties are :attr, :autoboot, :bhyve, :boot-after-install, :bootstrap, :bootstrap-from, :brand, :capped-memory, :clone-from, :cloudinit, :copy-in, :datasets, :dns, :emu, :exec-in, :final-state, :fs, :hostid, :image, :image-checksum, :ip-type, :label, :limitpriv, :network, :pool, :rctl, :recreate, :zonepath"))

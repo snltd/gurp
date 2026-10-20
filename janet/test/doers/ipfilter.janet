@@ -17,7 +17,6 @@
                              :priority 0
                              :role "test-role"}
                             {:_id "/test-role/ipfilter/rules-from-file"
-                             :always-reload false
                              :from "test/ipfilter-test"
                              :name "rules-from-file"
                              :priority 1
@@ -29,7 +28,7 @@
 (deftest ipfilter-error
   (test-error
     (ipfilter/ensure "error-test-1" :from "test/ipfilter")
-    "In ipfilter/ensure error-test-1: did not find mandatory property :priority. Mandatory properties are :always-reload, :priority")
+    "In ipfilter/ensure error-test-1: did not find mandatory property :priority. Mandatory properties are :priority")
 
   (test-error
     (ipfilter/ensure "error-test-2" :priority 0)

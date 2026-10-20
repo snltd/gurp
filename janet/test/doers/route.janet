@@ -15,24 +15,20 @@
 
   (test *collector*
     @{:ensure @{:route @[{:_id "/test-role/route/203.0.113.0_24"
-                          :force-gateway false
                           :gateway "127.0.0.1"
                           :name "203.0.113.0/24"
                           :role "test-role"
                           :type "blackhole"}
                          {:_id "/test-role/route/default"
-                          :force-gateway false
                           :gateway "192.168.1.1"
                           :name "default"
                           :role "test-role"}
                          {:_id "/test-role/route/10.0.5.0_24"
                           :flags {:mtu 1500}
-                          :force-gateway false
                           :gateway "10.0.5.150"
                           :name "10.0.5.0/24"
                           :role "test-role"}
                          {:_id "/test-role/route/192.168.1.0_24"
-                          :force-gateway false
                           :interface "e1000g0"
                           :name "192.168.1.0/24"
                           :role "test-role"}
@@ -70,7 +66,7 @@
     (route/ensure "192.168.1.1"
                   :gateway "default"
                   :default "1.1.1.1")
-    "In route/ensure 192.168.1.1: unexpected property :default. Valid properties are :type, :interface, :force-gateway, :label, :flags, :gateway")
+    "In route/ensure 192.168.1.1: unexpected property :default. Valid properties are :flags, :force-gateway, :gateway, :interface, :label, :type")
 
   (test-error
     (route/remove "192.168.1.1")
@@ -78,4 +74,4 @@
 
   (test-error
     (route/remove "192.168.1.1" :gateway "default" :wat "oops")
-    "In route/remove 192.168.1.1: unexpected property :wat. Valid properties are :gateway, :type, :label"))
+    "In route/remove 192.168.1.1: unexpected property :wat. Valid properties are :gateway, :label, :type"))

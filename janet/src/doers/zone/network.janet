@@ -6,18 +6,16 @@
 
   :mandatory-props
   {:name {:types [:string]
-              :help "Zone VNIC. This is the name of the resource, and is not
-                     specified with a key"}}
+          :help "Zone VNIC. This is the name of the resource, and is not
+                     specified with a key"}
+   :global-nic {:types [:string]
+                :help "Physical NIC on which to create zone VNIC"
+                :default "auto"}}
 
   :optional-props
-  {:global-nic {:types [:string]
-                :help "Physical NIC on which to create zone VNIC"}
-   :allowed-address {:types [:string]
+  {:allowed-address {:types [:string]
                      :help "IP address, with /netmask"}
    :defrouter {:types [:string]
-               :help "IP address of default router"}}
-
-  :defaults
-  {:global-nic "auto"})
+               :help "IP address of default router"}})
 
 (make-helper-fn "network")

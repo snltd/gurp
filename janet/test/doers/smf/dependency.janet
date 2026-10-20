@@ -22,8 +22,8 @@
 
   (test-error
     (smf/dependency "svc1" :service "svc://test/svc1:default")
-    "In smf/dependency svc1: did not find mandatory property :fmri. Mandatory properties are :name, :fmri")
+    "In smf/dependency svc1: did not find mandatory property :fmri. Mandatory properties are :fmri, :restart-on, :grouping, :name, :type")
 
   (test-error
     (smf/dependency "svc1" :fmri "svc://test/svc1:default" :junk "junk")
-    "In smf/dependency svc1: unexpected property :junk. Valid properties are :name, :fmri, :grouping, :type, :restart-on, :label"))
+    "In smf/dependency svc1: unexpected property :junk. Valid properties are :fmri, :grouping, :label, :name, :restart-on, :type"))

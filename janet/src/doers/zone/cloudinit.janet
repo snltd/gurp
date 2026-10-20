@@ -7,16 +7,13 @@
 
   :optional-props
   {:from {:types [:string]
-          :help "Copy the given files into the Cloudinit image"}
+          :help "Copy the given file into the Cloudinit image"}
    :from-struct {:types [:struct :table]
-                 :help "Generate a Cloudinit file from the given struct or table"}}
+                 :help "Generate a Cloudinit file from the given struct or
+                        table"}}
 
   :mandatory-props
   {:name {:types [:string]
-          :help "cloudinit file name. Derived from helper name"}}
-
-  :defaults {}
-
-  :notes ["You must supply exactly one of :from or :from-struct"])
+          :help "cloudinit file name. Derived from helper name"}})
 
 (make-helper-fn "cloudinit")

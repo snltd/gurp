@@ -13,16 +13,16 @@
   :optional-props-ensure
   {:flags {:types [:struct]
            :help "Key-value pairs for flags. If the flag does not take a value,
-                  use true"}
+                  use `true`"}
    :force-gateway {:types [:boolean]
-                   :help "If true, put '-gateway' before the gateway to remove
+                   :help "If `true`, put `-gateway` before the gateway to remove
                          ambiguity"}
    :gateway {:types [:string]
-             :help "Gateway for given route."}
+             :help "Gateway for given route"}
    :interface {:types [:string]
-               :help "Interface for given route. Conflicts with :gateway"}
+               :help "Interface for given route. Conflicts with `:gateway`"}
    :type {:types [:string]
-          :help "Type of route: e.g. 'blackhole', 'reject'"}}
+          :help "Type of route: e.g. `blackhole`, `reject`"}}
 
   :mandatory-props-remove
   {:gateway {:types [:string]
@@ -30,10 +30,7 @@
 
   :optional-props-remove
   {:type {:types [:string]
-          :help "Type of route: e.g. 'blackhole', 'reject'"}}
-
-  :defaults-ensure
-  {:force-gateway false}
+          :help "Type of route: e.g. `blackhole`, `reject`"}}
 
   :notes
   ["The `route` command is messy legacy, and it takes all manner of commands.
