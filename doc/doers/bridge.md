@@ -21,19 +21,20 @@ Any valid bridge name (`:string`)
 
 ### Mandatory Properties
 
-None
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:force-protocol` | `number` | MSTP forced maximum supported protocol |  |
+| `:forward-delay` | `number` | STP forward delay time, in seconds. 4 to 30 |  |
+| `:hello-time` | `number` | STP hello time value, in seconds |  |
+| `:max-age` | `number` | Maximum age, in seconds, for STP configuration information |  |
+| `:priority` | `number` | Bridge priority. 0 to 61440 |  |
+| `:protect` | `string` | Protection method |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:force-protocol` | `number` | MSTP forced maximum supported protocol | `3` |
-| `:forward-delay` | `number` | STP forward delay time, in seconds. 4 to 30 | `15` |
-| `:hello-time` | `number` | STP hello time value, in seconds | `2` |
 | `:links` | `tuple array` | Existing links which should be attached to the bridge |  |
-| `:max-age` | `number` | Maximum age, in seconds, for STP configuration information. | `20` |
-| `:priority` | `number` | Bridge priority. 0 to 61440 | `32768` |
-| `:protect` | `string` | Protection method: defaults to stp | `"stp"` |
 
 ## bridge/remove
 

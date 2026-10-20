@@ -25,13 +25,14 @@ Qualified path to the link that will be created (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:force-link` | `boolean` | If the link target already exists and this flag is true, Gurp will remove it and replace it with a link. If false, a pre-existing target causes an error |  |
 | `:source` | `string` | The file to which we will link |  |
-| `:type` | `string` | The type of link: symbolic or hard | `"symbolic"` |
+| `:type` | `string` | The type of link |  |
 
 ### Optional Properties
 
-None
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:force-link` | `boolean` | If the link target already exists and this flag is `true`, Gurp will remove it and replace it with a link. If `false`, a pre-existing target causes an error |  |
 
 ## link/remove
 

@@ -26,9 +26,10 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
+| `:checksum` | `struct table` | Define a checksum for a from-type resource |  |
 | `:content` | `string` | Use this literal string as the cert |  |
 | `:from-url` | `string` | Fetch cert from the given URL |  |
-| `:from` | `string` | Copy cert content from this file. If relative, looks in ../files |  |
+| `:from` | `string` | Copy cert content from this file. If relative, looks in `../files` |  |
 | `:url-is-server` | `boolean` | Used internally to identify Gurp server URLs |  |
 
 ## system-cert/remove

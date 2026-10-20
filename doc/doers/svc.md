@@ -23,14 +23,14 @@ Service FMRI (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:state` | `string` | Desired state of service, e.g. 'online' |  |
+| `:state` | `string` | Desired state of service, e.g. `online` |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:reloaded-by` | `array` | Labels of resources whose alteration triggers service reload | `()` |
-| `:restarted-by` | `array` | Labels of resources whose alteration triggers service restart | `()` |
+| `:reloaded-by` | `array` | Labels of resources whose alteration triggers service reload |  |
+| `:restarted-by` | `array` | Labels of resources whose alteration triggers service restart |  |
 
 ## svc/remove
 
