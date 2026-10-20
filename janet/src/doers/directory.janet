@@ -10,16 +10,14 @@
 
   :mandatory-props-ensure
   {:group {:types [:string :number]
-           :help "The group name or GID of the for this directory"}
+           :help "The group name or GID of the for this directory" 
+           :default "root"}
    :mode {:types [:string]
-          :help "Permissions, octal"}
+          :help "Permissions, octal"
+          :default "0755"}
    :owner {:types [:string :number]
-           :help "The username or UID of the user who owns this directory"}}
-
-  :defaults-ensure
-  {:owner "root"
-   :mode "0755"
-   :group "root"}
+           :help "The username or UID of the user who owns this directory"
+           :default "root"}}
 
   :notes
   ["Directories are created/removed in the order of a natural sort."

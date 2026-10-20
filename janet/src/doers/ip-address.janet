@@ -7,7 +7,8 @@
 
   :mandatory-props-ensure
   {:type {:types [:string]
-          :help "Type of connection: 'static', 'dhcp'"}}
+          :help "Type of address"
+          :values ["static" "dhcp"]}}
 
   :optional-props-ensure
   {:address {:types [:string]

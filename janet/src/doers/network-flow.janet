@@ -21,11 +21,12 @@
    :remote-port {:types [:number]
                  :help "Remote port of flow"}
    :dsfield {:types [:string]
-             :help "With optional :mask"}
+             :help "With optional /mask"}
    :maxbw {:types [:string]
-           :help "Maximum duplex bandidth, with K, M or G suffix"}
+           :help "Maximum duplex bandwidth, with K, M or G suffix"}
    :priority {:types [:string]
-              :help "Priority of link: high, medium, low"}})
+              :help "Priority of link"
+              :values ["high" "medium" "low"]}})
 
 (make-ensure-fn "network-flow")
 (make-remove-fn "network-flow")

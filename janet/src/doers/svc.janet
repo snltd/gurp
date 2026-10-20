@@ -7,7 +7,7 @@
 
   :mandatory-props-ensure
   {:state {:types [:string]
-           :help "Desired state of service, e.g. 'online'"}}
+           :help "Desired state of service, e.g. `online`"}}
 
   :optional-props-ensure
   {:reloaded-by {:types [:array]
@@ -17,9 +17,6 @@
                   :help "Labels of resources whose alteration triggers service
                          restart"}}
 
-  :defaults-ensure {:restarted-by []
-                    :reloaded-by []}
-
   :notes
   ["Because Gurp ends up shelling out to `svcs` and `svcadm`, the service
     name can be any valid FMRI"])
@@ -27,9 +24,7 @@
 (defn ensure
   "Given a name and state, put an ensure struct in the collector"
   [name & spec]
-  (let [spec-struct (make-spec-struct ;spec)
-        spec-table (spec-with-defaults defaults-ensure spec-struct)]
-
+  (let [spec-table (struct/to-table (make-spec-struct ;spec))]
     (if-let [restarters (spec-table :restarted-by)]
       (set (spec-table :restarted-by) (map string restarters)))
 

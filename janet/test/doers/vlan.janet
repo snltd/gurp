@@ -29,4 +29,4 @@
                  :over "e1000g0"
                  :vlan-tag 24
                  :with "field")
-    "In vlan/ensure test-vlan: unexpected property :with. Valid properties are :over, :vlan-tag, :label"))
+    "In vlan/ensure test-vlan: unexpected property :with. Valid properties are :label, :over, :vlan-tag"))

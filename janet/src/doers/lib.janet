@@ -91,10 +91,11 @@
           (check-key-value prop-name prop-value (prop-spec :values)))
         (errorf "unexpected property %p. Valid properties are %s"
                 prop-name
-                (comma-sep (array/concat @[]
-                                         (keys mandatory-props)
-                                         (keys optional-props)))))))
+                (comma-sep (sorted (array/concat @[]
+                                                 (keys mandatory-props)
+                                                 (keys optional-props))))))))
   spec-struct)
+
 
 (defn resource-id
   "Safely generate a resource ID"
@@ -113,6 +114,16 @@
               :name resource-name
               :role role}
              spec-struct))))
+
+(defn extract-defaults
+  "Extract default values from a properties struct. Only mandatory properties
+   can have defaults: giving an optional a default would make it mandatory"
+  [props]
+  (->> props
+       (pairs)
+       (map (fn [[k v]] {k (v :default)}))
+       (splice)
+       (merge-into @{})))
 
 (defn spec-with-defaults
   "Merge defaults with user values. We don't use prototypes now"
@@ -136,7 +147,9 @@
     ~(pinpoint-error
        :ensure
        (let [spec-struct (make-spec-struct ;spec)
-             all-specs (spec-with-defaults defaults-ensure spec-struct)
+             all-specs (spec-with-defaults
+                         (extract-defaults mandatory-props-ensure)
+                         spec-struct)
              safe-specs (checked-spec all-specs
                                       mandatory-props-ensure
                                       optional-props-ensure)]
@@ -149,7 +162,9 @@
   ~(pinpoint-error
      :remove
      (let [spec-struct (make-spec-struct ;spec)
-           all-specs (spec-with-defaults defaults-remove spec-struct)
+           all-specs (spec-with-defaults
+                       (extract-defaults mandatory-props-remove)
+                       spec-struct)
            safe-specs (checked-spec all-specs
                                     mandatory-props-remove
                                     optional-props-remove)]
@@ -263,9 +278,7 @@
 (def- doer-defaults {:mandatory-props-ensure {}
                      :optional-props-ensure {}
                      :mandatory-props-remove {}
-                     :optional-props-remove {}
-                     :defaults-ensure {}
-                     :defaults-remove {}})
+                     :optional-props-remove {}})
 
 (defmacro defdoer
   "Creates the defs required for a doer"
@@ -284,8 +297,7 @@
 # to the keys in this prototype struct
 (def- helper-defaults {:name-is nil
                        :mandatory-props {}
-                       :optional-props {}
-                       :defaults {}})
+                       :optional-props {}})
 
 (defmacro when-defined
   "Expand to body only if sym is already defined"
@@ -331,7 +343,6 @@
   (with-syms [$mandatory-props $optional-props $defaults $exactly-one-of]
     (def $mandatory-props (symbol (string "mandatory-props-" helper-name)))
     (def $optional-props (symbol (string "optional-props-" helper-name)))
-    (def $defaults (symbol (string "defaults-" helper-name)))
     (def $exactly-one-of (symbol (string "exactly-one-of-" helper-name)))
     ~(defn ,(symbol helper-name)
        ,(if without-name
@@ -346,7 +357,9 @@
        (let [user-spec ,(if without-name
                           '(make-spec-struct ;spec)
                           '(make-spec-struct :name name ;spec))
-             expanded-spec (spec-with-defaults ,$defaults user-spec)
+             expanded-spec (spec-with-defaults
+                             (extract-defaults ,$mandatory-props)
+                             user-spec)
              spec-struct (pinpoint-error ,(keyword helper-name)
                                          (checked-spec expanded-spec
                                                        ,$mandatory-props

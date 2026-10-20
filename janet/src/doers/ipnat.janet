@@ -13,9 +13,10 @@
 
   :optional-props-ensure
   {:from {:types [:string]
-          :help "Apply rules in the given file. If relative, looks in ../files"}
+          :help "Apply rules in the given file. If relative, looks in
+                 `../files`"}
    :content {:types [:string]
-             :help "Apply these rules. Must have :content xor :from"}}
+             :help "Apply these rules"}}
 
   :notes
   ["Gurp assembles bundles of NAT rules, given as literal strings (`:content`)

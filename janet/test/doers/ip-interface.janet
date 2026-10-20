@@ -26,7 +26,7 @@
 (deftest ip-address-error
   (test-error
     (ip-interface/ensure "bad0" :ipv5 {:forwarding true})
-    "In ip-interface/ensure bad0: unexpected property :ipv5. Valid properties are :ipv6, :ipv4, :ip, :label, :udp, :icmp, :tcp, :sctp")
+    "In ip-interface/ensure bad0: unexpected property :ipv5. Valid properties are :icmp, :ip, :ipv4, :ipv6, :label, :sctp, :tcp, :udp")
 
   (test-error
     (ip-interface/ensure "bad1" :ipv4 "yay!")

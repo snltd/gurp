@@ -23,7 +23,7 @@
 
   (test-error
     (zone/cloudinit "user-data" :from "file" :oops "file")
-    "In zone/cloudinit user-data: unexpected property :oops. Valid properties are :name, :from-struct, :from, :label")
+    "In zone/cloudinit user-data: unexpected property :oops. Valid properties are :from, :from-struct, :label, :name")
 
   (test-error
     (zone/cloudinit "user-data")

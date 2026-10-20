@@ -15,4 +15,4 @@
 (deftest help-for-helpers
   (test
     (strip-ansi (help-for "zone/network"))
-    @"zone/network\n  Describe network configuration of a zone resource.\n\n  name  [:string]  Zone VNIC, which may already exist\n\nMandatory properties\n  name [:string]  Zone VNIC. This is the name of the resource, and is\n                  not specified with a key\n\nOptional properties\n  global-nic      [:string]  Physical NIC on which to create zone VNIC\n  allowed-address [:string]  IP address, with /netmask\n  defrouter       [:string]  IP address of default router\n"))
+    @"zone/network\n  Describe network configuration of a zone resource.\n\n  name  [:string]  Zone VNIC, which may already exist\n\nMandatory properties\n  global-nic [:string]  Physical NIC on which to create zone VNIC\n  name       [:string]  Zone VNIC. This is the name of the resource,\n                        and is not specified with a key\n\nOptional properties\n  allowed-address [:string]  IP address, with /netmask\n  defrouter       [:string]  IP address of default router\n"))

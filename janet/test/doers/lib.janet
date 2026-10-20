@@ -56,7 +56,7 @@
   (test-error
     (checked-spec
       {:group 14 :mode "0755" :owner 264 :oops "merp"} mandatory-keys optional-keys)
-    "unexpected property :oops. Valid properties are :owner, :group, :mode, :label"))
+    "unexpected property :oops. Valid properties are :group, :label, :mode, :owner"))
 
 (deftest checked-spec-with-invalid-value
   (def mandatory-keys
@@ -133,8 +133,6 @@
       (def description "manage APK packages")
       (def mandatory-props-remove {})
       (def optional-props-ensure {})
-      (def defaults-ensure {})
-      (def defaults-remove {})
       (def mandatory-props-ensure {})
       (def name-is "package name")
       (def optional-props-remove {}))))
@@ -147,10 +145,9 @@
     (upscope
       (def doer :smf)
       (def description-method "manage SMF methods")
-      (def defaults-method {})
+      (def timeout-method 50)
       (def mandatory-props-method {})
-      (def optional-props-method {})
-      (def timeout-method 50)))
+      (def optional-props-method {})))
 
   (test-macro
     (defhelper :zone :bootstrap
@@ -159,10 +156,9 @@
     (upscope
       (def doer :zone)
       (def description-bootstrap "bootstrap a zone")
-      (def defaults-bootstrap {})
+      (def exactly-one-of-bootstrap [:server :file])
       (def mandatory-props-bootstrap {})
-      (def optional-props-bootstrap {})
-      (def exactly-one-of-bootstrap [:server :file]))))
+      (def optional-props-bootstrap {}))))
 
 (deftest make-helper-fn
   (test-macro
@@ -171,7 +167,7 @@
       [name & spec]
       nil
       (when-defined exactly-one-of-mirror (if (not (has-exactly-one-of? exactly-one-of-mirror spec)) (pinpoint-error (string mirror) (errorf "need exactly one of %s" (comma-sep exactly-one-of-mirror)))))
-      (let [user-spec (make-spec-struct :name name (splice spec)) expanded-spec (spec-with-defaults defaults-mirror user-spec) spec-struct (pinpoint-error :mirror (checked-spec expanded-spec mandatory-props-mirror optional-props-mirror))]
+      (let [user-spec (make-spec-struct :name name (splice spec)) expanded-spec (spec-with-defaults (extract-defaults mandatory-props-mirror) user-spec) spec-struct (pinpoint-error :mirror (checked-spec expanded-spec mandatory-props-mirror optional-props-mirror))]
         (struct :mirror spec-struct))))
 
   (test-macro
@@ -180,7 +176,7 @@
       [& spec]
       (def name "NO-NAME")
       (when-defined exactly-one-of-byhve (if (not (has-exactly-one-of? exactly-one-of-byhve spec)) (pinpoint-error (string byhve) (errorf "need exactly one of %s" (comma-sep exactly-one-of-byhve)))))
-      (let [user-spec (make-spec-struct (splice spec)) expanded-spec (spec-with-defaults defaults-byhve user-spec) spec-struct (pinpoint-error :byhve (checked-spec expanded-spec mandatory-props-byhve optional-props-byhve))]
+      (let [user-spec (make-spec-struct (splice spec)) expanded-spec (spec-with-defaults (extract-defaults mandatory-props-byhve) user-spec) spec-struct (pinpoint-error :byhve (checked-spec expanded-spec mandatory-props-byhve optional-props-byhve))]
         (struct :byhve spec-struct)))))
 
 (deftest expand-list-struct

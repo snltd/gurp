@@ -30,4 +30,4 @@
   (test-error
     (ip-properties/ensure "general"
                           :max-buf 1234567)
-    "In ip-properties/ensure general: unexpected property :max-buf. Valid properties are :ipv6, :ipv4, :ip, :label, :udp, :icmp, :tcp, :sctp"))
+    "In ip-properties/ensure general: unexpected property :max-buf. Valid properties are :icmp, :ip, :ipv4, :ipv6, :label, :sctp, :tcp, :udp"))

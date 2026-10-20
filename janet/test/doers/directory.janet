@@ -41,4 +41,4 @@
                       :owner "me"
                       :gid 234
                       :recursive true)
-    "In directory/ensure /extra/keys: unexpected property :recursive. Valid properties are :owner, :group, :mode, :label"))
+    "In directory/ensure /extra/keys: unexpected property :recursive. Valid properties are :group, :label, :mode, :owner"))

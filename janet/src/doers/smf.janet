@@ -10,7 +10,16 @@
 
   :mandatory-props-ensure
   {:fmri {:types [:string]
-          :help "Service FMRI"}}
+          :help "Service FMRI"}
+   :single-instance {:types [:boolean]
+                     :help "Is this a single-instance service"
+                     :default true}
+   :stop-method {:types [:struct :table]
+                 :help "See 'smf-method'"
+                 :default {:exec ":kill" :timeout 10}}
+   :default-enabled {:types [:boolean]
+                     :help "Start the service when the manifest installs"
+                     :default true}}
 
   :optional-props-ensure
   {:dependency {:types [:array]
@@ -22,28 +31,19 @@
    :duration {:types [:string]
               :help "Use this to specify 'transient' or 'wait' services"}
    :properties {:types [:struct :table]
-                :help "Create/set properties.(:keyword :string|:boolean|:number)"}
+                :help "Create/set properties.
+                       (`:keyword :string|:boolean|:number`)"}
    :property-groups {:types [:struct :table]
-                     :help "Create property groups. Key is the name, value is the type"}
+                     :help "Create property groups. Key is the name, value is
+                            the type"}
    :refresh-method {:types []
                     :help "See 'smf-method'"}
-   :single-instance {:types [:boolean]
-                     :help "Is this a single-instance service"}
    :start-method {:types [:struct :table]
                   :help "See 'smf-method'"}
-   :stop-method {:types [:struct :table]
-                 :help "See 'smf-method'"}
    :restart-method {:types [:struct :table]
                     :help "See 'smf-method'"}
    :refresh-method {:types [:struct :table]
-                    :help "See 'smf-method'"}
-   :default-enabled {:types [:boolean]
-                     :help "Start the service when the manifest installs"}}
-
-  :defaults-ensure
-  {:single-instance true
-   :stop-method {:exec ":kill" :timeout 10}
-   :default-enabled true}
+                    :help "See 'smf-method'"}}
 
   :notes
   ["Generated manifests are written to `/opt/site/lib/smf/manifest`, and
@@ -64,14 +64,15 @@
   (expand-resource :refresh-method :as-struct true)
 
   (let [modified-spec-struct (make-spec-struct ;modified-spec)
-        spec-struct (pinpoint-error
-                      :ensure
-                      (checked-spec
-                        modified-spec-struct
-                        mandatory-props-ensure
-                        optional-props-ensure))
-
-        spec-table (spec-with-defaults defaults-ensure spec-struct)]
+        expanded-spec (spec-with-defaults
+                        (extract-defaults mandatory-props-ensure)
+                        modified-spec-struct)
+        spec-table (pinpoint-error
+                     :ensure
+                     (checked-spec
+                       expanded-spec
+                       mandatory-props-ensure
+                       optional-props-ensure))]
 
     # Properties must be expanded
     # 

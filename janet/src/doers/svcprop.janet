@@ -9,11 +9,13 @@
 
   :mandatory-props-ensure
   {:properties {:types [:struct]
-                :help "Properties to create. (:keyword :string|:boolean|:number)"}}
+                :help "Properties to create. (`:keyword`
+                       `:string|:boolean|:number`)"}}
 
   :optional-props-ensure
   {:property-groups {:types [:struct]
-                     :help "Property groups to create. Key is name, value is type"}
+                     :help "Property groups to create. Key is name, value is
+                            type"}
    :on-change {:types [:string]
                :help "Take this action when a value is changed"
                :values allowed-actions}}
@@ -39,12 +41,12 @@
   [name & spec]
 
   (let [user-struct (make-spec-struct ;spec)
-        spec-struct (pinpoint-error
-                      :ensure
-                      (checked-spec user-struct
-                                    mandatory-props-ensure
-                                    optional-props-ensure))
-        spec-table (spec-with-defaults defaults-ensure spec-struct)]
+        spec-table (pinpoint-error
+                     :ensure
+                     (struct/to-table
+                       (checked-spec user-struct
+                                     mandatory-props-ensure
+                                     optional-props-ensure)))]
 
     # Properties must be expanded
     (set (spec-table :properties)

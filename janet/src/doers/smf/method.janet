@@ -23,10 +23,8 @@
     :help "Method or command to execute"}
    :timeout
    {:types [:number]
-    :help "Seconds until method times out"}}
-
-  :defaults
-  {:timeout 60}
+    :help "Seconds until method times out"
+    :default 60}}
 
   :notes
   ["If you don't supply a `:stop-method` you get a standard `:kill` that times
@@ -47,7 +45,9 @@
       # :context struct
 
       (let [user-spec (make-spec-struct ;spec)
-            expanded-spec (spec-with-defaults defaults-method user-spec)
+            expanded-spec (spec-with-defaults
+                            (extract-defaults mandatory-props-method)
+                            user-spec)
             spec-table (checked-spec expanded-spec
                                      mandatory-props-method
                                      optional-props-method)

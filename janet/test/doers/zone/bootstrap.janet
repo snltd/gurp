@@ -6,7 +6,6 @@
     (zone/bootstrap :server "gurp.localnet"
                     :hostname "test-client")
     {:bootstrap @{:copy-self true
-                  :debug false
                   :gurp-binary "/var/tmp/gurp"
                   :hostname "test-client"
                   :server "gurp.localnet"}})
@@ -14,7 +13,6 @@
   (test
     (zone/bootstrap :file "/var/tmp/boot.janet")
     {:bootstrap @{:copy-self true
-                  :debug false
                   :file "/var/tmp/boot.janet"
                   :gurp-binary "/var/tmp/gurp"}})
 

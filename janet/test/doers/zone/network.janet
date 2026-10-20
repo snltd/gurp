@@ -21,4 +21,4 @@
 
   (test-error
     (zone/network "test_net3" :oops "wat?")
-    "In zone/network test_net3: unexpected property :oops. Valid properties are :name, :global-nic, :defrouter, :allowed-address, :label"))
+    "In zone/network test_net3: unexpected property :oops. Valid properties are :allowed-address, :defrouter, :global-nic, :label, :name"))
