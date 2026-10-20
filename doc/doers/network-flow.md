@@ -34,11 +34,11 @@ Name of flow. Must be unique (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:dsfield` | `string` | With optional :mask |  |
+| `:dsfield` | `string` | With optional /mask |  |
 | `:local-ip` | `string` | Local IP address for flow, optional /mask |  |
 | `:local-port` | `number` | Local port of flow |  |
-| `:maxbw` | `string` | Maximum duplex bandidth, with K, M or G suffix |  |
-| `:priority` | `string` | Priority of link: high, medium, low |  |
+| `:maxbw` | `string` | Maximum duplex bandwidth, with K, M or G suffix |  |
+| `:priority` | `string` | Priority of link |  |
 | `:protocol` | `string` | Flow protocol |  |
 | `:remote-ip` | `string` | RemoteIP address for flow, optional /mask |  |
 | `:remote-port` | `number` | Remote port of flow |  |

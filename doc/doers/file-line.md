@@ -51,8 +51,8 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:apply-to` | `string` | Which matches to act on | `"all"` |
-| `:match` | `string` | How to match the line | `"exact"` |
+| `:apply-to` | `string` | Which matches to act on |  |
+| `:match` | `string` | How to match the line |  |
 | `:pattern` | `string` | The line or pattern which must be removed |  |
 
 ### Optional Properties
