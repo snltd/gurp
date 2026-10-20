@@ -37,6 +37,7 @@ pub struct RouteEnsure {
     pub destination: String,
     pub gateway: Option<String>,
     pub interface: Option<String>,
+    #[serde(default)]
     pub force_gateway: bool,
     #[serde(
         default,

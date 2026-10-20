@@ -32,6 +32,7 @@ pub struct IpfilterEnsure {
     pub from: Option<String>,
     pub content: Option<String>,
     pub priority: usize,
+    #[serde(default)]
     pub always_reload: bool,
 }
 
