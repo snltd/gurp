@@ -60,8 +60,10 @@ impl fmt::Display for Brand {
 pub struct ZoneConfig {
     #[serde(default)]
     pub attr: Vec<Attr>,
+    #[serde(default)]
     pub autoboot: bool,
     pub bhyve: Option<BhyveConfig>,
+    #[serde(default)]
     pub boot_after_install: bool,
     pub bootstrap: Option<BootstrapConfig>,
     pub brand: Brand,
@@ -86,6 +88,7 @@ pub struct ZoneConfig {
     pub pool: Option<String>,
     #[serde(default)]
     pub rctl: Vec<Rctl>,
+    #[serde(default)]
     pub recreate: u8,
     pub zonepath: Utf8PathBuf,
 }
@@ -145,12 +148,14 @@ pub struct BootstrapConfig {
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct BhyveConfig {
+    #[serde(default)]
     pub acpi: bool,
     pub boot_rom: String,
     pub boot_volume: String,
     pub image_format: Option<String>,
     pub ram: String,
     pub vcpus: u8,
+    #[serde(default)]
     pub wait_for_boot: bool,
 }
 
