@@ -41,9 +41,9 @@
                    :definition
                    {:physical {:types [:string]
                                :help "Physical memory cap, with suffix. e.g.
-                                      '2G'"}}
+                                      '2G'"}
                    :swap {:types [:string]
-                          :help "Swap cap, with suffix. e.g. '4G'"}}
+                          :help "Swap cap, with suffix. e.g. '4G'"}}}
    :clone-from {:types [:string]
                 :help "Instead of installing, clone from the given zone, which
                        must exist and be halted"}
