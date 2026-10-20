@@ -14,8 +14,10 @@ pub struct SvcEnsure {
     pub name: String,
     #[serde(rename = "state")]
     pub desired_state: String,
+    #[serde(default)]
     #[serde(rename = "restarted-by")]
     pub restarters: BTreeSet<GurpId>,
+    #[serde(default)]
     #[serde(rename = "reloaded-by")]
     pub reloaders: BTreeSet<GurpId>,
 }
