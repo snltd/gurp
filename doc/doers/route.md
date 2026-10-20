@@ -33,11 +33,11 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:flags` | `struct` | Key-value pairs for flags. If the flag does not take a value, use true |  |
-| `:force-gateway` | `boolean` | If true, put '-gateway' before the gateway to remove ambiguity |  |
-| `:gateway` | `string` | Gateway for given route. |  |
-| `:interface` | `string` | Interface for given route. Conflicts with :gateway |  |
-| `:type` | `string` | Type of route: e.g. 'blackhole', 'reject' |  |
+| `:flags` | `struct` | Key-value pairs for flags. If the flag does not take a value, use `true` |  |
+| `:force-gateway` | `boolean` | If `true`, put `-gateway` before the gateway to remove ambiguity |  |
+| `:gateway` | `string` | Gateway for given route |  |
+| `:interface` | `string` | Interface for given route. Conflicts with `:gateway` |  |
+| `:type` | `string` | Type of route: e.g. `blackhole`, `reject` |  |
 
 ## route/remove
 
@@ -62,7 +62,7 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:type` | `string` | Type of route: e.g. 'blackhole', 'reject' |  |
+| `:type` | `string` | Type of route: e.g. `blackhole`, `reject` |  |
 
 ## Notes
 

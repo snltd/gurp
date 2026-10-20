@@ -31,8 +31,8 @@ rdr le0 203.1.2.3/32 port 80 -> 203.1.2.5 port 80 tcp round-robin")
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:content` | `string` | Apply these rules. Must have :content xor :from |  |
-| `:from` | `string` | Apply rules in the given file. If relative, looks in ../files |  |
+| `:content` | `string` | Apply these rules |  |
+| `:from` | `string` | Apply rules in the given file. If relative, looks in `../files` |  |
 
 ## ipnat/remove
 

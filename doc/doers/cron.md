@@ -30,17 +30,16 @@ Convenient name for job. (`:string`)
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:command` | `string` | Command which runs |  |
-| `:user` | `string` | Username which runs job. Must already exist | `"root"` |
+| `:day-of-month` | `string number` | Day(s) of month on which job runs |  |
+| `:day-of-week` | `string number` | Numeric day(s) on which job runs. 0=Sunday |  |
+| `:hour` | `string number` | Hour(s) at which job runs |  |
+| `:minute` | `string number` | Minute(s) job runs at. Accepts divisions and ranges |  |
+| `:month-of-year` | `string number` | Month(s) in which job runs |  |
+| `:user` | `string` | Username which runs job. Must already exist |  |
 
 ### Optional Properties
 
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:day-of-month` | `string number` | Day(s) of month on which job runs | `"*"` |
-| `:day-of-week` | `string number` | Numeric day(s) on which job runs. 0=Sunday | `"*"` |
-| `:hour` | `string number` | Hour(s) at which job runs | `"*"` |
-| `:minute` | `string number` | Minute(s) job runs at. Accepts divisions and ranges | `"*"` |
-| `:month-of-year` | `string number` | Month(s) in which job runs | `"*"` |
+None
 
 ## cron/remove
 
@@ -52,7 +51,7 @@ Convenient name for job. (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:user` | `string` | Username which runs job. Must already exist | `"root"` |
+| `:user` | `string` | Username which runs job. Must exist |  |
 
 ### Optional Properties
 

@@ -36,24 +36,24 @@ Short name of service. Not used internally (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
+| `:default-enabled` | `boolean` | Start the service when the manifest installs |  |
 | `:fmri` | `string` | Service FMRI |  |
+| `:single-instance` | `boolean` | Is this a single-instance service |  |
+| `:stop-method` | `struct table` | See 'smf-method' |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:default-enabled` | `boolean` | Start the service when the manifest installs | `true` |
 | `:dependency` | `array` | See 'smf-dependency' |  |
 | `:dependent` | `array` | See 'smf-dependent' |  |
 | `:description` | `string` | What the service does |  |
 | `:duration` | `string` | Use this to specify 'transient' or 'wait' services |  |
-| `:properties` | `struct table` | Create/set properties.(:keyword :string|:boolean|:number) |  |
+| `:properties` | `struct table` | Create/set properties. (`:keyword :string|:boolean|:number`) |  |
 | `:property-groups` | `struct table` | Create property groups. Key is the name, value is the type |  |
 | `:refresh-method` | `struct table` | See 'smf-method' |  |
 | `:restart-method` | `struct table` | See 'smf-method' |  |
-| `:single-instance` | `boolean` | Is this a single-instance service | `true` |
 | `:start-method` | `struct table` | See 'smf-method' |  |
-| `:stop-method` | `struct table` | See 'smf-method' | `{:exec ":kill" :timeout 10}` |
 
 ## smf/remove
 
@@ -93,15 +93,14 @@ This helpers does not accept a name
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:fmri` | `string` | Dependency FMRI |  |
+| `:grouping` | `string` | Which dependencies are required by this service |  |
 | `:name` | `string` | Convenient name for dependency, derived from resource name |  |
+| `:restart-on` | `string` | Policy for restarting the parent service if this dependency restarts |  |
+| `:type` | `string` | Type of dependency |  |
 
 ### Optional Properties
 
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:grouping` | `string` | Which dependencies are required by this service | `"require_all"` |
-| `:restart-on` | `string` | Policy for restarting this service if dependency restarts | `"none"` |
-| `:type` | `string` | Type of dependency | `"service"` |
+None
 
 ## Notes
 
@@ -127,15 +126,14 @@ This helpers does not accept a name
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:fmri` | `string` | Dependent FMRI |  |
+| `:grouping` | `string` | Which dependents are required by this service |  |
 | `:name` | `string` | Convenient name for dependent, derived from resource name |  |
+| `:restart-on` | `string` | Policy for restarting parent service if this dependent restarts |  |
+| `:type` | `string` | Type of dependent |  |
 
 ### Optional Properties
 
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:grouping` | `string` | Which dependencies are required by this service | `"require_all"` |
-| `:restart-on` | `string` | Policy for restarting this service if dependent restarts | `"none"` |
-| `:type` | `string` | Type of dependent | `"service"` |
+None
 
 
 # smf/method
@@ -163,7 +161,7 @@ This helpers does not accept a name
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:exec` | `string` | Method or command to execute |  |
-| `:timeout` | `number` | Seconds until method times out | `60` |
+| `:timeout` | `number` | Seconds until method times out |  |
 
 ### Optional Properties
 

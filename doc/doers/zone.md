@@ -49,7 +49,6 @@ Zone name (`:string`)
 (zone/ensure "lx-zone"
              :brand "lx"
              :image "alpine"
-             :image-checksum {:type "sha256" :value ".sha256"}
              :final-state "reboot"
              (zone/network "znet0"
                            :global-nic "auto"
@@ -96,6 +95,8 @@ Zone name (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
+| `:autoboot` | `boolean` | Boot the zone when the system boots |  |
+| `:boot-after-install` | `boolean` | Boot the zone once it is installed |  |
 | `:brand` | `string` | Zone brand |  |
 
 ### Optional Properties
@@ -103,31 +104,29 @@ Zone name (`:string`)
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:attr` | `array` | See zone/attr |  |
-| `:autoboot` | `boolean` | Boot the zone on system boot | `true` |
 | `:bhyve` | `table` | See zone/bhyve |  |
-| `:boot-after-install` | `boolean` | Boot the zone once it is installed | `true` |
 | `:bootstrap-from` | `table` | Copy gurp into the zone, and apply the given file, relative to zone root |  |
 | `:bootstrap` | `table` | See zone/bootstrap |  |
-| `:capped-memory` | `struct` | Set memory cap. Keys must be :physical and :swap, values are strings like '4G' |  |
+| `:capped-memory` | `struct` | Set memory cap |  |
 | `:clone-from` | `string` | Instead of installing, clone from the given zone, which must exist and be halted |  |
 | `:cloudinit` | `array` | See zone/cloudinit |  |
-| `:copy-in` | `struct` | Copy files into the zone. Key is source, value is dest, relative to zone root. If key is an array of strings, all files listed are copied to dest. Unqualified src is assumed to be in ../files/. Directories are copied recursively, and if the dest directory does not exist, it is created. |  |
+| `:copy-in` | `struct` | Copy files into the zone. Key is source, value is dest, relative to zone root. If key is an array of strings, all files listed are copied to dest. Unqualified src is assumed to be in `../files`. Directories are copied recursively, and if the dest directory does not exist, it is created. |  |
 | `:datasets` | `tuple` | ZFS datasets (as strings) to be delegated to zone |  |
-| `:dns` | `struct` | DNS info. :domain is a string; :nameservers a tuple of strings |  |
+| `:dns` | `struct` | DNS client configuration |  |
 | `:emu` | `table` | See zone/emu |  |
-| `:exec-in` | `tuple` | Runs the given commands (:string) in the zone after booting |  |
+| `:exec-in` | `tuple` | Runs the given commands (`:string`) in the zone after booting |  |
 | `:final-state` | `string` | Put the zone in the given state. Also accepts 'reboot' |  |
 | `:fs` | `array` | See zone/fs |  |
 | `:hostid` | `string` | Force this hostid for the zone |  |
-| `:image-checksum` | `struct table` | Requires :type and :value. :type must be one of "sha256". :value can be a literal checksum, a URI, or a dot- prefixed suffix which will be appended to the image URL |  |
+| `:image-checksum` | `struct table` | Define a checksum for a from-type resource |  |
 | `:image` | `string` | Install zone using this image. See docs for pattern rules |  |
-| `:ip-type` | `string` | IP type: exclusive or shared |  |
+| `:ip-type` | `string` | IP type |  |
 | `:limitpriv` | `tuple` | List of privileges to add to zone |  |
 | `:network` | `array` | See zone/network |  |
 | `:pool` | `string` | Resource pool to which zone should belong |  |
 | `:rctl` | `array` | See zone/rctl |  |
-| `:recreate` | `number` | 1-in-n chance the zone will be destroyed and recreated | `0` |
-| `:zonepath` | `string` | Path to zone root |  |
+| `:recreate` | `number` | 1-in-n chance the zone will be destroyed and recreated |  |
+| `:zonepath` | `string` | Path to zone root. Defaults to `/zones/<zone-name>` |  |
 
 ## zone/remove
 
@@ -166,7 +165,7 @@ Attribute name (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:name` | `string` | Attribute name. Derived from resource name |  |
+| `:name` | `string` | Attribute name. Derived from resource name and not specified as a property |  |
 | `:value` | `string boolean number` | Attribute value |  |
 
 ### Optional Properties
@@ -196,19 +195,19 @@ This helpers does not accept a name
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
+| `:boot-rom` | `string` | boot ROM image |  |
 | `:boot-volume` | `string` | ZFS boot volume |  |
 | `:ram` | `string` | Amount of RAM to allocate: e.g. '3G' |  |
 | `:vcpus` | `number` | Number of VCPUs to allocate |  |
+| `:wait-for-boot` | `boolean` | Wait for zone to boot rather than detaching immediately |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:acpi` | `boolean` | whether to enable ACPI in zone |  |
-| `:boot-rom` | `string` | boot ROM image: may be BHYVE_RELEASE or BHYVE_RELEASE_CSM | `"BHYVE_RELEASE"` |
-| `:image-format` | `string` | Specify the format of the image pointed to by :image-url |  |
+| `:image-format` | `string` | Specify, rather than guess, the format of the image pointed to by `:image-url` |  |
 | `:image-path` | `string` | Path to install image - must be raw format |  |
-| `:wait-for-boot` | `boolean` | Wait for boot, or detach immediately | `true` |
 
 ## Notes
 
@@ -236,22 +235,22 @@ This helpers does not accept a name
 
 ### Mandatory Properties
 
-None
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:copy-self` | `boolean` | copy the running gurp binary into the zone at `/var/tmp/gurp` |  |
+| `:gurp-binary` | `string buffer` | path to the in-zone gurp used for bootstrapping |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:copy-self` | `boolean` | copy the running gurp binary into the zone at `/var/tmp/gurp` | `true` |
 | `:debug` | `boolean` | run the bootstrapping gurp in debug mode |  |
 | `:file` | `string` | fully qualified path of file in zone which will be used to bootstrap |  |
-| `:gurp-binary` | `string buffer` | path to the in-zone gurp used for bootstrapping | `"/var/tmp/gurp"` |
 | `:hostname` | `string` | hostname of client being bootstrapped |  |
 | `:server` | `string` | hostname/IP address of server to install from |  |
 
 ## Notes
 
-- You must supply exactly one of `:file` and `:server`.
 - On a bootstrap run, `gurp-user-defs` contains `:is-bootstrap true`, so you can change behaviour on an initial run.
 
 # zone/cloudinit
@@ -286,11 +285,8 @@ cloudinit file name (`:string`)
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:from-struct` | `struct table` | Generate a Cloudinit file from the given struct or table |  |
-| `:from` | `string` | Copy the given files into the Cloudinit image |  |
+| `:from` | `string` | Copy the given file into the Cloudinit image |  |
 
-## Notes
-
-- You must supply exactly one of :from or :from-struct
 
 # zone/emu
 
@@ -309,6 +305,7 @@ This helpers does not accept a name
 | `:cpu` | `string` | CPU model to emulate |  |
 | `:ram` | `string` | Amount of RAM to allocate: e.g. '3G' |  |
 | `:vcpus` | `number` | Number of VCPUs to allocate |  |
+| `:wait-for-boot` | `boolean` | Wait for boot, rather than detaching immediately |  |
 
 ### Optional Properties
 
@@ -318,11 +315,10 @@ This helpers does not accept a name
 | `:image-format` | `string` | Specify the format of the image pointed to by :image-url |  |
 | `:image-path` | `string` | Path to install image - must be raw format |  |
 | `:qemu-args` | `array tuple` | Extra arguments to pass to qemu as `extraN` attrs |  |
-| `:wait-for-boot` | `boolean` | Wait for boot, or detach immediately | `true` |
 
 ## Notes
 
-- Gurp uses the `extra` attr for the bios filename. If you need to pass more flags to qemu, use the `qemu-args` property, or define attrs named extraN with N > 1.
+- Gurp uses the `extra` attr for the BIOS filename. If you need to pass more flags to qemu, use the `qemu-args` property, or define attrs named `extraN` with N > 1.
 
 # zone/fs
 
@@ -345,13 +341,13 @@ The mountpoint inside the zone (`:string`)
 |-------|--------|---------------|-----------|
 | `:name` | `string` | Mountpoint in zone. This is the name of the resource, and is not specified with a key |  |
 | `:special` | `string` | The directory in the global zone |  |
+| `:type` | `string` | The type of fs mount |  |
 
 ### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:options` | `tuple` | Options with which to mount fs inside zone |  |
-| `:type` | `string` | The type of fs mount | `"lofs"` |
 
 
 # zone/network
@@ -365,7 +361,6 @@ Zone VNIC, which may already exist (`:string`)
 ```janet
 (zone/network "znet0"
               :global-nic "e1000g1"
-              :physical "znic0"
               :allowed-address "192.168.1.103/24"
               :defrouter "192.168.1.1")
 ```
@@ -374,6 +369,7 @@ Zone VNIC, which may already exist (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
+| `:global-nic` | `string` | Physical NIC on which to create zone VNIC |  |
 | `:name` | `string` | Zone VNIC. This is the name of the resource, and is not specified with a key |  |
 
 ### Optional Properties
@@ -382,7 +378,6 @@ Zone VNIC, which may already exist (`:string`)
 |-------|--------|---------------|-----------|
 | `:allowed-address` | `string` | IP address, with /netmask |  |
 | `:defrouter` | `string` | IP address of default router |  |
-| `:global-nic` | `string` | Physical NIC on which to create zone VNIC | `"auto"` |
 
 
 # zone/rctl
@@ -404,10 +399,10 @@ RCTL name (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:action` | `string` | rctl action | `"deny"` |
+| `:action` | `string` | rctl action |  |
 | `:limit` | `number` | rctl limit value |  |
 | `:name` | `string` | private field managed by Gurp |  |
-| `:priv` | `string` | rctl privilege | `"privileged"` |
+| `:priv` | `string` | rctl privilege |  |
 
 ### Optional Properties
 

@@ -27,7 +27,7 @@ Any valid FMRI of the service whose properties you wish to set (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:properties` | `struct` | Properties to create. (:keyword :string|:boolean|:number) |  |
+| `:properties` | `struct` | Properties to create. (`:keyword` `:string|:boolean|:number`) |  |
 
 ### Optional Properties
 

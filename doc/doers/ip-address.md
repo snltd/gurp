@@ -26,7 +26,7 @@ Address name, e.g. vnic0/v4 (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:type` | `string` | Type of connection: 'static', 'dhcp' |  |
+| `:type` | `string` | Type of address |  |
 
 ### Optional Properties
 
