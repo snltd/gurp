@@ -2,11 +2,36 @@
 
 Create and install a manifest for an SMF service.
 
-## Resource Name
+## smf/ensure
+
+### Resource Name
 
 Short name of service. Not used internally (`:string`)
 
-## smf/ensure
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:default-enabled` | `boolean` | Start the service when the manifest installs. | `true` |
+| `:fmri` | `string` | Service FMRI. |  |
+| `:single-instance` | `boolean` | Is this a single-instance service. | `true` |
+| `:stop-method` | `struct table` | See 'smf-method'. | `<struct 0x00000149C578>` |
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:dependency` | `array` | See 'smf-dependency'. |  |
+| `:dependent` | `array` | See 'smf-dependent'. |  |
+| `:description` | `string` | What the service does. |  |
+| `:duration` | `string` | Use this to specify 'transient' or 'wait' services. |  |
+| `:properties` | `struct table` | Create/set properties. (`:keyword :string|:boolean|:number`). |  |
+| `:property-groups` | `struct table` | Create property groups. Key is the name, value is the type. |  |
+| `:refresh-method` | `struct table` | See 'smf-method'. |  |
+| `:restart-method` | `struct table` | See 'smf-method'. |  |
+| `:start-method` | `struct table` | See 'smf-method'. |  |
+
+### Examples
 
 ```janet
 (smf/ensure "example"
@@ -32,146 +57,27 @@ Short name of service. Not used internally (`:string`)
                          :other_group/other_prop "abc123"})
 ```
 
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:default-enabled` | `boolean` | Start the service when the manifest installs |  |
-| `:fmri` | `string` | Service FMRI |  |
-| `:single-instance` | `boolean` | Is this a single-instance service |  |
-| `:stop-method` | `struct table` | See 'smf-method' |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:dependency` | `array` | See 'smf-dependency' |  |
-| `:dependent` | `array` | See 'smf-dependent' |  |
-| `:description` | `string` | What the service does |  |
-| `:duration` | `string` | Use this to specify 'transient' or 'wait' services |  |
-| `:properties` | `struct table` | Create/set properties. (`:keyword :string|:boolean|:number`) |  |
-| `:property-groups` | `struct table` | Create property groups. Key is the name, value is the type |  |
-| `:refresh-method` | `struct table` | See 'smf-method' |  |
-| `:restart-method` | `struct table` | See 'smf-method' |  |
-| `:start-method` | `struct table` | See 'smf-method' |  |
-
 ## smf/remove
+
+### Resource Name
+
+Short name of service. Not used internally (`:string`)
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (smf/remove "unwanted/service")
 ```
 
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
-
 ## Notes
 
 - Generated manifests are written to `/opt/site/lib/smf/manifest`, and the output of subsequent runs is compared to the existing reference. If the file has changed, the service is re-created. We do it this way because it is not possible to compare a running service with a generated manifest.
 - smf/remove stops the service and deletes it from the SMF registry.
-# smf/dependency
-
-Defines a dependency of an SMF service, inside an smf resource.
-
-## Name
-
-This helpers does not accept a name
-
-```janet
-(smf/dependency "example-1"
-                :grouping "optional-all"
-                :restart-on "error"
-                :fmri "svc://example/service-1:default")
-```
-
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:fmri` | `string` | Dependency FMRI |  |
-| `:grouping` | `string` | Which dependencies are required by this service |  |
-| `:name` | `string` | Convenient name for dependency, derived from resource name |  |
-| `:restart-on` | `string` | Policy for restarting the parent service if this dependency restarts |  |
-| `:type` | `string` | Type of dependency |  |
-
-### Optional Properties
-
-None
-
-## Notes
-
-- `network/physical` and `filesystem/local` are hard-coded dependencies.
-
-# smf/dependent
-
-Defines a dependent of an SMF service, inside an smf resource.
-
-## Name
-
-This helpers does not accept a name
-
-```janet
-(smf/dependent "example-1"
-               :grouping "optional-all"
-               :restart-on "error"
-               :fmri "svc://example/service-1:default")
-```
-
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:fmri` | `string` | Dependent FMRI |  |
-| `:grouping` | `string` | Which dependents are required by this service |  |
-| `:name` | `string` | Convenient name for dependent, derived from resource name |  |
-| `:restart-on` | `string` | Policy for restarting parent service if this dependent restarts |  |
-| `:type` | `string` | Type of dependent |  |
-
-### Optional Properties
-
-None
-
-
-# smf/method
-
-Defines an SMF method to launch a service state
-
-## Name
-
-This helpers does not accept a name
-
-```janet
-(smf/method "start"
-            :exec "/opt/site/lib/smf/method/example.sh"
-            :user "example"
-            :group "daemon"
-            :privileges ["basic"
-                         "file_dac_search"
-                         "sys_admin"
-                         "proc_owner"
-                         "proc_zone"])
-```
-
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:exec` | `string` | Method or command to execute |  |
-| `:timeout` | `number` | Seconds until method times out |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:environment` | `struct table` | Environment variables set inside context |  |
-| `:group` | `string` | Group the method runs as |  |
-| `:privileges` | `tuple` | Privileges the method has. Use ! to remove them |  |
-| `:user` | `string` | User the method runs as |  |
-
-## Notes
-
-- If you don't supply a `:stop-method` you get a standard `:kill` that times out after ten seconds. Start timeouts default to 60 seconds.

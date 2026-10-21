@@ -2,11 +2,32 @@
 
 Manage network flows via flowadm.
 
-## Resource Name
+## network-flow/ensure
+
+### Resource Name
 
 Name of flow. Must be unique (`:string`)
 
-## network-flow/ensure
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:link` | `string` | NIC/VNIC to which flow applies. |  |
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:dsfield` | `string` | With optional /mask. |  |
+| `:local-ip` | `string` | Local IP address for flow, optional /mask. |  |
+| `:local-port` | `number` | Local port of flow. |  |
+| `:maxbw` | `string` | Maximum duplex bandwidth, with K, M or G suffix. |  |
+| `:priority` | `string` | Priority of link. Allowed values: "high", "medium", "low". |  |
+| `:protocol` | `string` | Flow protocol. |  |
+| `:remote-ip` | `string` | RemoteIP address for flow, optional /mask. |  |
+| `:remote-port` | `number` | Remote port of flow. |  |
+
+### Examples
 
 ```janet
 (network-flow/ensure "ssh-flow"
@@ -24,36 +45,23 @@ Name of flow. Must be unique (`:string`)
                      :maxbw "10M")
 ```
 
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:link` | `string` | NIC/VNIC to which flow applies |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:dsfield` | `string` | With optional /mask |  |
-| `:local-ip` | `string` | Local IP address for flow, optional /mask |  |
-| `:local-port` | `number` | Local port of flow |  |
-| `:maxbw` | `string` | Maximum duplex bandwidth, with K, M or G suffix |  |
-| `:priority` | `string` | Priority of link |  |
-| `:protocol` | `string` | Flow protocol |  |
-| `:remote-ip` | `string` | RemoteIP address for flow, optional /mask |  |
-| `:remote-port` | `number` | Remote port of flow |  |
-
 ## network-flow/remove
+
+### Resource Name
+
+Name of flow. Must be unique (`:string`)
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (network-flow/remove "unwanted")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
 

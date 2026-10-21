@@ -1,3 +1,2 @@
 (system-cert/ensure "from-file"
-  :from "ca/example")
-  
+                    :from "ca/example")

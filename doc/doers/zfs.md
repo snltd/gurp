@@ -2,11 +2,24 @@
 
 Create, destroy, and modify properties of ZFS filesystems.
 
-## Resource Name
+## zfs/ensure
+
+### Resource Name
 
 ZFS dataset name (`:string`)
 
-## zfs/ensure
+### Mandatory properties
+
+None
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:properties` | `struct` | ZFS properties (:keyword) paired with desired value (`:string`). |  |
+| `:size` | `string` | If specified, creates a ZFS volume of given size (e.g. '10G'). |  |
+
+### Examples
 
 ```janet
 (zfs/ensure "rpool/example/filesystem"
@@ -23,30 +36,25 @@ ZFS dataset name (`:string`)
             :label "example-zfs-vol")
 ```
 
-### Mandatory Properties
+## zfs/remove
+
+### Resource Name
+
+ZFS dataset name (`:string`)
+
+### Mandatory properties
 
 None
 
-### Optional Properties
+### Optional properties
 
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:properties` | `struct` | ZFS properties (:keyword) paired with desired value (`:string`) |  |
-| `:size` | `string` | If specified, creates a ZFS volume of given size (e.g. '10G') |  |
+None
 
-## zfs/remove
+### Examples
 
 ```janet
 (zfs/remove "rpool/old/filesystem")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
 
 ## Notes
 

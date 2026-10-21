@@ -2,11 +2,26 @@
 
 Create and remove links.
 
-## Resource Name
+## link/ensure
+
+### Resource Name
 
 Qualified path to the link that will be created (`:string`)
 
-## link/ensure
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:source` | `string` | The file to which we will link. |  |
+| `:type` | `string` | The type of link. Allowed values: "symbolic", "hard". | `symbolic` |
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:force-link` | `boolean` | If the link target already exists and this flag is `true`, Gurp will remove it and replace it with a link. If `false`, a pre-existing target causes an error. |  |
+
+### Examples
 
 ```janet
 (link/ensure "/link/is/here"
@@ -21,32 +36,25 @@ Qualified path to the link that will be created (`:string`)
              :source "/link/points/here")
 ```
 
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:source` | `string` | The file to which we will link |  |
-| `:type` | `string` | The type of link |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:force-link` | `boolean` | If the link target already exists and this flag is `true`, Gurp will remove it and replace it with a link. If `false`, a pre-existing target causes an error |  |
-
 ## link/remove
+
+### Resource Name
+
+Qualified path to the link that will be created (`:string`)
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (link/remove "/dont/want/this/link")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
 
 ## Notes
 

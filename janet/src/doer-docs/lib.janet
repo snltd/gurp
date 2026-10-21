@@ -38,22 +38,11 @@
         :unless (= "lib.janet" doer)]
     (string/replace ".janet" "" doer)))
 
-(defn doer-lookup
-  "Fetch the given binding from the given doer definition file"
-  [doer binding]
+(defn lookup
+  "Return the value of the given prop in doer or doer/helper"
+  [resource prop &opt helper]
   (try
-    (do
-      (def lookup (symbol (a/b doer binding)))
-      (eval lookup))
-    ([_] nil)))
-
-(defn helpers-lookup
-  "As doer-lookup but for helperss"
-  [doer helpers binding]
-  (try
-    (do
-      (def lookup (symbol (string doer "/" binding "-" helpers)))
-      (eval lookup))
+    (eval (symbol (a/b resource (if helper (keyword prop :- helper) prop))))
     ([_] nil)))
 
 (defn squeeze
