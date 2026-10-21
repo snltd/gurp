@@ -11,17 +11,18 @@
 (def doers (doers))
 
 (defn help-for
-  "Returns a multiline string describing a doer or helpers. Called by Gurp's
+  "Returns a multiline string describing a doer or helper. Called by Gurp's
   'describe' command"
   [object]
   (if (= object "control-data")
     (control-data/describe)
-    (try
+    # (try
       (if (string/find "/" object)
-        (help-for-helpers (splice (string/split "/" object 0 2)))
+        (help-for-helper (splice (string/split "/" object 0 2)))
         (help-for-doer object))
-      ([_e]
-        (string "No help for '" object "'")))))
+      # ([_e]
+      #   (string "No help for '" object "'")))))
+      ))
 
 (defn list-doers
   "Returns a multiline string, pairing doers with their descriptions. Used by
@@ -31,7 +32,7 @@
     (catseq [doer :in doers]
       (lay-out-help
         (bold doer)
-        (doer-lookup (keyword doer) :description)
+        (lookup (keyword doer) :description )
         28
         (term-width)))))
 

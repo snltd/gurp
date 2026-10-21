@@ -2,38 +2,46 @@
 
 Create and destroy Unix groups.
 
-## Resource Name
+## group/ensure
+
+### Resource Name
 
 Group name (`:string`)
 
-## group/ensure
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:gid` | `number` | The group ID. |  |
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (group/ensure "new-group"
               :gid 264)
 ```
 
-### Mandatory Properties
+## group/remove
 
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:gid` | `number` | The group ID |  |
+### Resource Name
 
-### Optional Properties
+Group name (`:string`)
+
+### Mandatory properties
 
 None
 
-## group/remove
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (group/remove "old-group")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
 

@@ -2,37 +2,45 @@
 
 Install and uninstall pkgin packages. Only valid in a pkgsrc zone.
 
-## Resource Name
+## pkgin/ensure
+
+### Resource Name
 
 Package name (`:string`)
 
-## pkgin/ensure
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (pkgin/ensure "rust")
 ```
 
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
-
 ## pkgin/remove
+
+### Resource Name
+
+Package name (`:string`)
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (pkgin/remove "go")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
 
 ## Notes
 

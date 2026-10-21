@@ -2,11 +2,26 @@
 
 Manage VNIC objects
 
-## Resource Name
+## vnic/ensure
+
+### Resource Name
 
 VNIC name (`:string`)
 
-## vnic/ensure
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:over` | `string` | Physical link which will serve the VNIC. |  |
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:vlan-tag` | `number` | Enable VLAN tagging with the given tag. |  |
+| `:with-interface` | `boolean` | Whether to create an IP interface on the new VNIC. |  |
+
+### Examples
 
 ```janet
 (vnic/ensure "vnic0"
@@ -20,32 +35,25 @@ VNIC name (`:string`)
              :with-interface true)
 ```
 
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:over` | `string` | Physical link which will serve the VNIC |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:vlan-tag` | `number` | Enable VLAN tagging with the given tag |  |
-| `:with-interface` | `boolean` | Whether to create an IP interface on the new VNIC |  |
-
 ## vnic/remove
+
+### Resource Name
+
+VNIC name (`:string`)
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (vnic/remove "vnic2")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
 
 ## Notes
 

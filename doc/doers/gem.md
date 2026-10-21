@@ -2,11 +2,25 @@
 
 Install and uninstall Ruby gems.
 
-## Resource Name
+## gem/ensure
+
+### Resource Name
 
 Gem name (`:string`)
 
-## gem/ensure
+### Mandatory properties
+
+None
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:gem-path` | `string` | Path to gem executable other than /opt/ooce/bin/gem. |  |
+| `:source` | `string` | Source other than RubyGems. Can contain tokens and usernames. |  |
+| `:version` | `string` | Gem version. |  |
+
+### Examples
 
 ```janet
 (gem/ensure "wavefront-cli")
@@ -19,34 +33,28 @@ Gem name (`:string`)
             :source "https://my-gem-repo.com")
 ```
 
-### Mandatory Properties
+## gem/remove
+
+### Resource Name
+
+Gem name (`:string`)
+
+### Mandatory properties
 
 None
 
-### Optional Properties
+### Optional properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:gem-path` | `string` | Path to gem executable other than /opt/ooce/bin/gem |  |
-| `:source` | `string` | Source other than RubyGems. Can contain tokens and usernames |  |
-| `:version` | `string` | Gem version |  |
+| `:gem-path:` | `string` | Path to gem executable other than /opt/ooce/bin/gem. |  |
+| `:version` | `string` | Gem version. |  |
 
-## gem/remove
+### Examples
 
 ```janet
 (gem/remove "webscale")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:gem-path:` | `string` | Path to gem executable other than /opt/ooce/bin/gem |  |
-| `:version` | `string` | Gem version |  |
 
 ## Notes
 

@@ -2,11 +2,29 @@
 
 Create and destroy IP interfaces, with optional properties. Properties are supplied with 'ip-interface-protocol'.
 
-## Resource Name
+## ip-interface/ensure
+
+### Resource Name
 
 Interface name (`:string`)
 
-## ip-interface/ensure
+### Mandatory properties
+
+None
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:icmp` | `struct table` | key-value pairs of valid icmp properties. |  |
+| `:ip` | `struct table` | key-value pairs of valid ip properties. |  |
+| `:ipv4` | `struct table` | key-value pairs of valid ipv4 properties. |  |
+| `:ipv6` | `struct table` | key-value pairs of valid ipv6 properties. |  |
+| `:sctp` | `struct table` | key-value pairs of valid sctp properties. |  |
+| `:tcp` | `struct table` | key-value pairs of valid tcp properties. |  |
+| `:udp` | `struct table` | key-value pairs of valid udp properties. |  |
+
+### Examples
 
 ```janet
 (ip-interface/ensure "example1"
@@ -21,33 +39,23 @@ Interface name (`:string`)
 (ip-interface/ensure "example0")
 ```
 
-### Mandatory Properties
+## ip-interface/remove
+
+### Resource Name
+
+Interface name (`:string`)
+
+### Mandatory properties
 
 None
 
-### Optional Properties
+### Optional properties
 
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:icmp` | `struct table` | key-value pairs of valid icmp properties |  |
-| `:ip` | `struct table` | key-value pairs of valid ip properties |  |
-| `:ipv4` | `struct table` | key-value pairs of valid ipv4 properties |  |
-| `:ipv6` | `struct table` | key-value pairs of valid ipv6 properties |  |
-| `:sctp` | `struct table` | key-value pairs of valid sctp properties |  |
-| `:tcp` | `struct table` | key-value pairs of valid tcp properties |  |
-| `:udp` | `struct table` | key-value pairs of valid udp properties |  |
+None
 
-## ip-interface/remove
+### Examples
 
 ```janet
 (ip-interface/remove "example2")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
 

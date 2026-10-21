@@ -2,11 +2,24 @@
 
 Manage VLAN objects
 
-## Resource Name
+## vlan/ensure
+
+### Resource Name
 
 VLAN name (`:string`)
 
-## vlan/ensure
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:over` | `string` | Physical link which will serve the VLAN. |  |
+| `:vlan-tag` | `number` | The VLAN tag ID. |  |
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (vlan/ensure "e1000g10000"
@@ -14,30 +27,25 @@ VLAN name (`:string`)
              :vlan-tag 10)
 ```
 
-### Mandatory Properties
+## vlan/remove
 
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:over` | `string` | Physical link which will serve the VLAN |  |
-| `:vlan-tag` | `number` | The VLAN tag ID |  |
+### Resource Name
 
-### Optional Properties
+VLAN name (`:string`)
+
+### Mandatory properties
 
 None
 
-## vlan/remove
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (vlan/remove "e1000g10000")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
 
 ## Notes
 
