@@ -2,11 +2,31 @@
 
 Manage Unix users
 
-## Resource Name
+## user/ensure
+
+### Resource Name
 
 User's username (`:string`)
 
-## user/ensure
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:gecos` | `string` | User's name or description. |  |
+| `:home-dir` | `string` | User's home dir. |  |
+| `:primary-group` | `string number` | Group name or GID to which user belongs. | `staff` |
+| `:shell` | `string` | User's shell. | `/bin/zsh` |
+| `:uid` | `number` | UID of user. |  |
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:other-groups` | `tuple` | Group names (`:string`) or GIDs (`:number`) to which user belongs. |  |
+| `:password-hash` | `string` | Hash to insert in `/etc/shadow`. |  |
+| `:profiles` | `tuple` | List of existing profiles (`:string`). |  |
+
+### Examples
 
 ```janet
 (user/ensure "gurpuser"
@@ -18,37 +38,25 @@ User's username (`:string`)
              :password-hash "w0934cm-4i5c-42u5cn492hrc97h234ui")
 ```
 
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:gecos` | `string` | User's name or description |  |
-| `:home-dir` | `string` | User's home dir |  |
-| `:primary-group` | `string number` | Group name or GID to which user belongs |  |
-| `:shell` | `string` | User's shell |  |
-| `:uid` | `number` | UID of user |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:other-groups` | `tuple` | Group names (`:string`) or GIDs (`:number`) to which user belongs |  |
-| `:password-hash` | `string` | Hash to insert in `/etc/shadow` |  |
-| `:profiles` | `tuple` | List of existing profiles (`:string`) |  |
-
 ## user/remove
+
+### Resource Name
+
+User's username (`:string`)
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (user/remove "lolex")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
 
 ## Notes
 

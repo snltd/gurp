@@ -26,7 +26,7 @@
     "|--" (string/join (map |(string/repeat "-" (length $)) cols) "--|--") "--|\n"))
 
 (defn table-row [& fields]
-  (string "| " (string/join ;fields " | ") " |\n"))
+  (string "| " (string/join fields " | ") " |\n"))
 
 (defn code-block
   [code]

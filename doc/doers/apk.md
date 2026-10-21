@@ -2,37 +2,45 @@
 
 Install and uninstall APK packages. Only valid in an Alpine LX zone.
 
-## Resource Name
+## apk/ensure
+
+### Resource Name
 
 Package name (`:string`)
 
-## apk/ensure
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (apk/ensure "rust")
 ```
 
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
-
 ## apk/remove
+
+### Resource Name
+
+Package name (`:string`)
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (apk/remove "go")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
 
 ## Notes
 
