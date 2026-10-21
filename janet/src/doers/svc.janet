@@ -25,14 +25,15 @@
   "Given a name and state, put an ensure struct in the collector"
   [name & spec]
   (let [spec-table (struct/to-table (make-spec-struct ;spec))]
-    (if-let [restarters (spec-table :restarted-by)]
+    (when-let [restarters (spec-table :restarted-by)]
       (set (spec-table :restarted-by) (map string restarters)))
 
-    (if-let [reloaders (spec-table :reloaded-by)]
+    (when-let [reloaders (spec-table :reloaded-by)]
       (set (spec-table :reloaded-by) (map string reloaders)))
 
     (let [safe-specs (pinpoint-error
-                       :ensure (checked-spec spec-table
+                       :ensure
+                      (checked-spec spec-table
                                              mandatory-props-ensure
                                              optional-props-ensure))]
 
