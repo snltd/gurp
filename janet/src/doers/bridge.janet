@@ -5,29 +5,29 @@
   "Create and modify ethernet bridges."
   :name-is "Any valid bridge name"
 
-  :optional-props-ensure
+  :mandatory-props-ensure
   {:protect {:types [:string]
-             :help "Protection method: defaults to stp"}
+             :help "Protection method"
+             :default "stp"}
    :priority {:types [:number]
-              :help "Bridge priority. 0 to 61440"}
+              :help "Bridge priority. 0 to 61440"
+              :default 32768}
    :max-age {:types [:number]
-             :help "Maximum age, in seconds, for STP configuration information."}
+             :help "Maximum age, in seconds, for STP configuration information"
+             :default 20}
    :hello-time {:types [:number]
-                :help "STP hello time value, in seconds"}
+                :help "STP hello time value, in seconds"
+                :default 2}
    :forward-delay {:types [:number]
-                   :help "STP forward delay time, in seconds. 4 to 30"}
+                   :help "STP forward delay time, in seconds. 4 to 30"
+                   :default 15}
    :force-protocol {:types [:number]
-                    :help "MSTP forced maximum supported protocol"}
-   :links {:types [:tuple :array]
-           :help "Existing links which should be attached to the bridge"}}
+                    :help "MSTP forced maximum supported protocol"
+                    :default 3}}
 
-  :defaults-ensure
-  {:priority 32768
-   :protect "stp"
-   :forward-delay 15
-   :force-protocol 3
-   :hello-time 2
-   :max-age 20})
+  :optional-props-ensure
+  {:links {:types [:tuple :array]
+           :help "Existing links which should be attached to the bridge"}})
 
-(defensure "bridge")
-(defremove "bridge")
+(make-ensure-fn "bridge")
+(make-remove-fn "bridge")

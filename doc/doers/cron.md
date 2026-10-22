@@ -2,11 +2,29 @@
 
 Manage cron jobs. Crontab entries are prefixed with a machine-generated string.
 
-## Resource Name
+## cron/ensure
+
+### Resource Name
 
 Convenient name for job. (`:string`)
 
-## cron/ensure
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:command` | `string` | Command which runs. |  |
+| `:day-of-month` | `string number` | Day(s) of month on which job runs. | `*` |
+| `:day-of-week` | `string number` | Numeric day(s) on which job runs. 0=Sunday. | `*` |
+| `:hour` | `string number` | Hour(s) at which job runs. | `*` |
+| `:minute` | `string number` | Minute(s) job runs at. Accepts divisions and ranges. | `*` |
+| `:month-of-year` | `string number` | Month(s) in which job runs. | `*` |
+| `:user` | `string` | Username which runs job. Must already exist. | `root` |
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (cron/ensure "lots-of-values"
@@ -25,38 +43,27 @@ Convenient name for job. (`:string`)
              :command (argcat "/bin/thing" "arg1" "arg2" "arg3"))
 ```
 
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:command` | `string` | Command which runs |  |
-| `:user` | `string` | Username which runs job. Must already exist | `"root"` |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:day-of-month` | `string number` | Day(s) of month on which job runs | `"*"` |
-| `:day-of-week` | `string number` | Numeric day(s) on which job runs. 0=Sunday | `"*"` |
-| `:hour` | `string number` | Hour(s) at which job runs | `"*"` |
-| `:minute` | `string number` | Minute(s) job runs at. Accepts divisions and ranges | `"*"` |
-| `:month-of-year` | `string number` | Month(s) in which job runs | `"*"` |
-
 ## cron/remove
+
+### Resource Name
+
+Convenient name for job. (`:string`)
+
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:user` | `string` | Username which runs job. Must exist. | `root` |
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (cron/remove "that-old-cron-job")
 ```
-
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:user` | `string` | Username which runs job. Must already exist | `"root"` |
-
-### Optional Properties
-
-None
 
 ## Notes
 

@@ -8,21 +8,21 @@
   :mandatory-props-ensure
   {:source {:types [:string]
             :help "The file to which we will link"}
-   :force-link {:types [:boolean]
-                :help "If the link target already exists and this flag is true,
-                       Gurp will remove it and replace it with a link. If false,
-                      a pre-existing target causes an error"}
    :type {:types [:string]
-          :help "The type of link: symbolic or hard"}}
+          :help "The type of link"
+          :values ["symbolic" "hard"]
+          :default "symbolic"}}
 
-  :defaults-ensure
-  {:type "symbolic"
-   :force-link false}
+  :optional-props-ensure
+  {:force-link {:types [:boolean]
+                :help "If the link target already exists and this flag is
+                       `true`, Gurp will remove it and replace it with a link.
+                       If `false`, a pre-existing target causes an error"}}
 
   :notes
   ["If the source doesn't exist, you get an error."
    "Files and directories are ensured before links, so you can link
     Gurp-managed resources."])
 
-(defensure "link")
-(defremove "link")
+(make-ensure-fn "link")
+(make-remove-fn "link")

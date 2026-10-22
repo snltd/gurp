@@ -58,30 +58,37 @@ impl fmt::Display for Brand {
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub struct ZoneConfig {
-    pub attr: Option<GurpZoneAttrs>,
+    #[serde(default)]
+    pub attr: Vec<Attr>,
+    #[serde(default)]
     pub autoboot: bool,
-    pub bhyve: Option<GurpZoneBhyve>,
+    pub bhyve: Option<BhyveConfig>,
+    #[serde(default)]
     pub boot_after_install: bool,
-    pub bootstrap: Option<BootstrapConf>,
+    pub bootstrap: Option<BootstrapConfig>,
     pub brand: Brand,
-    pub capped_memory: Option<GurpZoneCappedMemory>,
+    pub capped_memory: Option<CappedMemory>,
     pub clone_from: Option<String>,
     pub cloudinit: Option<CloudInitConfig>,
     pub copy_in: Option<CopyInFiles>,
-    pub datasets: Option<Vec<String>>,
-    pub dns: Option<GurpZoneDns>,
-    pub emu: Option<GurpZoneEmu>,
+    #[serde(default)]
+    pub datasets: Vec<String>,
+    pub dns: Option<Dns>,
+    pub emu: Option<EmuConfig>,
     pub exec_in: Option<Vec<String>>,
     pub final_state: Option<String>,
-    pub fs: Option<GurpZoneFilesystems>,
+    #[serde(default)]
+    pub fs: Vec<Filesystem>,
     pub hostid: Option<String>,
     pub ip_type: Option<String>,
     pub limitpriv: Option<Vec<String>>,
     pub image: Option<ImageSource>,
     pub image_checksum: Option<ImageChecksum>,
-    pub net: GurpZoneNetworks,
+    pub network: Vec<Network>,
     pub pool: Option<String>,
-    pub rctl: Option<GurpZoneRctls>,
+    #[serde(default)]
+    pub rctl: Vec<Rctl>,
+    #[serde(default)]
     pub recreate: u8,
     pub zonepath: Utf8PathBuf,
 }
@@ -128,7 +135,7 @@ pub struct ImageChecksum {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct BootstrapConf {
+pub struct BootstrapConfig {
     pub file: Option<String>,
     pub hostname: Option<String>,
     pub server: Option<String>,
@@ -140,17 +147,19 @@ pub struct BootstrapConf {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpZoneBhyve {
+pub struct BhyveConfig {
+    #[serde(default)]
     pub acpi: bool,
     pub boot_rom: String,
     pub boot_volume: String,
     pub image_format: Option<String>,
     pub ram: String,
     pub vcpus: u8,
+    #[serde(default)]
     pub wait_for_boot: bool,
 }
 
-impl EmulConfig for GurpZoneBhyve {
+impl EmulConfig for BhyveConfig {
     fn boot_volume(&self) -> &str {
         &self.boot_volume
     }
@@ -167,7 +176,7 @@ impl EmulConfig for GurpZoneBhyve {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpZoneEmu {
+pub struct EmuConfig {
     pub arch: String,
     pub bios: Option<ImageSource>,
     pub boot_volume: String,
@@ -181,7 +190,7 @@ pub struct GurpZoneEmu {
     pub wait_for_boot: bool,
 }
 
-impl EmulConfig for GurpZoneEmu {
+impl EmulConfig for EmuConfig {
     fn boot_volume(&self) -> &str {
         &self.boot_volume
     }
@@ -197,7 +206,7 @@ impl EmulConfig for GurpZoneEmu {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpZoneRctl {
+pub struct Rctl {
     pub name: String,
     #[serde(rename = "priv")]
     pub rctl_priv: String,
@@ -207,14 +216,14 @@ pub struct GurpZoneRctl {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpZoneCappedMemory {
+pub struct CappedMemory {
     pub physical: String,
     pub swap: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpZoneDns {
+pub struct Dns {
     pub domain: Option<String>,
     pub nameservers: Option<Vec<String>>,
 }
@@ -242,21 +251,18 @@ impl fmt::Display for AttrValue {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct GurpZoneAttr {
+pub struct Attr {
     pub name: String,
     #[serde(rename = "type")]
     pub attr_type: String,
     pub value: AttrValue,
 }
 
-type GurpZoneFilesystems = Vec<GurpZoneFilesystem>;
-type GurpZoneAttrs = Vec<GurpZoneAttr>;
-type GurpZoneRctls = Vec<GurpZoneRctl>;
-
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpZoneFilesystem {
+pub struct Filesystem {
+    #[serde(rename = "name")]
     pub dir: Utf8PathBuf,
     pub special: Utf8PathBuf,
     #[serde(rename = "type")]
@@ -264,12 +270,11 @@ pub struct GurpZoneFilesystem {
     pub options: Option<Vec<String>>,
 }
 
-type GurpZoneNetworks = Vec<GurpZoneNetwork>;
-
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
-pub struct GurpZoneNetwork {
+pub struct Network {
+    #[serde(rename = "name")]
     pub physical: String,
     pub global_nic: String,
     pub allowed_address: Option<IpNet>, // needs a prefix
@@ -300,40 +305,32 @@ impl ZoneConfig {
             ret.push_str(&format!("set limitpriv={}\n", limitpriv.join(",")));
         }
 
-        for network_conf in &self.net {
-            ret.push_str(&self.zone_net(network_conf));
+        for network_conf in &self.network {
+            ret.push_str(&self.zone_network(network_conf));
         }
 
         if let Some(conf) = &self.dns {
             ret.push_str(&self.zone_dns(conf));
         }
 
-        if let Some(fs_conf) = &self.fs {
-            for conf in fs_conf {
-                ret.push_str(&zone_fs!(conf));
-            }
+        for fs in &self.fs {
+            ret.push_str(&zone_fs!(fs));
         }
 
-        if let Some(datasets) = &self.datasets {
-            for ds in datasets {
-                ret.push_str(zone_dataset!(ds));
-            }
+        for ds in &self.datasets {
+            ret.push_str(zone_dataset!(ds));
         }
 
         if let Some(cap) = &self.capped_memory {
             ret.push_str(zone_capped_memory!(cap));
         }
 
-        if let Some(attrs) = &self.attr {
-            for attr in attrs {
-                ret.push_str(zone_attr!(attr.name, attr.attr_type, attr.value));
-            }
+        for attr in &self.attr {
+            ret.push_str(zone_attr!(attr.name, attr.attr_type, attr.value));
         }
 
-        if let Some(rctls) = &self.rctl {
-            for rctl in rctls {
-                ret.push_str(zone_rctl!(rctl));
-            }
+        for rctl in &self.rctl {
+            ret.push_str(zone_rctl!(rctl));
         }
 
         if let Some(emu_config) = &self.emu {
@@ -359,7 +356,7 @@ impl ZoneConfig {
         }
     }
 
-    fn zone_dns(&self, conf: &GurpZoneDns) -> String {
+    fn zone_dns(&self, conf: &Dns) -> String {
         let mut ret = String::new();
 
         if let Some(domain) = &conf.domain {
@@ -373,7 +370,7 @@ impl ZoneConfig {
         ret
     }
 
-    fn zone_net(&self, conf: &GurpZoneNetwork) -> String {
+    fn zone_network(&self, conf: &Network) -> String {
         let mut ret = "add net\n".to_owned();
         ret.push_str(&format!("\tset physical={}\n", conf.physical));
         ret.push_str(&format!("\tset global-nic={}\n", conf.global_nic));
@@ -493,9 +490,9 @@ mod test {
     #[test]
     fn test_config_emulated() {
         let expected = ZoneConfig {
-            attr: None,
+            attr: Vec::new(),
             autoboot: false,
-            bhyve: Some(GurpZoneBhyve {
+            bhyve: Some(BhyveConfig {
                 boot_volume: "tank/bhyve/test".to_owned(),
                 image_format: None,
                 ram: "4G".to_owned(),
@@ -536,12 +533,12 @@ mod test {
             }),
             clone_from: None,
             copy_in: None,
-            datasets: None,
+            datasets: Vec::new(),
             dns: None,
             emu: None,
             exec_in: None,
             final_state: None,
-            fs: None,
+            fs: Vec::new(),
             hostid: None,
             ip_type: None,
             limitpriv: None,
@@ -549,14 +546,14 @@ mod test {
                 "/var/tmp/noble-server-cloudimg-amd64.img.raw".into(),
             )),
             image_checksum: None,
-            net: vec![GurpZoneNetwork {
+            network: vec![Network {
                 physical: "bhyve0".to_owned(),
                 global_nic: "auto".to_owned(),
                 allowed_address: Some(IpNet::new("10.10.0.2".parse().unwrap(), 24).unwrap()),
                 defrouter: None,
             }],
             pool: None,
-            rctl: None,
+            rctl: Vec::new(),
             recreate: 0,
             zonepath: Utf8PathBuf::from("/zones/bhyve-zone"),
         };

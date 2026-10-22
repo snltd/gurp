@@ -2,37 +2,45 @@
 
 Install and uninstall pkg(5) packages.
 
-## Resource Name
+## pkg/ensure
+
+### Resource Name
 
 Package name, of the form ooce/editor/helix (`:string`)
 
-## pkg/ensure
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (pkg/ensure "ooce/developer/rust")
 ```
 
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
-
 ## pkg/remove
+
+### Resource Name
+
+Package name, of the form ooce/editor/helix (`:string`)
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (pkg/remove "ooce/developer/go")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
 
 ## Notes
 

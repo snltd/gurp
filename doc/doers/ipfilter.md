@@ -2,11 +2,27 @@
 
 Set or remove ipfilter rules.
 
-## Resource Name
+## ipfilter/ensure
+
+### Resource Name
 
 Any convenient name: not used internally (`:string`)
 
-## ipfilter/ensure
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:priority` | `number` | rule resources are ordered by priority, lowest number first. |  |
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:always-reload` | `boolean` | if any `ipfilter/ensure` resource sets this to true, then the firewall rules will be reloaded every time Gurp runs, regardless of whether the aggregated `ipf.conf` file has changed. |  |
+| `:content` | `string` | Apply these rules. Must have `:content` xor `:from`. |  |
+| `:from` | `string` | Apply rules in the given file. If relative, looks in `../files`. |  |
+
+### Examples
 
 ```janet
 (ipfilter/ensure "rules-from-config"
@@ -21,33 +37,25 @@ Any convenient name: not used internally (`:string`)
                  :priority 1)
 ```
 
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:always-reload` | `boolean` | if any ipfilter/ensure resource sets this to true, then the firewall rules will be reloaded every time Gurp runs, regardless of whether the aggregated ipf.conf file has changed |  |
-| `:priority` | `number` | rule resources are ordered by priority, lowest number first |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:content` | `string` | Apply these rules. Must have :content xor :from |  |
-| `:from` | `string` | Apply rules in the given file. If relative, looks in ../files |  |
-
 ## ipfilter/remove
+
+### Resource Name
+
+Any convenient name: not used internally (`:string`)
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (ipfilter/remove "removes-all-rules")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
 
 ## Notes
 
@@ -55,5 +63,5 @@ None
 - The doer automatically enables the ipfilter service.
 - We do not (currently) support any additional `ipf` options.
 - Per-zone rules are not supported.
-- Using :always-reload means Gurp will always show a change to be made
-- ipfilter/remove removes ALL filter rules
+- Using `:always-reload` means Gurp will always show a change to be made
+- `ipfilter/remove` removes ALL filter rules

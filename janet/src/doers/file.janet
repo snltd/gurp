@@ -6,45 +6,51 @@
   "Create files from multiple sources, or remove them."
   :name-is "Fully qualified path to file"
 
+  :mandatory-props-ensure
+  {:mode {:types [:string]
+          :help "Permissions, octal"
+          :default "0644"}
+   :owner {:types [:string :number]
+           :help "The username or UID of the user who owns this file"
+           :default "root"}
+   :group {:types [:string :number]
+           :help "The group name or GID of the for this file"
+           :default "root"}}
+
   :optional-props-ensure
   {:backup-suffix {:types [:string]
-                   :help "Back up the file with this suffix. Use 'TIMESTAMP' for an epoch
-                          timestamp"}
+                   :help "Back up the file with this suffix. Use `TIMESTAMP` for
+                          an epoch timestamp"}
    :from {:types [:string]
-          :help "Copy content from this file. If relative, looks in ../files"}
+          :help "Copy content from this file. If relative, looks in `../files`"}
    :from-struct {:types [:struct :table :tuple]
-                 :help "Generate a config file from the given struct. Requires :to-format"}
+                 :help "Generate a config file from the given struct. Requires
+                        `:to-format`"}
    :from-url {:types [:string]
               :help "Fetch file from the given URL"}
-   :group {:types [:string :number]
-           :help "The group name or GID of the for this file"}
    :ignore-pattern {:types [:string]
-                    :help "When comparing, ignore lines matching this Rust regex"}
+                    :help "When comparing, ignore lines matching this Rust
+                           regex"}
    :url-replacements {:types [:struct :table]
                       :help "Replace keys with whatever the corresponding value
-                      points to. Not supported with :from-url"}
-   :mode {:types [:string]
-          :help "Permissions, octal"}
-   :owner {:types [:string :number]
-           :help "The username or UID of the user who owns this file"}
+                             points to. Not supported with `:from-url`"}
    :to-format {:types [:string]
-               :help "Used with :from-struct to try to turn the struct into this format"}
+               :help "Used with `:from-struct` to try to turn the struct into
+                      this format"}
    :with-checksum {:types [:string]
-                   :help "Blake3 checksum used to validate files fetched by :from-url"}
+                   :help "Blake3 checksum used to validate files fetched by
+                          `:from-url`"}
    :only-fetch-from-url-once {:types [:boolean]
-                              :help "If you use :from-url, Gurp must download the file
-                                     on every run to compare it with the installed copy.
-                                     When this is set to true, :from-url files are only
+                              :help "If you use `:from-url`, Gurp must download
+                                     the file on every run to compare it with
+                                     the installed copy. When this is set to
+                                     `true`, `:from-url` files are only
                                      downloaded if the target file is missing"}
    :url-is-server {:types [:boolean]
                    :help "Used internally to identify Gurp server URLs"}
    :content {:types [:string]
-             :help "Literal content of the file. Must have :content xor :from"}}
-
-  :defaults-ensure
-  {:owner "root"
-   :mode "0644"
-   :group "root"}
+             :help "Literal content of the file. Must have `:content` xor
+                    `:from`"}}
 
   :notes
   ["You must supply exactly one of `:content`, `:from`, `:from-url`, or
@@ -59,8 +65,8 @@
     (`:to-format \"ini\"`), but the limits of that format mean your struct
     must be a struct of structs, each representing a section. An invalid struct
     will cause an error."
-   "Unless you specify TIMESTAMP, only one backup file is kept. Backup files are
-    always owned by `root:root`, with mode `0400`."
+   "Unless you specify `TIMESTAMP`, only one backup file is kept. Backup files
+    are always owned by `root:root`, with mode `0400`."
    "If you try to ensure a file at a path which exists, but is not a file, Gurp
     will error"
    "Gurp can also create key-value pairs (`:to-format \"kvp\"`). It can do this
@@ -74,7 +80,8 @@
   [name & spec]
   (let [user-table (struct/to-table (make-spec-struct ;spec))
         spec-table (expand-from-value user-table)
-        all-specs (spec-with-defaults defaults-ensure spec-table)
+        all-specs (spec-with-defaults (extract-defaults mandatory-props-ensure)
+                                      spec-table)
         safe-specs (pinpoint-error
                      :ensure
                      (checked-spec all-specs
@@ -83,4 +90,4 @@
 
     (collector/push :ensure doer (spec->resource doer name safe-specs))))
 
-(defremove "file")
+(make-remove-fn "file")

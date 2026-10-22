@@ -38,7 +38,7 @@
         
   (test-error
     (zone/attr "thing" :value 123 :oops "wat")
-    "In zone/attr thing: unexpected property :oops. Valid properties are :name, :value, :type, :label")
+    "In zone/attr thing: unexpected property :oops. Valid properties are :label, :name, :type, :value")
 
   (test-error
     (zone/attr "thing" :type "astring")

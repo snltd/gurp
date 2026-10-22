@@ -19,12 +19,12 @@
 
   (test-error
     (zone/cloudinit "user-data" :from "user-data" :from-struct {:network {}})
-    "In zone/ensure user-data: need exactly one of :from, :from-struct")
+    "In zone/cloudinit user-data: need exactly one of :from, :from-struct")
 
   (test-error
     (zone/cloudinit "user-data" :from "file" :oops "file")
-    "In zone/cloudinit user-data: unexpected property :oops. Valid properties are :name, :from-struct, :from, :label")
+    "In zone/cloudinit user-data: unexpected property :oops. Valid properties are :from, :from-struct, :label, :name")
 
   (test-error
     (zone/cloudinit "user-data")
-    "In zone/ensure user-data: need exactly one of :from, :from-struct"))
+    "In zone/cloudinit user-data: need exactly one of :from, :from-struct"))

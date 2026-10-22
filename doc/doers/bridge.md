@@ -2,11 +2,30 @@
 
 Create and modify ethernet bridges.
 
-## Resource Name
+## bridge/ensure
+
+### Resource Name
 
 Any valid bridge name (`:string`)
 
-## bridge/ensure
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:force-protocol` | `number` | MSTP forced maximum supported protocol. | `3` |
+| `:forward-delay` | `number` | STP forward delay time, in seconds. 4 to 30. | `15` |
+| `:hello-time` | `number` | STP hello time value, in seconds. | `2` |
+| `:max-age` | `number` | Maximum age, in seconds, for STP configuration information. | `20` |
+| `:priority` | `number` | Bridge priority. 0 to 61440. | `32768` |
+| `:protect` | `string` | Protection method. | `stp` |
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:links` | `tuple array` | Existing links which should be attached to the bridge. |  |
+
+### Examples
 
 ```janet
 (bridge/ensure "basic")
@@ -19,33 +38,23 @@ Any valid bridge name (`:string`)
                :max-age 27)
 ```
 
-### Mandatory Properties
+## bridge/remove
+
+### Resource Name
+
+Any valid bridge name (`:string`)
+
+### Mandatory properties
 
 None
 
-### Optional Properties
+### Optional properties
 
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:force-protocol` | `number` | MSTP forced maximum supported protocol | `3` |
-| `:forward-delay` | `number` | STP forward delay time, in seconds. 4 to 30 | `15` |
-| `:hello-time` | `number` | STP hello time value, in seconds | `2` |
-| `:links` | `tuple array` | Existing links which should be attached to the bridge |  |
-| `:max-age` | `number` | Maximum age, in seconds, for STP configuration information. | `20` |
-| `:priority` | `number` | Bridge priority. 0 to 61440 | `32768` |
-| `:protect` | `string` | Protection method: defaults to stp | `"stp"` |
+None
 
-## bridge/remove
+### Examples
 
 ```janet
 (bridge/remove "unwanted")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
 

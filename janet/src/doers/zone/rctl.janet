@@ -6,26 +6,14 @@
 
   :mandatory-props
   {:priv {:types [:string]
-          :help "rctl privilege"}
+          :help "rctl privilege"
+          :default "privileged"}
    :action {:types [:string]
-            :help "rctl action"}
+            :help "rctl action"
+            :default "deny"}
    :name {:types [:string]
           :help "private field managed by Gurp"}
    :limit {:types [:number]
-           :help "rctl limit value"}}
+           :help "rctl limit value"}})
 
-  :defaults
-  {:priv "privileged"
-   :action "deny"})
-
-(defn rctl
-  "Given a spec, return a zone rctl struct."
-  [name & spec]
-  (let [spec-struct (make-spec-struct :name name ;spec)
-        expanded-spec (spec-with-defaults defaults-rctl spec-struct)
-        spec-table (pinpoint-error :rctl
-                                   (checked-spec expanded-spec
-                                                 mandatory-props-rctl
-                                                 optional-props-rctl))]
-
-    (struct :rctl spec-table)))
+(make-helper-fn rctl)

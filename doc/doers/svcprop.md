@@ -2,11 +2,26 @@
 
 Set and remove properties and property groups of an existing SMF service.
 
-## Resource Name
+## svcprop/ensure
+
+### Resource Name
 
 Any valid FMRI of the service whose properties you wish to set (`:string`)
 
-## svcprop/ensure
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:properties` | `struct` | Properties to create. (`:keyword` `:string|:boolean|:number`). |  |
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:on-change` | `string` | Take this action when a value is changed. Allowed values: "restart", "refresh". |  |
+| `:property-groups` | `struct` | Property groups to create. Key is name, value is type. |  |
+
+### Examples
 
 ```janet
 (svcprop/ensure "example/svc_1"
@@ -23,37 +38,30 @@ Any valid FMRI of the service whose properties you wish to set (`:string`)
                 :properties {:application/datadir "/data"})
 ```
 
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:properties` | `struct` | Properties to create. (:keyword :string|:boolean|:number) |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:on-change` | `string` | Take this action when a value is changed. One of restart, refresh |  |
-| `:property-groups` | `struct` | Property groups to create. Key is name, value is type |  |
-
 ## svcprop/remove
+
+### Resource Name
+
+Any valid FMRI of the service whose properties you wish to set (`:string`)
+
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:properties` | `tuple array` | Properties to remove. |  |
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:property-groups` | `tuple array` | Property groups to remove. |  |
+
+### Examples
 
 ```janet
 (svcprop/remove "example/svc_3"
                 :properties ["application/thing"])
 ```
-
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:properties` | `tuple array` | Properties to remove |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:property-groups` | `tuple array` | Property groups to remove |  |
 
 ## Notes
 

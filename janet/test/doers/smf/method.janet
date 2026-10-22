@@ -21,7 +21,7 @@
 
   (test-error
     (smf/method "start" :exec "/bin/prog" :role "boss")
-    "In smf/method start: unexpected property :role. Valid properties are :exec, :timeout, :user, :group, :environment, :label, :privileges")
+    "In smf/method start: unexpected property :role. Valid properties are :environment, :exec, :group, :label, :privileges, :timeout, :user")
 
   (test-error
     (smf/method "start" :thing "whatever")

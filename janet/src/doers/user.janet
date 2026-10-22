@@ -11,23 +11,22 @@
    :home-dir {:types [:string]
               :help "User's home dir"}
    :primary-group {:types [:string :number]
-                   :help "Group name or GID to which user belongs"}
+                   :help "Group name or GID to which user belongs"
+                   :default "staff"}
    :shell {:types [:string]
-           :help "User's shell"}
+           :help "User's shell"
+           :default "/bin/zsh"}
    :uid {:types [:number]
          :help "UID of user"}}
 
   :optional-props-ensure
   {:other-groups {:types [:tuple]
-                  :help "Group names (:string) or GIDs (:number) to which user belongs"}
+                  :help "Group names (`:string`) or GIDs (`:number`) to which
+                         user belongs"}
    :password-hash {:types [:string]
-                   :help "Hash to insert in /etc/shadow"}
+                   :help "Hash to insert in `/etc/shadow`"}
    :profiles {:types [:tuple]
-              :help "List of existing profiles (:string)"}}
-
-  :defaults-ensure
-  {:shell "/bin/zsh"
-   :primary-group "staff"}
+              :help "List of existing profiles (`:string`)"}}
 
   :notes
   ["The actual user management is done via `useradd(8)`, `usermod(8)` and
@@ -40,5 +39,5 @@
    "You can create non-primary groups for a new user, but not change them for
     an existing one."])
 
-(defensure "user")
-(defremove "user")
+(make-ensure-fn "user")
+(make-remove-fn "user")

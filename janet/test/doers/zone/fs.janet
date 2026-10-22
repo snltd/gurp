@@ -4,12 +4,12 @@
 (deftest zone/fs
   (test
     (zone/fs "/home" :special "/export/home")
-    {:fs @{:dir "/home"
+    {:fs @{:name "/home"
            :special "/export/home"
            :type "lofs"}})
   (test
     (zone/fs "/data" :special "/export/data")
-    {:fs @{:dir "/data"
+    {:fs @{:name "/data"
            :special "/export/data"
            :type "lofs"}})
 
@@ -17,8 +17,8 @@
     (zone/fs "/home"
              :special "/export/home"
              :oops "wat?")
-    "In zone/fs /home: unexpected property :oops. Valid properties are :dir, :special, :type, :options, :label")
+    "In zone/fs /home: unexpected property :oops. Valid properties are :label, :name, :options, :special, :type")
 
   (test-error
     (zone/fs "/dir")
-    "In zone/fs /dir: did not find mandatory property :special. Mandatory properties are :dir, :special"))
+    "In zone/fs /dir: did not find mandatory property :special. Mandatory properties are :special, :name, :type"))

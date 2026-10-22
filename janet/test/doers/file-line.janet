@@ -39,7 +39,7 @@
                       :line "and"
                       :after "gibbus"
                       :before "chubb")
-    "In file-line/ensure /missing/line: unexpected property :before. Valid properties are :with, :apply-to, :replace, :label, :insert-at, :line")
+    "In file-line/ensure /missing/line: unexpected property :before. Valid properties are :apply-to, :insert-at, :label, :line, :replace, :with")
 
   (test-error
     (file-line/remove "/my/file"

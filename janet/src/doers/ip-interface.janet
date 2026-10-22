@@ -16,4 +16,4 @@
        (spec->resource doer name)
        (collector/push :ensure doer)))
 
-(defremove "ip-interface")
+(make-remove-fn "ip-interface")

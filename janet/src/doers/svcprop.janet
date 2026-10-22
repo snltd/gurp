@@ -9,14 +9,16 @@
 
   :mandatory-props-ensure
   {:properties {:types [:struct]
-                :help "Properties to create. (:keyword :string|:boolean|:number)"}}
+                :help "Properties to create. (`:keyword`
+                       `:string|:boolean|:number`)"}}
 
   :optional-props-ensure
   {:property-groups {:types [:struct]
-                     :help "Property groups to create. Key is name, value is type"}
+                     :help "Property groups to create. Key is name, value is
+                            type"}
    :on-change {:types [:string]
-               :help (string "Take this action when a value is changed. One of "
-                             (string/join allowed-actions ", "))}}
+               :help "Take this action when a value is changed"
+               :values allowed-actions}}
 
   :mandatory-props-remove
   {:properties {:types [:tuple :array]
@@ -39,20 +41,12 @@
   [name & spec]
 
   (let [user-struct (make-spec-struct ;spec)
-        spec-struct (pinpoint-error
-                      :ensure
-                      (checked-spec user-struct
-                                    mandatory-props-ensure
-                                    optional-props-ensure))
-        spec-table (spec-with-defaults defaults-ensure spec-struct)]
-
-    (if-let [action (get spec-table :on-change)]
-      (pinpoint-error
-        :ensure
-        (if-not (has-value? allowed-actions action)
-          (errorf "on-change action must be one of %s [got '%s']"
-                  (string/join allowed-actions ", ")
-                  action))))
+        spec-table (pinpoint-error
+                     :ensure
+                     (struct/to-table
+                       (checked-spec user-struct
+                                     mandatory-props-ensure
+                                     optional-props-ensure)))]
 
     # Properties must be expanded
     (set (spec-table :properties)
@@ -61,4 +55,4 @@
 
     (collector/push :ensure doer (spec->resource doer name spec-table))))
 
-(defremove "svcprop")
+(make-remove-fn "svcprop")

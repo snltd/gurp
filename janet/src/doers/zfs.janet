@@ -7,9 +7,11 @@
 
   :optional-props-ensure
   {:properties {:types [:struct]
-                :help "ZFS properties (:keyword) paired with desired value (:string)"}
+                :help "ZFS properties (:keyword) paired with desired value
+                       (`:string`)"}
    :size {:types [:string]
-          :help "If specified, creates a ZFS volume of given size (e.g. '10G')"}}
+          :help "If specified, creates a ZFS volume of given size (e.g.
+                '10G')"}}
 
   :notes
   ["Gurp does not check parameters are valid, so if you get them wrong the
@@ -17,7 +19,7 @@
    "If you do not set a mountpoint for a filesystem, Gurp will force it to
     'none'."
    "Gurp cannot change the size of an extant volume."
-   "zfs/destroy is recursive, and will remove all child filesystems and
+   "`zfs/destroy` is recursive, and will remove all child filesystems and
     snapshots without asking or telling."])
 
 (defn ensure
@@ -34,13 +36,12 @@
       (put-in spec-table [:properties :mountpoint] "none")
       (set [spec-table :properties] (table/to-struct (spec-table :properties))))
 
-    (let [all-specs (spec-with-defaults defaults-ensure spec-table)
-          safe-specs (pinpoint-error
+    (let [safe-specs (pinpoint-error
                        :ensure
-                       (checked-spec all-specs
+                       (checked-spec spec-table
                                      mandatory-props-ensure
                                      optional-props-ensure))]
 
       (collector/push :ensure doer (spec->resource doer name safe-specs)))))
 
-(defremove "zfs")
+(make-remove-fn "zfs")

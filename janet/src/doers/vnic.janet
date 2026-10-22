@@ -15,13 +15,10 @@
   {:over {:types [:string]
           :help "Physical link which will serve the VNIC"}}
 
-  :defaults-ensure
-  {:with-interface false}
-
   :notes
   ["VNICs get a random MAC address."
    "If a VNIC exists but has a different VLAN tag or underlying physical NIC to
     the specification, Gurp will try to recreate it."])
 
-(defensure "vnic")
-(defremove "vnic")
+(make-ensure-fn "vnic")
+(make-remove-fn "vnic")

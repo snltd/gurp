@@ -7,7 +7,8 @@
 
   :mandatory-props-ensure
   {:type {:types [:string]
-          :help "Type of connection: 'static', 'dhcp'"}}
+          :help "Type of address"
+          :values ["static" "dhcp"]}}
 
   :optional-props-ensure
   {:address {:types [:string]
@@ -15,5 +16,5 @@
    :properties {:types [:struct]
                 :help "Struct of any valid ipadm addrprops"}})
 
-(defensure "ip-address")
-(defremove "ip-address")
+(make-ensure-fn "ip-address")
+(make-remove-fn "ip-address")

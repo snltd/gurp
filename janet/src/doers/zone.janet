@@ -9,6 +9,7 @@
 (import ./zone/network :prefix "" :export true)
 (import ./zone/rctl :prefix "" :export true)
 (import ../collector)
+(import ../doer-components :as component)
 
 (def checksum-types ["sha256"])
 
@@ -18,24 +19,31 @@
 
   :mandatory-props-ensure
   {:brand {:types [:string]
-           :help "Zone brand"}}
+           :help "Zone brand"}
+   :autoboot {:types [:boolean]
+              :help "Boot the zone when the system boots"
+              :default true}
+   :boot-after-install {:types [:boolean]
+                        :help "Boot the zone once it is installed"
+                        :default true}}
 
   :optional-props-ensure
   {:attr {:types [:array]
           :help "See zone/attr"}
-   :autoboot {:types [:boolean]
-              :help "Boot the zone on system boot"}
    :bhyve {:types [:table] :help "See zone/bhyve"}
-   :boot-after-install {:types [:boolean]
-                        :help "Boot the zone once it is installed"}
    :bootstrap {:types [:table]
                :help "See zone/bootstrap"}
    :bootstrap-from {:types [:table]
                     :help "Copy gurp into the zone, and apply the given file,
                            relative to zone root"}
    :capped-memory {:types [:struct]
-                   :help "Set memory cap. Keys must be :physical and :swap,
-                          values are strings like '4G'"}
+                   :help "Set memory cap"
+                   :definition
+                   {:physical {:types [:string]
+                               :help "Physical memory cap, with suffix. e.g.
+                                      '2G'"}
+                   :swap {:types [:string]
+                          :help "Swap cap, with suffix. e.g. '4G'"}}}
    :clone-from {:types [:string]
                 :help "Instead of installing, clone from the given zone, which
                        must exist and be halted"}
@@ -44,35 +52,37 @@
              :help "Copy files into the zone. Key is source, value is dest,
                     relative to zone root. If key is an array of strings, all
                     files listed are copied to dest. Unqualified src is assumed
-                    to be in ../files/. Directories are copied recursively, and
+                    to be in `../files`. Directories are copied recursively, and
                     if the dest directory does not exist, it is created."}
    :datasets {:types [:tuple]
               :help "ZFS datasets (as strings) to be delegated to zone"}
    :dns {:types [:struct]
-         :help "DNS info. :domain is a string; :nameservers a tuple of strings"}
+         :help "DNS client configuration"
+         :definition
+         {:domain {:types [:string]
+                   :help "Default DNS domain"}
+          :nameservers {:types [:array :tuple]
+                        :help "Nameserver list"}}}
    :emu {:types [:table] :help "See zone/emu"}
    :exec-in {:types [:tuple]
-             :help "Runs the given commands (:string) in the zone after booting"}
+             :help "Runs the given commands (`:string`) in the zone after
+                    booting"}
    :final-state {:types [:string]
                  :help "Put the zone in the given state. Also accepts 'reboot'"}
    :fs {:types [:array]
         :help "See zone/fs"}
    :ip-type {:types [:string]
-             :help "IP type: exclusive or shared"}
+             :help "IP type"
+             :values ["exclusive" "shared"]}
    :hostid {:types [:string]
             :help "Force this hostid for the zone"}
    :limitpriv {:types [:tuple]
                :help "List of privileges to add to zone"}
    :image {:types [:string]
            :help "Install zone using this image. See docs for pattern rules"}
-   :image-checksum {:types [:struct :table]
-                    :help (string/format
-                            "Requires :type and :value. :type must be one of %s.
-                            :value can be a literal checksum, a URI, or a dot-
-                            prefixed suffix which will be appended to the image URL"
-                            (comma-sep checksum-types))}
-   :net {:types [:array]
-         :help "See zone/network"}
+   :image-checksum (component/checksum)
+   :network {:types [:array]
+             :help "See zone/network"}
    :pool {:types [:string]
           :help "Resource pool to which zone should belong"}
    :rctl {:types [:array]
@@ -80,12 +90,7 @@
    :recreate {:types [:number]
               :help "1-in-n chance the zone will be destroyed and recreated"}
    :zonepath {:types [:string]
-              :help "Path to zone root"}}
-
-  :defaults-ensure
-  {:autoboot true
-   :recreate 0
-   :boot-after-install true}
+              :help "Path to zone root. Defaults to `/zones/<zone-name>`"}}
 
   :notes
   ["`kvm` zones are not supported."
@@ -115,7 +120,7 @@
   "Given a zone name and spec, put an ensure struct in the collector"
   [name & spec]
   (var modified-spec spec)
-  (expand-resource :net)
+  (expand-resource :network)
   (expand-resource :attr)
   (expand-resource :fs)
   (expand-resource :rctl)
@@ -125,12 +130,13 @@
   (expand-resource :emu :as-struct true)
 
   (let [modified-spec-struct (make-spec-struct ;modified-spec)
+        spec-table (spec-with-defaults (extract-defaults mandatory-props-ensure)
+                                       modified-spec-struct)
         spec-struct (pinpoint-error
                       :ensure
-                      (checked-spec modified-spec-struct
+                      (checked-spec spec-table
                                     mandatory-props-ensure
-                                    optional-props-ensure))
-        spec-table (spec-with-defaults defaults-ensure spec-struct)]
+                                    optional-props-ensure))]
 
     (when-let [image-sum-resource (get spec-table :image-checksum)]
       (pinpoint-error
@@ -155,4 +161,4 @@
 
     (collector/push :ensure doer (spec->resource doer name spec-table))))
 
-(defremove "zone")
+(make-remove-fn "zone")

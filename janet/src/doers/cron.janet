@@ -9,34 +9,27 @@
   {:command {:types [:string]
              :help "Command which runs"}
    :user {:types [:string]
-          :help "Username which runs job. Must already exist"}}
-
-  :optional-props-ensure
-  {:day-of-month {:types [:string :number]
-                  :help "Day(s) of month on which job runs"}
+          :help "Username which runs job. Must already exist"
+          :default "root"}
+   :day-of-month {:types [:string :number]
+                  :help "Day(s) of month on which job runs"
+                  :default "*"}
    :day-of-week {:types [:string :number]
-                 :help "Numeric day(s) on  which job runs. 0=Sunday"}
+                 :help "Numeric day(s) on  which job runs. 0=Sunday"
+                 :default "*"}
    :hour {:types [:string :number]
-          :help "Hour(s) at which job runs"}
+          :help "Hour(s) at which job runs"
+          :default "*"}
    :minute {:types [:string :number]
-            :help "Minute(s) job runs at. Accepts divisions and ranges"}
+            :help "Minute(s) job runs at. Accepts divisions and ranges"
+            :default "*"}
    :month-of-year {:types [:string :number]
-                   :help "Month(s) in which job runs"}}
+                   :help "Month(s) in which job runs"
+                   :default "*"}}
 
-  :mandatory-props-remove
-  {:user {:types [:string]
-          :help "Username which runs job. Must already exist"}}
-
-  :defaults-ensure
-  {:hour "*"
-   :minute "*"
-   :day-of-month "*"
-   :day-of-week "*"
-   :month-of-year "*"
-   :user "root"}
-
-  :defaults-remove
-  {:user "root"}
+  :mandatory-props-remove {:user {:types [:string]
+                                  :help "Username which runs job. Must exist"
+                                  :default "root"}}
 
   :notes
   ["Like other config management tools, Gurp precedes managed lines in the
@@ -50,5 +43,5 @@
     you'll have to use other methods to make sure your users are allowed to run
     the jobs you define."])
 
-(defensure "cron")
-(defremove "cron")
+(make-ensure-fn "cron")
+(make-remove-fn "cron")

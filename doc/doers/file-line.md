@@ -2,32 +2,52 @@
 
 Ensure lines do or do not exist in the given file.
 
-## Resource Name
+## file-line/ensure
+
+### Resource Name
 
 Fully qualified path to file (`:string`)
 
-## file-line/ensure
+### Mandatory properties
+
+None
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:apply-to` | `string` | Which matches to act on when replacing. Allowed values: "all", "first", "last". |  |
+| `:insert-at` | `number` | If a new line must be added, it will go at this index. |  |
+| `:line` | `string` | The line which must exist. |  |
+| `:replace` | `string` | Pattern to replace. Rust regex. |  |
+| `:with` | `string` | Counterpart to :replace. |  |
+
+### Examples
 
 ```janet
 (file-line/ensure "/path/to/file"
                   :line "i-want-to-see-this")
 ```
 
-### Mandatory Properties
+## file-line/remove
 
-None
+### Resource Name
 
-### Optional Properties
+Fully qualified path to file (`:string`)
+
+### Mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:apply-to` | `string` | Which matches to act on when replacing: "all", "first", "last" |  |
-| `:insert-at` | `number` | If a new line must be added, it will go at this index |  |
-| `:line` | `string` | The line which must exist |  |
-| `:replace` | `string` | Pattern to replace. Rust regex |  |
-| `:with` | `string` | Counterpart to :replace |  |
+| `:apply-to` | `string` | Which matches to act on. Allowed values: "all", "first", "last". | `all` |
+| `:match` | `string` | How to match the line. Allowed values: "exact", "starts-with", "ends-with", "contains", "regex". | `exact` |
+| `:pattern` | `string` | The line or pattern which must be removed. |  |
 
-## file-line/remove
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (file-line/remove "/path/to/file"
@@ -46,18 +66,6 @@ None
                   :match "regex"
                   :pattern "rust-regex")
 ```
-
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:apply-to` | `string` | Which matches to act on: "all", "first", "last" | `"all"` |
-| `:match` | `string` | How to match the line: "exact", "starts-with", "ends-with", "contains", "regex" | `"exact"` |
-| `:pattern` | `string` | The line or pattern which must be removed |  |
-
-### Optional Properties
-
-None
 
 ## Notes
 

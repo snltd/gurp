@@ -9,25 +9,24 @@
    :ram {:types [:string]
          :help "Amount of RAM to allocate: e.g. '3G'"}
    :vcpus {:types [:number]
-           :help "Number of VCPUs to allocate"}}
+           :help "Number of VCPUs to allocate"}
+   :boot-rom {:types [:string]
+              :help "boot ROM image"
+              :values ["BHYVE_RELEASE" "BHYVE_RELEASE_CSM"]
+              :default "BHYVE_RELEASE"}
+   :wait-for-boot {:types [:boolean]
+                   :help "Wait for zone to boot rather than detaching
+                          immediately"
+                   :default true}}
 
   :optional-props
   {:acpi {:types [:boolean]
           :help "whether to enable ACPI in zone"}
-   :boot-rom {:types [:string]
-              :help "boot ROM image: may be BHYVE_RELEASE or BHYVE_RELEASE_CSM"}
    :image-format {:types [:string]
-                  :help "Specify the format of the image pointed to by :image-url"}
+                  :help "Specify, rather than guess, the format of the image
+                         pointed to by `:image-url`"}
    :image-path {:types [:string]
-                :help "Path to install image - must be raw format"}
-   :wait-for-boot {:types [:boolean]
-                   :help "Wait for boot, or detach immediately"}}
-
-
-  :defaults
-  {:acpi false
-   :boot-rom "BHYVE_RELEASE"
-   :wait-for-boot true}
+                :help "Path to install image - must be raw format"}}
 
   :notes
   ["A bhyve zone must be built from an image. This can be a local path or a URL.
@@ -36,15 +35,4 @@
     clobbering it if it already exists. For any other image type, it is the 
     user's responsibility to create the `:boot-volume`."])
 
-(defn bhyve
-  "Given a spec, return config for a bhyve zone"
-  [& spec]
-  (let [name "NO-NAME"
-        spec-struct (make-spec-struct ;spec)
-        expanded-spec (spec-with-defaults defaults-bhyve spec-struct)
-        spec-table (pinpoint-error :bhyve
-                                   (checked-spec expanded-spec
-                                                 mandatory-props-bhyve
-                                                 optional-props-bhyve))]
-
-    (struct :bhyve spec-table)))
+(make-helper-fn bhyve :without-name true)

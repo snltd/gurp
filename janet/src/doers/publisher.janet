@@ -41,9 +41,7 @@
                       (checked-spec
                         modified-spec-struct
                         mandatory-props-ensure
-                        optional-props-ensure))
-        spec-table (spec-with-defaults defaults-ensure spec-struct)]
+                        optional-props-ensure))]
+    (collector/push :ensure doer (spec->resource doer name spec-struct))))
 
-    (collector/push :ensure doer (spec->resource doer name spec-table))))
-
-(defremove "publisher")
+(make-remove-fn "publisher")

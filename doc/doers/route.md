@@ -2,11 +2,27 @@
 
 Manage routes. Note that default routes for zones should be handled by the zone's :defrouter property.
 
-## Resource Name
+## route/ensure
+
+### Resource Name
 
 The route destination, e.g. '10.10.0.0/16'. For a default route            specify 'default'. (`:string`)
 
-## route/ensure
+### Mandatory properties
+
+None
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:flags` | `struct` | Key-value pairs for flags. If the flag does not take a value, use `true`. |  |
+| `:force-gateway` | `boolean` | If `true`, put `-gateway` before the gateway to remove ambiguity. |  |
+| `:gateway` | `string` | Gateway for given route. |  |
+| `:interface` | `string` | Interface for given route. Conflicts with `:gateway`. |  |
+| `:type` | `string` | Type of route: e.g. `blackhole`, `reject`. |  |
+
+### Examples
 
 ```janet
 (route/ensure "203.0.113.0/24"
@@ -25,21 +41,25 @@ The route destination, e.g. '10.10.0.0/16'. For a default route            speci
               :flags {:mtu 1500})
 ```
 
-### Mandatory Properties
+## route/remove
 
-None
+### Resource Name
 
-### Optional Properties
+The route destination, e.g. '10.10.0.0/16'. For a default route            specify 'default'. (`:string`)
+
+### Mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:flags` | `struct` | Key-value pairs for flags. If the flag does not take a value, use true |  |
-| `:force-gateway` | `boolean` | If true, put '-gateway' before the gateway to remove ambiguity |  |
-| `:gateway` | `string` | Gateway for given route. |  |
-| `:interface` | `string` | Interface for given route. Conflicts with :gateway |  |
-| `:type` | `string` | Type of route: e.g. 'blackhole', 'reject' |  |
+| `:gateway` | `string` | Gateway for given route.. |  |
 
-## route/remove
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:type` | `string` | Type of route: e.g. `blackhole`, `reject`. |  |
+
+### Examples
 
 ```janet
 (route/remove "203.0.113.0/24"
@@ -51,18 +71,6 @@ None
 (route/remove "10.0.5.0/24"
               :gateway "10.0.5.150")
 ```
-
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:gateway` | `string` | Gateway for given route. |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:type` | `string` | Type of route: e.g. 'blackhole', 'reject' |  |
 
 ## Notes
 

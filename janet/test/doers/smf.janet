@@ -9,38 +9,38 @@
   (import-tests "smf")
 
   (test *collector*
-    @{:ensure @{:smf @[{:_id "/NO-ROLE/smf/example"
-                        :default-enabled true
-                        :dependencies @[@{:fmri "svc:/milestone/name-services:default"
-                                          :grouping "require_all"
-                                          :name "dependency1"
-                                          :restart-on "none"
-                                          :type "service"}
-                                        @{:fmri "svc:/system/pkgserv:default"
-                                          :grouping "optional_all"
-                                          :name "dependency2"
-                                          :restart-on "error"
-                                          :type "service"}]
-                        :description "Run example program"
-                        :duration "child"
-                        :fmri "snltd/example"
-                        :name "example"
-                        :properties @{:application/port {:type "integer" :value 8080}
-                                      :application/ssl {:type "boolean" :value true}
-                                      :other_group/other_prop {:type "astring" :value "abc123"}}
-                        :property-groups {:application "application"
-                                          :other_group "framework"}
-                        :role "NO-ROLE"
-                        :single-instance true
-                        :start-method @{:context {:group "daemon"
-                                                  :privileges "basic,!file_dac_search"
-                                                  :user "appuser"}
-                                        :exec "/app/method.sh"
-                                        :timeout 60}
-                        :stop-method {:exec ":kill" :timeout 10}}]}
-      :remove @{:smf @[{:_id "/NO-ROLE/smf/unwanted_service"
-                        :name "unwanted/service"
-                        :role "NO-ROLE"}]}}))
+        @{:ensure @{:smf @[{:_id "/NO-ROLE/smf/example"
+                            :default-enabled true
+                            :dependency @[@{:fmri "svc:/milestone/name-services:default"
+                                            :grouping "require_all"
+                                            :name "dependency1"
+                                            :restart-on "none"
+                                            :type "service"}
+                                          @{:fmri "svc:/system/pkgserv:default"
+                                            :grouping "optional_all"
+                                            :name "dependency2"
+                                            :restart-on "error"
+                                            :type "service"}]
+                            :description "Run example program"
+                            :duration "child"
+                            :fmri "snltd/example"
+                            :name "example"
+                            :properties @{:application/port {:type "integer" :value 8080}
+                                          :application/ssl {:type "boolean" :value true}
+                                          :other_group/other_prop {:type "astring" :value "abc123"}}
+                            :property-groups {:application "application"
+                                              :other_group "framework"}
+                            :role "NO-ROLE"
+                            :single-instance true
+                            :start-method @{:context {:group "daemon"
+                                                      :privileges "basic,!file_dac_search"
+                                                      :user "appuser"}
+                                            :exec "/app/method.sh"
+                                            :timeout 60}
+                            :stop-method {:exec ":kill" :timeout 10}}]}
+          :remove @{:smf @[{:_id "/NO-ROLE/smf/unwanted_service"
+                            :name "unwanted/service"
+                            :role "NO-ROLE"}]}}))
 
 (deftest smf-error
   (test-error
@@ -58,4 +58,4 @@
                             :exec "/opt/site/lib/smf/method/telegraf.sh"
                             :user "telegraf"
                             :group "daemon"))
-    "In smf/ensure telegraf: did not find mandatory property :fmri. Mandatory properties are :fmri"))
+    "In smf/ensure telegraf: did not find mandatory property :fmri. Mandatory properties are :single-instance, :fmri, :stop-method, :default-enabled"))

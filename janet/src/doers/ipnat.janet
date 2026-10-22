@@ -4,16 +4,19 @@
 (defdoer :ipnat
   "Set or remove NAT rules."
   :name-is "Any convenient name: not used internally"
+  :exactly-one-of [:content :from]
 
   :mandatory-props-ensure
   {:priority {:types [:number]
-              :help "NAT rule resources are ordered by priority, lowest number first"}}
+              :help "NAT rule resources are ordered by priority, lowest number
+                     first"}}
 
   :optional-props-ensure
   {:from {:types [:string]
-          :help "Apply rules in the given file. If relative, looks in ../files"}
+          :help "Apply rules in the given file. If relative, looks in
+                 `../files`"}
    :content {:types [:string]
-             :help "Apply these rules. Must have :content xor :from"}}
+             :help "Apply these rules"}}
 
   :notes
   ["Gurp assembles bundles of NAT rules, given as literal strings (`:content`)
@@ -28,12 +31,5 @@
    "The doer automatically enables the ipfilter service."
    "ipnat/remove removes ALL NAT rules"])
 
-(defn ensure
-  [name & spec]
-  (if (has-exactly-one-of? [:content :from] spec)
-    (collector/push :ensure doer (make-ensure-resource))
-    (pinpoint-error
-      :ensure
-      (error "need exactly one of :content or :from"))))
-
-(defremove "ipnat")
+(make-ensure-fn "ipnat")
+(make-remove-fn "ipnat")
