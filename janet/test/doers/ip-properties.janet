@@ -25,7 +25,7 @@
   (test-error
     (ip-properties/ensure "general"
                           :ipv6 [1234567])
-    "In ip-properties/ensure general: ipv6 is of type :tuple. Allowed types :struct, :table")
+    "In ip-properties/ensure general: ipv6 is of type :tuple. Allowed types :struct")
 
   (test-error
     (ip-properties/ensure "general"

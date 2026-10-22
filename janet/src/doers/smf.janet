@@ -14,7 +14,7 @@
    :single-instance {:types [:boolean]
                      :help "Is this a single-instance service"
                      :default true}
-   :stop-method {:types [:struct :table]
+   :stop-method {:types [:struct]
                  :help "See 'smf-method'"
                  :default {:exec ":kill" :timeout 10}}
    :default-enabled {:types [:boolean]
@@ -30,19 +30,19 @@
                  :help "What the service does"}
    :duration {:types [:string]
               :help "Use this to specify 'transient' or 'wait' services"}
-   :properties {:types [:struct :table]
+   :properties {:types [:struct]
                 :help "Create/set properties.
                        (`:keyword :string|:boolean|:number`)"}
-   :property-groups {:types [:struct :table]
+   :property-groups {:types [:struct]
                      :help "Create property groups. Key is the name, value is
                             the type"}
    :refresh-method {:types []
                     :help "See 'smf-method'"}
-   :start-method {:types [:struct :table]
+   :start-method {:types [:struct]
                   :help "See 'smf-method'"}
-   :restart-method {:types [:struct :table]
+   :restart-method {:types [:struct]
                     :help "See 'smf-method'"}
-   :refresh-method {:types [:struct :table]
+   :refresh-method {:types [:struct]
                     :help "See 'smf-method'"}}
 
   :notes

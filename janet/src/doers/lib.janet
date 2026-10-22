@@ -12,7 +12,7 @@
 
 (def protocol-opts
   (tabseq [protocol :in ip-protocols]
-    protocol {:types [:struct :table]
+    protocol {:types [:struct]
               :help (string/format "key-value pairs of valid %s properties"
                                    protocol)}))
 
@@ -27,7 +27,10 @@
   Values can *always* be keywords, because they denote references."
   [prop-name prop-value allowed-types]
   (let [prop-type (type prop-value)]
-    (if-not (or (= prop-type :keyword) (has-value? allowed-types prop-type))
+    (if-not (or (= prop-type :keyword)
+                (has-value? allowed-types prop-type)
+                (and (= :table prop-type) (has-value? allowed-types :struct))
+                (and (= :array prop-type) (has-value? allowed-types :tuple)))
       (errorf "%s is of type %v. Allowed types %s"
               prop-name
               prop-type

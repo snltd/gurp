@@ -14,7 +14,7 @@
            :help "Group the method runs as"}
    :privileges {:types [:tuple]
                 :help "Privileges the method has. Use ! to remove them"}
-   :environment {:types [:struct :table]
+   :environment {:types [:struct]
                  :help "Environment variables set inside context"}}
 
   :mandatory-props
