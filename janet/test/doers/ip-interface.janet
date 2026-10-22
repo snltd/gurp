@@ -30,7 +30,7 @@
 
   (test-error
     (ip-interface/ensure "bad1" :ipv4 "yay!")
-    "In ip-interface/ensure bad1: ipv4 is of type :string. Allowed types :struct, :table")
+    "In ip-interface/ensure bad1: ipv4 is of type :string. Allowed types :struct")
 
   (test-error
     (ip-interface/remove "bad2" :ipv4 {:forwarding true})

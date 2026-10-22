@@ -8,7 +8,7 @@
   :optional-props
   {:from {:types [:string]
           :help "Copy the given file into the Cloudinit image"}
-   :from-struct {:types [:struct :table]
+   :from-struct {:types [:struct]
                  :help "Generate a Cloudinit file from the given struct or
                         table"}}
 

@@ -23,7 +23,7 @@
                           an epoch timestamp"}
    :from {:types [:string]
           :help "Copy content from this file. If relative, looks in `../files`"}
-   :from-struct {:types [:struct :table :tuple]
+   :from-struct {:types [:struct :tuple]
                  :help "Generate a config file from the given struct. Requires
                         `:to-format`"}
    :from-url {:types [:string]
@@ -31,7 +31,7 @@
    :ignore-pattern {:types [:string]
                     :help "When comparing, ignore lines matching this Rust
                            regex"}
-   :url-replacements {:types [:struct :table]
+   :url-replacements {:types [:struct]
                       :help "Replace keys with whatever the corresponding value
                              points to. Not supported with `:from-url`"}
    :to-format {:types [:string]
