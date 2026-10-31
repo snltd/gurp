@@ -11,7 +11,7 @@
        :gurp-binary "/var/tmp/gurp"
        :hostname "test-client"
        :server "gurp.localnet"
-       :unique false}])
+       :unique true}])
 
   (test
     (zone/bootstrap :file "/var/tmp/boot.janet")
@@ -20,7 +20,7 @@
        :file "/var/tmp/boot.janet"
        :from-helper true
        :gurp-binary "/var/tmp/gurp"
-       :unique false}])
+       :unique true}])
 
   (test-error
     (zone/bootstrap :oops "wat?")

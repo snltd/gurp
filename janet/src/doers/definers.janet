@@ -154,6 +154,9 @@
         (when-let [tpl (spec-table prop)]
           (set (spec-table prop) (function tpl))))))
 
+  (when-let [finalise-fn (action-attrs :finalise-with)]
+    (set spec-table (finalise-fn spec-table)))
+
   spec-table)
 
 (defmacro pinpoint-error
@@ -172,14 +175,14 @@
         '[& spec]
         '[resource-name & spec])
      ,(if no-name '(def resource-name (labelise spec)))
-     (pinpoint-error ,action
-                     (->> ;spec
-                          (enrich-and-validate resource-name
-                                               (attrs ,action)
-                                               ,;(if-not no-name
-                                                   '[:name resource-name] []))
-                          (spec->resource ,doer-name resource-name)
-                          (collector/push ,(keyword action) ,doer-name)))))
+     (pinpoint-error
+       ,action
+       (->> ;spec
+            (enrich-and-validate resource-name
+                                 (attrs ,action)
+                                 ,;(if-not no-name '[:name resource-name] []))
+            (spec->resource ,doer-name resource-name)
+            (collector/push ,(keyword action) ,doer-name)))))
 
 (defmacro make-helper-fn
   [helper-name &named no-name prefix-name-with-prop]

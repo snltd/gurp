@@ -11,7 +11,7 @@
          :from-helper true
          :image-format "qcow2"
          :ram "8G"
-         :unique false
+         :unique true
          :vcpus 4
          :wait-for-boot true}]))
 
@@ -25,7 +25,7 @@
        :boot-volume "tank/bhyve/test"
        :from-helper true
        :ram "3G"
-       :unique false
+       :unique true
        :vcpus 4
        :wait-for-boot true}])
 
