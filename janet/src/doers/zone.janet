@@ -1,5 +1,5 @@
 (use ./definers)
-(use ../dsl)
+(import ../dsl :only [qualify-from-path])
 (import ./zone/attr :prefix "" :export true)
 (import ./zone/bhyve :prefix "" :export true)
 (import ./zone/capped-memory :prefix "" :export true)
@@ -26,7 +26,7 @@
 
 (defn- expand-paths
   [conf-struct]
-  (zipcoll (map qualify-from-path (keys conf-struct)) (values conf-struct)))
+  (zipcoll (map dsl/qualify-from-path (keys conf-struct)) (values conf-struct)))
 
 (defdoer :zone
   "Create and destroy zones. Existing zones cannot be modified."

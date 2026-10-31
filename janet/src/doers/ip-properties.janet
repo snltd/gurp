@@ -1,6 +1,4 @@
 (use ./definers)
-(use ./validators)
-(import ./lib :only [protocol-opts])
 (import ../collector)
 
 (defdoer :ip-properties

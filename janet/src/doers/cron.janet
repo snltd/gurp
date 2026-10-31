@@ -1,5 +1,4 @@
 (use ./definers)
-(use ./validators)
 (import ../collector)
 
 (defdoer :cron

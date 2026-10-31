@@ -36,6 +36,12 @@
   [server-name from-path]
   (string "http://" server-name "/" defs/client-api-version "/file/" from-path))
 
+(defn- all-props
+  [attrs]
+  (merge-into @{}
+              (get-in attrs [:props :mandatory] {})
+              (get-in attrs [:props :optional] {})))
+
 (defn resource-id
   "Safely generate a resource ID"
   [resource-type role name]
@@ -54,37 +60,25 @@
               :role role}
              spec-struct))))
 
-(defn extract-defaults
-  "Extract default values from a properties struct. Only mandatory properties
-   can have defaults: giving an optional a default would make it mandatory"
-  [props]
-  (if (nil? props)
-    {}
-    (->> props
-         (pairs)
-         (map (fn [[k v]] {k (v :default)}))
-         (splice)
-         (merge-into @{}))))
-
-# Get a list of properties which should end up under some other sub-key
-(defn extract-movers
-  [props]
-  (defn group-fn [prop] ((last prop) :put-in))
-  (def groups (group-by group-fn (pairs props)))
-  (tabseq [[target props] :pairs groups] target (map |(first $) props)))
-
-(defn extract-transformers
-  [props]
-  (defn group-fn [prop] ((last prop) :transform-with))
-  (def groups (group-by group-fn (pairs props)))
-  (tabseq [[target props] :pairs groups] target (map |(first $) props)))
-
-(defn spec-with-defaults
-  "Merge defaults with user values. We don't use prototypes now"
-  [spec-struct default-prop-values]
+(defn spec-with-defaults [spec-struct default-prop-values]
   (merge default-prop-values spec-struct))
 
-(defn expand-from-value
+(defn extract-defaults
+  [attrs]
+  (->> attrs
+       (all-props)
+       (pairs)
+       (map (fn [[k v]] {k (v :default)}))
+       (splice)
+       (merge-into @{})))
+
+(defn extract-with-attribute
+  [attrs attribute]
+  (defn group-fn [prop] ((last prop) attribute))
+  (let [groups (group-by group-fn (pairs (all-props attrs)))]
+    (tabseq [[target props] :pairs groups] target (map |(first $) props))))
+
+(defn- expand-from-value
   "Used by any resource that takes a :from. e.g. file and system-cert. Give it
   a spec table, and it will turn relative :from paths into fully qualified paths
   or server references, depending on the current execution environment. Returns
@@ -106,15 +100,11 @@
 # into proper keys.
 (defn safe-table
   [& raw-spec]
-  (defn group-fn
-    [element]
-    (and (tuple? element)
-         (= 2 (length element))
-         (table? (last element))
-         (get (last element) :from-helper false)))
+  (defn group-fn [f]
+    (and (tuple? f) (= 2 (length f)) (table? (last f)) ((last f) :from-helper)))
 
   (def groups (group-by group-fn raw-spec))
-  (var ret (table ;(groups false)))
+  (def ret (table ;(groups false)))
 
   (each helper-output (get groups true [])
     (let [[key val] helper-output
@@ -133,7 +123,7 @@
   [resource-name action-attrs & raw-spec]
   (var spec-table (safe-table ;raw-spec))
 
-  (when-let [defaults (action-attrs :defaults)]
+  (when-let [defaults (extract-defaults action-attrs)]
     (set spec-table (spec-with-defaults spec-table defaults)))
 
   (when-let [from-path (spec-table :from)]
@@ -141,13 +131,13 @@
 
   (set spec-table (validators/validate-spec action-attrs spec-table))
 
-  (when-let [movers (action-attrs :movers)]
+  (when-let [movers (extract-with-attribute action-attrs :put-in)]
     (loop [[target props] :pairs movers]
       (loop [prop :in props]
         (put-in spec-table [target prop] (spec-table prop))
         (set (spec-table prop) nil))))
 
-  (when-let [transformers (action-attrs :transformers)
+  (when-let [transformers (extract-with-attribute action-attrs :transform-with)
              proceed (not (empty? transformers))]
     (loop [[function props] :pairs transformers]
       (loop [prop :in props]
@@ -177,12 +167,12 @@
      ,(if no-name '(def resource-name (labelise spec)))
      (pinpoint-error
        ,action
-       (->> ;spec
-            (enrich-and-validate resource-name
-                                 (attrs ,action)
-                                 ,;(if-not no-name '[:name resource-name] []))
-            (spec->resource ,doer-name resource-name)
-            (collector/push ,(keyword action) ,doer-name)))))
+     (->> ;spec
+          (enrich-and-validate resource-name
+                               (attrs ,action)
+                               ,;(if-not no-name '[:name resource-name] []))
+          (spec->resource ,doer-name resource-name)
+          (collector/push ,(keyword action) ,doer-name)))))
 
 (defmacro make-helper-fn
   [helper-name &named no-name prefix-name-with-prop]
@@ -231,23 +221,15 @@
         (do (handle-option arg (args (+ i 1))) (+= i 2))
         (do (handle-prop arg) (++ i))))))
 
-# replace this
-(defn- all-props
-  [attrs]
-  (merge-into @{} (get-in attrs [:props :mandatory])
-              (get-in attrs [:props :optional])))
 
 # used by defdoer
-(defn handle-action
+(defn- handle-action
   [action & args]
   (let [ret @{:props @{:mandatory @{} :optional @{}}}]
     (defn set-option [k v] (put ret k v))
     (defn add-prop [p] (put-in ret [:props (p :section) (p :name)] (p :spec)))
 
     (collect args set-option add-prop)
-    (put ret :defaults (extract-defaults (all-props ret)))
-    (put ret :movers (extract-movers (all-props ret)))
-    (put ret :transformers (extract-transformers (all-props ret)))
     {:target :attrs :kind action :data ret}))
 
 (defn ensure [& args] (handle-action :ensure ;args))

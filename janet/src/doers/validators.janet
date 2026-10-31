@@ -32,53 +32,49 @@
   [prop-list]
   (lib/comma-sep (sorted (filter |(not= $ :name) prop-list))))
 
+(defn- check-key
+  [prop-name prop-value prop-spec]
+  (check-key-type prop-name prop-value (prop-spec :types))
+  (check-key-value prop-name prop-value (prop-spec :values)))
+
 (defn checked-spec
   "Compares a user's spec against what a resource definition expects. Raises
   an error if anything is not as it should be, otherwise returns the given spec
   as a struct."
   [action-attrs spec-struct]
   (def ignore-props [:from-helper :unique])
-  # (print "-----------------_")
-  # (pp action-attrs)
-  # (pp spec-struct)
-  # (print "-----------------_")
+
   (let [mandatory-props (get-in action-attrs [:props :mandatory] {})
         optional-props (merge-into @{:label {:types [:string]
                                              :help "Optional label"}}
                                    (get-in action-attrs [:props :optional] {}))]
-    # (pp optional-props)
 
     (loop [[prop-name prop-spec] :pairs mandatory-props]
       (let [prop-value (get spec-struct prop-name)]
-        (if (nil? prop-value)
-          (errorf "did not find mandatory property %p. Mandatory properties are %s"
-                  prop-name
-                  (list-props (keys mandatory-props)))
-          (do
-            (check-key-type prop-name prop-value (prop-spec :types))
-            (check-key-value prop-name prop-value (prop-spec :values))))))
+        (if-not (nil? prop-value)
+          (check-key prop-name prop-value prop-spec)
+          (errorf
+            "did not find mandatory property %p. Mandatory properties are %s"
+            prop-name
+            (list-props (keys mandatory-props))))))
 
-    (loop [[prop-name prop-value] :pairs spec-struct]
-      (if-not (or (has-key? mandatory-props prop-name) # we've already checked these
-                   (has-value? ignore-props prop-name))
-        (if-let [prop-spec (get optional-props prop-name)]
-          (do
-            (check-key-type prop-name prop-value (prop-spec :types))
-            (check-key-value prop-name prop-value (prop-spec :values)))
-          (errorf "unexpected property %p. Valid properties are %s"
-                  prop-name
-                  (list-props (array/concat @[]
-                                            (keys mandatory-props)
-                                            (keys optional-props)))))))
+    (loop [[prop-name prop-value] :pairs spec-struct
+           :when (not (or (has-key? mandatory-props prop-name) # already checked 
+                          (has-value? ignore-props prop-name)))]
+      (if-let [prop-spec (get optional-props prop-name)]
+        (check-key prop-name prop-value prop-spec)
+        (errorf "unexpected property %p. Valid properties are %s"
+                prop-name
+                (list-props (array/concat @[]
+                                          (keys mandatory-props)
+                                          (keys optional-props))))))
     spec-struct))
 
 (defn has-at-least-one-of?
-  "Checks whether a struct contains one or more of the required-keys"
   [required-keys spec-struct]
   (not (empty? (lib/keys-in-struct required-keys spec-struct))))
 
 (defn has-exactly-one-of?
-  "Checks whether a struct contains exactly one of the required-keys"
   [required-keys spec-struct]
   (one? (length (lib/keys-in-struct required-keys spec-struct))))
 
