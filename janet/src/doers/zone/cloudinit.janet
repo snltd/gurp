@@ -1,19 +1,16 @@
-(use ../lib)
+(import ../../collector)
+(use ../definers)
 
 (defhelper :zone :cloudinit
   "Describe cloudinit config inside a zone resource"
   :name-is "cloudinit file name"
-  :exactly-one-of [:from :from-struct]
+  (helper
+    :exactly-one-of [:from :from-struct]
+    (property "name" [:string] :mandatory
+              "cloudinit file name. Derived from helper name")
+    (property "from" [:string] :optional
+              "Copy the given file into the Cloudinit image")
+    (property "from-struct" [:struct] :optional
+              "Generate a Cloudinit file from the given struct or table")))
 
-  :optional-props
-  {:from {:types [:string]
-          :help "Copy the given file into the Cloudinit image"}
-   :from-struct {:types [:struct]
-                 :help "Generate a Cloudinit file from the given struct or
-                        table"}}
-
-  :mandatory-props
-  {:name {:types [:string]
-          :help "cloudinit file name. Derived from helper name"}})
-
-(make-helper-fn "cloudinit")
+(make-helper-fn :cloudinit)

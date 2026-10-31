@@ -1,18 +1,15 @@
-(use ../lib)
+(import ../../collector)
+(use ../definers)
 
 (defhelper :zone :dns
   "Define DNS configuration for a native zone."
+  (helper
+    (property "domain" [:string] :mandatory "Default DNS domain")
+    (property "nameservers" [:tuple] :mandatory
+              "A list of nameservers. (`:string`)")
+    (property "search-list" [:tuple] :optional
+              "A list of DNS domains to search. (`:string`)")
+    (property "options" [:tuple] :optional
+              "A list of resolv.conf options (`:string`)")))
 
-  :mandatory-props
-  {:domain {:types [:string]
-            :help "Default DNS domain"}
-   :nameservers {:types [:tuple]
-                 :help "A list of nameservers. (`:string`)"}}
-
-  :optional-props
-  {:search-list {:types [:tuple]
-                 :help "A list of DNS domains to search. (`:string`)"}
-   :options {:types [:tuple]
-             :help "A list of resolv.conf options (`:string`)"}})
-
-(make-helper-fn dns :without-name true)
+(make-helper-fn :dns :no-name true)

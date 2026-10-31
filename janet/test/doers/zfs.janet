@@ -24,7 +24,7 @@
                        {:_id "/test-role/zfs/example-zfs-vol"
                         :label "example-zfs-vol"
                         :name "rpool/example/volume"
-                        :properties {}
+                        :properties {:mountpoint "none"}
                         :role "test-role"
                         :size "10G"}
                        {:_id "/test-role/zfs/rpool_blank"

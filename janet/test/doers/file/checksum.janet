@@ -6,8 +6,11 @@
     (file/checksum
       :algorithm "sha256"
       :literal "6b44cfcc5eb5a878424ac11da95a598a7f7952604bbad2d901c394456d527d02")
-    {:checksum @{:algorithm "sha256"
-                 :literal "6b44cfcc5eb5a878424ac11da95a598a7f7952604bbad2d901c394456d527d02"}}))
+    [:checksum
+     @{:algorithm "sha256"
+       :from-helper true
+       :literal "6b44cfcc5eb5a878424ac11da95a598a7f7952604bbad2d901c394456d527d02"
+       :unique true}]))
 
 # (deftest file/checksum-error
 #   (test-error

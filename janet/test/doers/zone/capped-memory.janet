@@ -5,11 +5,18 @@
 (deftest zone/capped-memory
   (test
     (import-test "zone/capped-memory-01.janet")
-    {:capped-memory @{:physical "2G" :swap "4G"}})
+    [:capped-memory
+     @{:from-helper true
+       :physical "2G"
+       :swap "4G"
+       :unique false}])
 
   (test
     (zone/capped-memory :physical "2G")
-    {:capped-memory @{:physical "2G"}})
+    [:capped-memory
+     @{:from-helper true
+       :physical "2G"
+       :unique false}])
 
   (test-error
     (zone/capped-memory)

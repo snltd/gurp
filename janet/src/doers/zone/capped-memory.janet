@@ -1,16 +1,15 @@
-(use ../lib)
+(import ../../collector)
+(use ../definers)
 
 (defhelper :zone :capped-memory
   "Set memory caps on a zone being created by the zone doer."
-  :at-least-one-of [:physical :swap :locked]
+  (helper
+    :at-least-one-of [:physical :swap :locked]
+    (property "physical" [:string] :optional
+              "Physical memory cap, with suffix. e.g. '2G'")
+    (property "swap" [:string] :optional
+              "Swap cap, with suffix. e.g. '4G'")
+    (property "locked" [:string] :optional
+              "Locked memory cap, with suffix. e.g. '800M'")))
 
-  :optional-props
-  {:physical {:types [:string]
-              :help "Physical memory cap, with suffix. e.g.
-                                      '2G'"}
-   :swap {:types [:string]
-          :help "Swap cap, with suffix. e.g. '4G'"}
-   :locked {:types [:string]
-            :help "Locked memory cap, with suffix. e.g. '800M'"}})
-
-(make-helper-fn capped-memory :without-name true)
+(make-helper-fn :capped-memory :no-name true)

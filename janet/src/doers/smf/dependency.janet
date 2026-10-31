@@ -2,25 +2,22 @@
 
 (defhelper :smf dependency
   "Defines a dependency of an SMF service, inside an smf resource."
-  :name "Any convenient name - not used internally"
+  :name-is "Any convenient name - not used internally"
+  (helper
+    (property "name" [:string] :mandatory
+              "Convenient name for dependency, derived from resource name")
+    (property "fmri" [:string] :mandatory "Dependency FMRI")
+    (property "restart-on" [:string] :mandatory
+              "Policy for restarting the parent service if this dependency
+               restarts"
+              :default "none")
+    (property "grouping" [:string] :mandatory
+              "Which dependencies are required by this service"
+              :default "require_all")
+    (property "type" [:string] :mandatory "Type of dependency"
+              :default "service"))
 
-  :mandatory-props
-  {:name {:types [:string]
-          :help "Convenient name for dependency, derived from resource name"}
-   :fmri {:types [:string]
-          :help "Dependency FMRI"}
-   :restart-on {:types [:string]
-                :help "Policy for restarting the parent service if this
-                       dependency restarts"
-                :default "none"}
-   :grouping {:types [:string]
-              :help "Which dependencies are required by this service"
-              :default "require_all"}
-   :type {:types [:string]
-          :help "Type of dependency"
-          :default "service"}}
-
-  :notes
-  ["`network/physical` and `filesystem/local` are hard-coded dependencies."])
+  (notes
+    "`network/physical` and `filesystem/local` are hard-coded dependencies."))
 
 (make-helper-fn :dependency)

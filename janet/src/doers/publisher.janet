@@ -19,7 +19,6 @@
   "Add and remove pkg(5) publisher origins."
   :name-is "Publisher name"
   (ensure
-    :expand-resources {:origin false :mirror false}
     (property "origin" [:tuple] :mandatory
               "List of origins, created with publisher/origin ")
     (property "mirror" [:tuple] :optional
