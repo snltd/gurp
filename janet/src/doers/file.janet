@@ -1,5 +1,4 @@
 (use ./definers)
-(use ../dsl)
 (import ../collector)
 (import ./file/checksum :prefix "" :export true)
 
