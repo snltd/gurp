@@ -18,6 +18,8 @@
                                 :name "from-file"
                                 :role "NO-ROLE"}
                                {:_id "/NO-ROLE/system-cert/from-url"
+                                :checksum @{:algorithm "sha256"
+                                            :with-suffix ".sha256"}
                                 :from-url "https://cert-service/api"
                                 :name "from-url"
                                 :role "NO-ROLE"}]}

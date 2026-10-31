@@ -69,30 +69,15 @@
 # Get a list of properties which should end up under some other sub-key
 (defn extract-movers
   [props]
-    # (var ret @{})
-    (defn group-fn
-      [prop]
-      # (pp (type prop))
-      ((last prop) :put-in))
-      
-      (def groups (group-by group-fn (pairs props)))
+  (defn group-fn [prop] ((last prop) :put-in))
+  (def groups (group-by group-fn (pairs props)))
+  (tabseq [[target props] :pairs groups] target (map |(first $) props)))
 
-    # (pp groups)
-     (tabseq [[target props]:pairs groups]
-      target (map |(first $) props )
-    ))
-    # )
-    # (loop [[k v] :pairs props]
-    #   (pp k)))
-    
-    # # (->> props
-    # #      (pairs)
-    # #      (map (fn [[k v]] {(v :put-in) k}))
-    #      # (splice)
-    #      # (merge-into @{})))
-    #      # (pp ret)
-
-    #     (os/exit 1))
+(defn extract-transformers
+  [props]
+  (defn group-fn [prop] ((last prop) :transform-with))
+  (def groups (group-by group-fn (pairs props)))
+  (tabseq [[target props] :pairs groups] target (map |(first $) props)))
 
 (defn spec-with-defaults
   "Merge defaults with user values. We don't use prototypes now"
@@ -121,7 +106,6 @@
 # into proper keys.
 (defn safe-table
   [& raw-spec]
-  # (pp raw-spec)
   (defn group-fn
     [element]
     (and (tuple? element)
@@ -130,7 +114,6 @@
          (get (last element) :from-helper false)))
 
   (def groups (group-by group-fn raw-spec))
-  # (pp groups)
   (var ret (table ;(groups false)))
 
   (each helper-output (get groups true [])
@@ -148,10 +131,6 @@
 # values, and safe. Or errors.
 (defn enrich-and-validate
   [resource-name action-attrs & raw-spec]
-  # helper-generated resources need work
-  # (pp  raw-spec)
-  # loop [[k v] :pairs raw-spec]
-  #   (print (type k)))
   (var spec-table (safe-table ;raw-spec))
 
   (when-let [defaults (action-attrs :defaults)]
@@ -168,10 +147,15 @@
         (put-in spec-table [target prop] (spec-table prop))
         (set (spec-table prop) nil))))
 
- spec-table)
+  (when-let [transformers (action-attrs :transformers)
+             proceed (not (empty? transformers))]
+    (loop [[function props] :pairs transformers]
+      (loop [prop :in props]
+        (when-let [tpl (spec-table prop)]
+          (set (spec-table prop) (function tpl))))))
 
+  spec-table)
 
-  
 (defmacro pinpoint-error
   "Wraps an error in a string describing the resource which caused it"
   [action & body]
@@ -182,27 +166,44 @@
          (errorf "In %s/%s %s: %s" doer ,action resource-name $e)))))
 
 (defmacro make-fn
-  [action doer-name]
+  [action doer-name &opt no-name]
   ~(defn ,(symbol action)
-     [resource-name & spec]
-     # (pp attrs)
-     # (os/exit 1)
+     ,(if no-name
+        '[& spec]
+        '[resource-name & spec])
+     ,(if no-name '(def resource-name (labelise spec)))
      (pinpoint-error ,action
                      (->> ;spec
                           (enrich-and-validate resource-name
                                                (attrs ,action)
-                                               :name resource-name)
+                                               ,;(if-not no-name
+                                                   '[:name resource-name] []))
                           (spec->resource ,doer-name resource-name)
                           (collector/push ,(keyword action) ,doer-name)))))
 
 (defmacro make-helper-fn
-  [helper-name]
+  [helper-name &named no-name prefix-name-with-prop]
   ~(defn ,(symbol helper-name)
-     [& spec]
-     # (pp attrs)
-     [,(keyword helper-name)
-      (enrich-and-validate "NO-NAME" (attrs :helper) ;spec :from-helper true
-                           :unique (get attrs :unique false))]))
+     ,(if no-name
+        '[& spec]
+        '[resource-name & spec])
+     ,(if no-name '(def resource-name "NO-NAME"))
+     (pinpoint-error
+       ,helper-name
+       (def output-val
+         (enrich-and-validate resource-name
+                              (attrs :helper)
+                              ,;(if-not no-name [:name 'resource-name] [])
+                              ;spec
+                              :from-helper true
+                              :unique (get attrs :unique false)))
+
+       (def output-key (if-let [prop-name ,prefix-name-with-prop
+                                prop-val (output-val prop-name)]
+                         (keyword prop-val "-" ,helper-name)
+                         ,(keyword helper-name)))
+
+       [output-key output-val])))
 
 (defn property
   [name types requirement help & opts]
@@ -226,20 +227,24 @@
       (if (keyword? arg)
         (do (handle-option arg (args (+ i 1))) (+= i 2))
         (do (handle-prop arg) (++ i))))))
-#
+
+# replace this
+(defn- all-props
+  [attrs]
+  (merge-into @{} (get-in attrs [:props :mandatory])
+              (get-in attrs [:props :optional])))
+
 # used by defdoer
 (defn handle-action
   [action & args]
-  # (print "--------------- " action " ---------------")
-  # (pp args)
   (let [ret @{:props @{:mandatory @{} :optional @{}}}]
     (defn set-option [k v] (put ret k v))
     (defn add-prop [p] (put-in ret [:props (p :section) (p :name)] (p :spec)))
 
     (collect args set-option add-prop)
-    (put ret :defaults (extract-defaults ((ret :props) :mandatory)))
-    (put ret :movers (extract-movers ((ret :props) :optional)))
-    # (pp ret)
+    (put ret :defaults (extract-defaults (all-props ret)))
+    (put ret :movers (extract-movers (all-props ret)))
+    (put ret :transformers (extract-transformers (all-props ret)))
     {:target :attrs :kind action :data ret}))
 
 (defn ensure [& args] (handle-action :ensure ;args))
@@ -266,15 +271,13 @@
      (def attrs (,build-doer ,description ,;body))))
 
 (defn build-helper [description & args]
-  # (pp args)
   (def helper @{:description description})
   (defn set-option [k v] (put helper k v))
   (defn add-section [s] (put helper (s :kind) (s :data)))
   (collect args set-option add-section)
 
-  # (when (has-key? helper :name-is)
-  #   (put-in helper [:ensure :props :mandatory :name] {:types [:string]})
-  #   (put-in helper [:remove :props :mandatory :name] {:types [:string]}))
+  (when (has-key? helper :name-is)
+    (put-in helper [:helper :props :mandatory :name] {:types [:string]}))
 
   helper)
 

@@ -44,8 +44,8 @@
                                   :wait-for-boot true}
                          :boot-after-install true
                          :brand "bhyve"
-                         :cloudinit @{:from @{"packages" "cloudwatch/packages"
-                                              "users" "cloudwatch/users"}
+                         :cloudinit @{:from @{"packages" "/gurpdir/files/cloudwatch/packages"
+                                              "users" "/gurpdir/files/cloudwatch/users"}
                                       :from-struct @{"meta-data" {:instance-id "example-zone"
                                                                   :local-hostname "example-zone"}
                                                      "network" {:network {:fancy "struct"}}}}
@@ -54,8 +54,7 @@
                          :network @[@{:allowed-address "10.10.0.2/24"
                                       :global-nic "auto"
                                       :name "bhyve0"}]
-                         :role "test-role"
-                         :zonepath "/zones/bhyve-zone"}
+                         :role "test-role"}
                         {:_id "/test-role/zone/native-zone"
                          :autoboot true
                          :boot-after-install true
@@ -73,12 +72,11 @@
                                       :defrouter "192.168.1.1"
                                       :global-nic "auto"
                                       :name "test_net0"}]
-                         :role "test-role"
-                         :zonepath "/zones/native-zone"}
+                         :role "test-role"}
                         {:_id "/test-role/zone/lx-zone"
                          :attr @[@{:name "kernel-ver"
                                    :type "string"
-                                   :value "\"4.4\""}]
+                                   :value "4.4"}]
                          :autoboot true
                          :boot-after-install true
                          :brand "lx"
@@ -92,18 +90,17 @@
                                       :defrouter "192.168.1.1"
                                       :global-nic "auto"
                                       :name "znet0"}]
-                         :role "test-role"
-                         :zonepath "/zones/lx-zone"}
+                         :role "test-role"}
                         {:_id "/test-role/zone/emu-example"
                          :attr @[@{:name "type"
                                    :type "string"
                                    :value "generic"}
                                  @{:name "diskif"
                                    :type "string"
-                                   :value "\"virtio-blk-device\""}
+                                   :value "virtio-blk-device"}
                                  @{:name "netif"
                                    :type "string"
-                                   :value "\"virtio-net-device\""}]
+                                   :value "virtio-net-device"}]
                          :autoboot true
                          :boot-after-install true
                          :brand "emu"
@@ -112,8 +109,8 @@
                                 :boot-volume "tank/emu-example"
                                 :cpu "cortex-a53"
                                 :image-format "raw"
-                                :qemu-args @["\"-machine virt\""
-                                             "\"-accel tcg,thread=multi\""]
+                                :qemu-args ["-machine virt"
+                                            "-accel tcg,thread=multi"]
                                 :ram "2G"
                                 :vcpus 4
                                 :wait-for-boot true}
@@ -127,8 +124,7 @@
                                    :name "zone.cpu-shares"
                                    :priv "privileged"}]
                          :recreate 1
-                         :role "test-role"
-                         :zonepath "/zones/emu-example"}
+                         :role "test-role"}
                         {:_id "/test-role/zone/test-zone-bootstrap-file"
                          :autoboot true
                          :boot-after-install true
@@ -141,8 +137,7 @@
                                       :defrouter "192.168.1.1"
                                       :global-nic "auto"
                                       :name "test_net0"}]
-                         :role "test-role"
-                         :zonepath "/zones/test-zone-bootstrap-file"}
+                         :role "test-role"}
                         {:_id "/test-role/zone/test-zone-fat"
                          :autoboot false
                          :boot-after-install true
@@ -162,19 +157,18 @@
                                       :defrouter "192.168.1.1"
                                       :global-nic "auto"
                                       :name "test_net0"}]
-                         :role "test-role"
-                         :zonepath "/zones/test-zone-fat"}]}
+                         :role "test-role"}]}
       :remove @{:zone @[{:_id "/test-role/zone/unwanted-zone"
                          :name "unwanted-zone"
                          :role "test-role"}]}}))
 
-(deftest zone-error
-  (test-error
-    (zone/ensure "wat-brand")
-    "In zone/ensure wat-brand: did not find mandatory property :brand. Mandatory properties are :autoboot, :brand, :boot-after-install")
+ (deftest zone-error
+   (test-error
+     (zone/ensure "wat-brand")
+     "In zone/ensure wat-brand: did not find mandatory property :brand. Mandatory properties are :autoboot, :boot-after-install, :brand")
 
-  (test-error
-    (zone/ensure "bad-key"
-                 :brand "sparse"
-                 :oops "wat")
-    "In zone/ensure bad-key: unexpected property :oops. Valid properties are :attr, :autoboot, :bhyve, :boot-after-install, :bootstrap, :brand, :capped-memory, :checksum, :clone-from, :cloudinit, :copy-in, :datasets, :dns, :emu, :exec-in, :final-state, :fs, :hostid, :image, :ip-type, :label, :limitpriv, :network, :pool, :rctl, :recreate, :zonepath"))
+   (test-error
+     (zone/ensure "bad-key"
+                  :brand "sparse"
+                  :oops "wat")
+     "In zone/ensure bad-key: unexpected property :oops. Valid properties are :attr, :autoboot, :bhyve, :boot-after-install, :bootstrap, :brand, :capped-memory, :checksum, :clone-from, :cloudinit, :copy-in, :datasets, :dns, :emu, :exec-in, :final-state, :fs, :hostid, :image, :ip-type, :label, :limitpriv, :network, :pool, :rctl, :recreate, :zonepath"))

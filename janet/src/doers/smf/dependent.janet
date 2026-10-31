@@ -2,22 +2,18 @@
 
 (defhelper :smf :dependent
   "Defines a dependent of an SMF service, inside an smf resource."
-  :name "Any convenient name - not used internally"
+  :name-is "Any convenient name - not used internally"
+  (helper
+    (property "name" [:string] :mandatory
+              "Convenient name for dependent, derived from resource name")
+    (property "fmri" [:string] :mandatory "Dependent FMRI")
+    (property "restart-on" [:string] :mandatory
+              "Policy for restarting parent service if this dependent restarts"
+              :default "none")
+    (property "grouping" [:string] :mandatory
+              "Which dependents are required by this service"
+              :default "require_all")
+    (property "type" [:string] :mandatory "Type of dependent"
+              :default "service")))
 
-  :mandatory-props
-  {:name {:types [:string]
-          :help "Convenient name for dependent, derived from resource name"}
-   :fmri {:types [:string]
-          :help "Dependent FMRI"}
-   :restart-on {:types [:string]
-                :help "Policy for restarting parent service if this dependent
-                       restarts"
-                :default "none"}
-   :grouping {:types [:string]
-              :help "Which dependents are required by this service"
-              :default "require_all"}
-   :type {:types [:string]
-          :help "Type of dependent"
-          :default "service"}})
-
-(make-helper-fn dependent)
+(make-helper-fn :dependent)

@@ -3,6 +3,17 @@
 
 (def optional-keys {})
 
+(deftest expand-svc-property
+  (test
+    (expand-svc-property {:application/active true
+                                         :application/datadir "/data"
+                                         :application/timeout 50})
+    @{:application/active {:type "boolean" :value true}
+      :application/datadir {:type "astring" :value "/data"}
+      :application/timeout {:type "integer" :value 50}})
+)
+
+(comment
 (def mandatory-keys
   {:group {:types [:string :number]
            :help "The group name or GID of the for this directory"}
@@ -222,3 +233,4 @@
   (test (safe-val "word") "word")
   (test (safe-val "two words") "\"two words\"")
   (test (safe-val `"Quote this!", I said`) "\"\\\"Quote this!\\\", I said\""))
+  )

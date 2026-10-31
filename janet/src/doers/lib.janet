@@ -19,13 +19,23 @@
   [key-list struct-to-check]
   (filter |(has-value? key-list $) (keys struct-to-check)))
 
+(defn expand-svc-property
+  "Turns the keys into a svcprop struct into structs describing a typed value"
+  [value-struct]
+  (tabseq [[prop-name value] :pairs value-struct]
+    prop-name (match (type value)
+                :keyword value
+                :number {:type "integer" :value value}
+                :boolean {:type "boolean" :value value}
+                _ {:type "astring" :value value})))
+
 
 (comment
-(defn protocol-opts
-  []
-  (tabseq [protocol :in defs/ip-protocols]
-    '(property (string protocol) [:struct] :optional
-               (string/format "key-value pairs of valid %s properties" protocol))))
+  (defn protocol-opts
+    []
+    (tabseq [protocol :in defs/ip-protocols]
+      '(property (string protocol) [:struct] :optional
+                 (string/format "key-value pairs of valid %s properties" protocol))))
 
   (defn make-spec-struct
     "Turn a list of property key/value pairs into a struct or, raise a more
@@ -126,15 +136,6 @@
     "One-level-flattens a struct or table, including its keys"
     [table]
     ~(flatten (pairs ,table)))
-
-  (defn expand-svc-property
-    "Turns a svcprop value into a struct describing a typed value"
-    [value]
-    (match (type value)
-      :keyword value
-      :number {:type "integer" :value value}
-      :boolean {:type "boolean" :value value}
-      _ {:type "astring" :value value}))
 
   (defn group-ip-properties
     "Move IP protocol properties into a separate :protocol property"

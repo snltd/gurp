@@ -3,19 +3,27 @@
 (import ../../../src/doers/zone)
 
 (deftest zone/cloudinit
+  (setdyn :gurp-config-root "/gurpdir")
   (test
     (import-test "zone/cloudinit.janet")
-    {:cloudinit @{:from-struct {:network {:ethernets {:enp0s6 {:addresses ["10.10.0.2"]
-                                                               :mtu 1500
-                                                               :nameservers {:addresses ["10.10.0.53" "1.1.1.1"]
-                                                                             :search ["localnet"]}
-                                                               :routes [{:to "0.0.0.0/0" :via "10.10.0.1"}]}}
-                                          :version 2}}
-                  :name "network-config"}})
+    [:cloudinit
+     @{:from-helper true
+       :from-struct {:network {:ethernets {:enp0s6 {:addresses ["10.10.0.2"]
+                                                    :mtu 1500
+                                                    :nameservers {:addresses ["10.10.0.53" "1.1.1.1"]
+                                                                  :search ["localnet"]}
+                                                    :routes [{:to "0.0.0.0/0" :via "10.10.0.1"}]}}
+                               :version 2}}
+       :name "network-config"
+       :unique false}])
 
   (test
     (zone/cloudinit "user-data" :from "user-data")
-    {:cloudinit @{:from "user-data" :name "user-data"}})
+    [:cloudinit
+     @{:from "/gurpdir/files/user-data"
+       :from-helper true
+       :name "user-data"
+       :unique false}])
 
   (test-error
     (zone/cloudinit "user-data" :from "user-data" :from-struct {:network {}})
@@ -23,7 +31,7 @@
 
   (test-error
     (zone/cloudinit "user-data" :from "file" :oops "file")
-    "In zone/cloudinit user-data: unexpected property :oops. Valid properties are :from, :from-struct, :label, :name")
+    "In zone/cloudinit user-data: unexpected property :oops. Valid properties are :from, :from-struct, :label")
 
   (test-error
     (zone/cloudinit "user-data")

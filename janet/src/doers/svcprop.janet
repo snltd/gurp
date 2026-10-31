@@ -1,4 +1,5 @@
 (use ./definers)
+(import ./lib :only [expand-svc-property])
 (import ../collector)
 
 (def allowed-actions ["restart" "refresh"])
@@ -8,7 +9,8 @@
   :name-is "Any valid FMRI of the service whose properties you wish to set"
   (ensure
     (property "properties" [:struct] :mandatory
-              "Properties to create. (`:keyword` `:string|:boolean|:number`)")
+              "Properties to create. (`:keyword` `:string|:boolean|:number`)"
+              :transform-with lib/expand-svc-property)
     (property "property-groups" [:struct] :optional
               "Property groups to create. Key is name, value is type")
     (property "on-change" [:string] :optional
@@ -26,21 +28,5 @@
     "If not specified, Gurp will infer the types of property values."
     "You can't change the type of an existing property group."))
 
-(defn ensure
-  "Given a spec, put an ensure struct in the collector"
-  [name & spec]
-  (pinpoint-error
-    :ensure
-    (let [user-struct (make-spec-struct ;spec)
-          spec-table (struct/to-table (checked-spec user-struct
-                                                    mandatory-props-ensure
-                                                    optional-props-ensure))]
-
-      # Properties must be expanded
-      (set (spec-table :properties)
-           (tabseq [[prop-name prop-val] :pairs (get spec-table :properties ())]
-             prop-name (expand-svc-property prop-val)))
-
-      (collector/push :ensure doer (spec->resource doer name spec-table)))))
-
+(make-fn :ensure :svcprop)
 (make-fn :remove :svcprop)

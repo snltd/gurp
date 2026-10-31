@@ -1,36 +1,34 @@
-# (use ../definers)
-# (import ../lib :only [comma-sep])
+(use ../definers)
+(import ../lib :only [comma-sep])
 
-# (def allowed-methods ["start" "stop" "refresh" "reload"])
-# (def context-props [:user :group :privileges :environment])
+(def allowed-methods ["start" "stop" "refresh" "reload"])
+(def context-props [:user :group :privileges :environment])
 
-# (defhelper :smf :method
-#   "Defines an SMF method to launch a service state"
-#   :name-is-method (string "One of " (lib/comma-sep allowed-methods))
+(defn join-privs [priv-list] (string/join priv-list ","))
 
-#   :optional-props
-#   {:user {:types [:string]
-#           :help "User the method runs as"}
-#    :group {:types [:string]
-#            :help "Group the method runs as"}
-#    :privileges {:types [:tuple]
-#                 :help "Privileges the method has. Use ! to remove them"}
-#    :environment {:types [:struct]
-#                  :help "Environment variables set inside context"}}
+(defhelper :smf :method
+  "Defines an SMF method to launch a service state"
+  :name-is (string "One of " (lib/comma-sep allowed-methods))
+  :unique true
+  (helper
+    (property "name" [:string] :mandatory "Type of method"
+              :values allowed-methods)
+    (property "exec" [:string] :mandatory "Method or command to execute")
+    (property "timeout" [:number] :mandatory "Seconds until method times out"
+              :default 60)
+    (property "user" [:string] :optional "User the method runs as")
+    (property "group" [:string] :optional "Group the method runs as")
+    (property "privileges" [:tuple] :optional
+              "Privileges the method has. Use ! to remove them"
+              :transform-with join-privs)
+    (property "environment" [:struct] :optional
+              "Environment variables set inside context"))
 
-#   :mandatory-props
-#   {:exec
-#    {:types [:string]
-#     :help "Method or command to execute"}
-#    :timeout
-#    {:types [:number]
-#     :help "Seconds until method times out"
-#     :default 60}}
+  (notes
+    "If you don't supply a `:stop-method` you get a standard `:kill` that times
+     out after ten seconds. Start timeouts default to 60 seconds."))
 
-#   :notes
-#   ["If you don't supply a `:stop-method` you get a standard `:kill` that times
-#     out after ten seconds. Start timeouts default to 60 seconds."])
-
+(make-helper-fn :method :prefix-name-with-prop :name)
 # (defn method
 #   "Produce an SMF exec_method, with a context"
 #   [name & spec]
@@ -67,3 +65,4 @@
 #           (set (spec-table :context) (table/to-struct context-table)))
 
 #         (struct (keyword (string name "-method")) spec-table)))))
+

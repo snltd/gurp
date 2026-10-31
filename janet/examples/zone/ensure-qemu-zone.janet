@@ -7,16 +7,19 @@
              (zone/network "emu0"
                            :allowed-address "192.168.1.102/24"
                            :global-nic "auto")
-
-             (zone/attr "type" :value "generic")
-             (zone/attr "diskif" :value "virtio-blk-device")
-             (zone/attr "netif" :value "virtio-net-device")
-
+             (zone/attr "type"
+                        :type "string"
+                        :value "generic")
+             (zone/attr "diskif"
+                        :type "string"
+                        :value "virtio-blk-device")
+             (zone/attr "netif"
+                        :type "string"
+                        :value "virtio-net-device")
              (zone/rctl "zone.cpu-shares"
                         :priv "privileged"
                         :limit 1
                         :action "none")
-
              (zone/emu
                :bios "https://downloads.omnios.org/media/braich/u-boot.bin"
                :arch "aarch64"

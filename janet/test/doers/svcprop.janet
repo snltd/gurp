@@ -33,7 +33,7 @@
     (svcprop/ensure "mariadb"
                     :properties {:application/active true}
                     :on-change "explode")
-    "In svcprop/ensure mariadb: on-change must be one of \"restart\", \"refresh\" [Got 'explode']")
+    "In svcprop/ensure mariadb: on-change must be one of \"restart\", \"refresh\" [Got '\"explode\"']")
 
   (test-error
     (svcprop/ensure "mariadb" :wat true)

@@ -5,16 +5,22 @@
   (test
     (zone/bootstrap :server "gurp.localnet"
                     :hostname "test-client")
-    {:bootstrap @{:copy-self true
-                  :gurp-binary "/var/tmp/gurp"
-                  :hostname "test-client"
-                  :server "gurp.localnet"}})
+    [:bootstrap
+     @{:copy-self true
+       :from-helper true
+       :gurp-binary "/var/tmp/gurp"
+       :hostname "test-client"
+       :server "gurp.localnet"
+       :unique false}])
 
   (test
     (zone/bootstrap :file "/var/tmp/boot.janet")
-    {:bootstrap @{:copy-self true
-                  :file "/var/tmp/boot.janet"
-                  :gurp-binary "/var/tmp/gurp"}})
+    [:bootstrap
+     @{:copy-self true
+       :file "/var/tmp/boot.janet"
+       :from-helper true
+       :gurp-binary "/var/tmp/gurp"
+       :unique false}])
 
   (test-error
     (zone/bootstrap :oops "wat?")
