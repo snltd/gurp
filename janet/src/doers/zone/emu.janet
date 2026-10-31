@@ -15,7 +15,8 @@
               :default true)
     (property "bios" [:string] :optional "Path or URL to bios file")
     (property "qemu-args" [:array :tuple] :optional
-              "Extra arguments to pass to qemu as `extraN` attrs")
+              "Extra arguments to pass to qemu as `extraN` attrs"
+              :transform-with (partial map safe-val))
     (property "image-format" [:string] :optional
               "Specify the format of the image pointed to by :image-url")
     (property "image-path" [:string] :optional
@@ -26,7 +27,7 @@
      flags to qemu, use the `qemu-args` property, or define attrs named `extraN`
      with N > 1."))
 
-(make-helper-fn :emu :no-name true) 
+(make-helper-fn :emu :no-name true)
 # (defn emu
 #   "Given a spec, return config for an emu zone"
 #   [& spec]
@@ -45,3 +46,4 @@
 #       (set (spec-table :qemu-args) (map safe-val extras)))
 
 #     (struct :emu spec-table)))
+

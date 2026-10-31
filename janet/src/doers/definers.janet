@@ -26,11 +26,9 @@
 #                    defined as a struct with:
 #         :types - a tuple of permissible types
 #         :help - a string used in documentation
-#         :default - an optional default valus
+#         :default - an optional default value
 #       :optional - a struct of optional properties. Like :mandatory but
 #                   cannot have a defualt
-#     :defaults - a struct of any default values, name -> value. Constructed
-#                 by extracting the default entries from mandatory props.
 # 
 (defn- server-url
   [server-name from-path]
@@ -96,8 +94,6 @@
       (set (spec-table :from) url-or-qualified-path)))
   spec-table)
 
-# Helpers return a tuple like [:helper {properties}]. These need to be turned
-# into proper keys.
 (defn safe-table
   [& raw-spec]
   (defn group-fn [f]
@@ -117,8 +113,6 @@
           (set (ret key) (array/concat existing val))))))
   ret)
 
-# Takes a raw spec of pairs and returns a table, fleshed out with default
-# values, and safe. Or errors.
 (defn enrich-and-validate
   [resource-name action-attrs & raw-spec]
   (var spec-table (safe-table ;raw-spec))
