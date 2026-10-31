@@ -1,4 +1,4 @@
-(use ./lib)
+(use ./definers)
 (import ../collector)
 (import ./publisher/origin :prefix "" :export true)
 (import ./publisher/mirror :prefix "" :export true)
@@ -18,30 +18,14 @@
 (defdoer :publisher
   "Add and remove pkg(5) publisher origins."
   :name-is "Publisher name"
+  (ensure
+    :expand-resources {:origin false :mirror false}
+    (property "origin" [:tuple] :mandatory
+              "List of origins, created with publisher/origin ")
+    (property "mirror" [:tuple] :optional
+              "List of mirrors, created with publisher/mirror")
+    (property "search-first" [:boolean] :optional
+              "Search this publisher first")))
 
-  :mandatory-props-ensure
-  {:origin {:types [:array :tuple]
-            :help "List of origins, created with publisher/origin "}}
-
-  :optional-props-ensure
-  {:mirror {:types [:array :tuple]
-            :help "List of mirrors, created with publisher/mirror"}
-   :search-first {:types [:boolean]
-                  :help "Search this publisher first"}})
-
-(defn ensure
-  [name & spec]
-  (var modified-spec spec)
-  (expand-resource :origin)
-  (expand-resource :mirror)
-
-  (let [modified-spec-struct (make-spec-struct ;modified-spec)
-        spec-struct (pinpoint-error
-                      :ensure
-                      (checked-spec
-                        modified-spec-struct
-                        mandatory-props-ensure
-                        optional-props-ensure))]
-    (collector/push :ensure doer (spec->resource doer name spec-struct))))
-
-(make-remove-fn "publisher")
+(make-fn :ensure :publisher)
+(make-fn :remove :publisher)

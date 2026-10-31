@@ -1,19 +1,17 @@
-(use ./lib)
+(use ./definers)
 (import ../collector)
 
 (defdoer :vlan
   "Manage VLAN objects"
   :name-is "VLAN name"
+  (ensure
+    (property "over" [:string] :mandatory
+              "Physical link which will serve the VLAN")
+    (property "vlan-tag" [:number] :mandatory "The VLAN tag ID"))
 
-  :mandatory-props-ensure
-  {:over {:types [:string]
-          :help "Physical link which will serve the VLAN"}
-   :vlan-tag {:types [:number]
-              :help "The VLAN tag ID"}}
+  (notes
+    "You must specify the VLAN link name. Gurp does not support automatic
+     naming, as it goes against its policy of assuming nothing."))
 
-  :notes
-  ["You must specify the VLAN link name. Gurp does not support automatic naming,
-    as it goes against its policy of assuming nothing."])
-
-(make-ensure-fn "vlan")
-(make-remove-fn "vlan")
+(make-fn :ensure :vlan)
+(make-fn :remove :vlan)

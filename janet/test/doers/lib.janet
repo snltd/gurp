@@ -133,6 +133,7 @@
       (def description "manage APK packages")
       (def mandatory-props-remove {})
       (def optional-props-ensure {})
+      (def expand-resources {})
       (def mandatory-props-ensure {})
       (def name-is "package name")
       (def optional-props-remove {}))))
@@ -166,18 +167,14 @@
     (defn mirror
       [name & spec]
       nil
-      (when-defined exactly-one-of-mirror (if (not (has-exactly-one-of? exactly-one-of-mirror spec)) (pinpoint-error (string mirror) (errorf "need exactly one of %s" (comma-sep exactly-one-of-mirror)))))
-      (let [user-spec (make-spec-struct :name name (splice spec)) expanded-spec (spec-with-defaults (extract-defaults mandatory-props-mirror) user-spec) spec-struct (pinpoint-error :mirror (checked-spec expanded-spec mandatory-props-mirror optional-props-mirror))]
-        (struct :mirror spec-struct))))
+      (pinpoint-error :mirror (when-defined exactly-one-of-mirror (if (not (has-exactly-one-of? exactly-one-of-mirror spec)) (errorf "need exactly one of %s" (comma-sep exactly-one-of-mirror)))) (when-defined at-least-one-of-mirror (if (not (has-at-least-one-of? at-least-one-of-mirror spec)) (errorf "need at-least one of %s" (comma-sep at-least-one-of-mirror)))) (let [user-spec (make-spec-struct :name name (splice spec)) expanded-spec (spec-with-defaults (extract-defaults mandatory-props-mirror) user-spec) spec-struct (checked-spec expanded-spec mandatory-props-mirror optional-props-mirror)] (struct :mirror spec-struct)))))
 
   (test-macro
     (make-helper-fn byhve :without-name true)
     (defn byhve
       [& spec]
       (def name "NO-NAME")
-      (when-defined exactly-one-of-byhve (if (not (has-exactly-one-of? exactly-one-of-byhve spec)) (pinpoint-error (string byhve) (errorf "need exactly one of %s" (comma-sep exactly-one-of-byhve)))))
-      (let [user-spec (make-spec-struct (splice spec)) expanded-spec (spec-with-defaults (extract-defaults mandatory-props-byhve) user-spec) spec-struct (pinpoint-error :byhve (checked-spec expanded-spec mandatory-props-byhve optional-props-byhve))]
-        (struct :byhve spec-struct)))))
+      (pinpoint-error :byhve (when-defined exactly-one-of-byhve (if (not (has-exactly-one-of? exactly-one-of-byhve spec)) (errorf "need exactly one of %s" (comma-sep exactly-one-of-byhve)))) (when-defined at-least-one-of-byhve (if (not (has-at-least-one-of? at-least-one-of-byhve spec)) (errorf "need at-least one of %s" (comma-sep at-least-one-of-byhve)))) (let [user-spec (make-spec-struct (splice spec)) expanded-spec (spec-with-defaults (extract-defaults mandatory-props-byhve) user-spec) spec-struct (checked-spec expanded-spec mandatory-props-byhve optional-props-byhve)] (struct :byhve spec-struct))))))
 
 (deftest expand-list-struct
   (test

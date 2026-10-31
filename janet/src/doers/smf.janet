@@ -1,4 +1,4 @@
-(use ./lib)
+(use ./definers)
 (import ./smf/dependency :prefix "" :export true)
 (import ./smf/dependent :prefix "" :export true)
 (import ./smf/method :prefix "" :export true)
@@ -7,50 +7,36 @@
 (defdoer :smf
   "Create and install a manifest for an SMF service."
   :name-is "Short name of service. Not used internally"
+  (ensure
+    (property "fmri" [:string] :mandatory "Service FMRI")
+    (property "single-instance" [:boolean] :mandatory
+              "Is this a single-instance service?"
+              :default true)
+    (property "stop-method" [:struct] :mandatory "See 'smf-method'"
+              :default {:exec ":kill" :timeout 10})
+    (property "default-enabled" [:boolean] :mandatory
+              "Start the service when the manifest installs"
+              :default true)
+    (property "dependency" [:array] :optional "See 'smf-dependency'")
+    (property "dependent" [:array] :optional "See 'smf-dependent'")
+    (property "description" [:string] :optional "What the service does")
+    (property "duration" [:string] :optional
+              "Use this to specify 'transient' or 'wait' services")
+    (property "properties" [:struct] :optional
+              "Create/set properties. (`:keyword :string|:boolean|:number`)")
+    (property "property-groups" [:struct] :optional
+              "Create property groups. Key is the name, value is the type")
+    (property "refresh-method" [] :optional "See 'smf-method'")
+    (property "start-method" [:struct] :optional "See 'smf-method'")
+    (property "restart-method" [:struct] :optional "See 'smf-method'")
+    (property "refresh-method" [:struct] :optional "See 'smf-method'"))
 
-  :mandatory-props-ensure
-  {:fmri {:types [:string]
-          :help "Service FMRI"}
-   :single-instance {:types [:boolean]
-                     :help "Is this a single-instance service"
-                     :default true}
-   :stop-method {:types [:struct]
-                 :help "See 'smf-method'"
-                 :default {:exec ":kill" :timeout 10}}
-   :default-enabled {:types [:boolean]
-                     :help "Start the service when the manifest installs"
-                     :default true}}
-
-  :optional-props-ensure
-  {:dependency {:types [:array]
-                :help "See 'smf-dependency'"}
-   :dependent {:types [:array]
-               :help "See 'smf-dependent'"}
-   :description {:types [:string]
-                 :help "What the service does"}
-   :duration {:types [:string]
-              :help "Use this to specify 'transient' or 'wait' services"}
-   :properties {:types [:struct]
-                :help "Create/set properties.
-                       (`:keyword :string|:boolean|:number`)"}
-   :property-groups {:types [:struct]
-                     :help "Create property groups. Key is the name, value is
-                            the type"}
-   :refresh-method {:types []
-                    :help "See 'smf-method'"}
-   :start-method {:types [:struct]
-                  :help "See 'smf-method'"}
-   :restart-method {:types [:struct]
-                    :help "See 'smf-method'"}
-   :refresh-method {:types [:struct]
-                    :help "See 'smf-method'"}}
-
-  :notes
-  ["Generated manifests are written to `/opt/site/lib/smf/manifest`, and
-   the output of subsequent runs is compared to the existing reference. If the
-   file has changed, the service is re-created. We do it this way because it is
-   not possible to compare a running service with a generated manifest."
-   "smf/remove stops the service and deletes it from the SMF registry."])
+  (notes
+    "Generated manifests are written to `/opt/site/lib/smf/manifest`, and
+     the output of subsequent runs is compared to the existing reference. If
+     the file has changed, the service is re-created. We do it this way because
+     it is not possible to compare a running service with a generated manifest."
+    "smf/remove stops the service and deletes it from the SMF registry."))
 
 (defn ensure
   "Given a name and a manifest description, return an SMF service ensure struct"
@@ -83,4 +69,4 @@
 
     (collector/push :ensure doer (spec->resource doer name spec-table))))
 
-(make-remove-fn "smf")
+(make-fn :remove :smf)

@@ -2,6 +2,7 @@
 (use ./test-lib)
 (use ../../src/collector)
 (import ../../src/doers/ipnat)
+(setdyn :gurp-config-root "/gurpdir")
 
 (deftest ipnat
   (setdyn :role-dyn "test-role")
@@ -16,7 +17,7 @@
                           :priority 1
                           :role "test-role"}
                          {:_id "/test-role/ipnat/rules-in-file"
-                          :from "test/ipnat-test"
+                          :from "/gurpdir/files/test/ipnat-test"
                           :name "rules-in-file"
                           :priority 2
                           :role "test-role"}]}

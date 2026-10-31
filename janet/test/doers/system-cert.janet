@@ -2,6 +2,7 @@
 (use ./test-lib)
 (use ../../src/collector)
 (import ../../src/doers/system-cert)
+(import ../../src/doers/file)
 
 (setdyn :gurp-config-root "/gurpdir")
 
@@ -27,8 +28,8 @@
 (deftest system-cert-error
   (test-error
     (system-cert/ensure "missing-source")
-    "In system-cert/ensure missing-source: Provide exactly one of :content, :from, :from-url")
+    "In system-cert/ensure missing-source: need exactly one of :content, :from, :from-url")
 
   (test-error
     (system-cert/ensure "bad-property" :oops "wat")
-    "In system-cert/ensure bad-property: Provide exactly one of :content, :from, :from-url"))
+    "In system-cert/ensure bad-property: need exactly one of :content, :from, :from-url"))

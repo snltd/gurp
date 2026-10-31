@@ -1,4 +1,4 @@
-(use ../lib)
+(use ../definers)
 
 (defhelper :smf :dependent
   "Defines a dependent of an SMF service, inside an smf resource."
@@ -20,4 +20,4 @@
           :help "Type of dependent"
           :default "service"}})
 
-(make-helper-fn "dependent")
+(make-helper-fn dependent)

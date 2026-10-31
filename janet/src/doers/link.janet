@@ -1,28 +1,23 @@
-(use ./lib)
+(use ./definers)
 (import ../collector)
 
 (defdoer :link
   "Create and remove links."
   :name-is "Qualified path to the link that will be created"
+  (ensure
+    (property "source" [:string] :mandatory "The file to which we will link")
+    (property "type" [:string] :mandatory "The type of link"
+              :values ["symbolic" "hard"]
+              :default "symbolic")
+    (property "force-link" [:boolean] :optional
+              "If the link target already exists and this flag is `true`, Gurp
+              will remove it and replace it with a link. If `false`, a
+              pre-existing target causes an error"))
 
-  :mandatory-props-ensure
-  {:source {:types [:string]
-            :help "The file to which we will link"}
-   :type {:types [:string]
-          :help "The type of link"
-          :values ["symbolic" "hard"]
-          :default "symbolic"}}
+  (notes
+    "If the source doesn't exist, you get an error."
+    "Files and directories are ensured before links, so you can link
+    Gurp-managed resources."))
 
-  :optional-props-ensure
-  {:force-link {:types [:boolean]
-                :help "If the link target already exists and this flag is
-                       `true`, Gurp will remove it and replace it with a link.
-                       If `false`, a pre-existing target causes an error"}}
-
-  :notes
-  ["If the source doesn't exist, you get an error."
-   "Files and directories are ensured before links, so you can link
-    Gurp-managed resources."])
-
-(make-ensure-fn "link")
-(make-remove-fn "link")
+(make-fn :ensure :link)
+(make-fn :remove :link)

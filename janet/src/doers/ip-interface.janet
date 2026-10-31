@@ -1,19 +1,10 @@
-(use ./lib)
+(use ./definers)
 (import ../collector)
 
 (defdoer :ip-interface
-  "Create and destroy IP interfaces, with optional properties. Properties are
-  supplied with 'ip-interface-protocol'."
-
+  "Create and destroy IP interfaces, with optional properties."
   :name-is "Interface name"
-  :optional-props-ensure protocol-opts)
+  (ensure ;(protocol-opts)))
 
-(defn ensure
-  [name & spec]
-  (->> ;spec
-       (group-ip-properties mandatory-props-ensure optional-props-ensure)
-       (pinpoint-error :ensure)
-       (spec->resource doer name)
-       (collector/push :ensure doer)))
-
-(make-remove-fn "ip-interface")
+(make-fn :ensure :ip-interface)
+(make-fn :remove :ip-interface)
