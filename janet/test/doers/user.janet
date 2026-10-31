@@ -27,7 +27,7 @@
   (test-error
     (user/ensure "wat"
                  :uid 100)
-    "In user/ensure wat: did not find mandatory property :home-dir. Mandatory properties are :home-dir, :primary-group, :uid, :gecos, :shell")
+    "In user/ensure wat: did not find mandatory property :home-dir. Mandatory properties are :gecos, :home-dir, :primary-group, :shell, :uid")
 
   (test-error
     (user/ensure "rob"

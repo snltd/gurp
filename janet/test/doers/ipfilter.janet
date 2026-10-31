@@ -2,6 +2,7 @@
 (use ./test-lib)
 (use ../../src/collector)
 (import ../../src/doers/ipfilter)
+(setdyn :gurp-config-root "/gurpdir")
 
 (deftest ipfilter
   (setdyn :role-dyn "test-role")
@@ -17,7 +18,7 @@
                              :priority 0
                              :role "test-role"}
                             {:_id "/test-role/ipfilter/rules-from-file"
-                             :from "test/ipfilter-test"
+                             :from "/gurpdir/files/test/ipfilter-test"
                              :name "rules-from-file"
                              :priority 1
                              :role "test-role"}]}

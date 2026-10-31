@@ -1,13 +1,12 @@
-(use ./lib)
+(use ./definers)
+(use ./validators)
 (import ../collector)
 
 (defdoer :group
   "Create and destroy Unix groups."
   :name-is "Group name"
+  (ensure
+    (property "gid" [:number] :mandatory "The group ID")))
 
-  :mandatory-props-ensure
-  {:gid {:types [:number]
-         :help "The group ID"}})
-
-(make-ensure-fn "group")
-(make-remove-fn "group")
+(make-fn :ensure :group)
+(make-fn :remove :group)

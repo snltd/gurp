@@ -1,4 +1,4 @@
-(use ../lib)
+(use ../definers)
 
 (defhelper :smf dependency
   "Defines a dependency of an SMF service, inside an smf resource."
@@ -23,4 +23,4 @@
   :notes
   ["`network/physical` and `filesystem/local` are hard-coded dependencies."])
 
-(make-helper-fn "dependency")
+(make-helper-fn :dependency)

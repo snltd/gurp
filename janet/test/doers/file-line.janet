@@ -45,4 +45,4 @@
     (file-line/remove "/my/file"
                       :pattern "merp"
                       :match "end")
-    "In file-line/remove /my/file: match must be one of \"exact\", \"starts-with\", \"ends-with\", \"contains\", \"regex\" [Got 'end']"))
+    "In file-line/remove /my/file: match must be one of \"exact\", \"starts-with\", \"ends-with\", \"contains\", \"regex\" [Got '\"end\"']"))

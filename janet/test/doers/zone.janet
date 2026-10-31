@@ -177,4 +177,4 @@
     (zone/ensure "bad-key"
                  :brand "sparse"
                  :oops "wat")
-    "In zone/ensure bad-key: unexpected property :oops. Valid properties are :attr, :autoboot, :bhyve, :boot-after-install, :bootstrap, :bootstrap-from, :brand, :capped-memory, :clone-from, :cloudinit, :copy-in, :datasets, :dns, :emu, :exec-in, :final-state, :fs, :hostid, :image, :image-checksum, :ip-type, :label, :limitpriv, :network, :pool, :rctl, :recreate, :zonepath"))
+    "In zone/ensure bad-key: unexpected property :oops. Valid properties are :attr, :autoboot, :bhyve, :boot-after-install, :bootstrap, :brand, :capped-memory, :checksum, :clone-from, :cloudinit, :copy-in, :datasets, :dns, :emu, :exec-in, :final-state, :fs, :hostid, :image, :ip-type, :label, :limitpriv, :network, :pool, :rctl, :recreate, :zonepath"))
