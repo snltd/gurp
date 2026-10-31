@@ -109,8 +109,8 @@
                                 :boot-volume "tank/emu-example"
                                 :cpu "cortex-a53"
                                 :image-format "raw"
-                                :qemu-args ["-machine virt"
-                                            "-accel tcg,thread=multi"]
+                                :qemu-args @["\"-machine virt\""
+                                             "\"-accel tcg,thread=multi\""]
                                 :ram "2G"
                                 :vcpus 4
                                 :wait-for-boot true}

@@ -1,5 +1,6 @@
-(import ../../collector)
 (use ../definers)
+(import ../../collector)
+(import ../lib :only [safe-val])
 
 (defhelper :zone :emu
   "Describe a qemu zone inside a zone resource."
@@ -11,12 +12,12 @@
     (property "ram" [:string] :mandatory "Amount of RAM to allocate: e.g. '3G'")
     (property "vcpus" [:number] :mandatory "Number of VCPUs to allocate")
     (property "wait-for-boot" [:boolean] :mandatory
-              "Wait for boot, rather than detaching immediately"
+              "Wait for the zone to boot, rather than detaching immediately"
               :default true)
     (property "bios" [:string] :optional "Path or URL to bios file")
     (property "qemu-args" [:array :tuple] :optional
               "Extra arguments to pass to qemu as `extraN` attrs"
-              :transform-with (partial map safe-val))
+              :transform-with (partial map lib/safe-val))
     (property "image-format" [:string] :optional
               "Specify the format of the image pointed to by :image-url")
     (property "image-path" [:string] :optional
@@ -28,22 +29,3 @@
      with N > 1."))
 
 (make-helper-fn :emu :no-name true)
-# (defn emu
-#   "Given a spec, return config for an emu zone"
-#   [& spec]
-#   (let [name "NO-NAME"
-#         spec-struct (make-spec-struct ;spec)
-#         expanded-spec (spec-with-defaults
-#                         (extract-defaults mandatory-props-emu)
-#                         spec-struct)
-#         spec-table (pinpoint-error
-#                      :emu
-#                      (checked-spec expanded-spec
-#                                    mandatory-props-emu
-#                                    optional-props-emu))]
-
-#     (if-let [extras (spec-table :qemu-args)]
-#       (set (spec-table :qemu-args) (map safe-val extras)))
-
-#     (struct :emu spec-table)))
-
