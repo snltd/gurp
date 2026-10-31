@@ -30,6 +30,7 @@
     (make-fn ensure :apk)
     (defn ensure
       [resource-name & spec]
+      nil
       (pinpoint-error ensure (->> (splice spec) (enrich-and-validate resource-name (attrs ensure) :name resource-name) (spec->resource :apk resource-name) (collector/push :ensure :apk))))))
 
 (deftest defdoer
@@ -86,11 +87,13 @@
     @{:description "test doer"
       :ensure @{:defaults @{}
                 :exactly-one-of [:property-1 :property-2]
+                :movers @{}
                 :props @{:mandatory @{:name {:types [:string]}
                                       :property-1 @{:help "You must have this"
                                                     :types [:string]}}
                          :optional @{:property-2 @{:help "You might like this"
-                                                   :types [:number]}}}}
+                                                   :types [:number]}}}
+                :transformers @{}}
       :name-is "whatever"
       :remove @{:props @{:mandatory @{:name {:types [:string]}}}}}))
 
@@ -160,4 +163,4 @@
 (deftest protocol-opts
 (test-macro
   (protocol-opts)
-))
+  (protocol-opts)))
