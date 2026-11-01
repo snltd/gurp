@@ -1,6 +1,6 @@
-(use ../definers)
+(use ../lib/definers)
 (import ../../collector)
-(import ../lib :only [safe-val])
+(import ../lib/lib :only [safe-val])
 
 (defhelper :zone :emu
   "Describe a qemu zone inside a zone resource."

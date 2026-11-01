@@ -1,4 +1,4 @@
-(use ./definers)
+(use ./lib/definers)
 (import ../dsl :only [qualify-from-path])
 (import ./zone/attr :prefix "" :export true)
 (import ./zone/bhyve :prefix "" :export true)

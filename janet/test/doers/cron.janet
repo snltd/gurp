@@ -1,5 +1,5 @@
 (use judge)
-(use ./test-lib)
+(use ./lib/test-lib)
 (use ../../src/collector)
 (use ../../src/dsl)
 (import ../../src/doers/cron)
@@ -11,31 +11,31 @@
   (import-tests "cron")
 
   (test *collector*
-    @{:ensure @{:cron @[{:_id "/test-role/cron/print-cron-job"
-                         :command "/bin/thing arg1 arg2 arg3"
-                         :day-of-month "*"
-                         :day-of-week 5
-                         :hour 4
-                         :label "print-cron-job"
-                         :minute 6
-                         :month-of-year "*"
-                         :name "lots-of-values"
-                         :role "test-role"
-                         :user "lp"}
-                        {:_id "/test-role/cron/root-cron-job"
-                         :command "/bin/thing arg1 arg2 arg3"
-                         :day-of-month "*"
-                         :day-of-week "*"
-                         :hour "*"
-                         :minute 6
-                         :month-of-year "*"
-                         :name "root-cron-job"
-                         :role "test-role"
-                         :user "root"}]}
-      :remove @{:cron @[{:_id "/test-role/cron/that-old-cron-job"
-                         :name "that-old-cron-job"
-                         :role "test-role"
-                         :user "root"}]}}))
+        @{:ensure @{:cron @[{:_id "/test-role/cron/print-cron-job"
+                             :command "/bin/thing arg1 arg2 arg3"
+                             :day-of-month "*"
+                             :day-of-week 5
+                             :hour 4
+                             :label "print-cron-job"
+                             :minute 6
+                             :month-of-year "*"
+                             :name "lots-of-values"
+                             :role "test-role"
+                             :user "lp"}
+                            {:_id "/test-role/cron/root-cron-job"
+                             :command "/bin/thing arg1 arg2 arg3"
+                             :day-of-month "*"
+                             :day-of-week "*"
+                             :hour "*"
+                             :minute 6
+                             :month-of-year "*"
+                             :name "root-cron-job"
+                             :role "test-role"
+                             :user "root"}]}
+          :remove @{:cron @[{:_id "/test-role/cron/that-old-cron-job"
+                             :name "that-old-cron-job"
+                             :role "test-role"
+                             :user "root"}]}}))
 
 (deftest cron-error
   (test-error

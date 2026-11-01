@@ -1,4 +1,4 @@
-(use ./definers)
+(use ./lib/definers)
 (import ../collector)
 
 (defdoer :apk
@@ -7,7 +7,7 @@
 
   (notes
     "Only adds and removes packages. You cannot specify or pin package versions."
-    "The package database is refreshed prior to an install"))
+    "The package database is refreshed prior to an install."))
 
 (make-fn :ensure :apk)
 (make-fn :remove :apk)

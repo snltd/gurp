@@ -1,5 +1,5 @@
-(use ./definers)
-(import ./lib :only [expand-svc-property])
+(use ./lib/definers)
+(import ./lib/lib :only [expand-svc-property])
 (import ../collector)
 
 (def allowed-actions ["restart" "refresh"])

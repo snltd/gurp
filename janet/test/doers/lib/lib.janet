@@ -1,5 +1,5 @@
 (use judge)
-(use ../../src/doers/lib)
+(use ../../../src/doers/lib/lib)
 
 (deftest expand-svc-property
   (test

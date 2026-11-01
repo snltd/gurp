@@ -1,5 +1,5 @@
 (import ../../collector)
-(use ../definers)
+(use ../lib/definers)
 
 (defhelper :zone :bhyve
   "Describe a bhyve zone inside a zone resource."

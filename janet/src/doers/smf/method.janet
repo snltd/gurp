@@ -1,5 +1,5 @@
-(use ../definers)
-(import ../lib :only [comma-sep])
+(use ../lib/definers)
+(import ../lib/lib :only [comma-sep])
 
 (def allowed-methods ["start" "stop" "refresh" "reload"])
 (def context-props [:user :group :privileges :environment])

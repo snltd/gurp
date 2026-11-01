@@ -1,5 +1,5 @@
 (use judge)
-(use ./test-lib)
+(use ./lib/test-lib)
 (import ../../src/doers/file)
 (use ../../src/collector)
 
@@ -11,33 +11,33 @@
   (import-tests "file")
 
   (test *collector*
-    @{:ensure @{:file @[{:_id "/test-role/file/_example_file_from-content"
-                         :content "words\n and\nstuff\n"
-                         :group "root"
-                         :mode "0600"
-                         :name "/example/file/from-content"
-                         :owner "sys"
-                         :role "test-role"}
-                        {:_id "/test-role/file/_example_file_from-local-file"
-                         :from "/gurpdir/files/file-dir/example"
-                         :group "daemon"
-                         :mode "4755"
-                         :name "/example/file/from-local-file"
-                         :owner "root"
-                         :role "test-role"}
-                        {:_id "/test-role/file/remote-file"
-                         :checksum @{:algorithm "sha256"
-                                     :literal "561a47aa1d1bfc3a95ce45345639f9ce2d9ad332b05cfe5da74ad77f2842ee16"}
-                         :from-url "https://raw.githubusercontent.com/snltd/gurp/refs/heads/main/LICENSE.txt"
-                         :group "root"
-                         :label "remote-file"
-                         :mode "0644"
-                         :name "/example/file/from-url"
-                         :owner "root"
-                         :role "test-role"}]}
-      :remove @{:file @[{:_id "/test-role/file/_path_to_file"
-                         :name "/path/to/file"
-                         :role "test-role"}]}}))
+        @{:ensure @{:file @[{:_id "/test-role/file/_example_file_from-content"
+                             :content "words\n and\nstuff\n"
+                             :group "root"
+                             :mode "0600"
+                             :name "/example/file/from-content"
+                             :owner "sys"
+                             :role "test-role"}
+                            {:_id "/test-role/file/_example_file_from-local-file"
+                             :from "/gurpdir/files/file-dir/example"
+                             :group "daemon"
+                             :mode "4755"
+                             :name "/example/file/from-local-file"
+                             :owner "root"
+                             :role "test-role"}
+                            {:_id "/test-role/file/remote-file"
+                             :checksum @{:algorithm "sha256"
+                                         :literal "561a47aa1d1bfc3a95ce45345639f9ce2d9ad332b05cfe5da74ad77f2842ee16"}
+                             :from-url "https://raw.githubusercontent.com/snltd/gurp/refs/heads/main/LICENSE.txt"
+                             :group "root"
+                             :label "remote-file"
+                             :mode "0644"
+                             :name "/example/file/from-url"
+                             :owner "root"
+                             :role "test-role"}]}
+          :remove @{:file @[{:_id "/test-role/file/_path_to_file"
+                             :name "/path/to/file"
+                             :role "test-role"}]}}))
 
 (deftest file-error
   (setdyn :gurp-config-root "/gurpdir")

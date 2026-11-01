@@ -1,5 +1,5 @@
 (import ../../collector)
-(use ../definers)
+(use ../lib/definers)
 
 (defhelper :publisher :mirror
   "Define a mirror when managing a publisher."

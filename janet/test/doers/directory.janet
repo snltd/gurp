@@ -1,5 +1,5 @@
 (use judge)
-(use ./test-lib)
+(use ./lib/test-lib)
 (import ../../src/doers/directory)
 (use ../../src/collector)
 

@@ -1,5 +1,5 @@
 (import ../../collector)
-(use ../definers)
+(use ../lib/definers)
 
 (defhelper :zone :capped-memory
   "Set memory caps on a zone being created by the zone doer."

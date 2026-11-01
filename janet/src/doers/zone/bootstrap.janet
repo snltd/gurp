@@ -1,5 +1,5 @@
 (import ../../collector)
-(use ../definers)
+(use ../lib/definers)
 
 (def default-gurp-path "/var/tmp/gurp")
 

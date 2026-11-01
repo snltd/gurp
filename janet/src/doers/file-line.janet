@@ -1,4 +1,4 @@
-(use ./definers)
+(use ./lib/definers)
 (import ../collector)
 
 (def match-allowed ["exact" "starts-with" "ends-with" "contains" "regex"])

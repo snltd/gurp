@@ -166,8 +166,9 @@
                                    :name "test-service"
                                    :role "ref-role"
                                    :single-instance true
-                                   :start-method @{:context {:group "daemon" :user "tester"}
+                                   :start-method @{:context @{:group "daemon" :user "tester"}
                                                    :exec "/app/method.sh"
+                                                   :name "start"
                                                    :timeout 60}
                                    :stop-method {:exec ":kill" :timeout 10}}]}
                  :remove @{}}}))

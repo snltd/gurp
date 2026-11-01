@@ -1,4 +1,4 @@
-(use ./definers)
+(use ./lib/definers)
 (import ../collector)
 
 (defdoer :vlan

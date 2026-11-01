@@ -5,7 +5,7 @@
 # 
 (use ./lib)
 (use ./markdown-dsl)
-(use ../../test/doers/test-lib)
+(use ../../test/doers/lib/test-lib)
 (use ../facts)
 
 (import ../dsl :prefix "" :only [pathcat])
