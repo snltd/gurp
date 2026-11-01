@@ -1,5 +1,5 @@
 (use judge)
-(use ./test-lib)
+(use ./lib/test-lib)
 (use ../../src/collector)
 (import ../../src/doers/vnic)
 
@@ -13,8 +13,7 @@
     @{:ensure @{:vnic @[{:_id "/test-role/vnic/vnic0"
                          :name "vnic0"
                          :over "e1000g0"
-                         :role "test-role"
-                         :with-interface false}
+                         :role "test-role"}
                         {:_id "/test-role/vnic/vnic1"
                          :name "vnic1"
                          :over "e1000g0"
@@ -32,4 +31,4 @@
 
   (test-error
     (vnic/ensure "bad_link0" :over "e1000g" :speed 100)
-    "In vnic/ensure bad_link0: unexpected property :speed. Valid properties are :over, :with-interface, :vlan-tag, :label"))
+    "In vnic/ensure bad_link0: unexpected property :speed. Valid properties are :label, :over, :vlan-tag, :with-interface"))

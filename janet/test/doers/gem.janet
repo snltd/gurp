@@ -1,5 +1,5 @@
 (use judge)
-(use ./test-lib)
+(use ./lib/test-lib)
 (use ../../src/collector)
 (import ../../src/doers/gem)
 
@@ -27,4 +27,4 @@
   (test-error
     (gem/ensure "wavefront-sdk"
                 :merp 11)
-    "In gem/ensure wavefront-sdk: unexpected property :merp. Valid properties are :gem-path, :version, :source, :label"))
+    "In gem/ensure wavefront-sdk: unexpected property :merp. Valid properties are :gem-path, :label, :source, :version"))

@@ -1,9 +1,9 @@
-(use ./lib)
+(use ./lib/definers)
 (import ../collector)
 
 (defdoer :etherstub
   "Create and destroy etherstubs."
   :name-is "Name of etherstub")
 
-(defensure "etherstub")
-(defremove "etherstub")
+(make-fn :ensure :etherstub)
+(make-fn :remove :etherstub)

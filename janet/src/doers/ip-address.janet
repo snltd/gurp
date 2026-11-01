@@ -1,19 +1,16 @@
-(use ./lib)
+(use ./lib/definers)
 (import ../collector)
 
 (defdoer :ip-address
   "Manages IP addresses via ipadm."
   :name-is "Address name, e.g. vnic0/v4"
+  (ensure
+    (property "type" [:string] :mandatory "Type of address"
+              :values ["static" "dhcp"])
+    (property "address" [:string] :optional
+              "Local IP address with /netmask, if using static address")
+    (property "properties" [:struct] :optional
+              "Struct of any valid ipadm addrprops")))
 
-  :mandatory-props-ensure
-  {:type {:types [:string]
-          :help "Type of connection: 'static', 'dhcp'"}}
-
-  :optional-props-ensure
-  {:address {:types [:string]
-             :help "Local IP address with /netmask, if using static address"}
-   :properties {:types [:struct]
-                :help "Struct of any valid ipadm addrprops"}})
-
-(defensure "ip-address")
-(defremove "ip-address")
+(make-fn :ensure :ip-address)
+(make-fn :remove :ip-address)

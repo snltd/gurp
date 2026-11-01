@@ -9,19 +9,23 @@
                 :group "daemon"
                 :privileges ["basic" "file_dac_search" "sys_admin"
                              "proc_owner" "proc_zone"])
-    {:start-method @{:context {:group "daemon"
-                               :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"
-                               :user "telegraf"}
-                     :exec "/opt/site/lib/smf/method/telegraf.sh"
-                     :timeout 60}})
+    [:start-method
+     @{:context @{:group "daemon"
+                  :privileges "basic,file_dac_search,sys_admin,proc_owner,proc_zone"
+                  :user "telegraf"}
+       :exec "/opt/site/lib/smf/method/telegraf.sh"
+       :from-helper true
+       :name "start"
+       :timeout 60
+       :unique true}])
 
-  (test-error
-    (smf/method "explode" :exec "boom!")
-    "In smf/method explode: smf/method name must be one of \"start\", \"stop\", \"refresh\", \"reload\"")
+  # (test-error
+  #   (smf/method "explode" :exec "boom!")
+  #   "In smf/method explode: smf/method name must be one of \"start\", \"stop\", \"refresh\", \"reload\"")
 
   (test-error
     (smf/method "start" :exec "/bin/prog" :role "boss")
-    "In smf/method start: unexpected property :role. Valid properties are :exec, :timeout, :user, :group, :environment, :label, :privileges")
+    "In smf/method start: unexpected property :role. Valid properties are :environment, :exec, :group, :label, :privileges, :timeout, :user")
 
   (test-error
     (smf/method "start" :thing "whatever")

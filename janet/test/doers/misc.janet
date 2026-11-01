@@ -1,5 +1,5 @@
 (use judge)
-(use ./test-lib)
+(use ./lib/test-lib)
 (use ../../src/collector)
 (import ../../src/doers/misc)
 
@@ -39,4 +39,4 @@
     (misc/ensure
       :scheduler-class "FSS"
       :enable-smb "rob")
-    "In misc/ensure scheduler-class-FSS-enable-smb-rob: unexpected property :scheduler-class. Valid properties are :scheduler, :nfs-domain, :enable-smb, :label"))
+    "In misc/ensure scheduler-class-FSS-enable-smb-rob: unexpected property :scheduler-class. Valid properties are :enable-smb, :label, :nfs-domain, :scheduler"))

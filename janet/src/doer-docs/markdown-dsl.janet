@@ -23,11 +23,11 @@
 (defn table-header [& cols]
   (string
     "|  " (string/join cols "  |  ") "  |\n"
-    "|--" (string/join (map |(string/repeat "-" (length $)) cols) "--|--") "--|\n"))
+    "|--" (string/join (map |(string/repeat "-" (length $)) cols) "--|--") "--|"))
 
 (defn table-row [& fields]
-  (string "| " (string/join ;fields " | ") " |\n"))
+  (string "| " (string/join fields " | ") " |"))
 
 (defn code-block
   [code]
-  (string "```janet\n" (string/trim code) "\n```\n\n"))
+  (string "```janet\n" (string/trim code) "\n```\n"))

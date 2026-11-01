@@ -1,12 +1,43 @@
 # vlan
 
+
 Manage VLAN objects
 
-## Resource Name
+### Resource Name
 
-VLAN name (`:string`)
+VLAN name [`:string`]
 
 ## vlan/ensure
+
+
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:over` | `string` | Physical link which will serve the VLAN. |  |
+| `:vlan-tag` | `number` | The VLAN tag ID. |  |
+
+### Optional properties
+
+None
+
+## vlan/remove
+
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+## Notes
+
+- You must specify the VLAN link name. Gurp does not support automatic naming, as it goes against its policy of assuming nothing.
+
+
+### Examples
 
 ```janet
 (vlan/ensure "e1000g10000"
@@ -14,31 +45,7 @@ VLAN name (`:string`)
              :vlan-tag 10)
 ```
 
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:over` | `string` | Physical link which will serve the VLAN |  |
-| `:vlan-tag` | `number` | The VLAN tag ID |  |
-
-### Optional Properties
-
-None
-
-## vlan/remove
 
 ```janet
 (vlan/remove "e1000g10000")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
-
-## Notes
-
-- You must specify the VLAN link name. Gurp does not support automatic naming, as it goes against its policy of assuming nothing.

@@ -1,2 +1,3 @@
 (zone/attr "kernel-ver"
-  :value "4.4")
+           :type "string"
+           :value "4.4")

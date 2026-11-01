@@ -1,7 +1,8 @@
 (use judge)
-(use ./test-lib)
+(use ./lib/test-lib)
 (use ../../src/collector)
 (import ../../src/doers/ipnat)
+(setdyn :gurp-config-root "/gurpdir")
 
 (deftest ipnat
   (setdyn :role-dyn "test-role")
@@ -16,7 +17,7 @@
                           :priority 1
                           :role "test-role"}
                          {:_id "/test-role/ipnat/rules-in-file"
-                          :from "test/ipnat-test"
+                          :from "/gurpdir/files/test/ipnat-test"
                           :name "rules-in-file"
                           :priority 2
                           :role "test-role"}]}
@@ -31,4 +32,4 @@
 
   (test-error
     (ipnat/ensure "error-test-2" :priority 0)
-    "In ipnat/ensure error-test-2: need exactly one of :content or :from"))
+    "In ipnat/ensure error-test-2: need exactly one of :content, :from"))

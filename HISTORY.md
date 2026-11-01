@@ -1,4 +1,9 @@
+- Move `zone/dns` and `zone/capped-memory` from bare structs to helpers.
+  (Breaking change.)
 - Fix misc doer: scheduling class would not be changed if it was unset.
+- Improve the way doer frontends are defined and how documentation is generated.
+- Property types specified as `:struct` will now accept `:table`; and `:tuple`
+  will accept `:array`.
 
 ## v2.5.0 (2026-10-23)
 

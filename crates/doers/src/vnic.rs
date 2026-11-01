@@ -16,6 +16,7 @@ pub struct VnicEnsure {
     pub name: LinkName,
     pub over: LinkName,
     pub vlan_tag: Option<VlanID>,
+    #[serde(default)]
     pub with_interface: bool,
 }
 

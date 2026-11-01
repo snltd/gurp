@@ -1,12 +1,40 @@
 # publisher
 
+
 Add and remove pkg(5) publisher origins.
 
-## Resource Name
+### Resource Name
 
-Publisher name (`:string`)
+Publisher name [`:string`]
 
 ## publisher/ensure
+
+
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:origin` | `tuple` | List of origins, created with publisher/origin . |  |
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:mirror` | `tuple` | List of mirrors, created with publisher/mirror. |  |
+| `:search-first` | `boolean` | Search this publisher first. |  |
+
+## publisher/remove
+
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+### Examples
 
 ```janet
 (publisher/ensure "example"
@@ -15,71 +43,7 @@ Publisher name (`:string`)
                   (publisher/mirror "http://mirror.lan.id264.net"))
 ```
 
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:origin` | `array tuple` | List of origins, created with publisher/origin  |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:mirror` | `array tuple` | List of mirrors, created with publisher/mirror |  |
-| `:search-first` | `boolean` | Search this publisher first |  |
-
-## publisher/remove
 
 ```janet
 (publisher/remove "old_publisher")
 ```
-
-### Mandatory Properties
-
-None
-
-### Optional Properties
-
-None
-
-# publisher/mirror
-
-Define a mirror when managing a publisher.
-
-## Name
-
-The mirror URI (`:string`)
-
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:name` | `string` | URI of mirror |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:proxy` | `string` | Proxy URI for this mirror |  |
-
-
-# publisher/origin
-
-Define an origin when managing a publisher.
-
-## Name
-
-The origin URI (`:string`)
-
-### Mandatory Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:name` | `string` | URI of origin |  |
-
-### Optional Properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:proxy` | `string` | Proxy URI for this origin |  |
-
