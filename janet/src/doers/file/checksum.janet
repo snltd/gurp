@@ -1,10 +1,10 @@
 (import ../../collector)
-(use ../definers)
+(use ../lib/definers)
 
 (def algorithms ["sha256" "sha512" "blake3"])
 
 (defhelper :file :checksum
-  "Define a checksum to be used when fetching a remote file"
+  "Define a checksum to be used when fetching a remote file."
   :unique true
   (helper
     :exactly-one-of [:literal :from-url :with-suffix]

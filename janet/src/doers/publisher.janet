@@ -1,4 +1,4 @@
-(use ./definers)
+(use ./lib/definers)
 (import ../collector)
 (import ./publisher/origin :prefix "" :export true)
 (import ./publisher/mirror :prefix "" :export true)

@@ -1,5 +1,5 @@
 (import ../../collector)
-(use ../definers)
+(use ../lib/definers)
 
 (defhelper :zone :cloudinit
   "Describe cloudinit config inside a zone resource"

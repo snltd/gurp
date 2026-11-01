@@ -1,5 +1,5 @@
 (import ../../collector)
-(use ../definers)
+(use ../lib/definers)
 
 (defhelper :zone :rctl
   "Define a resource control when creating a zone."

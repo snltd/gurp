@@ -1,5 +1,5 @@
 (use judge)
-(use ../../src/doers/definers)
+(use ../../../src/doers/lib/definers)
 
 (deftest resource-id
   (test (resource-id :file :test-role :merp) "/test-role/file/merp")

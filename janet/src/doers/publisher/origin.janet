@@ -1,5 +1,5 @@
 (import ../../collector)
-(use ../definers)
+(use ../lib/definers)
 
 (defhelper :publisher :origin
   "Define an origin when managing a publisher."

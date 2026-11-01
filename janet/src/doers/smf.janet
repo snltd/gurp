@@ -1,6 +1,6 @@
-(use ./definers)
+(use ./lib/definers)
 (import ../collector)
-(import ./lib :only [expand-svc-property])
+(import ./lib/lib :only [expand-svc-property])
 (import ./smf/dependency :prefix "" :export true)
 (import ./smf/dependent :prefix "" :export true)
 (import ./smf/method :prefix "" :export true)

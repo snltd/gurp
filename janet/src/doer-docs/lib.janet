@@ -1,5 +1,5 @@
 (use ../dsl)
-(use ../../test/doers/test-lib)
+(use ../../test/doers/lib/test-lib)
 
 (defn a/b
   "Join the given words with slashes"
@@ -44,7 +44,7 @@
   (try
     (eval (symbol (a/b resource (if helper (keyword prop :- helper) prop))))
     ([_] nil)))
-
+    
 (defn squeeze
   "Squash repeated whitespace into a single space"
   [str]

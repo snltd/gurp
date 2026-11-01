@@ -1,5 +1,5 @@
 (use judge)
-(use ../../src/doers/validators)
+(use ../../../src/doers/lib/validators)
 
 (deftest check-key-value
   (test (check-key-value "prop1" "any old thing" nil) true)

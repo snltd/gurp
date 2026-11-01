@@ -1,5 +1,3 @@
-(import ../collector)
-
 (defn comma-sep
   "Return a comma-separated string of the items in list. Everything is literal,
   so keywords stay keywords, and quoted strings keep their quotes."

@@ -1,6 +1,6 @@
 # Control data controls how Gurp runs.
 
-(import ./doers/lib :only [comma-sep] :prefix "")
+(import ./doers/lib/lib :only [comma-sep] :prefix "")
 (import ./doer-docs/describe-docs :only [format-properties lay-out-help])
 (import ./doer-docs/lib :only [term-width join-lines] :as "doer-lib")
 

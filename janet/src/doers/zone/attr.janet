@@ -1,5 +1,5 @@
 (import ../../collector)
-(use ../definers)
+(use ../lib/definers)
 
 (defhelper :zone :attr
   "Set attributes on a zone being created by the zone doer."

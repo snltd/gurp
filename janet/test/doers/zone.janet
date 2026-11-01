@@ -1,5 +1,5 @@
 (use judge)
-(use ./test-lib)
+(use ./lib/test-lib)
 (use ../../src/collector)
 (use ../../src/dsl)
 (import ../../src/doers/zone)

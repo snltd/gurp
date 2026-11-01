@@ -1,5 +1,5 @@
 (import ../../collector)
-(use ../definers)
+(use ../lib/definers)
 
 (defhelper :zone :fs
   "Define a filesystem mapping when creating a zone."

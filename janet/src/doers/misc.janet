@@ -1,4 +1,4 @@
-(use ./definers)
+(use ./lib/definers)
 (use ../dsl)
 (import ../collector)
 

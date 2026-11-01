@@ -1,7 +1,6 @@
-(import ../dsl :only [qualify-from-path])
-(import ../defs :only [ip-protocols])
+(import ../../dsl :only [qualify-from-path])
+(import ../../defs :only [client-api-version ip-protocols])
 (import ./validators :only [validate-spec])
-(import ../defs :only [client-api-version])
 
 # A user specifies a resource by calling a function such as (file/ensure ...)
 # This function reads the user's config, and passes it to (enrich-and-validate),
@@ -161,36 +160,38 @@
      ,(if no-name '(def resource-name (labelise spec)))
      (pinpoint-error
        ,action
-     (->> ;spec
-          (enrich-and-validate resource-name
-                               (attrs ,action)
-                               ,;(if-not no-name '[:name resource-name] []))
-          (spec->resource ,doer-name resource-name)
-          (collector/push ,(keyword action) ,doer-name)))))
+       (->> ;spec
+            (enrich-and-validate resource-name
+                                 (attrs ,action)
+                                 ,;(if-not no-name '[:name resource-name] []))
+            (spec->resource ,doer-name resource-name)
+            (collector/push ,(keyword action) ,doer-name)))))
 
 (defmacro make-helper-fn
   [helper-name &named no-name prefix-name-with-prop]
-  ~(defn ,(symbol helper-name)
-     ,(if no-name
-        '[& spec]
-        '[resource-name & spec])
-     ,(if no-name '(def resource-name "NO-NAME"))
-     (pinpoint-error
-       ,helper-name
-       (def output-val
-         (enrich-and-validate resource-name
-                              (attrs :helper)
-                              ,;(if-not no-name [:name 'resource-name] [])
-                              ;spec
-                              :from-helper true
-                              :unique (get attrs :unique false)))
+  (with-syms [$attrs]
+    (def $attrs (symbol (string "attrs-" helper-name)))
+    ~(defn ,(symbol helper-name)
+       ,(if no-name
+          '[& spec]
+          '[resource-name & spec])
+       ,(if no-name '(def resource-name "NO-NAME"))
+       (pinpoint-error
+         ,helper-name
+         (def output-val
+           (enrich-and-validate resource-name
+                                (,$attrs :helper)
+                                ,;(if-not no-name [:name 'resource-name] [])
+                                ;spec
+                                :from-helper true
+                                :unique (get ,$attrs :unique false)))
 
-       (def output-key (if-let [prop-name ,prefix-name-with-prop
-                                prop-val (output-val prop-name)]
-                         (keyword prop-val "-" ,helper-name)
-                         ,(keyword helper-name)))
+         (def output-key (if-let [prop-name ,prefix-name-with-prop
+                                  prop-val (output-val prop-name)]
+                           (keyword prop-val "-" ,helper-name)
+                           ,(keyword helper-name)))
 
-       [output-key output-val])))
+         [output-key output-val]))))
 
 (defn property
   [name types requirement help & opts]
@@ -265,4 +266,4 @@
   ~(upscope
      (def doer ,(keyword doer-name))
      (def ,(symbol (string "description-" helper-name)) ,description)
-     (def attrs (,build-helper ,description ,;body))))
+     (def ,(symbol (string "attrs-" helper-name)) (,build-helper ,description ,;body))))

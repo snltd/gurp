@@ -1,4 +1,4 @@
-(use ../definers)
+(use ../lib/definers)
 
 (defhelper :smf dependency
   "Defines a dependency of an SMF service, inside an smf resource."
