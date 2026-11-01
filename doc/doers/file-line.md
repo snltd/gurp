@@ -1,12 +1,14 @@
 # file-line
 
-Ensure lines do or do not exist in the given file.
 
-## file-line/ensure
+Ensure lines do or do not exist in the given file.
 
 ### Resource Name
 
-Fully qualified path to file (`:string`)
+Fully qualified path to file [`:string`]
+
+## file-line/ensure
+
 
 ### Mandatory properties
 
@@ -22,18 +24,8 @@ None
 | `:replace` | `string` | Pattern to replace. Rust regex. |  |
 | `:with` | `string` | Counterpart to :replace. |  |
 
-### Examples
-
-```janet
-(file-line/ensure "/path/to/file"
-                  :line "i-want-to-see-this")
-```
-
 ## file-line/remove
 
-### Resource Name
-
-Fully qualified path to file (`:string`)
 
 ### Mandatory properties
 
@@ -47,26 +39,6 @@ Fully qualified path to file (`:string`)
 
 None
 
-### Examples
-
-```janet
-(file-line/remove "/path/to/file"
-                  :pattern "string-prefix"
-                  :match "starts-with"
-                  :apply-to "last")
-```
-
-```janet
-(file-line/remove "/path/to/file"
-                  :pattern "i-do-not-want-to-see-this-anywhere")
-```
-
-```janet
-(file-line/remove "/path/to/file"
-                  :match "regex"
-                  :pattern "rust-regex")
-```
-
 ## Notes
 
 - The file is not managed here. Use a file resource.
@@ -74,3 +46,28 @@ None
 - Appended lines have a newline at the beginning and end.
 - Removing a line puts a newline on the end of the file if there wasn't one already.
 - Files are not backed up.
+
+
+### Examples
+
+```janet
+(file-line/ensure "/path/to/file"
+                  :line "i-want-to-see-this")
+```
+
+
+```janet
+(file-line/remove "/path/to/file"
+                  :pattern "string-prefix"
+                  :match "starts-with"
+                  :apply-to "last")
+```
+```janet
+(file-line/remove "/path/to/file"
+                  :pattern "i-do-not-want-to-see-this-anywhere")
+```
+```janet
+(file-line/remove "/path/to/file"
+                  :match "regex"
+                  :pattern "rust-regex")
+```

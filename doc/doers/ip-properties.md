@@ -1,12 +1,14 @@
 # ip-properties
 
-Sets global IP properties, via 'ipadm set-prop'.
 
-## ip-properties/ensure
+Sets global IP properties, via 'ipadm set-prop'.
 
 ### Resource Name
 
-Any convenient name: not used internally (`:string`)
+Any convenient name: not used internally [`:string`]
+
+## ip-properties/ensure
+
 
 ### Mandatory properties
 
@@ -16,13 +18,29 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:icmp` | `struct table` | key-value pairs of valid icmp properties. |  |
-| `:ip` | `struct table` | key-value pairs of valid ip properties. |  |
-| `:ipv4` | `struct table` | key-value pairs of valid ipv4 properties. |  |
-| `:ipv6` | `struct table` | key-value pairs of valid ipv6 properties. |  |
-| `:sctp` | `struct table` | key-value pairs of valid sctp properties. |  |
-| `:tcp` | `struct table` | key-value pairs of valid tcp properties. |  |
-| `:udp` | `struct table` | key-value pairs of valid udp properties. |  |
+| `:icmp` | `struct` | key-value pairs of valid icmp properties. |  |
+| `:ip` | `struct` | key-value pairs of valid ip properties. |  |
+| `:ipv4` | `struct` | key-value pairs of valid ipv4 properties. |  |
+| `:ipv6` | `struct` | key-value pairs of valid ipv6 properties. |  |
+| `:sctp` | `struct` | key-value pairs of valid sctp properties. |  |
+| `:tcp` | `struct` | key-value pairs of valid tcp properties. |  |
+| `:udp` | `struct` | key-value pairs of valid udp properties. |  |
+
+## ip-properties/remove
+
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+## Notes
+
+- Define `extra_priv_ports` as a comma-separated list.
+
 
 ### Examples
 
@@ -36,7 +54,4 @@ None
                       :sctp {:max_buf 1048000})
 ```
 
-There is no ip-properties/remove action.
-## Notes
 
-- Define `extra_priv_ports` as a comma-separated list.

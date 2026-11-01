@@ -1,12 +1,14 @@
 # user
 
-Manage Unix users
 
-## user/ensure
+Manage Unix users
 
 ### Resource Name
 
-User's username (`:string`)
+User's username [`:string`]
+
+## user/ensure
+
 
 ### Mandatory properties
 
@@ -26,6 +28,26 @@ User's username (`:string`)
 | `:password-hash` | `string` | Hash to insert in `/etc/shadow`. |  |
 | `:profiles` | `tuple` | List of existing profiles (`:string`). |  |
 
+## user/remove
+
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+## Notes
+
+- The actual user management is done via `useradd(8)`, `usermod(8)` and `userdel(8)`, so Gurp shares their limitations, such as disallowing modification of a logged in user.
+- Removing a group from `other-groups` will not remove the user from that group. This is a limitation of usermod(1m).
+- The doer does not create or otherwise manage the user's home directory.
+- To unlock an account, use a hash of `NP`.
+- You can create non-primary groups for a new user, but not change them for an existing one.
+
+
 ### Examples
 
 ```janet
@@ -38,30 +60,7 @@ User's username (`:string`)
              :password-hash "w0934cm-4i5c-42u5cn492hrc97h234ui")
 ```
 
-## user/remove
-
-### Resource Name
-
-User's username (`:string`)
-
-### Mandatory properties
-
-None
-
-### Optional properties
-
-None
-
-### Examples
 
 ```janet
 (user/remove "lolex")
 ```
-
-## Notes
-
-- The actual user management is done via `useradd(8)`, `usermod(8)` and `userdel(8)`, so Gurp shares their limitations, such as disallowing modification of a logged in user.
-- Removing a group from `other-groups` will not remove the user from that group. This is a limitation of usermod(1m).
-- The doer does not create or otherwise manage the user's home directory.
-- To unlock an account, use a hash of `NP`.
-- You can create non-primary groups for a new user, but not change them for an existing one.

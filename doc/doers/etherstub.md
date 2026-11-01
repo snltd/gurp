@@ -1,12 +1,25 @@
 # etherstub
 
-Create and destroy etherstubs.
 
-## etherstub/ensure
+Create and destroy etherstubs.
 
 ### Resource Name
 
-Name of etherstub (`:string`)
+Name of etherstub [`:string`]
+
+## etherstub/ensure
+
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+## etherstub/remove
+
 
 ### Mandatory properties
 
@@ -22,23 +35,7 @@ None
 (etherstub/ensure "newstub0")
 ```
 
-## etherstub/remove
-
-### Resource Name
-
-Name of etherstub (`:string`)
-
-### Mandatory properties
-
-None
-
-### Optional properties
-
-None
-
-### Examples
 
 ```janet
 (etherstub/remove "oldstub0")
 ```
-

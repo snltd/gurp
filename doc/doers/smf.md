@@ -1,12 +1,14 @@
 # smf
 
-Create and install a manifest for an SMF service.
 
-## smf/ensure
+Create and install a manifest for an SMF service.
 
 ### Resource Name
 
-Short name of service. Not used internally (`:string`)
+Short name of service. Not used internally [`:string`]
+
+## smf/ensure
+
 
 ### Mandatory properties
 
@@ -14,22 +16,39 @@ Short name of service. Not used internally (`:string`)
 |-------|--------|---------------|-----------|
 | `:default-enabled` | `boolean` | Start the service when the manifest installs. | `true` |
 | `:fmri` | `string` | Service FMRI. |  |
-| `:single-instance` | `boolean` | Is this a single-instance service. | `true` |
-| `:stop-method` | `struct table` | See 'smf-method'. | `<struct 0x000001293578>` |
+| `:single-instance` | `boolean` | Is this a single-instance service?. | `true` |
+| `:stop-method` | `struct` | See 'smf-method'. | `<struct 0x000001BEDB78>` |
 
 ### Optional properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:dependency` | `array` | See 'smf-dependency'. |  |
-| `:dependent` | `array` | See 'smf-dependent'. |  |
+| `:dependency` | `tuple` | Service dependencies. See 'smf-dependency'. |  |
+| `:dependent` | `tuple` | Dependent services. See 'smf-dependent'. |  |
 | `:description` | `string` | What the service does. |  |
 | `:duration` | `string` | Use this to specify 'transient' or 'wait' services. |  |
-| `:properties` | `struct table` | Create/set properties. (`:keyword :string|:boolean|:number`). |  |
-| `:property-groups` | `struct table` | Create property groups. Key is the name, value is the type. |  |
-| `:refresh-method` | `struct table` | See 'smf-method'. |  |
-| `:restart-method` | `struct table` | See 'smf-method'. |  |
-| `:start-method` | `struct table` | See 'smf-method'. |  |
+| `:properties` | `struct` | Create/set properties. (`:keyword :string|:boolean|:number`). |  |
+| `:property-groups` | `struct` | Create property groups. Key is the name, value is the type. |  |
+| `:refresh-method` | `struct` | See 'smf-method'. |  |
+| `:restart-method` | `struct` | See 'smf-method'. |  |
+| `:start-method` | `struct` | See 'smf-method'. |  |
+
+## smf/remove
+
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+## Notes
+
+- Generated manifests are written to `/opt/site/lib/smf/manifest`, and the output of subsequent runs is compared to the existing reference. If the file has changed, the service is re-created. We do it this way because it is not possible to compare a running service with a generated manifest.
+- smf/remove stops the service and deletes it from the SMF registry.
+
 
 ### Examples
 
@@ -57,27 +76,7 @@ Short name of service. Not used internally (`:string`)
                          :other_group/other_prop "abc123"})
 ```
 
-## smf/remove
-
-### Resource Name
-
-Short name of service. Not used internally (`:string`)
-
-### Mandatory properties
-
-None
-
-### Optional properties
-
-None
-
-### Examples
 
 ```janet
 (smf/remove "unwanted/service")
 ```
-
-## Notes
-
-- Generated manifests are written to `/opt/site/lib/smf/manifest`, and the output of subsequent runs is compared to the existing reference. If the file has changed, the service is re-created. We do it this way because it is not possible to compare a running service with a generated manifest.
-- smf/remove stops the service and deletes it from the SMF registry.

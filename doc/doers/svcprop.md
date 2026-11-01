@@ -1,12 +1,14 @@
 # svcprop
 
-Set and remove properties and property groups of an existing SMF service.
 
-## svcprop/ensure
+Set and remove properties and property groups of an existing SMF service.
 
 ### Resource Name
 
-Any valid FMRI of the service whose properties you wish to set (`:string`)
+Any valid FMRI of the service whose properties you wish to set [`:string`]
+
+## svcprop/ensure
+
 
 ### Mandatory properties
 
@@ -21,6 +23,29 @@ Any valid FMRI of the service whose properties you wish to set (`:string`)
 | `:on-change` | `string` | Take this action when a value is changed. Allowed values: "restart", "refresh". |  |
 | `:property-groups` | `struct` | Property groups to create. Key is name, value is type. |  |
 
+## svcprop/remove
+
+
+### Mandatory properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:properties` | `tuple` | Properties to remove. |  |
+
+### Optional properties
+
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:property-groups` | `tuple` | Property groups to remove. |  |
+
+## Notes
+
+- If you want to change a property value on a service instance, you may also have to define the property group to which it belongs, as it may not be inherited from the base service.
+- When a service restarts on-change, it also refreshes.
+- If not specified, Gurp will infer the types of property values.
+- You can't change the type of an existing property group.
+
+
 ### Examples
 
 ```janet
@@ -31,41 +56,14 @@ Any valid FMRI of the service whose properties you wish to set (`:string`)
                              :application/active true
                              :application/timeout 50})
 ```
-
 ```janet
 (svcprop/ensure "example/svc_1"
                 :property-groups {:application "application"}
                 :properties {:application/datadir "/data"})
 ```
 
-## svcprop/remove
-
-### Resource Name
-
-Any valid FMRI of the service whose properties you wish to set (`:string`)
-
-### Mandatory properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:properties` | `tuple array` | Properties to remove. |  |
-
-### Optional properties
-
-|  key  |  type  |  description  |  default  |
-|-------|--------|---------------|-----------|
-| `:property-groups` | `tuple array` | Property groups to remove. |  |
-
-### Examples
 
 ```janet
 (svcprop/remove "example/svc_3"
                 :properties ["application/thing"])
 ```
-
-## Notes
-
-- If you want to change a property value on a service instance, you may also have to define the property group to which it belongs, as it may not be inherited from the base service.
-- When a service restarts on-change, it also refreshes.
-- If not specified, Gurp will infer the types of property values.
-- You can't change the type of an existing property group.

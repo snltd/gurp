@@ -1,12 +1,14 @@
 # ip-address
 
-Manages IP addresses via ipadm.
 
-## ip-address/ensure
+Manages IP addresses via ipadm.
 
 ### Resource Name
 
-Address name, e.g. vnic0/v4 (`:string`)
+Address name, e.g. vnic0/v4 [`:string`]
+
+## ip-address/ensure
+
 
 ### Mandatory properties
 
@@ -21,27 +23,8 @@ Address name, e.g. vnic0/v4 (`:string`)
 | `:address` | `string` | Local IP address with /netmask, if using static address. |  |
 | `:properties` | `struct` | Struct of any valid ipadm addrprops. |  |
 
-### Examples
-
-```janet
-(ip-address/ensure "example1/v4"
-                   :type "dhcp")
-```
-
-```janet
-(ip-address/ensure "example0/v4"
-                   :type "static"
-                   :address "192.168.1.13/24"
-                   :properties {:prefixlen 24
-                                :transmit true
-                                :private false})
-```
-
 ## ip-address/remove
 
-### Resource Name
-
-Address name, e.g. vnic0/v4 (`:string`)
 
 ### Mandatory properties
 
@@ -54,6 +37,19 @@ None
 ### Examples
 
 ```janet
-(ip-address/remove "example2/v4")
+(ip-address/ensure "example1/v4"
+                   :type "dhcp")
+```
+```janet
+(ip-address/ensure "example0/v4"
+                   :type "static"
+                   :address "192.168.1.13/24"
+                   :properties {:prefixlen 24
+                                :transmit true
+                                :private false})
 ```
 
+
+```janet
+(ip-address/remove "example2/v4")
+```

@@ -1,12 +1,14 @@
 # svc
 
-Manage the state of an existing SMF service.
 
-## svc/ensure
+Manage the state of an existing SMF service.
 
 ### Resource Name
 
-Service FMRI (`:string`)
+Service FMRI [`:string`]
+
+## svc/ensure
+
 
 ### Mandatory properties
 
@@ -18,8 +20,24 @@ Service FMRI (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:reloaded-by` | `array` | Labels of resources whose alteration triggers service reload. |  |
-| `:restarted-by` | `array` | Labels of resources whose alteration triggers service restart. |  |
+| `:reloaded-by` | `tuple` | Labels of resources whose alteration triggers service reload. |  |
+| `:restarted-by` | `tuple` | Labels of resources whose alteration triggers service restart. |  |
+
+## svc/remove
+
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
+
+## Notes
+
+- Because Gurp ends up shelling out to `svcs` and `svcadm`, the service name can be any valid FMRI
+
 
 ### Examples
 
@@ -27,14 +45,10 @@ Service FMRI (`:string`)
 (svc/ensure "snltd/example"
             :state "disabled")
 ```
-
 ```janet
 (svc/ensure "important/service"
             :state "enabled"
             :restarted-by [:/test-role/file/stub])
 ```
 
-There is no svc/remove action.
-## Notes
 
-- Because Gurp ends up shelling out to `svcs` and `svcadm`, the service name can be any valid FMRI

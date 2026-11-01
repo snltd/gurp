@@ -4,12 +4,9 @@
 (import ../command-lib :only [strip-ansi])
 (import ../doers/lib/lib :only [comma-sep] :as doer-lib)
 (import ../dsl :only [basename fields files-in])
-(import ../lib :only [compact drop-empties] :as gurp-lib)
+(import ../lib :only [drop-empties ] :as gurp-lib)
 (import ./formatting :only [bold bold-underline underline] :prefix "")
-(import ./lib :only [a/b join-lines lookup term-width])
-
-(defn joint [& sections]
-  (string/join (gurp-lib/compact (array ;sections)) "\n\n"))
+(import ./lib :only [a/b join-lines joint lookup props-without-name term-width])
 
 (defn- indent [text]
   (as-> text _
@@ -112,33 +109,28 @@
 
 (defn- examples-block [doer prefixes]
   (string (bold "Examples") "\n"
-          (joint
+          (lib/joint
             ;(catseq [prefix :in prefixes]
                (code-example code-block doer prefix)))))
 
-# Name is used internally, but shouldn't be exposed as a property in the docs
-(defn- props-without-name [action-info category]
-  (def ret (get-in action-info [:props category] @{}))
-  (set (ret :name) nil)
-  ret)
 
 (defn- properties-block [prop-type properties]
   (string (bold (string/format "%s properties" prop-type)) "\n"
           (format-properties properties)))
 
 (defn- props-block [action-info]
-  (joint
-    (properties-block "Mandatory" (props-without-name action-info :mandatory))
-    (properties-block "Optional" (props-without-name action-info :optional))))
+  (lib/joint
+    (properties-block "Mandatory" (lib/props-without-name action-info :mandatory))
+    (properties-block "Optional" (lib/props-without-name action-info :optional))))
 
 (defn- notes-block [info]
   (when-let [notes (info :notes)]
-    (joint (bold "Notes") ;(map note-formatter notes))))
+    (lib/joint (bold "Notes") ;(map note-formatter notes))))
 
 (defn- action-block [info doer action]
   (if-let [action-info (info action)]
-    (joint (bold-underline (lib/a/b doer action))
-           (props-block action-info))
+    (lib/joint (bold-underline (lib/a/b doer action))
+               (props-block action-info))
     (string/format "There is no %s/%s action." doer action)))
 
 (defn- title-block [& bits]
@@ -149,19 +141,19 @@
 
 (defn help-for-doer [doer]
   (let [info (lib/lookup doer :attrs)]
-    (joint (title-block doer)
-           (description-block info)
-           (name-block info)
-           (action-block info doer :ensure)
-           (action-block info doer :remove)
-           (notes-block info)
-           (examples-block doer [:ensure :remove]))))
+    (lib/joint (title-block doer)
+               (description-block info)
+               (name-block info)
+               (action-block info doer :ensure)
+               (action-block info doer :remove)
+               (notes-block info)
+               (examples-block doer [:ensure :remove]))))
 
 (defn help-for-helper [doer helper]
   (let [info (lib/lookup doer (symbol :attrs- helper))]
-    (joint (title-block doer helper)
-           (description-block info)
-           (name-block info)
-           (props-block (info :helper))
-           (notes-block info)
-           (examples-block doer [helper]))))
+    (lib/joint (title-block doer helper)
+               (description-block info)
+               (name-block info)
+               (props-block (info :helper))
+               (notes-block info)
+               (examples-block doer [helper]))))
