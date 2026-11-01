@@ -1,12 +1,14 @@
 # pkg
 
+
 Install and uninstall pkg(5) packages.
+
+### Resource Name
+
+Package name, of the form ooce/editor/helix [`:string`]
 
 ## pkg/ensure
 
-### Resource Name
-
-Package name, of the form ooce/editor/helix (`:string`)
 
 ### Mandatory properties
 
@@ -15,18 +17,9 @@ None
 ### Optional properties
 
 None
-
-### Examples
-
-```janet
-(pkg/ensure "ooce/developer/rust")
-```
 
 ## pkg/remove
 
-### Resource Name
-
-Package name, of the form ooce/editor/helix (`:string`)
 
 ### Mandatory properties
 
@@ -35,12 +28,6 @@ None
 ### Optional properties
 
 None
-
-### Examples
-
-```janet
-(pkg/remove "ooce/developer/go")
-```
 
 ## Notes
 
@@ -48,3 +35,15 @@ None
 - Gurp does not support package mediators.
 - If Gurp runs with `--noop`, `pkg` will be executed with the `-n` flag. Therefore it can cause a noop run to fail.
 - These limitations mean we can ensure all packages are installed with just two calls to `pkg(1)`. This is a huge speed win over dealing with each package individually
+
+
+### Examples
+
+```janet
+(pkg/ensure "ooce/developer/rust")
+```
+
+
+```janet
+(pkg/remove "ooce/developer/go")
+```

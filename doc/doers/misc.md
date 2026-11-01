@@ -1,12 +1,14 @@
 # misc
 
-A collection of things too small to deserve their own doer.
 
-## misc/ensure
+A collection of things too small to deserve their own doer.
 
 ### Resource Name
 
 Does not take a name parameter.
+
+## misc/ensure
+
 
 ### Mandatory properties
 
@@ -20,24 +22,26 @@ None
 | `:nfs-domain` | `string` | NFS domain name. |  |
 | `:scheduler` | `string` | The scheduler class to set via dispamdin. |  |
 
+There is no misc/remove action.
+
+## Notes
+
+- The misc doer is a placeholder for what Gurp considers "OS primitives" but which are not big or complex enough to warrant their own doer
+
+
 ### Examples
 
 ```janet
 (misc/ensure
   :nfs-domain "lan.id264.net")
 ```
-
 ```janet
 (misc/ensure
   :scheduler "FSS")
 ```
-
 ```janet
 (misc/ensure
   :enable-smb "rob")
 ```
 
-There is no misc/remove action.
-## Notes
 
-- The misc doer is a placeholder for what Gurp considers "OS primitives" but which are not big or complex enough to warrant their own doer

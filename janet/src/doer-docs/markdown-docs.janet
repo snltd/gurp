@@ -1,32 +1,55 @@
-#
 # Generate Markdown documentation for all the doers, using the definition file
 # and code examples which are also uses in tests. Used by doers/build.sh, and
 # not built into the Gurp lib.
 # 
-(use ./lib)
+(import ./lib :only [a/b doers join-lines joint lookup props-without-name repo-root squeeze])
+(import ../../test/doers/lib/test-lib :only [example-root])
+(import ../facts :only [fact->fn])
+(import ../dsl :only [basename files-in pathcat])
+(import ../doers/lib/lib :prefix "" :only [comma-sep])
 (use ./markdown-dsl)
-(use ../../test/doers/lib/test-lib)
-(use ../facts)
 
-(import ../dsl :prefix "" :only [pathcat])
-(import ../doers/lib :prefix "" :only [comma-sep])
+(def doc-dir (dsl/pathcat (lib/repo-root) "doc"))
+(def doer-doc-dir (dsl/pathcat doc-dir "doers"))
 
-(def doc-dir (pathcat (repo-root) "doc"))
-(def doer-doc-dir (pathcat doc-dir "doers"))
+(defn- code-examples-map-fn [dir]
+  (defn map-fn [file] (tuple (dsl/basename file) (slurp file)))
+  (struct ;(mapcat map-fn (dsl/files-in dir :file))))
 
-(defn- note-formatter
-  [note]
-  (string "- " (squeeze note) "\n"))
+# This def is important because it pulls the examples into the Gurp Janet image
+(def code-examples
+  (let [doer-dirs (dsl/files-in test-lib/example-root :directory)
+        doers (map dsl/basename doer-dirs)
+        examples (map code-examples-map-fn doer-dirs)]
+    (zipcoll doers examples)))
 
-(defn- examples-block
-  [code-block-fn doer action]
-  (let [example-files (os/dir (pathcat example-root doer))
-        relevant-files (filter |(string/has-prefix? action $) example-files)]
+(defn- code-example [code-block-fn doer action]
+  (defn filter-fn [[k v]]
+    (let [prefix (string action "-")]
+      (when (string/has-prefix? prefix k) (code-block v))))
 
-    (if-not (empty? relevant-files)
-      (string "\n" (h3 "Examples") "\n"
-              ;(seq [file :in (sorted relevant-files)]
-                 (code-block-fn (slurp (pathcat example-root doer file))))))))
+  (-> (when-let [examples (get code-examples (string doer))]
+        (keep filter-fn (sorted (pairs examples))))
+      (string/join)))
+
+(defn- note-formatter [note]
+  (string "- " (lib/squeeze note) "\n"))
+
+(defn- examples-block [doer prefixes]
+  (string (h3 "Examples") "\n"
+          (lib/joint
+            ;(catseq [prefix :in prefixes]
+               (code-example code-block doer prefix)))))
+
+# (defn- examples-block
+#   [code-block-fn doer action]
+#   (let [example-files (os/dir (pathcat test-lib/example-root doer))
+#         relevant-files (filter |(string/has-prefix? action $) example-files)]
+
+#     (if-not (empty? relevant-files)
+#       (string "\n" (h3 "Examples") "\n"
+#               ;(seq [file :in (sorted relevant-files)]
+#                  (code-block-fn (slurp (pathcat test-lib/example-root doer file))))))))
 
 (defn- property-description
   [spec]
@@ -42,121 +65,114 @@
   [prop spec]
   [(code (string/format "%v" prop))
    (code (string/join (spec :types) " "))
-   (squeeze (property-description spec))
+   (lib/squeeze (property-description spec))
    (if-let [default-val (spec :default)] (code default-val) "")])
 
 (defn- property-table
   [props]
   (let [rows (seq [[prop spec] :pairs props]
                (table-row ;(props-to-row prop spec)))]
-    (string (table-header :key :type :description :default)
-            ;(sorted rows))))
+    [(table-header :key :type :description :default) ;(sorted rows)]))
 
-(defn- title-block
-  [title]
-  (string (h1 title) "\n"))
+(defn- title-block [& args]
+  (h1 (lib/a/b ;args)))
 
-(defn- description-block
-  [doer &opt helper]
-  (string (squeeze (lookup doer :description)) "\n\n"))
+(defn- description-block [info]
+  (string (lib/squeeze (info :description))))
 
-(defn- name-block
-  [doer &opt helper]
-  (string (h3 "Resource Name") "\n"
-          (if-let [name-is (lookup doer :name-is helper)]
-            (string name-is " (`:string`)\n")
-            "Does not take a name parameter.\n")))
+(defn- name-block [info]
+  (lib/join-lines [(h3 "Resource Name")
+                   (if-let [name-is (info :name-is)]
+                     (string name-is " [`:string`]")
+                     "Does not take a name parameter.")]))
 
 (defn- properties-block
-  [doer prop-type action]
-  (let [lookup-key (keyword (string/ascii-lower prop-type) "-props-" action)
-        properties (lookup doer lookup-key)]
-    (string "\n" (h3 (string/format "%s properties" prop-type)) "\n"
-            (if (empty? properties)
-              "None\n"
-              (property-table properties)))))
+  [prop-type properties]
+  (lib/join-lines [(h3 (string/format "%s properties" prop-type))
+                   ;(if (empty? properties)
+                      ["None"]
+                      (property-table properties))]))
 
 (defn- notes-block
-  [doer &opt helper]
-  (when-let [notes (lookup doer :notes helper)]
+  [info]
+  (when-let [notes (info :notes)]
     (string (h2 "Notes") "\n" ;(map note-formatter notes))))
 
-(defn- action-block
-  [doer action-or-helper &opt no-name]
-  (if (lookup doer action-or-helper)
-    (string
-      (if-not no-name (string (h2 (a/b doer action-or-helper)) "\n"))
-      (if (has-value? [:ensure :remove] action-or-helper)
-        (name-block doer)
-        (name-block doer action-or-helper))
-      (properties-block doer "Mandatory" action-or-helper)
-      (properties-block doer "Optional" action-or-helper)
-      (examples-block code-block doer action-or-helper))
-    (string/format "There is no %s/%s action.\n" doer action-or-helper)))
+(defn- props-block [action-info]
+  (lib/joint
+    (properties-block "Mandatory" (lib/props-without-name action-info :mandatory))
+    (properties-block "Optional" (lib/props-without-name action-info :optional))))
+
+(defn- action-block [info doer action]
+  (if-let [action-info (info action)]
+    (lib/joint (h2 (lib/a/b doer action))
+               (props-block action-info))
+    (string/format "There is no %s/%s action." doer action)))
 
 (defn generate-facts-doc
   "Fills in a block of doc/facts.md"
   []
   (def marker "## Full List of Facts")
-  (def facts-file (pathcat doc-dir "facts.md"))
+  (def facts-file (dsl/pathcat doc-dir "facts.md"))
 
   (if-not (os/stat facts-file)
     (errorf "no facts doc at %s" facts-file))
 
   (let [orig (slurp facts-file)
         marker-index (string/find marker orig)
-        sorted-fact-names (sorted (keys fact->fn))
+        sorted-fact-names (sorted (keys facts/fact->fn))
         frontspiece (string/slice orig 0 (+ marker-index (length marker) 1))
-        facts-list (join-lines
+        facts-list (lib/join-lines
                      (catseq [name :in sorted-fact-names]
-                       (let [fact (fact->fn name)]
+                       (let [fact (facts/fact->fn name)]
                          (string/format "- %s (%s) %s"
                                         (code (keyword name))
                                         (fact :type)
-                                        (squeeze (fact :description))))))]
+                                        (lib/squeeze (fact :description))))))]
 
     (print "writing facts doc -> " facts-file)
     (def fh (file/open facts-file :w))
     (file/write fh
                 (string frontspiece facts-list))))
 
-(defn markdown-for-doer
-  [doer]
-  (string (title-block doer)
-          (description-block doer)
-          (action-block doer :ensure)
-          (action-block doer :remove)
-          (notes-block doer)))
+(defn markdown-for-doer [doer]
+  (let [info (lib/lookup doer :attrs)]
+    (lib/joint (title-block doer)
+               (description-block info)
+               (name-block info)
+               (action-block info doer :ensure)
+               (action-block info doer :remove)
+               (notes-block info)
+               (examples-block doer [:ensure :remove]))))
 
-(defn markdown-for-helper
-  [doer helper]
-  (string (title-block (a/b doer helper))
-          (description-block doer helper)
-          (action-block doer helper :no-name)
-          (notes-block doer helper)))
+(defn markdown-for-helper [doer helper]
+  (let [info (lib/lookup doer (symbol :attrs- helper))]
+    (lib/joint (title-block doer helper)
+               (description-block info)
+               (name-block info)
+               (props-block (info :helper))
+               (notes-block info)
+               (examples-block doer [helper]))))
 
-(defn generate-doc
-  [doer-or-helper]
+(defn generate-doc [doer-or-helper]
   (if (string/find "/" doer-or-helper)
     (markdown-for-helper ;(string/split "/" doer-or-helper))
     (markdown-for-doer doer-or-helper)))
 
-(defn generate-docs-to-stdout
-  "Used by bin/generate-docs.janet"
-  [args]
+# Used by bin/generate-docs.janet
+(defn generate-docs-to-stdout [args]
   (loop [doer-or-helper :in args]
     (print (generate-doc doer-or-helper))))
 
-(defn generate-all-docs
-  "For each doer, create a doer.md file under /doc/doers. Each markdown file
-  documents the core doer and any helperss"
-  []
+# For each doer, create a doer.md file under /doc/doers. Each markdown file
+# documents the core doer and any helpers
+(defn generate-all-docs []
   (generate-facts-doc)
 
   (if-not (os/stat doer-doc-dir)
     (os/mkdir doer-doc-dir))
 
-  (loop [doer :in (doers) :unless (= doer "lib")]
+  (loop [doer :in (lib/doers) :unless (= doer "lib")]
     (def md-file (string doer-doc-dir "/" doer ".md"))
     (print "writing " doer " -> " md-file)
     (def fh (file/open md-file :w))

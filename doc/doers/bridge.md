@@ -1,12 +1,14 @@
 # bridge
 
-Create and modify ethernet bridges.
 
-## bridge/ensure
+Create and modify ethernet bridges.
 
 ### Resource Name
 
-Any valid bridge name (`:string`)
+Any valid bridge name [`:string`]
+
+## bridge/ensure
+
 
 ### Mandatory properties
 
@@ -23,26 +25,10 @@ Any valid bridge name (`:string`)
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:links` | `tuple array` | Existing links which should be attached to the bridge. |  |
-
-### Examples
-
-```janet
-(bridge/ensure "basic")
-```
-
-```janet
-(bridge/ensure "with_links"
-               :links ["stub1" "stub2"]
-               :priority 4096
-               :max-age 27)
-```
+| `:links` | `tuple` | Existing links which should be attached to the bridge. |  |
 
 ## bridge/remove
 
-### Resource Name
-
-Any valid bridge name (`:string`)
 
 ### Mandatory properties
 
@@ -55,6 +41,16 @@ None
 ### Examples
 
 ```janet
-(bridge/remove "unwanted")
+(bridge/ensure "basic")
+```
+```janet
+(bridge/ensure "with_links"
+               :links ["stub1" "stub2"]
+               :priority 4096
+               :max-age 27)
 ```
 
+
+```janet
+(bridge/remove "unwanted")
+```

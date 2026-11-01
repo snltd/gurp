@@ -1,12 +1,14 @@
 # link
 
-Create and remove links.
 
-## link/ensure
+Create and remove links.
 
 ### Resource Name
 
-Qualified path to the link that will be created (`:string`)
+Qualified path to the link that will be created [`:string`]
+
+## link/ensure
+
 
 ### Mandatory properties
 
@@ -21,26 +23,8 @@ Qualified path to the link that will be created (`:string`)
 |-------|--------|---------------|-----------|
 | `:force-link` | `boolean` | If the link target already exists and this flag is `true`, Gurp will remove it and replace it with a link. If `false`, a pre-existing target causes an error. |  |
 
-### Examples
-
-```janet
-(link/ensure "/link/is/here"
-             :type "hard"
-             :source "/link/points/here")
-```
-
-```janet
-(link/ensure "/symlink/is/here"
-             :label "example-symlink"
-             :force-link true
-             :source "/link/points/here")
-```
-
 ## link/remove
 
-### Resource Name
-
-Qualified path to the link that will be created (`:string`)
 
 ### Mandatory properties
 
@@ -50,13 +34,27 @@ None
 
 None
 
-### Examples
-
-```janet
-(link/remove "/dont/want/this/link")
-```
-
 ## Notes
 
 - If the source doesn't exist, you get an error.
 - Files and directories are ensured before links, so you can link Gurp-managed resources.
+
+
+### Examples
+
+```janet
+(link/ensure "/link/is/here"
+             :type "hard"
+             :source "/link/points/here")
+```
+```janet
+(link/ensure "/symlink/is/here"
+             :label "example-symlink"
+             :force-link true
+             :source "/link/points/here")
+```
+
+
+```janet
+(link/remove "/dont/want/this/link")
+```

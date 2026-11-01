@@ -1,12 +1,14 @@
 # network-flow
 
-Manage network flows via flowadm.
 
-## network-flow/ensure
+Manage network flows via flowadm.
 
 ### Resource Name
 
-Name of flow. Must be unique (`:string`)
+Name of flow. Must be unique [`:string`]
+
+## network-flow/ensure
+
 
 ### Mandatory properties
 
@@ -27,29 +29,8 @@ Name of flow. Must be unique (`:string`)
 | `:remote-ip` | `string` | RemoteIP address for flow, optional /mask. |  |
 | `:remote-port` | `number` | Remote port of flow. |  |
 
-### Examples
-
-```janet
-(network-flow/ensure "ssh-flow"
-                     :link "vnic1"
-                     :protocol "tcp"
-                     :local-port 22
-                     :maxbw "1200K")
-```
-
-```janet
-(network-flow/ensure "tls-throttle"
-                     :link "vnic1"
-                     :protocol "tcp"
-                     :remote-port 443
-                     :maxbw "10M")
-```
-
 ## network-flow/remove
 
-### Resource Name
-
-Name of flow. Must be unique (`:string`)
 
 ### Mandatory properties
 
@@ -62,6 +43,21 @@ None
 ### Examples
 
 ```janet
-(network-flow/remove "unwanted")
+(network-flow/ensure "ssh-flow"
+                     :link "vnic1"
+                     :protocol "tcp"
+                     :local-port 22
+                     :maxbw "1200K")
+```
+```janet
+(network-flow/ensure "tls-throttle"
+                     :link "vnic1"
+                     :protocol "tcp"
+                     :remote-port 443
+                     :maxbw "10M")
 ```
 
+
+```janet
+(network-flow/remove "unwanted")
+```

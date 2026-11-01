@@ -1,25 +1,38 @@
 # publisher
 
-Add and remove pkg(5) publisher origins.
 
-## publisher/ensure
+Add and remove pkg(5) publisher origins.
 
 ### Resource Name
 
-Publisher name (`:string`)
+Publisher name [`:string`]
+
+## publisher/ensure
+
 
 ### Mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:origin` | `array tuple` | List of origins, created with publisher/origin . |  |
+| `:origin` | `tuple` | List of origins, created with publisher/origin . |  |
 
 ### Optional properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:mirror` | `array tuple` | List of mirrors, created with publisher/mirror. |  |
+| `:mirror` | `tuple` | List of mirrors, created with publisher/mirror. |  |
 | `:search-first` | `boolean` | Search this publisher first. |  |
+
+## publisher/remove
+
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
 
 ### Examples
 
@@ -30,23 +43,7 @@ Publisher name (`:string`)
                   (publisher/mirror "http://mirror.lan.id264.net"))
 ```
 
-## publisher/remove
-
-### Resource Name
-
-Publisher name (`:string`)
-
-### Mandatory properties
-
-None
-
-### Optional properties
-
-None
-
-### Examples
 
 ```janet
 (publisher/remove "old_publisher")
 ```
-

@@ -1,12 +1,14 @@
 # ip-interface
 
-Create and destroy IP interfaces, with optional properties. Properties are supplied with 'ip-interface-protocol'.
 
-## ip-interface/ensure
+Create and destroy IP interfaces, with optional properties.
 
 ### Resource Name
 
-Interface name (`:string`)
+Interface name [`:string`]
+
+## ip-interface/ensure
+
 
 ### Mandatory properties
 
@@ -16,13 +18,24 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:icmp` | `struct table` | key-value pairs of valid icmp properties. |  |
-| `:ip` | `struct table` | key-value pairs of valid ip properties. |  |
-| `:ipv4` | `struct table` | key-value pairs of valid ipv4 properties. |  |
-| `:ipv6` | `struct table` | key-value pairs of valid ipv6 properties. |  |
-| `:sctp` | `struct table` | key-value pairs of valid sctp properties. |  |
-| `:tcp` | `struct table` | key-value pairs of valid tcp properties. |  |
-| `:udp` | `struct table` | key-value pairs of valid udp properties. |  |
+| `:icmp` | `struct` | key-value pairs of valid icmp properties. |  |
+| `:ip` | `struct` | key-value pairs of valid ip properties. |  |
+| `:ipv4` | `struct` | key-value pairs of valid ipv4 properties. |  |
+| `:ipv6` | `struct` | key-value pairs of valid ipv6 properties. |  |
+| `:sctp` | `struct` | key-value pairs of valid sctp properties. |  |
+| `:tcp` | `struct` | key-value pairs of valid tcp properties. |  |
+| `:udp` | `struct` | key-value pairs of valid udp properties. |  |
+
+## ip-interface/remove
+
+
+### Mandatory properties
+
+None
+
+### Optional properties
+
+None
 
 ### Examples
 
@@ -34,28 +47,11 @@ None
                      :ipv4 {:mtu 1500
                             :forwarding true})
 ```
-
 ```janet
 (ip-interface/ensure "example0")
 ```
 
-## ip-interface/remove
-
-### Resource Name
-
-Interface name (`:string`)
-
-### Mandatory properties
-
-None
-
-### Optional properties
-
-None
-
-### Examples
 
 ```janet
 (ip-interface/remove "example2")
 ```
-
