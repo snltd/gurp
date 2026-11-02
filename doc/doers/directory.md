@@ -14,9 +14,9 @@ Fully qualified path to directory [`:string`]
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:group` | `string number` | The group name or GID the for this directory. | `root` |
-| `:mode` | `string` | Permissions, octal. | `0755` |
-| `:owner` | `string number` | The username or UID of the user who owns this directory. | `root` |
+| `:group` | `string number` | The group name or GID the for this directory. | `"root"` |
+| `:mode` | `string` | Permissions, octal. | `"0755"` |
+| `:owner` | `string number` | The username or UID of the user who owns this directory. | `"root"` |
 
 ### Optional properties
 

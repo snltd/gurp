@@ -1,5 +1,6 @@
 (use ../dsl)
 (use ../../test/doers/lib/test-lib)
+(import ../dsl :only [without-keys])
 (import ../lib :only [compact] :as gurp-lib)
 
 (defn joint [& sections]
@@ -17,9 +18,7 @@
 
 # Name is used internally, but shouldn't be exposed as a property in the docs
 (defn props-without-name [action-info category]
-  (def ret (get-in action-info [:props category] @{}))
-  (set (ret :name) nil)
-  ret)
+  (without-keys (get-in action-info [:props category] @{}) [:name]))
 
 (defn term-width []
   (dyn :term-width 80)) # Gurp sets the width of the user terminal as a dyn

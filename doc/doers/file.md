@@ -14,9 +14,9 @@ Fully qualified path to file [`:string`]
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:group` | `string number` | The group name or GID of the for this file. | `root` |
-| `:mode` | `string` | Permissions, octal. | `0644` |
-| `:owner` | `string number` | The username or UID of the user who owns this file. | `root` |
+| `:group` | `string number` | The group name or GID of the for this file. | `"root"` |
+| `:mode` | `string` | Permissions, octal. | `"0644"` |
+| `:owner` | `string number` | The username or UID of the user who owns this file. | `"root"` |
 
 ### Optional properties
 

@@ -27,7 +27,7 @@
 #         :help - a string used in documentation
 #         :default - an optional default value
 #       :optional - a struct of optional properties. Like :mandatory but
-#                   cannot have a defualt
+#                   cannot have a default
 # 
 (defn- server-url
   [server-name from-path]

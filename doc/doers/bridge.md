@@ -19,7 +19,7 @@ Any valid bridge name [`:string`]
 | `:hello-time` | `number` | STP hello time value, in seconds. | `2` |
 | `:max-age` | `number` | Maximum age, in seconds, for STP configuration information. | `20` |
 | `:priority` | `number` | Bridge priority. 0 to 61440. | `32768` |
-| `:protect` | `string` | Protection method. | `stp` |
+| `:protect` | `string` | Protection method. | `"stp"` |
 
 ### Optional properties
 

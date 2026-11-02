@@ -88,7 +88,6 @@
   to that directory, and returns the fully qualified path, but if it gets
   a fully qualified path, it simply returns it"
   [file-name]
-
   (if (qualified-path? file-name)
     file-name
     (do
@@ -152,7 +151,8 @@
   (dyn :host-dyn))
 
 (defn this-host-k
-  "Returns the name of the host as a keyword. This is set by a dyn in the host macro"
+  "Returns the name of the host as a keyword. This is set by a dyn in the host
+   macro"
   []
   (keyword (this-host)))
 
@@ -339,3 +339,9 @@
   "Sort a file when each line's first field is numeric"
   [str]
   (int/u64 (first (fields str))))
+
+(defn without-keys
+  "Return a copy of strct without any keys listed in `key-tuple`"
+  [strct key-tuple]
+  (def filter-fn (fn [[k v]] (not (has-value? key-tuple k))))
+  (struct ;(flatten (filter filter-fn (pairs strct)))))
