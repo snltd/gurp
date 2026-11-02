@@ -15,7 +15,7 @@ Qualified path to the link that will be created [`:string`]
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:source` | `string` | The file to which we will link. |  |
-| `:type` | `string` | The type of link. Allowed values: "symbolic", "hard". | `symbolic` |
+| `:type` | `string` | The type of link. Allowed values: "symbolic", "hard". | `"symbolic"` |
 
 ### Optional properties
 

@@ -16,8 +16,8 @@ User's username [`:string`]
 |-------|--------|---------------|-----------|
 | `:gecos` | `string` | User's name or description. |  |
 | `:home-dir` | `string` | User's home dir. |  |
-| `:primary-group` | `string number` | Group name or GID to which user belongs. | `staff` |
-| `:shell` | `string` | User's shell. | `/bin/zsh` |
+| `:primary-group` | `string number` | Group name or GID to which user belongs. | `"staff"` |
+| `:shell` | `string` | User's shell. | `"/bin/zsh"` |
 | `:uid` | `number` | UID of user. |  |
 
 ### Optional properties

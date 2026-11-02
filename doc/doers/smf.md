@@ -17,7 +17,7 @@ Short name of service. Not used internally [`:string`]
 | `:default-enabled` | `boolean` | Start the service when the manifest installs. | `true` |
 | `:fmri` | `string` | Service FMRI. |  |
 | `:single-instance` | `boolean` | Is this a single-instance service?. | `true` |
-| `:stop-method` | `struct` | See 'smf-method'. | `<struct 0x000001BEDB78>` |
+| `:stop-method` | `struct` | See 'smf-method'. | `{:exec ":kill" :timeout 10}` |
 
 ### Optional properties
 

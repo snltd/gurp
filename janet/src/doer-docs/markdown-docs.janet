@@ -66,7 +66,7 @@
   [(code (string/format "%v" prop))
    (code (string/join (spec :types) " "))
    (lib/squeeze (property-description spec))
-   (if-let [default-val (spec :default)] (code default-val) "")])
+   (if-let [default-val (spec :default)] (code (string/format "%p" default-val)) "")])
 
 (defn- property-table
   [props]

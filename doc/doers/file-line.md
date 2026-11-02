@@ -31,8 +31,8 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:apply-to` | `string` | Which matches to act on. Allowed values: "all", "first", "last". | `all` |
-| `:match` | `string` | How to match the line. Allowed values: "exact", "starts-with", "ends-with", "contains", "regex". | `exact` |
+| `:apply-to` | `string` | Which matches to act on. Allowed values: "all", "first", "last". | `"all"` |
+| `:match` | `string` | How to match the line. Allowed values: "exact", "starts-with", "ends-with", "contains", "regex". | `"exact"` |
 | `:pattern` | `string` | The line or pattern which must be removed. |  |
 
 ### Optional properties

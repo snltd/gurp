@@ -18,7 +18,7 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
-| `:properties` | `struct` | ZFS properties (:keyword) paired with desired value (`:string`). | `<struct 0x000001F69288>` |
+| `:properties` | `struct` | ZFS properties (:keyword) paired with desired value (`:string`). | `{}` |
 | `:size` | `string` | If specified, creates a ZFS volume of given size (e.g. '10G'). |  |
 
 ## zfs/remove
