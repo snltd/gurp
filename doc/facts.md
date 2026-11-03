@@ -30,7 +30,7 @@ Facts are cached on each Gurp run. To avoid the cache, pass `true` as a second
 argument to `fact`.
 
 ## Full List of Facts
-- `hostname` (string) The name of the host on which Gurp is running, taken from `hostname.`
+-- `hostname` (string) The name of the host on which Gurp is running, taken from `hostname.`
 - `ip-addresses` (struct) A struct with address names as keys, and structs of properties as values. Value keys are the headers of `ipadm show-addr`.
 - `ip-interfaces` (struct) A struct with interface names as keys, and structs of properties as values. Value keys are the headers of `ipadm show-if`.
 - `links` (struct) A struct with link names names as keys, and structs of properties as values. Value keys are the headers of `dladm show-link`.

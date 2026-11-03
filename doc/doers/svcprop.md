@@ -10,7 +10,7 @@ Any valid FMRI of the service whose properties you wish to set [`:string`]
 ## svcprop/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -26,7 +26,7 @@ Any valid FMRI of the service whose properties you wish to set [`:string`]
 ## svcprop/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|

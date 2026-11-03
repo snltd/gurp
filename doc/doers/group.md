@@ -10,7 +10,7 @@ Group name [`:string`]
 ## group/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -23,7 +23,7 @@ None
 ## group/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

@@ -10,7 +10,7 @@ Service FMRI [`:string`]
 ## svc/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -26,7 +26,7 @@ Service FMRI [`:string`]
 ## svc/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

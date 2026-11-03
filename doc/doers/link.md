@@ -10,7 +10,7 @@ Qualified path to the link that will be created [`:string`]
 ## link/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -26,7 +26,7 @@ Qualified path to the link that will be created [`:string`]
 ## link/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

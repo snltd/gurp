@@ -10,7 +10,7 @@ The route destination, e.g. '10.10.0.0/16'. For a default route            speci
 ## route/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 
@@ -27,7 +27,7 @@ None
 ## route/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|

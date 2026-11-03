@@ -10,7 +10,7 @@ Any valid bridge name [`:string`]
 ## bridge/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -30,7 +30,7 @@ Any valid bridge name [`:string`]
 ## bridge/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

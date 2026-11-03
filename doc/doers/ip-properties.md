@@ -10,7 +10,7 @@ Any convenient name: not used internally [`:string`]
 ## ip-properties/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 
@@ -29,7 +29,7 @@ None
 ## ip-properties/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

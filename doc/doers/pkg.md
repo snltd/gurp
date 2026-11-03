@@ -10,7 +10,7 @@ Package name, of the form ooce/editor/helix [`:string`]
 ## pkg/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 
@@ -21,7 +21,7 @@ None
 ## pkg/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

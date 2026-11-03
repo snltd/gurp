@@ -10,7 +10,7 @@ Gem name [`:string`]
 ## gem/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 
@@ -25,7 +25,7 @@ None
 ## gem/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

@@ -10,7 +10,7 @@ Address name, e.g. vnic0/v4 [`:string`]
 ## ip-address/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -26,7 +26,7 @@ Address name, e.g. vnic0/v4 [`:string`]
 ## ip-address/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

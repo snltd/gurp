@@ -10,7 +10,7 @@ ZFS dataset name [`:string`]
 ## zfs/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 
@@ -24,7 +24,7 @@ None
 ## zfs/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

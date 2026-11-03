@@ -10,7 +10,7 @@ Package name [`:string`]
 ## pkgin/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 
@@ -21,7 +21,7 @@ None
 ## pkgin/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

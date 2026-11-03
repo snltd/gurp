@@ -10,7 +10,7 @@ Short name of service. Not used internally [`:string`]
 ## smf/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -36,7 +36,7 @@ Short name of service. Not used internally [`:string`]
 ## smf/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 
