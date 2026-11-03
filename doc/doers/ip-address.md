@@ -34,12 +34,15 @@ None
 
 None
 
-### Examples
+## Examples
+
 
 ```janet
 (ip-address/ensure "example1/v4"
                    :type "dhcp")
 ```
+
+
 ```janet
 (ip-address/ensure "example0/v4"
                    :type "static"

@@ -29,7 +29,8 @@ None
 
 None
 
-### Examples
+## Examples
+
 
 ```janet
 (etherstub/ensure "newstub0")

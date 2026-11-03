@@ -1,4 +1,5 @@
-(use ./lib)
+(import ./lib :only [drop-element drop-empties parsed-value ->key
+                     tabular-data->struct values-as-tuple])
 
 # Functions mostly exposed to the user and also used internally.
 
@@ -64,7 +65,7 @@
     (error "pathcat called with a nil"))
   (as-> chunks _
         (map stripslash _)
-        (drop-empties _)
+        (lib/drop-empties _)
         (string/join _ "/")
         (string "/" _)))
 
@@ -74,7 +75,7 @@
   (if (nil? chunks)
     (error "zfscat called with a nil"))
   (-> (map stripslash chunks)
-      (drop-empties)
+      (lib/drop-empties)
       (string/join "/")))
 
 (defn qualified-path?
@@ -188,7 +189,7 @@
   in the format string"
   [format-string format-values]
   (->> format-values
-       (map |(string/format (string format-string "\n") ;(values-as-tuple $)))
+       (map |(string/format (string format-string "\n") ;(lib/values-as-tuple $)))
        (string/join)))
 
 (defn indoc
@@ -292,19 +293,19 @@
 (defn tabular-rows->struct
   [rows &opt key-column]
   (default key-column 0)
-  (def struct-keys (->> rows (first) (fields) (map ->key)))
+  (def struct-keys (->> rows (first) (fields) (map lib/->key)))
   (def data (map fields (slice rows 1)))
 
   (defn- substruct
     [values]
     [(get values key-column)
      (table/to-struct
-       (zipcoll (drop-element struct-keys key-column)
-                (map parsed-value (drop-element values key-column))))])
+       (zipcoll (lib/drop-element struct-keys key-column)
+                (map lib/parsed-value (lib/drop-element values key-column))))])
 
   (->> data
        (map substruct)
-       (tabular-data->struct)))
+       (lib/tabular-data->struct)))
 
 (defn tabular-output->struct
   "Takes a table like dladm and ipadm output, and turns it into a struct. Keys

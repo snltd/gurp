@@ -40,13 +40,17 @@ Any valid FMRI of the service whose properties you wish to set [`:string`]
 
 ## Notes
 
+
 - If you want to change a property value on a service instance, you may also have to define the property group to which it belongs, as it may not be inherited from the base service.
+
 - When a service restarts on-change, it also refreshes.
+
 - If not specified, Gurp will infer the types of property values.
+
 - You can't change the type of an existing property group.
 
+## Examples
 
-### Examples
 
 ```janet
 (svcprop/ensure "example/svc_1"
@@ -56,6 +60,8 @@ Any valid FMRI of the service whose properties you wish to set [`:string`]
                              :application/active true
                              :application/timeout 50})
 ```
+
+
 ```janet
 (svcprop/ensure "example/svc_1"
                 :property-groups {:application "application"}

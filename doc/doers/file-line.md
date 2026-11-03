@@ -41,33 +41,42 @@ None
 
 ## Notes
 
+
 - The file is not managed here. Use a file resource.
+
 - The doer reads the whole file into memory, so be mindful of file size.
+
 - Appended lines have a newline at the beginning and end.
+
 - Removing a line puts a newline on the end of the file if there wasn't one already.
+
 - Files are not backed up.
 
+## Examples
 
-### Examples
 
 ```janet
-(file-line/ensure "/path/to/file"
+(file-line/ensure "/path/to/file_1"
                   :line "i-want-to-see-this")
 ```
 
 
 ```janet
-(file-line/remove "/path/to/file"
+(file-line/remove "/path/to/file_2"
                   :pattern "string-prefix"
                   :match "starts-with"
                   :apply-to "last")
 ```
+
+
 ```janet
-(file-line/remove "/path/to/file"
+(file-line/remove "/path/to/file_3"
                   :pattern "i-do-not-want-to-see-this-anywhere")
 ```
+
+
 ```janet
-(file-line/remove "/path/to/file"
+(file-line/remove "/path/to/file_4"
                   :match "regex"
                   :pattern "rust-regex")
 ```

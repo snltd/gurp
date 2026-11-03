@@ -31,10 +31,11 @@ None
 
 ## Notes
 
+
 - You specify pkgs by name, so `openssl` rather than `openssl-3.3.2`. This means you can't request specific versions.
 
+## Examples
 
-### Examples
 
 ```janet
 (pkgin/ensure "rust")

@@ -47,15 +47,21 @@ None
 
 ## Notes
 
+
 - `:from` takes a fully-qualified or relative path. If you use the latter, Gurp assumes the file is in a ``files/` directory at the same level as the directory holding the file being parsed.
+
 - `:from-struct` and `:to-format` let you turn Janet values into a config file. Fully supported file formats are `json`, `toml`, and `yaml`: these formats can represent any valid struct. You can create INI files (`:to-format "ini"`), but the limits of that format mean your struct must be a struct of structs, each representing a section. An invalid struct will cause an error.
+
 - Unless you specify `TIMESTAMP`, only one backup file is kept. Backup files are always owned by `root:root`, with mode `0400`.
+
 - If you try to ensure a file at a path which exists, but is not a file, Gurp will error
+
 - The `template-out` and `indoc` macros are useful when specifying :content.
+
 - Gurp can also create key-value pairs (`:to-format "kvp"`). It can do this from a single-level struct, or from an array. In the latter case, entries are alternately keys and values. Using an array lets you create files with duplicate keys.
 
+## Examples
 
-### Examples
 
 ```janet
 (file/ensure "/example/file/from-content"
@@ -63,12 +69,16 @@ None
              :mode "0600"
              :content "words\n and\nstuff\n")
 ```
+
+
 ```janet
 (file/ensure "/example/file/from-local-file"
              :group "daemon"
              :mode "4755"
              :from "file-dir/example")
 ```
+
+
 ```janet
 (file/ensure "/example/file/from-url"
              :from-url "https://raw.githubusercontent.com/snltd/gurp/refs/heads/main/LICENSE.txt"

@@ -1,10 +1,9 @@
-## Write doer documentation to the console. Used by `gurp describe`
-# 
-(import ../../test/doers/lib/test-lib :only [example-root])
+# Write doer documentation to the console. Used by `gurp describe`
+
 (import ../command-lib :only [strip-ansi])
-(import ../doers/lib/lib :only [comma-sep] :as doer-lib)
 (import ../dsl :only [basename fields files-in])
-(import ../lib :only [drop-empties ] :as gurp-lib)
+(import ../doers/lib/lib :only [comma-sep] :as doer-lib)
+(import ../lib :only [drop-empties] :as gurp-lib)
 (import ./formatting :only [bold bold-underline underline] :prefix "")
 (import ./lib :only [a/b join-lines joint lookup props-without-name term-width])
 
@@ -13,9 +12,6 @@
         (string/split "\n" _)
         (map (partial string "  ") _)
         (string/join _ "\n")))
-
-(defn code-block [code]
-  (string "\n" (indent code)))
 
 # Returns the width of a field which can accommodate the longest value in list
 (defn- field-width [list]
@@ -78,82 +74,50 @@
                           (lib/term-width)))
           (lib/join-lines)))))
 
-(defn- note-formatter [note]
-  (lib/join-lines (lay-out-help "" note 2 (lib/term-width))))
+# (defn help-for-helper [doer helper])
+#   (let [info (lib/lookup doer (symbol :attrs- helper))]
+#     (lib/joint (title-block doer helper)
+#                (description-block info)
+#                (name-block info)
+#                (props-block (info :helper))
+#                (notes-block info)
+#                (examples-block doer [helper]))))
 
-(defn- code-examples-map-fn [dir]
-  (defn map-fn [file] (tuple (dsl/basename file) (slurp file)))
-  (struct ;(mapcat map-fn (dsl/files-in dir :file))))
+(import ./base)
 
-# This def is important because it pulls the examples into the Gurp Janet image
-(def code-examples
-  (let [doer-dirs (dsl/files-in test-lib/example-root :directory)
-        doers (map dsl/basename doer-dirs)
-        examples (map code-examples-map-fn doer-dirs)]
-    (zipcoll doers examples)))
+(def Inline
+  (table/setproto
+    @{:header-1 bold-underline
+      :header-2 bold
 
-# Returns a string formatted for doer/action, formatted via code-bock-fn
-(defn- code-example [code-block-fn doer action]
-  (defn filter-fn [[k v]]
-    (let [prefix (string action "-")]
-      (when (string/has-prefix? prefix k) (code-block v))))
+      :description (fn [self text]
+                           (lib/join-lines
+                             (lay-out-help "" text 2 (lib/term-width))))
 
-  (-> (when-let [examples (get code-examples (string doer))]
-        (keep filter-fn (sorted (pairs examples))))
-      (string/join)))
+      :example-formatter indent
 
-(defn- name-block [info]
-  (if-let [name-str (info :name-is)]
-    (string/format "  %s  [:string]  %s" (bold "name") name-str)
-    "Does not take a name parameter."))
+      :note-formatter (fn [note]
+                        (lib/join-lines (lay-out-help "" note 2 (lib/term-width))))
 
-(defn- examples-block [doer prefixes]
-  (string (bold "Examples") "\n"
-          (lib/joint
-            ;(catseq [prefix :in prefixes]
-               (code-example code-block doer prefix)))))
+      :code (fn [code] (string "\n" (indent code)))
 
+      :properties (fn [self prop-type properties]
+                          (string ((self :header-2)
+                                    (string/format "%s properties" prop-type))
+                                  "\n"
+                                  ((self :format-properties) properties)))
 
-(defn- properties-block [prop-type properties]
-  (string (bold (string/format "%s properties" prop-type)) "\n"
-          (format-properties properties)))
+      :format-properties format-properties
 
-(defn- props-block [action-info]
-  (lib/joint
-    (properties-block "Mandatory" (lib/props-without-name action-info :mandatory))
-    (properties-block "Optional" (lib/props-without-name action-info :optional))))
-
-(defn- notes-block [info]
-  (when-let [notes (info :notes)]
-    (lib/joint (bold "Notes") ;(map note-formatter notes))))
-
-(defn- action-block [info doer action]
-  (if-let [action-info (info action)]
-    (lib/joint (bold-underline (lib/a/b doer action))
-               (props-block action-info))
-    (string/format "There is no %s/%s action." doer action)))
-
-(defn- title-block [& bits]
-  (bold-underline (lib/a/b ;bits)))
-
-(defn- description-block [info]
-  (lib/join-lines (lay-out-help "" (info :description) 2 (lib/term-width))))
+      :name (fn [self name-is]
+                    (if name-is
+                      (string/format "  %s  [:string]  %s" (bold "name") name-is)
+                      "Does not take a name parameter."))} base/Base))
 
 (defn help-for-doer [doer]
-  (let [info (lib/lookup doer :attrs)]
-    (lib/joint (title-block doer)
-               (description-block info)
-               (name-block info)
-               (action-block info doer :ensure)
-               (action-block info doer :remove)
-               (notes-block info)
-               (examples-block doer [:ensure :remove]))))
+  (def doccer (:new Inline (keyword doer)))
+ (:render-doer doccer))
 
 (defn help-for-helper [doer helper]
-  (let [info (lib/lookup doer (symbol :attrs- helper))]
-    (lib/joint (title-block doer helper)
-               (description-block info)
-               (name-block info)
-               (props-block (info :helper))
-               (notes-block info)
-               (examples-block doer [helper]))))
+  (def doccer (:new Inline (keyword doer) (keyword helper)))
+   (:render-helper doccer))

@@ -38,16 +38,21 @@ None
 
 ## Notes
 
+
 - Tries to minimise the calls to `gem install` by grouping together installs with similar parameters
+
 - Only version numbers are supported, so `latest` won't work.
+
 - `gem/remove` takes no options, so removes all versions of the given gem.
 
+## Examples
 
-### Examples
 
 ```janet
 (gem/ensure "wavefront-cli")
 ```
+
+
 ```janet
 (gem/ensure "my-gem"
             :version "1.2.3"

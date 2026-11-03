@@ -34,7 +34,8 @@ None
 
 None
 
-### Examples
+## Examples
+
 
 ```janet
 (publisher/ensure "example"

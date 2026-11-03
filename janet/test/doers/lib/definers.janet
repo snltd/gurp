@@ -64,13 +64,13 @@
 #       (def doer :pkgin)
 #       (def attrs (@build-doer "Install and uninstall pkgin packages. Only valid in a pkgsrc zone." :name-is "Package name" :notes ["You specify pkgs by name, so `openssl` rather than `openssl-3.3.2`."])))))
 
-# (deftest make-fn
-#   (test-macro
-#     (make-fn ensure :apk)
-#     (defn ensure
-#       [resource-name & spec]
-#       nil
-#       (pinpoint-error ensure (->> (splice spec) (enrich-and-validate resource-name (attrs ensure) :name resource-name) (spec->resource :apk resource-name) (collector/push :ensure :apk))))))
+(deftest make-fn
+  (test-macro
+    (make-fn ensure :apk)
+    (defn ensure
+      [resource-name & spec]
+      nil
+      (pinpoint-error ensure (->> (splice spec) (enrich-and-validate resource-name (attrs ensure) :name resource-name) (spec->resource :apk resource-name) (collector/push :ensure :apk))))))
 
 # (deftest defdoer
 #   (test-macro

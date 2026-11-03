@@ -5,7 +5,7 @@ A collection of things too small to deserve their own doer.
 
 ### Resource Name
 
-Does not take a name parameter.
+ [`:string`]
 
 ## misc/ensure
 
@@ -26,22 +26,25 @@ There is no misc/remove action.
 
 ## Notes
 
+
 - The misc doer is a placeholder for what Gurp considers "OS primitives" but which are not big or complex enough to warrant their own doer
 
+## Examples
 
-### Examples
 
 ```janet
 (misc/ensure
   :nfs-domain "lan.id264.net")
 ```
+
+
 ```janet
 (misc/ensure
   :scheduler "FSS")
 ```
+
+
 ```janet
 (misc/ensure
   :enable-smb "rob")
 ```
-
-

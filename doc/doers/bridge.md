@@ -38,11 +38,14 @@ None
 
 None
 
-### Examples
+## Examples
+
 
 ```janet
 (bridge/ensure "basic")
 ```
+
+
 ```janet
 (bridge/ensure "with_links"
                :links ["stub1" "stub2"]
