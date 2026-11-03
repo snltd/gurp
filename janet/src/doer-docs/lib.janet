@@ -49,3 +49,9 @@
   (try
     (eval (symbol (a/b resource (if helper (keyword prop :- helper) prop))))
     ([_] nil)))
+
+# Capitalise the first letter of each given word
+(defn title-words [& words]
+  (defn map-fn [word] (peg/replace 1 string/ascii-upper word))
+  (string/join (map map-fn words) " "))
+

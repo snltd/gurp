@@ -1,46 +1,38 @@
-# # Generate Markdown documentation for all the doers, using the definition file
-# # and code examples which are also uses in tests. Used by doers/build.sh, and
-# # not built into the Gurp lib.
-# # 
-(import ./lib :only [a/b doers join-lines joint lookup props-without-name repo-root squeeze])
-# (import ../../test/doers/lib/test-lib :only [example-root])
-(import ../facts :only [fact->fn])
-(import ../dsl :only [basename files-in pathcat])
+# Generate Markdown documentation for all the doers, using the definition file
+# and code examples which are also uses in tests. Used by doers/build.sh, and
+# not built into the Gurp lib.
+ 
 (import ../doers/lib/lib :prefix "" :only [comma-sep] :as doer-lib)
+(import ../dsl :only [pathcat])
+(import ../facts :only [fact->fn])
+(import ./base)
+(import ./lib :only [doers join-lines repo-root squeeze])
 (use ./markdown-dsl)
 
 (def doc-dir (dsl/pathcat (lib/repo-root) "doc"))
 (def doer-doc-dir (dsl/pathcat doc-dir "doers"))
 
-(defn- property-description
-  [spec]
-  (def ret @[(spec :help)])
+(defn- property-description [spec]
+  (let [ret @[(spec :help)]]
+    (when-let [allowed-values (spec :values)]
+      (array/concat ret (string "Allowed values: " (doer-lib/comma-sep allowed-values))))
+    (string (string/join ret ". ") ".")))
 
-  (when-let [allowed-values (spec :values)]
-    (array/concat ret (string "Allowed values: " (doer-lib/comma-sep allowed-values))))
-
-  (string (string/join ret ". ") "."))
-
-(defn- props-to-row
-  "Make an array whose elements are cells for a row of a table"
-  [prop spec]
+# Make an array whose elements are cells for a row of a table
+(defn- props-to-row [prop spec]
   [(code (string/format "%v" prop))
    (code (string/join (spec :types) " "))
    (lib/squeeze (property-description spec))
-   (if-let [default-val (spec :default)]
-     (code (string/format "%p" default-val))
-     "")])
+   (if-let [default-val (spec :default)] (code (string/format "%p" default-val)) "")])
 
-(defn- property-table
-  [props]
+(defn- property-table [props]
   (let [rows (seq [[prop spec] :pairs props]
                (table-row ;(props-to-row prop spec)))]
     [(table-header :key :type :description :default) ;(sorted rows)]))
 
-(defn generate-facts-doc
-  "Fills in a block of doc/facts.md"
-  []
-  (def marker "## Full List of Facts")
+# Fills in a block of doc/facts.md
+(defn generate-facts-doc []
+  (def marker (h2 "Full List of Facts"))
   (def facts-file (dsl/pathcat doc-dir "facts.md"))
 
   (if-not (os/stat facts-file)
@@ -59,17 +51,17 @@
                                         (lib/squeeze (fact :description))))))]
 
     (print "writing facts doc -> " facts-file)
-    (def fh (file/open facts-file :w))
-    (file/write fh
-                (string frontspiece facts-list))))
-
-(import ./base)
+    (with [fh (file/open facts-file :w)]
+      (file/write fh (string frontspiece facts-list)))))
 
 (def Markdown
   (table/setproto
     @{:header-1 h1
       :header-2 h2
       :description (fn [self text] (string (lib/squeeze text)))
+      :note-formatter (fn [note] (string "- " (lib/squeeze note)))
+      :example-formatter code-block
+
       :name (fn [self name-is]
               (lib/join-lines [(h3 "Resource Name")
                                (if :name-is
@@ -80,11 +72,7 @@
                     (lib/join-lines [(h3 (string/format "%s properties" prop-type))
                                      ;(if (empty? properties)
                                         ["None"]
-                                        (property-table properties))]))
-
-      :note-formatter (fn [note] (string "- " (lib/squeeze note)))
-      :example-formatter code-block} base/Base))
-
+                                        (property-table properties))]))} base/Base))
 
 (defn markdown-for-doer [doer]
   (def doccer (:new Markdown (keyword doer)))
@@ -108,8 +96,7 @@
 (defn generate-all-docs []
   (generate-facts-doc)
 
-  (if-not (os/stat doer-doc-dir)
-    (os/mkdir doer-doc-dir))
+  (if-not (os/stat doer-doc-dir) (os/mkdir doer-doc-dir))
 
   (loop [doer :in (lib/doers)]
     (def md-file (string doer-doc-dir "/" doer ".md"))

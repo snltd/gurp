@@ -1,7 +1,5 @@
 (import ./lib)
-(import ../../test/doers/lib/test-lib :only [example-root])
 (import ./examples :only [of])
-(import ../dsl :only [basename fields files-in])
 
 (def Base
   @{:new (fn [class doer &opt helper]
@@ -14,8 +12,10 @@
 
     :props (fn [self action-info]
              (lib/joint
-               (:properties self "Mandatory" (lib/props-without-name action-info :mandatory))
-               (:properties self "Optional" (lib/props-without-name action-info :optional))))
+               (:properties self :mandatory
+                            (lib/props-without-name action-info :mandatory))
+               (:properties self "Optional"
+                            (lib/props-without-name action-info :optional))))
 
     :action (fn [self action]
               (if-let [doer (self :doer)

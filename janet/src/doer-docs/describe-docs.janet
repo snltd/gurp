@@ -1,11 +1,12 @@
 # Write doer documentation to the console. Used by `gurp describe`
 
 (import ../command-lib :only [strip-ansi])
-(import ../dsl :only [basename fields files-in])
 (import ../doers/lib/lib :only [comma-sep] :as doer-lib)
+(import ../dsl :only [fields])
 (import ../lib :only [drop-empties] :as gurp-lib)
+(import ./base)
 (import ./formatting :only [bold bold-underline underline] :prefix "")
-(import ./lib :only [a/b join-lines joint lookup props-without-name term-width])
+(import ./lib :only [join-lines term-width])
 
 (defn- indent [text]
   (as-> text _
@@ -74,50 +75,37 @@
                           (lib/term-width)))
           (lib/join-lines)))))
 
-# (defn help-for-helper [doer helper])
-#   (let [info (lib/lookup doer (symbol :attrs- helper))]
-#     (lib/joint (title-block doer helper)
-#                (description-block info)
-#                (name-block info)
-#                (props-block (info :helper))
-#                (notes-block info)
-#                (examples-block doer [helper]))))
-
-(import ./base)
-
 (def Inline
   (table/setproto
     @{:header-1 bold-underline
       :header-2 bold
-
-      :description (fn [self text]
-                           (lib/join-lines
-                             (lay-out-help "" text 2 (lib/term-width))))
-
       :example-formatter indent
-
-      :note-formatter (fn [note]
-                        (lib/join-lines (lay-out-help "" note 2 (lib/term-width))))
-
+      :format-properties format-properties
       :code (fn [code] (string "\n" (indent code)))
 
-      :properties (fn [self prop-type properties]
-                          (string ((self :header-2)
-                                    (string/format "%s properties" prop-type))
-                                  "\n"
-                                  ((self :format-properties) properties)))
+      :description (fn [self text]
+                     (lib/join-lines
+                       (lay-out-help "" text 2 (lib/term-width))))
 
-      :format-properties format-properties
+      :note-formatter (fn [note]
+                        (lib/join-lines
+                          (lay-out-help "" note 2 (lib/term-width))))
+
+      :properties (fn [self prop-type properties]
+                    (string ((self :header-2)
+                              (string/format "%s properties" prop-type))
+                            "\n"
+                            ((self :format-properties) properties)))
 
       :name (fn [self name-is]
-                    (if name-is
-                      (string/format "  %s  [:string]  %s" (bold "name") name-is)
-                      "Does not take a name parameter."))} base/Base))
+              (if name-is
+                (string/format "  %s  [:string]  %s" (bold "name") name-is)
+                "Does not take a name parameter."))} base/Base))
 
 (defn help-for-doer [doer]
   (def doccer (:new Inline (keyword doer)))
- (:render-doer doccer))
+  (:render-doer doccer))
 
 (defn help-for-helper [doer helper]
   (def doccer (:new Inline (keyword doer) (keyword helper)))
-   (:render-helper doccer))
+  (:render-helper doccer))
