@@ -46,11 +46,13 @@ None
 
 ## Notes
 
+
 - Generated manifests are written to `/opt/site/lib/smf/manifest`, and the output of subsequent runs is compared to the existing reference. If the file has changed, the service is re-created. We do it this way because it is not possible to compare a running service with a generated manifest.
+
 - smf/remove stops the service and deletes it from the SMF registry.
 
+## Examples
 
-### Examples
 
 ```janet
 (smf/ensure "example"

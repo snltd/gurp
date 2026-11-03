@@ -36,19 +36,20 @@ None
 
 ## Notes
 
+
 - Because Gurp ends up shelling out to `svcs` and `svcadm`, the service name can be any valid FMRI
 
+## Examples
 
-### Examples
 
 ```janet
 (svc/ensure "snltd/example"
             :state "disabled")
 ```
+
+
 ```janet
 (svc/ensure "important/service"
             :state "enabled"
             :restarted-by [:/test-role/file/stub])
 ```
-
-

@@ -1,7 +1,8 @@
 # Interfaces called by the Gurp binary.
 # 
 (use ./doers)
-(use ./doer-docs/describe-docs)
+# (use ./doer-docs/describe-docs)
+(import ./doer-docs/describe-docs :only [help-for-doer help-for-helper lay-out-help])
 (use ./doer-docs/formatting)
 (use ./facts)
 (import ./doer-docs/lib :only [doers join-lines lookup term-width] :as docs-lib)
@@ -14,18 +15,19 @@
 (defn help-for [object]
   (if (= object "control-data")
     (control-data/describe)
-    (try
+    # (try
       (if (string/find "/" object)
-        (help-for-helper (splice (string/split "/" object 0 2)))
-        (help-for-doer object))
-      ([_e]
-        (string "No help for '" object "'")))))
+        (describe-docs/help-for-helper (splice (string/split "/" object 0 2)))
+        (describe-docs/help-for-doer object))
+        ))
+      # ([_e]
+      #   (string "No help for '" object "'")))))
 
 # Returns a multiline string, pairing doers with their descriptions. Used by
 # Gurp's 'doers' command
 (defn list-doers []
   (-> (catseq [doer :in doers]
-        (lay-out-help (bold doer)
+        (describe-docs/lay-out-help (bold doer)
                       ((docs-lib/lookup doer :attrs) :description)
                       28
                       (docs-lib/term-width)))
@@ -37,7 +39,7 @@
   (let [sorted-fact-names (sorted (keys fact->fn))]
     (-> (catseq [name :in sorted-fact-names]
           (let [fact (fact->fn name)]
-            (lay-out-help
+            (describe-docs/lay-out-help
               (bold (string ":" name))
               (fact :description)
               28

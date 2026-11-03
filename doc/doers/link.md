@@ -36,17 +36,21 @@ None
 
 ## Notes
 
+
 - If the source doesn't exist, you get an error.
+
 - Files and directories are ensured before links, so you can link Gurp-managed resources.
 
+## Examples
 
-### Examples
 
 ```janet
 (link/ensure "/link/is/here"
              :type "hard"
              :source "/link/points/here")
 ```
+
+
 ```janet
 (link/ensure "/symlink/is/here"
              :label "example-symlink"

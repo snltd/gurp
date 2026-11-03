@@ -40,7 +40,8 @@ None
 
 None
 
-### Examples
+## Examples
+
 
 ```janet
 (network-flow/ensure "ssh-flow"
@@ -49,6 +50,8 @@ None
                      :local-port 22
                      :maxbw "1200K")
 ```
+
+
 ```janet
 (network-flow/ensure "tls-throttle"
                      :link "vnic1"

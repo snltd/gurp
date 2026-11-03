@@ -37,7 +37,8 @@ None
 
 None
 
-### Examples
+## Examples
+
 
 ```janet
 (ip-interface/ensure "example1"
@@ -47,6 +48,8 @@ None
                      :ipv4 {:mtu 1500
                             :forwarding true})
 ```
+
+
 ```janet
 (ip-interface/ensure "example0")
 ```

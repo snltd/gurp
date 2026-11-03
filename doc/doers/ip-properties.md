@@ -39,10 +39,11 @@ None
 
 ## Notes
 
+
 - Define `extra_priv_ports` as a comma-separated list.
 
+## Examples
 
-### Examples
 
 ```janet
 (ip-properties/ensure "general"
@@ -53,5 +54,3 @@ None
                       :udp {:extra_priv_ports "2050,4040"}
                       :sctp {:max_buf 1048000})
 ```
-
-

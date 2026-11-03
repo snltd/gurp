@@ -31,7 +31,8 @@ None
 
 None
 
-### Examples
+## Examples
+
 
 ```janet
 (group/ensure "new-group"

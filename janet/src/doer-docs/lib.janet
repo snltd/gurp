@@ -12,6 +12,9 @@
 (defn join-lines [lines]
   (string/join lines "\n"))
 
+(defn join-words [& words]
+  (string/join (tuple ;words) " "))
+
 # Squash repeated whitespace into a single space
 (defn squeeze [str]
   (peg/replace-all '(* (some :s)) " " str))
@@ -38,8 +41,7 @@
 # Array of all doer names
 (defn doers []
   (seq [doer :in (sorted (os/dir (doer-root)))
-        :when (string/has-suffix? ".janet" doer)
-        :unless (= "lib.janet" doer)]
+        :when (string/has-suffix? ".janet" doer)]
     (string/replace ".janet" "" doer)))
 
 # Value of the given prop in doer or doer/helper

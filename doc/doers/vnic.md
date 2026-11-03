@@ -36,16 +36,20 @@ None
 
 ## Notes
 
+
 - VNICs get a random MAC address.
+
 - If a VNIC exists but has a different VLAN tag or underlying physical NIC to the specification, Gurp will try to recreate it.
 
+## Examples
 
-### Examples
 
 ```janet
 (vnic/ensure "vnic0"
              :over "e1000g0")
 ```
+
+
 ```janet
 (vnic/ensure "vnic1"
              :over "e1000g0"

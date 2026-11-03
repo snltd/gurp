@@ -37,16 +37,20 @@ None
 
 ## Notes
 
+
 - Does not generate certs: just copies them to the system directory and re-hashes it.
+
 - If a `:from` path is relative, Gurp will fully qualify it using the same rules as the `file` doer.
 
+## Examples
 
-### Examples
 
 ```janet
 (system-cert/ensure "from-file"
                     :from "ca/example")
 ```
+
+
 ```janet
 (system-cert/ensure "from-url"
                     :from-url "https://cert-service/api"
