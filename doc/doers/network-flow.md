@@ -10,7 +10,7 @@ Name of flow. Must be unique [`:string`]
 ## network-flow/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -32,7 +32,7 @@ Name of flow. Must be unique [`:string`]
 ## network-flow/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

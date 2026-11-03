@@ -10,7 +10,7 @@ Name of etherstub [`:string`]
 ## etherstub/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 
@@ -21,7 +21,7 @@ None
 ## etherstub/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

@@ -10,7 +10,7 @@ VLAN name [`:string`]
 ## vlan/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -24,7 +24,7 @@ None
 ## vlan/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

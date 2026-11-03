@@ -10,7 +10,7 @@ Interface name [`:string`]
 ## ip-interface/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 
@@ -29,7 +29,7 @@ None
 ## ip-interface/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

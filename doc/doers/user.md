@@ -10,7 +10,7 @@ User's username [`:string`]
 ## user/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -31,7 +31,7 @@ User's username [`:string`]
 ## user/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

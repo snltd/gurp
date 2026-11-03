@@ -10,7 +10,7 @@ Zone name [`:string`]
 ## zone/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -49,7 +49,7 @@ Zone name [`:string`]
 ## zone/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

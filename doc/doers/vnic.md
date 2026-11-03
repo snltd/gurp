@@ -10,7 +10,7 @@ VNIC name [`:string`]
 ## vnic/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -26,7 +26,7 @@ VNIC name [`:string`]
 ## vnic/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

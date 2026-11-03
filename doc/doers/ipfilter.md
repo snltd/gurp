@@ -10,7 +10,7 @@ Any convenient name: not used internally [`:string`]
 ## ipfilter/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -27,7 +27,7 @@ Any convenient name: not used internally [`:string`]
 ## ipfilter/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

@@ -8,6 +8,9 @@
 (defn h2 [& words]
   (string "## " (lib/join-words ;words) "\n"))
 
+(defn h3 [& words]
+  (string "### " (lib/join-words ;words) "\n"))
+
 (defn code [& words]
   (string "`" (lib/join-words ;words) "`"))
 

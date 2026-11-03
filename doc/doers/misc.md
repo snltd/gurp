@@ -10,7 +10,7 @@ A collection of things too small to deserve their own doer.
 ## misc/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

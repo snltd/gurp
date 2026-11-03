@@ -10,7 +10,7 @@ Fully qualified path to directory [`:string`]
 ## directory/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -25,7 +25,7 @@ None
 ## directory/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 

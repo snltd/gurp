@@ -10,7 +10,7 @@ Fully qualified path to file [`:string`]
 ## file-line/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 
@@ -27,7 +27,7 @@ None
 ## file-line/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|

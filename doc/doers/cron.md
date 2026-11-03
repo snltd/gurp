@@ -10,7 +10,7 @@ Convenient name for job. [`:string`]
 ## cron/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -29,7 +29,7 @@ None
 ## cron/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|

@@ -10,7 +10,7 @@ Package name [`:string`]
 ## apk/ensure
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 
@@ -21,7 +21,7 @@ None
 ## apk/remove
 
 
-### Mandatory properties
+### mandatory properties
 
 None
 
