@@ -54,7 +54,8 @@
                          :network @[@{:allowed-address "10.10.0.2/24"
                                       :global-nic "auto"
                                       :name "bhyve0"}]
-                         :role "test-role"}
+                         :role "test-role"
+                         :zonepath "/zones/bhyve-zone"}
                         {:_id "/test-role/zone/native-zone"
                          :autoboot true
                          :boot-after-install true
@@ -72,7 +73,8 @@
                                       :defrouter "192.168.1.1"
                                       :global-nic "auto"
                                       :name "test_net0"}]
-                         :role "test-role"}
+                         :role "test-role"
+                         :zonepath "/zones/native-zone"}
                         {:_id "/test-role/zone/lx-zone"
                          :attr @[@{:name "kernel-ver"
                                    :type "string"
@@ -90,7 +92,8 @@
                                       :defrouter "192.168.1.1"
                                       :global-nic "auto"
                                       :name "znet0"}]
-                         :role "test-role"}
+                         :role "test-role"
+                         :zonepath "/zones/lx-zone"}
                         {:_id "/test-role/zone/emu-example"
                          :attr @[@{:name "type"
                                    :type "string"
@@ -124,7 +127,8 @@
                                    :name "zone.cpu-shares"
                                    :priv "privileged"}]
                          :recreate 1
-                         :role "test-role"}
+                         :role "test-role"
+                         :zonepath "/zones/emu-example"}
                         {:_id "/test-role/zone/test-zone-bootstrap-file"
                          :autoboot true
                          :boot-after-install true
@@ -137,7 +141,8 @@
                                       :defrouter "192.168.1.1"
                                       :global-nic "auto"
                                       :name "test_net0"}]
-                         :role "test-role"}
+                         :role "test-role"
+                         :zonepath "/zones/test-zone-bootstrap-file"}
                         {:_id "/test-role/zone/test-zone-fat"
                          :autoboot false
                          :boot-after-install true
@@ -157,7 +162,8 @@
                                       :defrouter "192.168.1.1"
                                       :global-nic "auto"
                                       :name "test_net0"}]
-                         :role "test-role"}]}
+                         :role "test-role"
+                         :zonepath "/zones/test-zone-fat"}]}
       :remove @{:zone @[{:_id "/test-role/zone/unwanted-zone"
                          :name "unwanted-zone"
                          :role "test-role"}]}}))

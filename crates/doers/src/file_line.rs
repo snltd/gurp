@@ -303,8 +303,8 @@ mod test {
     fn test_deserialize_file_line_ensure_line() {
         assert_eq!(
             FileLineEnsure {
-                path: Utf8PathBuf::from("/path/to/file"),
-                id: GurpId::new("/NO-ROLE/file-line/_path_to_file").unwrap(),
+                path: Utf8PathBuf::from("/path/to/file_1"),
+                id: GurpId::new("/NO-ROLE/file-line/_path_to_file_1").unwrap(),
                 line: Some("i-want-to-see-this".to_owned()),
                 insert_at: None,
                 replace: None,
@@ -319,8 +319,8 @@ mod test {
     fn test_deserialize_file_line_remove_pattern() {
         assert_eq!(
             FileLineRemove {
-                path: Utf8PathBuf::from("/path/to/file"),
-                id: GurpId::new("/NO-ROLE/file-line/_path_to_file").unwrap(),
+                path: Utf8PathBuf::from("/path/to/file_3"),
+                id: GurpId::new("/NO-ROLE/file-line/_path_to_file_3").unwrap(),
                 pattern: "i-do-not-want-to-see-this-anywhere".to_owned(),
                 match_type: "exact".to_owned(),
                 apply_to: "all".to_owned(),
@@ -333,8 +333,8 @@ mod test {
     fn test_deserialize_file_line_remove_regex_match() {
         assert_eq!(
             FileLineRemove {
-                path: Utf8PathBuf::from("/path/to/file"),
-                id: GurpId::new("/NO-ROLE/file-line/_path_to_file").unwrap(),
+                path: Utf8PathBuf::from("/path/to/file_4"),
+                id: GurpId::new("/NO-ROLE/file-line/_path_to_file_4").unwrap(),
                 pattern: "rust-regex".to_owned(),
                 match_type: "regex".to_owned(),
                 apply_to: "all".to_owned(),
@@ -347,8 +347,8 @@ mod test {
     fn test_deserialize_file_line_remove_last_prefix_match() {
         assert_eq!(
             FileLineRemove {
-                path: Utf8PathBuf::from("/path/to/file"),
-                id: GurpId::new("/NO-ROLE/file-line/_path_to_file").unwrap(),
+                path: Utf8PathBuf::from("/path/to/file_2"),
+                id: GurpId::new("/NO-ROLE/file-line/_path_to_file_2").unwrap(),
                 pattern: "string-prefix".to_owned(),
                 match_type: "starts-with".to_owned(),
                 apply_to: "last".to_owned(),

@@ -159,7 +159,7 @@ mod test {
 
     #[test]
     fn test_cmd_output_macro_invalid_command() -> anyhow::Result<()> {
-        let result = (|| cmd_output!("/bin/nonsense", "merp", "merp", "merp"))();
+        let result = cmd_output!("/bin/nonsense", "merp", "merp", "merp");
         assert!(result.is_err());
         Ok(())
     }

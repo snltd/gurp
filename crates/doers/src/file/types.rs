@@ -31,23 +31,6 @@ pub struct DesiredFileState {
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub enum ChecksumAlgorithm {
-    Blake3,
-    Sha256,
-    Sha512,
-}
-
-#[derive(Deserialize, Debug)]
-#[cfg_attr(test, derive(PartialEq))]
-pub struct Checksum {
-    pub algorithm: ChecksumAlgorithm,
-    pub literal: Option<String>,
-    pub from_url: Option<Url>,
-    pub with_suffix: Option<String>,
-}
-
-#[derive(Deserialize, Debug)]
-#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "lowercase")]
 pub enum OutputFileFormat {
     Yaml,

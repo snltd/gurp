@@ -30,7 +30,7 @@ Fully qualified path to file [`:string`]
 | `:from` | `string` | Copy content from this file. If relative, looks in `../files`. |  |
 | `:ignore-pattern` | `string` | When comparing, ignore lines matching this Rust regex. |  |
 | `:only-fetch-from-url-once` | `boolean` | If you use `:from-url`, Gurp must download the file on every run to compare it with the installed copy. When this is set to `true`, `:from-url` files are only downloaded if the target file is missing. |  |
-| `:to-format` | `string` | Used with `:from-struct` to try to turn the struct into this format. Allowed values: "json", "toml", "yaml", "init", "kvp". |  |
+| `:to-format` | `string` | Used with `:from-struct` to try to turn the struct into this format. Allowed values: "json", "toml", "yaml", "init", "kvp", "ini". |  |
 | `:url-is-server` | `boolean` | Used internally to identify Gurp server URLs. |  |
 | `:url-replacements` | `struct` | Replace keys with whatever the corresponding value points to. Not supported with `:from-url`. |  |
 
