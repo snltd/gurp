@@ -98,9 +98,8 @@ impl FileEnsure {
 
 #[cfg(test)]
 mod test {
-    use crate::file::types::Checksum;
-
     use super::*;
+    use crate::file::types::{Checksum, ChecksumAlgorithm, HashAlgorithm};
     use camino::Utf8PathBuf;
     use os_types::FileMode;
     use pretty_assertions::assert_eq;
@@ -151,9 +150,12 @@ mod test {
                         Url::parse("https://raw.githubusercontent.com/snltd/gurp/refs/heads/main/LICENSE.txt")
                             .unwrap()
                     ),
-                    checksum: Some(Checksum
+                    checksum: Some(Checksum {
+                        algorithm: ChecksumAlgorithm::Sha256,
+                        value: HashAlgorithm::Literal(
                         "561a47aa1d1bfc3a95ce45345639f9ce2d9ad332b05cfe5da74ad77f2842ee16"
-                            .to_owned()
+                            .to_owned())
+                        }
                     ),
                     ignore_pattern: None,
                     mode: FileMode::new("644").unwrap(),
@@ -185,7 +187,10 @@ mod test {
                 from_struct: None,
                 to_format: None,
                 from_url: Some(Url::parse("http://example.com/file").unwrap()),
-                with_checksum: Some("abc123".to_owned()),
+                checksum: Some(Checksum {
+                    algorithm: ChecksumAlgorithm::Sha256,
+                    value: HashAlgorithm::Literal("abc123".to_owned()),
+                }),
                 only_fetch_from_url_once: false,
                 url_is_server: false,
                 url_replacements: None,
@@ -208,7 +213,7 @@ mod test {
                 from_struct: None,
                 to_format: None,
                 from_url: None,
-                with_checksum: None,
+                checksum: None,
                 only_fetch_from_url_once: false,
                 url_is_server: false,
                 url_replacements: None,
@@ -231,7 +236,7 @@ mod test {
                 from_struct: None,
                 to_format: None,
                 from_url: None,
-                with_checksum: None,
+                checksum: None,
                 only_fetch_from_url_once: false,
                 url_is_server: false,
                 url_replacements: None,

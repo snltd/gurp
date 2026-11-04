@@ -2,6 +2,7 @@
 extern crate macros;
 
 pub mod atomic_write;
+pub mod checksum;
 pub mod deserializer;
 pub mod file;
 pub mod filter;

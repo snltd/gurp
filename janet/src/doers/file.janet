@@ -2,6 +2,8 @@
 (import ../collector)
 (import ./file/checksum :prefix "" :export true)
 
+(def to-formats ["json" "toml" "yaml" "init" "kvp" "ini"])
+
 (defdoer :file
   "Create files from multiple sources, or remove them."
   :name-is "Fully qualified path to file"
@@ -28,7 +30,7 @@
               "Generate a config file from the given struct. Requires `:to-format`")
     (property "to-format" [:string] :optional
               "Used with `:from-struct` to try to turn the struct into this format"
-              :values ["json" "toml" "yaml" "init" "kvp"])
+              :values to-formats)
     (property "from-url" [:string] :optional "Fetch file from the given URL")
     (property "ignore-pattern" [:string] :optional
               "When comparing, ignore lines matching this Rust regex")

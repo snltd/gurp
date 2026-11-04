@@ -1,10 +1,11 @@
 use crate::file::actions;
-use crate::file::types::{CompareMethod, DesiredFileState};
+use crate::file::types::{CompareMethod, DesiredFileState, HashAlgorithm};
 use anyhow::{Context, bail};
 use camino::Utf8Path;
 use camino_tempfile::NamedUtf8TempFile;
 use common::types::{ApplyOpts, ApplySummary, Changed};
 use std::fs;
+use url::Url;
 use util::http::{self, RemoteFileCopy};
 use util::{filter, hash};
 
@@ -71,6 +72,28 @@ fn file_from_server(
     Ok(change)
 }
 
+fn get_expected_checksum(
+    checksum: &HashAlgorithm,
+    base_url: Option<&Url>,
+) -> anyhow::Result<String> {
+    Ok(match checksum {
+        HashAlgorithm::Literal(val) => val.to_owned(),
+        HashAlgorithm::FromUrl(url) => http::url_to_string(url)?,
+        HashAlgorithm::Suffix(suffix) => {
+            let base_url = base_url.context("cannot use checksum suffix without base URL")?;
+            let basename = base_url
+                .path_segments()
+                .with_context(|| format!("cannot segments of {base_url}"))?
+                .next_back()
+                .with_context(|| format!("cannot get filename component of {base_url}"))?;
+
+            let checksum_url = base_url.join(&format!("{basename}.{suffix}"))?;
+            tracing::debug!("checksum url is {checksum_url}");
+            http::url_to_string(&checksum_url)?
+        }
+    })
+}
+
 fn file_from_remote(
     path: &Utf8Path,
     desired_state: &DesiredFileState,
@@ -98,15 +121,18 @@ fn file_from_remote(
         opts,
     )?;
 
-    if let Some(ref expected_checksum) = desired_state.with_checksum {
-        let actual_checksum = &hash::sha256_of_file(temp_path)?;
-        if actual_checksum != expected_checksum {
-            if path.exists() {
-                tracing::debug!("removing downloaded file");
-                fs::remove_file(path).with_context(|| format!("failed to remove {path}"))?;
-            }
-            bail!("Remote file has incorrect checksum");
-        }
+    if let Some(expected_checksum) = &desired_state.checksum {
+        let expected_checksum_value =
+            get_expected_checksum(&expected_checksum.value, desired_state.from_url.as_ref())?;
+
+        //     let actual_checksum = &hash::sha256_of_file(temp_path)?;
+        //     if actual_checksum != expected_checksum {
+        //         if path.exists() {
+        //             tracing::debug!("removing downloaded file");
+        //             fs::remove_file(path).with_context(|| format!("failed to remove {path}"))?;
+        //         }
+        bail!("Remote file has incorrect checksum");
+        //     }
     }
 
     // We have a local copy of the file
@@ -170,7 +196,9 @@ mod test {
         let json_def = janet2json(&indoc::formatdoc! {r#"
             (file/ensure "{}"
                 :from-url "{}"
-                :with-checksum "9c1b427039a6c786db0277fb96e3b0851a972dcdad832441e802d8b0de936ec3"
+                (file/checksum
+                    :algorithm "sha512"
+                    :literal "9c1b427039a6c786db0277fb96e3b0851a972dcdad832441e802d8b0de936ec3")
                 :mode "0640"
                 :owner "{}"
                 :group "{}")
@@ -239,7 +267,9 @@ mod test {
         let json_def = janet2json(&indoc::formatdoc! {r#"
             (file/ensure "/tmp/does-not-matter"
                 :from-url "{}"
-                :with-checksum "0000000100000000000000000000000000000000000000000000000000000000"
+                (file/checksum
+                    :algorithm "sha512"
+                    :literal "0000000100000000000000000000000000000000000000000000000000000000")
                 :mode "0640"
                 :owner "{}"
                 :group "{}")

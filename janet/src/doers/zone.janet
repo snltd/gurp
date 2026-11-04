@@ -1,5 +1,5 @@
 (use ./lib/definers)
-(import ../dsl :only [qualify-from-path])
+(import ../dsl :only [pathcat qualify-from-path])
 (import ./zone/attr :prefix "" :export true)
 (import ./zone/bhyve :prefix "" :export true)
 (import ./zone/capped-memory :prefix "" :export true)
@@ -28,10 +28,18 @@
   [conf-struct]
   (zipcoll (map dsl/qualify-from-path (keys conf-struct)) (values conf-struct)))
 
+(defn- finaliser
+  [spec-table]
+  (if-not (has-key? spec-table :zonepath)
+    (put-in spec-table [:zonepath] (dsl/pathcat "zones" (spec-table :name))))
+
+  spec-table)
+
 (defdoer :zone
   "Create and destroy zones. Existing zones cannot be modified."
   :name-is "Zone name"
   (ensure
+    :finalise-with finaliser
     (property "brand" [:string] :mandatory "Zone brand")
     (property "autoboot" [:boolean] :mandatory
               "Boot the zone when the system boots"
