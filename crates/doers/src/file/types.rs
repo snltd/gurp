@@ -22,11 +22,28 @@ pub struct DesiredFileState {
     pub owner: NameOrId,
     pub to_format: Option<OutputFileFormat>,
     pub url_replacements: Option<HashMap<String, Url>>,
-    pub with_checksum: Option<String>,
+    pub checksum: Option<Checksum>,
     #[serde(default)]
     pub only_fetch_from_url_once: bool,
     #[serde(default)]
     pub url_is_server: bool,
+}
+
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
+pub enum ChecksumAlgorithm {
+    Blake3,
+    Sha256,
+    Sha512,
+}
+
+#[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
+pub struct Checksum {
+    pub algorithm: ChecksumAlgorithm,
+    pub literal: Option<String>,
+    pub from_url: Option<Url>,
+    pub with_suffix: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
