@@ -99,14 +99,15 @@ impl FileEnsure {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::file::types::{Checksum, ChecksumAlgorithm, HashAlgorithm};
     use camino::Utf8PathBuf;
     use os_types::FileMode;
     use pretty_assertions::assert_eq;
     use snltest::fixture;
     use tester::{deserialized_example, my_group, my_user};
     use url::Url;
+    use util::checksum::{Checksum, HashValue};
     use util::file::NameOrId;
+    use util::hash::HashAlgorithm;
 
     #[test]
     fn test_deserialize_ensure_file_from_content() {
@@ -151,8 +152,8 @@ mod test {
                             .unwrap()
                     ),
                     checksum: Some(Checksum {
-                        algorithm: ChecksumAlgorithm::Sha256,
-                        value: HashAlgorithm::Literal(
+                        algorithm: HashAlgorithm::Sha256,
+                        value: HashValue::Literal(
                         "561a47aa1d1bfc3a95ce45345639f9ce2d9ad332b05cfe5da74ad77f2842ee16"
                             .to_owned())
                         }
@@ -188,8 +189,8 @@ mod test {
                 to_format: None,
                 from_url: Some(Url::parse("http://example.com/file").unwrap()),
                 checksum: Some(Checksum {
-                    algorithm: ChecksumAlgorithm::Sha256,
-                    value: HashAlgorithm::Literal("abc123".to_owned()),
+                    algorithm: HashAlgorithm::Sha256,
+                    value: HashValue::Literal("abc123".to_owned()),
                 }),
                 only_fetch_from_url_once: false,
                 url_is_server: false,

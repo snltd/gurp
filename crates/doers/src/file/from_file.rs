@@ -8,6 +8,7 @@ use std::fs::{self, File};
 use std::io::Write;
 use url::Url;
 use util::filter::FileFilter;
+use util::hash::INTERNAL_HASHER;
 use util::{atomic_write, hash};
 
 // This only deals with truly local files. :from resources in client/server mode are
@@ -32,7 +33,7 @@ pub fn run(
     // Fast path: no replacements, no filter — never materialize a String.
     if replacements.is_none() && matches!(compare, CompareMethod::Hash) {
         if path.exists() {
-            if hash::of_file(src)? == hash::of_file(path)? {
+            if hash::of_file(src, INTERNAL_HASHER)? == hash::of_file(path, INTERNAL_HASHER)? {
                 log_no_change!(path);
             } else {
                 changed = true;
@@ -53,8 +54,11 @@ pub fn run(
         let comparable = comparison_view(&content, compare)?;
 
         let same = path.exists()
-            && hash::of_string(&comparable)
-                == hash::of_string(&comparison_view(&fs::read_to_string(path)?, compare)?);
+            && hash::of_string(&comparable, INTERNAL_HASHER)
+                == hash::of_string(
+                    &comparison_view(&fs::read_to_string(path)?, compare)?,
+                    INTERNAL_HASHER,
+                );
 
         if same {
             log_no_change!(path);

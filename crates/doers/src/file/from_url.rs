@@ -1,13 +1,13 @@
 use crate::file::actions;
-use crate::file::types::{CompareMethod, DesiredFileState, HashAlgorithm};
-use anyhow::{Context, bail};
+use crate::file::types::{CompareMethod, DesiredFileState};
+use anyhow::{Context, ensure};
 use camino::Utf8Path;
 use camino_tempfile::NamedUtf8TempFile;
 use common::types::{ApplyOpts, ApplySummary, Changed};
 use std::fs;
-use url::Url;
+use util::filter;
+use util::hash::{self, INTERNAL_HASHER};
 use util::http::{self, RemoteFileCopy};
-use util::{filter, hash};
 
 // url_replacements are not supported here
 
@@ -46,7 +46,7 @@ fn file_from_server(
             CompareMethod::Filter(pattern) => hash::for_filtered_file_on_server(url, pattern)?,
         };
 
-        if remote_hash == hash::of_file(path)?.to_string() {
+        if remote_hash == hash::of_file(path, INTERNAL_HASHER)? {
             log_no_change!(path);
         } else {
             log_updating!(path);
@@ -70,28 +70,6 @@ fn file_from_server(
     }
 
     Ok(change)
-}
-
-fn get_expected_checksum(
-    checksum: &HashAlgorithm,
-    base_url: Option<&Url>,
-) -> anyhow::Result<String> {
-    Ok(match checksum {
-        HashAlgorithm::Literal(val) => val.to_owned(),
-        HashAlgorithm::FromUrl(url) => http::url_to_string(url)?,
-        HashAlgorithm::Suffix(suffix) => {
-            let base_url = base_url.context("cannot use checksum suffix without base URL")?;
-            let basename = base_url
-                .path_segments()
-                .with_context(|| format!("cannot segments of {base_url}"))?
-                .next_back()
-                .with_context(|| format!("cannot get filename component of {base_url}"))?;
-
-            let checksum_url = base_url.join(&format!("{basename}.{suffix}"))?;
-            tracing::debug!("checksum url is {checksum_url}");
-            http::url_to_string(&checksum_url)?
-        }
-    })
 }
 
 fn file_from_remote(
@@ -121,27 +99,25 @@ fn file_from_remote(
         opts,
     )?;
 
-    if let Some(expected_checksum) = &desired_state.checksum {
-        let expected_checksum_value =
-            get_expected_checksum(&expected_checksum.value, desired_state.from_url.as_ref())?;
+    if let Some(checksum) = &desired_state.checksum {
+        let actual = hash::of_file(temp_path, &checksum.algorithm)?;
 
-        //     let actual_checksum = &hash::sha256_of_file(temp_path)?;
-        //     if actual_checksum != expected_checksum {
-        //         if path.exists() {
-        //             tracing::debug!("removing downloaded file");
-        //             fs::remove_file(path).with_context(|| format!("failed to remove {path}"))?;
-        //         }
-        bail!("Remote file has incorrect checksum");
-        //     }
+        ensure!(
+            checksum.resolve_and_compare(&actual, desired_state.from_url.as_ref())?,
+            format!("incorrect checksum for {path}")
+        );
     }
 
     // We have a local copy of the file
     if path.exists() {
         let p_change = match compare {
-            CompareMethod::Hash => hash::of_file(temp_path)? != hash::of_file(path)?,
+            CompareMethod::Hash => {
+                hash::of_file(temp_path, INTERNAL_HASHER)? != hash::of_file(path, INTERNAL_HASHER)?
+            }
             CompareMethod::Filter(pattern) => {
                 let filter = filter::FileFilter::from(pattern)?;
-                hash::of_string(&filter.file(temp_path)?) != hash::of_string(&filter.file(path)?)
+                hash::of_string(&filter.file(temp_path)?, INTERNAL_HASHER)
+                    != hash::of_string(&filter.file(path)?, INTERNAL_HASHER)
             }
         };
 

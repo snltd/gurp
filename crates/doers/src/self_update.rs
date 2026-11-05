@@ -5,6 +5,7 @@ use common::types::{ApplyOpts, ApplySummary};
 use os_types::FileMode;
 use std::fs::File;
 use url::Url;
+use util::hash::INTERNAL_HASHER;
 use util::http::RemoteFileCopy;
 use util::{atomic_write, file, hash, http, info};
 
@@ -15,7 +16,7 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
     }
 
     let gurp_path = info::gurp_path()?;
-    let gurp_hash = hash::of_file(&gurp_path)?;
+    let gurp_hash = hash::of_file(&gurp_path, INTERNAL_HASHER)?;
     let metadata = file::metadata(&gurp_path)?;
 
     if update_from == "SERVER" {
@@ -38,7 +39,7 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
 
         let server_hash = http::url_to_string(hash_url)?;
 
-        if server_hash == gurp_hash.to_string() {
+        if server_hash == gurp_hash {
             tracing::debug!("no need to update gurp from server {gurp_hash} == {server_hash}");
             return Ok(ONE_RESOURCE_NO_CHANGE);
         }
@@ -57,7 +58,7 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
     } else {
         let src = Utf8PathBuf::from(update_from);
 
-        if hash::of_file(&src)? == gurp_hash {
+        if hash::of_file(&src, INTERNAL_HASHER)? == gurp_hash {
             tracing::debug!("no need to update gurp from {src}");
         } else {
             tracing::info!("updating Gurp from {update_from}");

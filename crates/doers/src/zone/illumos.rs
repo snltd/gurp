@@ -1,10 +1,12 @@
 use crate::zone::config::ImageSource;
+use crate::zone::constants::OMNIOS_RELEASES_URL;
 use crate::zone::helpers;
 use crate::zone::types::ZoneImage;
-use crate::zone::{config::ImageChecksum, constants::OMNIOS_RELEASES_URL};
 use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
 use url::Url;
+use util::checksum::{Checksum, HashValue};
+use util::hash::HashAlgorithm;
 
 // Images follow the form:
 // https://downloads.omnios.org/media/stable/omnios-r151056.ngz.zfs.xz
@@ -22,9 +24,9 @@ pub fn image_path(image: ZoneImage) -> anyhow::Result<Utf8PathBuf> {
         },
         None => helpers::get_image(
             &default_image()?,
-            Some(&ImageChecksum {
-                sumtype: "sha256".into(),
-                value: ".sha256".into(),
+            Some(&Checksum {
+                algorithm: HashAlgorithm::Sha256,
+                value: HashValue::Suffix(".sha256".to_owned()),
             }),
         ),
     }

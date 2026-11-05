@@ -8,6 +8,7 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::net::IpAddr;
 use url::Url;
+use util::checksum::Checksum;
 use uuid::Uuid;
 
 pub type CopyInFiles = HashMap<Utf8PathBuf, String>;
@@ -83,7 +84,7 @@ pub struct ZoneConfig {
     pub ip_type: Option<String>,
     pub limitpriv: Option<Vec<String>>,
     pub image: Option<ImageSource>,
-    pub image_checksum: Option<ImageChecksum>,
+    pub checksum: Option<Checksum>,
     pub network: Vec<Network>,
     pub pool: Option<String>,
     #[serde(default)]
@@ -545,7 +546,7 @@ mod test {
             image: Some(ImageSource::Path(
                 "/var/tmp/noble-server-cloudimg-amd64.img.raw".into(),
             )),
-            image_checksum: None,
+            checksum: None,
             network: vec![Network {
                 physical: "bhyve0".to_owned(),
                 global_nic: "auto".to_owned(),

@@ -1,12 +1,11 @@
 use super::{atomic_write, hash};
 use crate::checksum::Checksum;
-use anyhow::{Context, bail, ensure};
+use anyhow::{Context, ensure};
 use camino::Utf8Path;
 use common::constants::{CLIENT_API_VERSION, CLIENT_RETRIES, SERVER_PORT};
 use common::types::{ApplyOpts, CompileError, NetworkError};
-use std::fs::File;
 use std::io::Write;
-use std::io::{self, BufWriter, Seek, SeekFrom};
+use std::io::{self, BufWriter};
 use std::thread;
 use std::time::Duration;
 use url::Url;
@@ -46,11 +45,12 @@ pub fn url_to_disk(file: &RemoteFileCopy, opts: &ApplyOpts) -> anyhow::Result<()
             writer.flush()?;
         }
 
-        if let Some(checksum) = &file.checksum {
+        if let Some(checksum) = file.checksum {
+            let actual = hash::of_reader(f, &checksum.algorithm)?;
+
             ensure!(
-                has_good_checksum(f, checksum)?,
-                "incorrect checksum for {}",
-                file.url
+                checksum.resolve_and_compare(&actual, Some(file.url))?,
+                format!("incorrect checksum for {}", file.url)
             );
         }
 
@@ -162,21 +162,15 @@ fn log_ureq_error(url: &Url, e: &ureq::Error) {
     }
 }
 
-fn has_good_checksum(f: &mut File, expected: &Checksum) -> anyhow::Result<bool> {
-    f.seek(SeekFrom::Start(0))?;
+// fn has_good_checksum(f: &mut File, expected: &Checksum) -> anyhow::Result<bool> {
 
-    let actual = expected.
-        match expected.algorithm {
-        "sha256" => hash::(&mut *f)?,
-        "blake3" => hash::of_reader(&mut *f)?.to_string(),
-        other => bail!("unsupported hash type: {other}"),
-    };
+//     let actual = expected.resolve();
 
-    tracing::debug!(
-        "comparing checksums: expected={} actual={}",
-        expected.value.trim(),
-        actual.trim()
-    );
+//     tracing::debug!(
+//         "comparing checksums: expected={} actual={}",
+//         expected.value.trim(),
+//         actual.trim()
+//     );
 
-    Ok(expected.value.trim() == actual.trim())
-}
+//     Ok(expected.value.trim() == actual.trim())
+// }

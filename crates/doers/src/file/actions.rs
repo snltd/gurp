@@ -7,10 +7,11 @@ use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
 use url::Url;
+use util::atomic_write;
 use util::file::{self, FileMetadata};
 use util::filter::FileFilter;
+use util::hash::{self, INTERNAL_HASHER};
 use util::http;
-use util::{atomic_write, hash};
 
 pub fn ensure_content(
     path: &Utf8Path,
@@ -24,7 +25,9 @@ pub fn ensure_content(
     if path.exists() {
         match compare {
             CompareMethod::Hash => {
-                if hash::of_string(new_content) == hash::of_file(path)? {
+                if hash::of_string(new_content, INTERNAL_HASHER)
+                    == hash::of_file(path, INTERNAL_HASHER)?
+                {
                     log_no_change!(path);
                 } else {
                     changed = true;
@@ -40,8 +43,8 @@ pub fn ensure_content(
             CompareMethod::Filter(pattern) => {
                 let filter = FileFilter::from(pattern)?;
 
-                if hash::of_string(&filter.string(new_content))
-                    == hash::of_string(&filter.file(path)?)
+                if hash::of_string(&filter.string(new_content), INTERNAL_HASHER)
+                    == hash::of_string(&filter.file(path)?, INTERNAL_HASHER)
                 {
                     log_no_change!(path);
                 } else {
