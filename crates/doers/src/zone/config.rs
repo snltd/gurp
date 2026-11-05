@@ -127,15 +127,6 @@ pub struct CloudInitConfig {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct ImageChecksum {
-    #[serde(rename = "type")]
-    pub sumtype: String,
-    pub value: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-#[cfg_attr(test, derive(PartialEq))]
 pub struct BootstrapConfig {
     pub file: Option<String>,
     pub hostname: Option<String>,
