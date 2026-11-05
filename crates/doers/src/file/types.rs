@@ -5,6 +5,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use url::Url;
+use util::checksum::Checksum;
 use util::file::NameOrId;
 
 #[derive(Deserialize, Debug, Default)]

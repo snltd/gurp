@@ -3,11 +3,13 @@ use camino::Utf8Path;
 use serde::Deserialize;
 use sha2::{Digest, Sha256, Sha512};
 use std::fs::File;
-use std::io::{self, Read, Write};
+use std::io::{self, Read, Seek, SeekFrom, Write};
 use url::Url;
 
-/// Gurp uses Blake3 internally, because it's fast and lightweight, but we offer other
-/// algorithms for file checksums.
+// Gurp uses Blake3 internally, because it's fast and lightweight, but we offer other
+// algorithms for file checksums.
+
+pub const INTERNAL_HASHER: &HashAlgorithm = &HashAlgorithm::Blake3;
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -36,7 +38,7 @@ impl<D: Digest> Write for DigestWriter<D> {
     }
 }
 
-pub fn of_bytes(bytes: &[u8], algorithm: HashAlgorithm) -> String {
+pub fn of_bytes(bytes: &[u8], algorithm: &HashAlgorithm) -> String {
     match algorithm {
         HashAlgorithm::Blake3 => blake3::hash(bytes).to_string(),
         HashAlgorithm::Sha256 => hash_bytes_with::<Sha256>(bytes),
@@ -44,11 +46,15 @@ pub fn of_bytes(bytes: &[u8], algorithm: HashAlgorithm) -> String {
     }
 }
 
-pub fn of_string(user_string: &str, algorithm: HashAlgorithm) -> String {
+pub fn of_string(user_string: &str, algorithm: &HashAlgorithm) -> String {
     of_bytes(user_string.as_bytes(), algorithm)
 }
 
-pub fn of_reader(mut reader: impl Read, algorithm: HashAlgorithm) -> anyhow::Result<String> {
+pub fn of_reader(
+    mut reader: impl Read + Seek,
+    algorithm: &HashAlgorithm,
+) -> anyhow::Result<String> {
+    reader.seek(SeekFrom::Start(0))?;
     match algorithm {
         HashAlgorithm::Blake3 => {
             let mut hasher = blake3::Hasher::new();
@@ -60,7 +66,7 @@ pub fn of_reader(mut reader: impl Read, algorithm: HashAlgorithm) -> anyhow::Res
     }
 }
 
-pub fn of_file(path: &Utf8Path, algorithm: HashAlgorithm) -> anyhow::Result<String> {
+pub fn of_file(path: &Utf8Path, algorithm: &HashAlgorithm) -> anyhow::Result<String> {
     let file = File::open(path).with_context(|| format!("failed to open {path}"))?;
     of_reader(file, algorithm)
 }
@@ -128,7 +134,7 @@ mod test {
     fn test_hash_of_string() {
         assert_eq!(
             "2fec886c2436e97948e0d75c80bcccf6beefa05a3aea2353f4068513d65ec485".to_owned(),
-            of_string("merp merp", HashAlgorithm::Blake3).to_string()
+            of_string("merp merp", &HashAlgorithm::Blake3).to_string()
         );
     }
 
@@ -136,7 +142,7 @@ mod test {
     fn test_hash_of_file() {
         assert_eq!(
             "40a2c4e17aa9abec2dd26709c045190b959922b5fffb4ff676568225c0525eca",
-            of_file(&fixture!("file-filter-test", HashAlgorith::Blake3))
+            of_file(&fixture!("file-filter-test"), &HashAlgorithm::Blake3)
                 .unwrap()
                 .to_string()
         );

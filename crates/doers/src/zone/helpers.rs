@@ -1,4 +1,3 @@
-use crate::zone::config::ImageChecksum;
 use crate::zone::constants::ZONEADM_FIELDS;
 use crate::zone::control::ZoneadmState;
 use crate::zone::types::{ZoneName, ZoneadmZones};
@@ -6,8 +5,9 @@ use anyhow::{Context, ensure};
 use camino::Utf8PathBuf;
 use common::constants::IMG_CACHE_DIR;
 use common::constants::ZONEADM_BIN;
-use common::types::{ApplyOpts, FileChecksum};
+use common::types::ApplyOpts;
 use url::Url;
+use util::checksum::Checksum;
 use util::http::{self, RemoteFileCopy};
 use util::url::Filename;
 
@@ -15,17 +15,13 @@ pub fn current_zone_list() -> anyhow::Result<ZoneadmZones> {
     parse_zone_list(&zone_list()?)
 }
 
-pub fn get_image(img_url: &Url, checksum: Option<&ImageChecksum>) -> anyhow::Result<Utf8PathBuf> {
+pub fn get_image(img_url: &Url, checksum: Option<&Checksum>) -> anyhow::Result<Utf8PathBuf> {
     let img_fname = img_url.filename()?;
     let img_path = Utf8PathBuf::from(IMG_CACHE_DIR).join(img_fname);
 
     if img_path.exists() {
         tracing::debug!("found image at {img_path}");
     } else {
-        let file_checksum = checksum
-            .map(|cksum| checksum_value(img_url, cksum))
-            .transpose()?;
-
         tracing::debug!("no image at {img_path}: downloading");
 
         http::url_to_disk(
@@ -33,27 +29,13 @@ pub fn get_image(img_url: &Url, checksum: Option<&ImageChecksum>) -> anyhow::Res
                 url: img_url,
                 path: &img_path,
                 backup_suffix: None,
-                checksum: file_checksum.as_ref(),
+                checksum,
             },
             &ApplyOpts::default(),
         )?;
     }
 
     Ok(img_path)
-}
-
-fn checksum_value(img_url: &Url, checksum: &ImageChecksum) -> anyhow::Result<FileChecksum> {
-    let literal_checksum = if checksum.value.starts_with(".") {
-        http::url_to_string(&img_url.join(&checksum.value)?)?
-    } else {
-        // we've been given the literal value
-        checksum.value.clone()
-    };
-
-    Ok(FileChecksum {
-        algorithm: checksum.sumtype.clone(),
-        value: literal_checksum,
-    })
 }
 
 fn zone_list() -> anyhow::Result<String> {

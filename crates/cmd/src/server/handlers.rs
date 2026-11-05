@@ -14,7 +14,8 @@ use std::sync::Arc;
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 use util::filter::FileFilter;
-use util::{hash, info};
+use util::hash::{self, INTERNAL_HASHER};
+use util::info;
 
 #[derive(serde::Deserialize)]
 pub struct ConfigQuery {
@@ -234,7 +235,7 @@ pub async fn file_hash(
 }
 
 fn send_hash_of_file(path: &Utf8Path) -> Response<Body> {
-    match hash::of_file(path) {
+    match hash::of_file(path, INTERNAL_HASHER) {
         Ok(hash) => hash.to_string().into_response(),
         Err(e) => {
             tracing::warn!("could not get hash of {path}: {e}");
