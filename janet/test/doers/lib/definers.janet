@@ -133,33 +133,6 @@
       :name-is "whatever"
       :remove @{:props @{:mandatory @{:name {:types [:string]}}}}}))
 
-# (deftest defhelper
-#   (test-macro
-#     (defhelper :file :checksum
-#       "Define a checksum to be used when fetching a remote file"
-#       :exactly-one-of [:literal :from-url :with-suffix]
-
-#       :mandatory-props
-#       {:algorithm {:types [:string]
-#                    :help "Algorithm used to calculate checksum"
-#                    :values algorithms}}
-
-#       :optional-props
-#       {:literal {:types [:string]
-#                  :help "Literal checksum"}
-#        :from-url {:types [:string]
-#                   :help "Fetch checksum from this URL"}
-#        :with-suffix {:types [:string]
-#                      :help "When fetching a file from a URL, append this suffix to
-#                         fetch the checksum"}})
-#     (upscope
-#       (def doer :file)
-#       (def description-checksum "Define a checksum to be used when fetching a remote file")
-#       (def attrs (@build-helper "Define a checksum to be used when fetching a remote file" :exactly-one-of [:literal :from-url :with-suffix] :mandatory-props {:algorithm {:help "Algorithm used to calculate checksum" :types [:string] :values algorithms}} :optional-props {:from-url {:help "Fetch checksum from this URL" :types [:string]} :literal {:help "Literal checksum" :types [:string]} :with-suffix {:help "When fetching a file from a URL, append this suffix to                        fetch the checksum" :types [:string]}})))))
-
-# (deftest safe-table-passthru
-#   (test (safe-table :key1 "val1" :key2 "val2")))
-
 (deftest safe-table-something-to-change
   (test
     (safe-table :key3 "val3" :key4 "val4"

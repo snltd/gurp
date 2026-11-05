@@ -139,6 +139,8 @@ mod test {
     use camino::Utf8PathBuf;
     use pretty_assertions::assert_eq;
     use tester::{deserialized_example, janet2json, raw_example};
+    use util::checksum::HashValue;
+    use util::hash::HashAlgorithm;
 
     #[test]
     fn test_deserialize_system_cert_from_file() {
@@ -173,7 +175,10 @@ mod test {
                 from: None,
                 from_url: Some(Url::parse("https://cert-service/api").unwrap()),
                 content: None,
-                checksum: None,
+                checksum: Some(Checksum {
+                    algorithm: HashAlgorithm::Sha256,
+                    value: HashValue::Suffix("sha256".to_owned())
+                }),
                 url_is_server: false,
             },
             deserialized_example("system-cert/ensure-from-url.janet")
