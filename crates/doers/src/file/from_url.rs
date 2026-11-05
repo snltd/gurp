@@ -173,7 +173,7 @@ mod test {
             (file/ensure "{}"
                 :from-url "{}"
                 (file/checksum
-                    :algorithm "sha512"
+                    :algorithm "sha256"
                     :literal "9c1b427039a6c786db0277fb96e3b0851a972dcdad832441e802d8b0de936ec3")
                 :mode "0640"
                 :owner "{}"
@@ -259,8 +259,8 @@ mod test {
         let err = sut.apply(&ApplyOpts::default()).unwrap_err();
 
         assert_eq!(
-            err.to_string(),
-            "Remote file has incorrect checksum".to_owned()
+            &err.to_string(),
+            "incorrect checksum for /tmp/does-not-matter"
         );
 
         conf_mock.assert();

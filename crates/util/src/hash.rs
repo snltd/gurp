@@ -11,8 +11,7 @@ use url::Url;
 
 pub const INTERNAL_HASHER: &HashAlgorithm = &HashAlgorithm::Blake3;
 
-#[derive(Deserialize, Debug)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(PartialEq, Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum HashAlgorithm {
     Blake3,

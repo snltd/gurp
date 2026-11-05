@@ -5,8 +5,7 @@ use anyhow::Context;
 use serde::Deserialize;
 use url::Url;
 
-#[derive(Deserialize, Debug)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum HashValue {
     Literal(String),
@@ -14,16 +13,14 @@ pub enum HashValue {
     Suffix(String),
 }
 
-#[derive(Deserialize, Debug)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Deserialize, PartialEq, Debug)]
 pub struct Checksum {
     pub algorithm: HashAlgorithm,
     #[serde(flatten)]
     pub value: HashValue,
 }
 
-#[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Debug, Deserialize, PartialEq)]
 pub struct ResolvedChecksum {
     pub algorithm: HashAlgorithm,
     pub value: String,
