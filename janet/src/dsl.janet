@@ -1,4 +1,4 @@
-(import ./lib :only [drop-element drop-empties parsed-value ->key
+(import ./lib :only [drop-element drop-empty parsed-value ->key
                      tabular-data->struct values-as-tuple])
 
 # Functions mostly exposed to the user and also used internally.
@@ -65,7 +65,7 @@
     (error "pathcat called with a nil"))
   (as-> chunks _
         (map stripslash _)
-        (lib/drop-empties _)
+        (lib/drop-empty _)
         (string/join _ "/")
         (string "/" _)))
 
@@ -75,7 +75,7 @@
   (if (nil? chunks)
     (error "zfscat called with a nil"))
   (-> (map stripslash chunks)
-      (lib/drop-empties)
+      (lib/drop-empty)
       (string/join "/")))
 
 (defn qualified-path?
@@ -344,5 +344,11 @@
 (defn without-keys
   "Return a copy of strct without any keys listed in `key-tuple`"
   [strct key-tuple]
-  (def filter-fn (fn [[k v]] (not (has-value? key-tuple k))))
+  (def filter-fn (fn [[k _v]] (not (has-value? key-tuple k))))
+  (struct ;(flatten (filter filter-fn (pairs strct)))))
+
+(defn drop-empty-values
+  "Return a copy of strct without any keys whose values are empty"
+  [strct]
+  (def filter-fn (fn [[_k v]] (if (lengthable? v) (not (empty? v)) true)))
   (struct ;(flatten (filter filter-fn (pairs strct)))))

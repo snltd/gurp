@@ -6,7 +6,7 @@ use serde::Deserialize;
 use url::Url;
 
 #[derive(Deserialize, PartialEq, Debug)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "kebab-case")]
 pub enum HashValue {
     Literal(String),
     FromUrl(Url),

@@ -182,6 +182,11 @@
   (test (without-keys {:a 1 :b 2 :c 3} [:a :b :c]) {})
   (test (without-keys {:a 1 :b 2 :c 3} [:d :e]) {:a 1 :b 2 :c 3}))
 
+(deftest drop-empty-values
+  (test (drop-empty-values {:a 1 :b 2}) {:a 1 :b 2})
+  (test (drop-empty-values {:a {} :b [] :c 1}) {:c 1})
+  (test (drop-empty-values {:a "" }) {}))
+
 (deftest qualify-from-path-without-dyn
   (test (qualify-from-path "/this/is/qualified") "/this/is/qualified")
   (test-error

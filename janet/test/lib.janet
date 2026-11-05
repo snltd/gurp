@@ -27,9 +27,9 @@
   (test (values-as-tuple "merp") @["merp"])
   (test (values-as-tuple 1 2 3 4 5) @[1 2 3 4 5]))
 
-(deftest drop-empties
-(test (drop-empties []) @[])
-(test (drop-empties ["a" "" "b" "c" ""]) @["a" "b" "c"]))
+(deftest drop-empty
+(test (drop-empty []) @[])
+(test (drop-empty ["a" "" "b" "c" ""]) @["a" "b" "c"]))
 
 (deftest compact
  (test (compact [nil 1 2 nil 3 4 nil nil nil 5]) @[1 2 3 4 5])

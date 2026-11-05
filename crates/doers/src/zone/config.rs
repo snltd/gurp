@@ -388,7 +388,7 @@ mod test {
     use ipnet::IpNet;
     use pretty_assertions::assert_eq;
     use serde_json::json;
-    use tester::{deserialized_example, janet2json};
+    use tester::{deserialized_example, janet2json, tmpdir};
     use uuid::Uuid;
 
     #[test]
@@ -401,11 +401,10 @@ mod test {
                            :allowed-address "192.168.1.33/24"
                            :defrouter "192.168.1.1")
                 (zone/fs "/home" :special "/export/home")
-                :capped-memory {
+                (zone/capped-memory 
                     :physical "500M"
-                    :swap "500M"
-                }
-                (zone/attr "numeric-attr" :value 123)
+                    :swap "500M")
+                (zone/attr "numeric-attr" :type :value 123)
                 (zone/attr "bool-attr" :type "boolean" :value false)
                 (zone/attr "string-attr" :value "la-de-da")
                 (zone/rctl "zone.max-swap"
@@ -413,9 +412,10 @@ mod test {
                     :limit 524288000
                     :action "deny")
                 :datasets ["big/zone/fs" "fast/zone/fs"]
-                :dns {:domain "lan.id264.net"
+                (zone/dns
+                      :domain "lan.id264.net"
                       :nameservers ["192.168.1.53"
-                                    "192.168.1.1"]})
+                                    "192.168.1.1"]))
                     "#
         });
 
@@ -499,10 +499,10 @@ mod test {
             capped_memory: None,
             cloudinit: Some(CloudInitConfig {
                 from: HashMap::from([
-                    ("users".to_owned(), Utf8PathBuf::from("cloudwatch/users")),
+                    ("users".to_owned(), tmpdir().join("files/cloudwatch/users")),
                     (
                         "packages".to_owned(),
-                        Utf8PathBuf::from("cloudwatch/packages"),
+                        tmpdir().join("files/cloudwatch/packages"),
                     ),
                 ]),
                 from_struct: HashMap::from([

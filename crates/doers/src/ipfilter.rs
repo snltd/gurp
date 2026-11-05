@@ -29,7 +29,7 @@ pub struct IpfilterEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
     pub name: String,
-    pub from: Option<String>,
+    pub from: Option<Utf8PathBuf>,
     pub content: Option<String>,
     pub priority: usize,
     #[serde(default)]
@@ -233,7 +233,7 @@ fn ensure_ipf_is_running(opts: &ApplyOpts) -> anyhow::Result<()> {
 mod test {
     use super::*;
     use pretty_assertions::assert_eq;
-    use tester::deserialized_example;
+    use tester::{deserialized_example, tmpdir};
 
     #[test]
     fn test_ipfilter_deserialize_ensure_from_config() {
@@ -257,7 +257,7 @@ mod test {
                 name: "rules-from-file".to_owned(),
                 id: GurpId::new("/NO-ROLE/ipfilter/rules-from-file").unwrap(),
                 priority: 1,
-                from: Some("test/ipfilter-test".to_owned()),
+                from: Some(tmpdir().join("files/test/ipfilter-test")),
                 content: None,
                 always_reload: false,
             },

@@ -3,7 +3,7 @@
 (import ../command-lib :only [strip-ansi])
 (import ../doers/lib/lib :only [comma-sep] :as doer-lib)
 (import ../dsl :only [fields])
-(import ../lib :only [drop-empties] :as gurp-lib)
+(import ../lib :only [drop-empty] :as gurp-lib)
 (import ./base)
 (import ./formatting :only [bold bold-underline underline] :prefix "")
 (import ./lib :only [join-lines term-width])
@@ -30,7 +30,7 @@
 (defn lay-out-help [leader words pad-width whole-width]
   (let [pad (string/repeat " " pad-width)
         invisible (- (length leader) (length (command-lib/strip-ansi leader)) 2)
-        raw-words (array ;(gurp-lib/drop-empties (dsl/fields words)) nil)
+        raw-words (array ;(gurp-lib/drop-empty (dsl/fields words)) nil)
         lines @[]
         format-string (string/format "%%%ds " (+ pad-width invisible))]
 

@@ -75,7 +75,7 @@ gives you a few convenience functions and macros.
 - `(fields string)` changes whitespace-separated `string` into an array of
   strings.
 - `(stripslash string)` strips leading and trailing slashes from `string`.
-- `(drop-empties arr)` returns a new version array or tuple with empty elements
+- `(drop-empty arr)` returns a new version array or tuple with empty elements
   removed.
 - `(compact arr)` returns a new version of an array or tuple with `nil` elements
   removed.

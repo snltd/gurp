@@ -56,7 +56,7 @@ None
                     :from-url "https://cert-service/api"
                     (file/checksum
                       :algorithm "sha256"
-                      :with-suffix ".sha256"))
+                      :suffix "sha256"))
 ```
 
 

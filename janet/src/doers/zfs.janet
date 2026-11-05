@@ -1,21 +1,23 @@
 (use ./lib/definers)
 (import ../collector)
 
-(defn- ensure-empty-mountpoint
-  [prop-struct]
-  (def prop-table (struct/to-table prop-struct))
-  (when (not (has-key? prop-table :mountpoint))
-    (put-in prop-table [:mountpoint] "none"))
-  (table/to-struct prop-table))
+(defn- finaliser
+  [spec-table]
+  (when (and (not (has-key? spec-table :size))
+             (not (has-key? (spec-table :properties) :mountpoint)))
+    (let [properties (struct/to-table (spec-table :properties))]
+      (set (spec-table :properties)
+           (put-in properties [:mountpoint] "none"))))
+  spec-table)
 
 (defdoer :zfs
   "Create, destroy, and modify properties of ZFS filesystems."
   :name-is "ZFS dataset name"
   (ensure
+    :finalise-with finaliser
     (property "properties" [:struct] :optional
               "ZFS properties (:keyword) paired with desired value (`:string`)"
-              :default {}
-              :transform-with ensure-empty-mountpoint)
+              :default {})
     (property "size" [:string] :optional
               "If specified, creates a ZFS volume of given size (e.g. '10G')"))
 

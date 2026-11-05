@@ -31,7 +31,7 @@
   [& values]
   (flatten (array values)))
 
-(defn drop-empties
+(defn drop-empty
   "Remove empty elements from an array. Errors if any element is not
    lengthable?"
   [arr]
