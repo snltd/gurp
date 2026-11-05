@@ -10,7 +10,7 @@
        :from-helper true
        :nameservers ["192.168.1.53" "1.1.1.1" "8.8.8.8"]
        :options ["attempts:5" "rotate"]
-       :unique false}])
+       :unique true}])
 
   (test-error
     (zone/dns :domain "example.com")
