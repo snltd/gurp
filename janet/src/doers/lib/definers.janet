@@ -122,6 +122,9 @@
   (when-let [from-path (spec-table :from)]
     (set spec-table (expand-from-value spec-table from-path)))
 
+  (when-let [complete-fn (action-attrs :complete-with)]
+    (set spec-table (complete-fn spec-table)))
+
   (set spec-table (validators/validate-spec action-attrs spec-table))
 
   (when-let [movers (extract-with-attribute action-attrs :put-in)]
