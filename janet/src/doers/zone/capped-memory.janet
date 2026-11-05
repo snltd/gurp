@@ -3,6 +3,7 @@
 
 (defhelper :zone :capped-memory
   "Set memory caps on a zone being created by the zone doer."
+  :unique true
   (helper
     :at-least-one-of [:physical :swap :locked]
     (property "physical" [:string] :optional

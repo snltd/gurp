@@ -404,8 +404,8 @@ mod test {
                 (zone/capped-memory 
                     :physical "500M"
                     :swap "500M")
-                (zone/attr "numeric-attr" :type :value 123)
-                (zone/attr "bool-attr" :type "boolean" :value false)
+                (zone/attr "numeric-attr" :value 123)
+                (zone/attr "bool-attr" :value false)
                 (zone/attr "string-attr" :value "la-de-da")
                 (zone/rctl "zone.max-swap"
                     :priv "privileged"
@@ -468,7 +468,7 @@ mod test {
             add attr
             \tset name=string-attr
             \tset type=string
-            \tset value=\"la-de-da\"
+            \tset value=la-de-da
             end
             add rctl
             \tset name=zone.max-swap

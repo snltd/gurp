@@ -24,12 +24,12 @@
                        {:_id "/test-role/zfs/example-zfs-vol"
                         :label "example-zfs-vol"
                         :name "rpool/example/volume"
-                        :properties {:mountpoint "none"}
+                        :properties {}
                         :role "test-role"
                         :size "10G"}
                        {:_id "/test-role/zfs/rpool_blank"
                         :name "rpool/blank"
-                        :properties {:mountpoint "none"}
+                        :properties @{:mountpoint "none"}
                         :role "test-role"}]}
       :remove @{:zfs @[{:_id "/test-role/zfs/rpool_old_filesystem"
                         :name "rpool/old/filesystem"

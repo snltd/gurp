@@ -3,6 +3,7 @@
 
 (defhelper :zone :dns
   "Define DNS configuration for a native zone."
+  :unique true
   (helper
     (property "domain" [:string] :mandatory "Default DNS domain")
     (property "nameservers" [:tuple] :mandatory

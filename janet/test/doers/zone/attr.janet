@@ -3,7 +3,7 @@
 
 (deftest zone/attr
   (test
-    (zone/attr "turn-it-on" :value false :type "boolean")
+    (zone/attr "turn-it-on" :value false)
     [:attr
      @{:from-helper true
        :name "turn-it-on"
@@ -18,10 +18,10 @@
        :name "spandau-ballet-number-1"
        :type "astring"
        :unique false
-       :value true}])
+       :value "true"}])
 
   (test
-    (zone/attr "this-is-a-number" :value 123 :type "uint")
+    (zone/attr "this-is-a-number" :value 123 )
     [:attr
      @{:from-helper true
        :name "this-is-a-number"
@@ -30,7 +30,7 @@
        :value 123}])
 
   (test
-    (zone/attr "kernel-ver" :value "4.4" :type "string")
+    (zone/attr "kernel-ver" :value "4.4")
     [:attr
      @{:from-helper true
        :name "kernel-ver"
@@ -39,7 +39,7 @@
        :value "4.4"}])
 
   (test
-    (zone/attr "extra" :value "-accel tcg,thread=multi" :type "string")
+    (zone/attr "extra" :value "-accel tcg,thread=multi")
     [:attr
      @{:from-helper true
        :name "extra"
@@ -54,7 +54,7 @@
         
   (test-error
     (zone/attr "thing" :value 123 :oops "wat")
-    "In zone/attr thing: did not find mandatory property :type. Mandatory properties are :type, :value")
+    "In zone/attr thing: unexpected property :oops. Valid properties are :label, :type, :value")
 
   (test-error
     (zone/attr "thing" :type "astring")
