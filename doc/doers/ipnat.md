@@ -10,13 +10,13 @@ Any convenient name: not used internally [`:string`]
 ## ipnat/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:priority` | `number` | NAT rule resources are ordered by priority, lowest number first. |  |
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -26,11 +26,11 @@ Any convenient name: not used internally [`:string`]
 ## ipnat/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

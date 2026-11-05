@@ -34,8 +34,8 @@ mod test {
             .arg("zone/bhyve")
             .assert()
             .success()
-            .stdout(predicate::str::contains("Mandatory properties"))
-            .stdout(predicate::str::contains("Optional properties"))
+            .stdout(predicate::str::contains("Mandatory Properties"))
+            .stdout(predicate::str::contains("Optional Properties"))
             .stdout(predicate::str::contains(
                 "A bhyve zone must be built from an image.",
             ));

@@ -10,13 +10,13 @@ Address name, e.g. vnic0/v4 [`:string`]
 ## ip-address/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:type` | `string` | Type of address. Allowed values: "static", "dhcp". |  |
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -26,11 +26,11 @@ Address name, e.g. vnic0/v4 [`:string`]
 ## ip-address/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

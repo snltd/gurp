@@ -10,7 +10,7 @@ Convenient name for job. [`:string`]
 ## cron/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -22,20 +22,20 @@ Convenient name for job. [`:string`]
 | `:month-of-year` | `string number` | Month(s) in which job runs. | `"*"` |
 | `:user` | `string` | Username which runs job. Must already exist. | `"root"` |
 
-### Optional properties
+### Optional Properties
 
 None
 
 ## cron/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:user` | `string` | Username which runs job. Must exist. | `"root"` |
 
-### Optional properties
+### Optional Properties
 
 None
 

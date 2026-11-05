@@ -10,7 +10,7 @@ Zone name [`:string`]
 ## zone/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -18,7 +18,7 @@ Zone name [`:string`]
 | `:boot-after-install` | `boolean` | Boot the zone once it is installed. | `true` |
 | `:brand` | `string` | Zone brand. |  |
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -49,11 +49,11 @@ Zone name [`:string`]
 ## zone/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

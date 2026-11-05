@@ -93,7 +93,7 @@
 
       :properties (fn [self prop-type properties]
                     (string ((self :header-2)
-                              (string/format "%s properties" prop-type))
+                              (string/format "%s Properties" prop-type))
                             "\n"
                             ((self :format-properties) properties)))
 

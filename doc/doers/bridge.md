@@ -10,7 +10,7 @@ Any valid bridge name [`:string`]
 ## bridge/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -21,7 +21,7 @@ Any valid bridge name [`:string`]
 | `:priority` | `number` | Bridge priority. 0 to 61440. | `32768` |
 | `:protect` | `string` | Protection method. | `"stp"` |
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -30,11 +30,11 @@ Any valid bridge name [`:string`]
 ## bridge/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

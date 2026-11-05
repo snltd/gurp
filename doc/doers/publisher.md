@@ -10,13 +10,13 @@ Publisher name [`:string`]
 ## publisher/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:origin` | `tuple` | List of origins, created with publisher/origin . |  |
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -26,11 +26,11 @@ Publisher name [`:string`]
 ## publisher/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

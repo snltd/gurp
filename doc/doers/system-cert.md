@@ -10,11 +10,11 @@ File certificate will have in /etc/ssl/certs [`:string`]
 ## system-cert/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -27,11 +27,11 @@ None
 ## system-cert/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

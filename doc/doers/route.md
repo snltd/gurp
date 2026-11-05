@@ -10,11 +10,11 @@ The route destination, e.g. '10.10.0.0/16'. For a default route            speci
 ## route/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -27,13 +27,13 @@ None
 ## route/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:gateway` | `string` | Gateway for given route.. |  |
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|

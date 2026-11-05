@@ -10,14 +10,14 @@ Qualified path to the link that will be created [`:string`]
 ## link/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:source` | `string` | The file to which we will link. |  |
 | `:type` | `string` | The type of link. Allowed values: "symbolic", "hard". | `"symbolic"` |
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -26,11 +26,11 @@ Qualified path to the link that will be created [`:string`]
 ## link/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

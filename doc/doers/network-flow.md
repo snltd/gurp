@@ -10,13 +10,13 @@ Name of flow. Must be unique [`:string`]
 ## network-flow/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:link` | `string` | NIC/VNIC to which flow applies. |  |
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -32,11 +32,11 @@ Name of flow. Must be unique [`:string`]
 ## network-flow/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

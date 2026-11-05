@@ -10,7 +10,7 @@ User's username [`:string`]
 ## user/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -20,7 +20,7 @@ User's username [`:string`]
 | `:shell` | `string` | User's shell. | `"/bin/zsh"` |
 | `:uid` | `number` | UID of user. |  |
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -31,11 +31,11 @@ User's username [`:string`]
 ## user/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

@@ -12,7 +12,7 @@
 
     :props (fn [self action-info]
              (lib/joint
-               (:properties self :mandatory
+               (:properties self "Mandatory"
                             (lib/props-without-name action-info :mandatory))
                (:properties self "Optional"
                             (lib/props-without-name action-info :optional))))

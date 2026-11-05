@@ -10,11 +10,11 @@ A collection of things too small to deserve their own doer.
 ## misc/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
