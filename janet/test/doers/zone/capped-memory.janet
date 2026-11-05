@@ -9,14 +9,14 @@
      @{:from-helper true
        :physical "2G"
        :swap "4G"
-       :unique false}])
+       :unique true}])
 
   (test
     (zone/capped-memory :physical "2G")
     [:capped-memory
      @{:from-helper true
        :physical "2G"
-       :unique false}])
+       :unique true}])
 
   (test-error
     (zone/capped-memory)

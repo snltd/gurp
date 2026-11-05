@@ -18,7 +18,7 @@
        :name "spandau-ballet-number-1"
        :type "astring"
        :unique false
-       :value "true"}])
+       :value true}])
 
   (test
     (zone/attr "this-is-a-number" :value 123 )
