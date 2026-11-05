@@ -15,13 +15,12 @@
 (defn help-for [object]
   (if (= object "control-data")
     (control-data/describe)
-    # (try
+    (try
       (if (string/find "/" object)
         (describe-docs/help-for-helper (splice (string/split "/" object 0 2)))
         (describe-docs/help-for-doer object))
-        ))
-      # ([_e]
-      #   (string "No help for '" object "'")))))
+      ([_e]
+        (string "No help for '" object "'")))))
 
 # Returns a multiline string, pairing doers with their descriptions. Used by
 # Gurp's 'doers' command

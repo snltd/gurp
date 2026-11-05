@@ -10,25 +10,25 @@ VLAN name [`:string`]
 ## vlan/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:over` | `string` | Physical link which will serve the VLAN. |  |
 | `:vlan-tag` | `number` | The VLAN tag ID. |  |
 
-### Optional properties
+### Optional Properties
 
 None
 
 ## vlan/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

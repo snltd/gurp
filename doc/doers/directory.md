@@ -10,7 +10,7 @@ Fully qualified path to directory [`:string`]
 ## directory/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -18,18 +18,18 @@ Fully qualified path to directory [`:string`]
 | `:mode` | `string` | Permissions, octal. | `"0755"` |
 | `:owner` | `string number` | The username or UID of the user who owns this directory. | `"root"` |
 
-### Optional properties
+### Optional Properties
 
 None
 
 ## directory/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

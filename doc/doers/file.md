@@ -10,7 +10,7 @@ Fully qualified path to file [`:string`]
 ## file/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -18,7 +18,7 @@ Fully qualified path to file [`:string`]
 | `:mode` | `string` | Permissions, octal. | `"0644"` |
 | `:owner` | `string number` | The username or UID of the user who owns this file. | `"root"` |
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -37,11 +37,11 @@ Fully qualified path to file [`:string`]
 ## file/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

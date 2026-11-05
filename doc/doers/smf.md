@@ -10,7 +10,7 @@ Short name of service. Not used internally [`:string`]
 ## smf/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -19,7 +19,7 @@ Short name of service. Not used internally [`:string`]
 | `:single-instance` | `boolean` | Is this a single-instance service?. | `true` |
 | `:stop-method` | `struct` | See 'smf-method'. | `{:exec ":kill" :timeout 10}` |
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -36,11 +36,11 @@ Short name of service. Not used internally [`:string`]
 ## smf/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

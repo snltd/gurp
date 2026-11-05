@@ -10,13 +10,13 @@ Any valid FMRI of the service whose properties you wish to set [`:string`]
 ## svcprop/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:properties` | `struct` | Properties to create. (`:keyword` `:string|:boolean|:number`). |  |
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -26,13 +26,13 @@ Any valid FMRI of the service whose properties you wish to set [`:string`]
 ## svcprop/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:properties` | `tuple` | Properties to remove. |  |
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|

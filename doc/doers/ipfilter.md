@@ -10,13 +10,13 @@ Any convenient name: not used internally [`:string`]
 ## ipfilter/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:priority` | `number` | rule resources are ordered by priority, lowest number first. |  |
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -27,11 +27,11 @@ Any convenient name: not used internally [`:string`]
 ## ipfilter/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

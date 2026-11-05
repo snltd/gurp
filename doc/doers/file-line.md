@@ -10,11 +10,11 @@ Fully qualified path to file [`:string`]
 ## file-line/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -27,7 +27,7 @@ None
 ## file-line/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
@@ -35,7 +35,7 @@ None
 | `:match` | `string` | How to match the line. Allowed values: "exact", "starts-with", "ends-with", "contains", "regex". | `"exact"` |
 | `:pattern` | `string` | The line or pattern which must be removed. |  |
 
-### Optional properties
+### Optional Properties
 
 None
 

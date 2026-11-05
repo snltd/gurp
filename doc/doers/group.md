@@ -10,24 +10,24 @@ Group name [`:string`]
 ## group/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:gid` | `number` | The group ID. |  |
 
-### Optional properties
+### Optional Properties
 
 None
 
 ## group/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 

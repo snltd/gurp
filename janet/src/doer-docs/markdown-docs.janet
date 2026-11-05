@@ -69,7 +69,7 @@
                                  "Does not take a name parameter.")]))
 
       :properties (fn [self prop-type properties]
-                    (lib/join-lines [(h3 (string/format "%s properties" prop-type))
+                    (lib/join-lines [(h3 (string/format "%s Properties" prop-type))
                                      ;(if (empty? properties)
                                         ["None"]
                                         (property-table properties))]))} base/Base))

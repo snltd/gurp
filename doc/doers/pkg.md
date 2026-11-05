@@ -10,22 +10,22 @@ Package name, of the form ooce/editor/helix [`:string`]
 ## pkg/ensure
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 
 ## pkg/remove
 
 
-### mandatory properties
+### Mandatory Properties
 
 None
 
-### Optional properties
+### Optional Properties
 
 None
 
