@@ -3,16 +3,19 @@
 (use ../lib/definers)
 
 (defn completer [spec-table]
-  (if (has-key? spec-table :value)
-    (if-not (has-key? spec-table :type)
-      (set (spec-table :type)
-           (match (type (spec-table :value))
-             :number "uint"
-             :boolean "boolean"
-             _ "string")))
+  # If there's a value without a atype, set the type
+  (if (and (has-key? spec-table :value) (not (has-key? spec-table :type)))
+    (set (spec-table :type)
+         (match (type (spec-table :value))
+           :number "uint"
+           :boolean "boolean"
+           _ "string")))
+
+  # If there's a string value, make it safe
+  (if-let [value (spec-table :value)]
     (match (spec-table :type)
-      "astring" (set (spec-table :value) (string (spec-table :value)))
-      "string" (set (spec-table :value) (lib/safe-val (spec-table :value)))))
+      "astring" (set (spec-table :value) (string value))
+      "string" (set (spec-table :value) (lib/safe-val value))))
 
   spec-table)
 
