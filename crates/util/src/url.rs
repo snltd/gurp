@@ -17,3 +17,14 @@ impl Filename for Url {
             .to_string())
     }
 }
+
+pub trait WithSuffix {
+    fn with_suffix(&self, suffix: &str) -> anyhow::Result<Url>;
+}
+
+impl WithSuffix for Url {
+    fn with_suffix(&self, suffix: &str) -> anyhow::Result<Url> {
+        let basename = self.filename()?;
+        Ok(self.join(&format!("{basename}.{suffix}"))?)
+    }
+}

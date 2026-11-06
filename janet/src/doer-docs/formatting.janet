@@ -1,15 +1,10 @@
-(defn underline
-  "Underline the given string"
-  [text]
-  (string "\x1b[4m" text "\x1b[0m"))
+(import ./lib :only [join-words])
 
-(defn bold
-  "Bold the given string"
-  [text]
-  (string "\x1b[1m" text "\x1b[0m"))
+(defn underline [& words]
+  (string "\x1b[4m" (lib/join-words ;words) "\x1b[0m"))
 
-(defn bold-underline
-  "Bold and underline the given string"
-  [text]
-  (bold (underline text)))
-  
+(defn bold [& words]
+  (string "\x1b[1m" (lib/join-words ;words) "\x1b[0m"))
+
+(defn bold-underline [& words]
+  (bold (underline ;words)))

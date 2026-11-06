@@ -36,13 +36,6 @@ pub struct ApplyOpts {
     pub gurp_config_root: Option<Utf8PathBuf>,
 }
 
-/// Used to pass checksums around
-#[derive(Debug, Default, Clone)]
-pub struct FileChecksum {
-    pub algorithm: String,
-    pub value: String,
-}
-
 /// User-supplied flags which affect Gurp's output
 #[derive(Debug, Default, Clone)]
 pub struct ApplyOutputOpts {

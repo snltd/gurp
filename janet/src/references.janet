@@ -1,9 +1,7 @@
-#
 # Resolve references in resource definitions.
-# 
-(defn- resolve-reference
-  "Recursively chase down a reference. Catches circular and dangling refs"
-  [target-ref all-resources seen]
+
+# Recursively chase down a reference. Catches circular and dangling refs
+(defn- resolve-reference [target-ref all-resources seen]
   (let [last-sep-index (last (string/find-all "/" target-ref))
         chunks (string/split "/" target-ref last-sep-index)
         resource-id (first chunks)
@@ -25,23 +23,18 @@
         (errorf "referenced property is nil: %p" target-ref)
         referenced-val))))
 
-(defn- resolve-references
-  "Update any references in a resource with their final targets"
-  [resource all-resources]
+# Update any references in a resource with their final targets
+(defn- resolve-references [resource all-resources]
   (loop [[k v] :pairs resource]
     (cond
-      (table? v)
-      (set (resource k) (resolve-references v all-resources))
-      (struct? v)
-      (set (resource k) (table/to-struct
-                          (resolve-references (struct/to-table v) all-resources)))
-      (keyword? v)
-      (set (resource k) (resolve-reference v all-resources @{}))))
+      (table? v) (set (resource k) (resolve-references v all-resources))
+      (struct? v) (set (resource k)
+                       (table/to-struct (resolve-references (struct/to-table v)
+                                                            all-resources)))
+      (keyword? v) (set (resource k) (resolve-reference v all-resources @{}))))
   resource)
 
-(defn resolve
-  "Resolve a list of resources of the same type"
-  [resource-list all-resources]
-  (map
-    |(table/to-struct (resolve-references (struct/to-table $) all-resources))
-    resource-list))
+# Resolve a list of resources of the same type
+(defn resolve [resource-list all-resources]
+  (map |(table/to-struct (resolve-references (struct/to-table $) all-resources))
+       resource-list))

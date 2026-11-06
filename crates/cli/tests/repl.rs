@@ -8,12 +8,10 @@ mod test {
     fn test_repl_with_file_ensure() {
         cargo_bin_cmd!("gurp")
             .arg("repl")
-            .write_stdin("(doc file/ensure) (os/exit)")
+            .write_stdin("(doc pathcat) (os/exit)")
             .assert()
             .success()
-            .stdout(predicate::str::contains(
-                "Given a file path and spec, put an ensure struct in the collector.",
-            ));
+            .stdout(predicate::str::contains("Joins tokens to make a path"));
     }
 
     #[test]

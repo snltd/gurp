@@ -1,6 +1,6 @@
 (use judge)
 (use ../../src/collector)
-(use ./test-lib)
+(use ./lib/test-lib)
 (import ../../src/doers/apk)
 
 (deftest apk

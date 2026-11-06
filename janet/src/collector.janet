@@ -1,10 +1,7 @@
-(import ./references)
+(import ./references :only [resolve])
 
-(defn new-collector
-  "Returns an empty *collector*. In a function as most tests use it"
-  []
-  @{:ensure @{}
-    :remove @{}})
+# Returns an empty *collector*. In a function as most tests use it
+(defn new-collector [] @{:ensure @{} :remove @{}})
 
 # Yes, a GLOBAL VARIABLE! It collects all the resources from the host we
 # are configuring. :ensure and :remove are tables whose keys are resource
@@ -12,46 +9,38 @@
 # 
 (var *collector* (new-collector))
 
-(defn push
-  "Mutates global state by pushing a resource onto the appropriate array inside
-  the collector. Returns the resource itself, which can be useful when 
-  debugging with the REPL."
-  [action resource-type resource]
+# Mutates global state by pushing a resource onto the appropriate array inside
+# the collector. Returns the resource itself, which can be useful when 
+# debugging with the REPL.
+(defn push [action resource-type resource]
   (let [action-struct (*collector* action)]
     (if-not (has-key? action-struct resource-type)
       (set (action-struct resource-type) @[]))
-
-    (array/concat
-      (action-struct resource-type) resource)
+    (array/concat (action-struct resource-type) resource)
     resource))
 
-(defn check-unique-ids
-  "If the given list contains any duplicate resource IDs, throw an error"
-  [resource-list]
+# If the given list contains any duplicate resource IDs, throw an error
+(defn check-unique-ids [resource-list]
   (var seen @{})
   (loop [id :in (map |($ :_id) resource-list)]
     (if (has-key? seen id)
       (errorf "duplicate key: %s" id)
       (set (seen id) true))))
 
-(defn- finalise-action
-  "When given a list of resources to ensure or remove, resolve any references,
-  check there are no duplicate IDs, and return a fresh resource table"
-  [resource-struct]
+# When given a list of resources to ensure or remove, resolve any references,
+# check there are no duplicate IDs, and return a fresh resource table
+(defn- finalise-action [resource-struct]
   (def all-resources (mapcat values resource-struct))
   (var ret @{})
 
   (loop [[resource-type resource-list] :pairs resource-struct]
-    (do
-      (check-unique-ids resource-list)
-      (set
-        (ret resource-type)
-        (references/resolve resource-list all-resources))))
+    (check-unique-ids resource-list)
+    (set (ret resource-type)
+         (references/resolve resource-list all-resources)))
   ret)
 
-(defn finalise
-  "Returns the resource struct that will be parsed by Serde in the Rust backend"
-  [collector]
+# Returns the resource struct that will be parsed by Serde in the Rust backend
+(defn finalise [collector]
   (if (dyn :destroy-everything-you-touch)
     {:ensure {}
      :remove (finalise-action (collector :ensure))}

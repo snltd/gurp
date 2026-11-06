@@ -1,5 +1,5 @@
 (use judge)
-(use ./test-lib)
+(use ./lib/test-lib)
 (use ../../src/collector)
 (import ../../src/doers/svc)
 
@@ -11,13 +11,10 @@
   (test *collector*
     @{:ensure @{:svc @[{:_id "/NO-ROLE/svc/snltd_example"
                         :name "snltd/example"
-                        :reloaded-by @[]
-                        :restarted-by @[]
                         :role "NO-ROLE"
                         :state "disabled"}
                        {:_id "/NO-ROLE/svc/important_service"
                         :name "important/service"
-                        :reloaded-by @[]
                         :restarted-by @["/test-role/file/stub"]
                         :role "NO-ROLE"
                         :state "enabled"}]}
@@ -29,7 +26,7 @@
                 :state "enabled"
                 :volume 11
                 :strings: 12)
-    "In svc/ensure too/many/keys: unexpected property :strings:. Valid properties are :state, :restarted-by, :reloaded-by, :label")
+    "In svc/ensure too/many/keys: unexpected property :strings:. Valid properties are :label, :reloaded-by, :restarted-by, :state")
 
   (test-error
     (svc/ensure "what/should/i/do")

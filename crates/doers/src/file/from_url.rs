@@ -1,12 +1,13 @@
 use crate::file::actions;
 use crate::file::types::{CompareMethod, DesiredFileState};
-use anyhow::{Context, bail};
+use anyhow::{Context, ensure};
 use camino::Utf8Path;
 use camino_tempfile::NamedUtf8TempFile;
 use common::types::{ApplyOpts, ApplySummary, Changed};
 use std::fs;
+use util::filter;
+use util::hash::{self, INTERNAL_HASHER};
 use util::http::{self, RemoteFileCopy};
-use util::{filter, hash};
 
 // url_replacements are not supported here
 
@@ -45,7 +46,7 @@ fn file_from_server(
             CompareMethod::Filter(pattern) => hash::for_filtered_file_on_server(url, pattern)?,
         };
 
-        if remote_hash == hash::of_file(path)?.to_string() {
+        if remote_hash == hash::of_file(path, INTERNAL_HASHER)? {
             log_no_change!(path);
         } else {
             log_updating!(path);
@@ -98,24 +99,25 @@ fn file_from_remote(
         opts,
     )?;
 
-    if let Some(ref expected_checksum) = desired_state.with_checksum {
-        let actual_checksum = &hash::sha256_of_file(temp_path)?;
-        if actual_checksum != expected_checksum {
-            if path.exists() {
-                tracing::debug!("removing downloaded file");
-                fs::remove_file(path).with_context(|| format!("failed to remove {path}"))?;
-            }
-            bail!("Remote file has incorrect checksum");
-        }
+    if let Some(checksum) = &desired_state.checksum {
+        let actual = hash::of_file(temp_path, &checksum.algorithm)?;
+
+        ensure!(
+            checksum.resolve_and_compare(&actual, desired_state.from_url.as_ref())?,
+            format!("incorrect checksum for {path}")
+        );
     }
 
     // We have a local copy of the file
     if path.exists() {
         let p_change = match compare {
-            CompareMethod::Hash => hash::of_file(temp_path)? != hash::of_file(path)?,
+            CompareMethod::Hash => {
+                hash::of_file(temp_path, INTERNAL_HASHER)? != hash::of_file(path, INTERNAL_HASHER)?
+            }
             CompareMethod::Filter(pattern) => {
                 let filter = filter::FileFilter::from(pattern)?;
-                hash::of_string(&filter.file(temp_path)?) != hash::of_string(&filter.file(path)?)
+                hash::of_string(&filter.file(temp_path)?, INTERNAL_HASHER)
+                    != hash::of_string(&filter.file(path)?, INTERNAL_HASHER)
             }
         };
 
@@ -170,7 +172,9 @@ mod test {
         let json_def = janet2json(&indoc::formatdoc! {r#"
             (file/ensure "{}"
                 :from-url "{}"
-                :with-checksum "9c1b427039a6c786db0277fb96e3b0851a972dcdad832441e802d8b0de936ec3"
+                (file/checksum
+                    :algorithm "sha256"
+                    :literal "9c1b427039a6c786db0277fb96e3b0851a972dcdad832441e802d8b0de936ec3")
                 :mode "0640"
                 :owner "{}"
                 :group "{}")
@@ -239,7 +243,9 @@ mod test {
         let json_def = janet2json(&indoc::formatdoc! {r#"
             (file/ensure "/tmp/does-not-matter"
                 :from-url "{}"
-                :with-checksum "0000000100000000000000000000000000000000000000000000000000000000"
+                (file/checksum
+                    :algorithm "sha512"
+                    :literal "0000000100000000000000000000000000000000000000000000000000000000")
                 :mode "0640"
                 :owner "{}"
                 :group "{}")
@@ -253,8 +259,8 @@ mod test {
         let err = sut.apply(&ApplyOpts::default()).unwrap_err();
 
         assert_eq!(
-            err.to_string(),
-            "Remote file has incorrect checksum".to_owned()
+            &err.to_string(),
+            "incorrect checksum for /tmp/does-not-matter"
         );
 
         conf_mock.assert();

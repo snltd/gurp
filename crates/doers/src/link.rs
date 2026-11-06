@@ -1,4 +1,4 @@
-use anyhow::{Context, bail, ensure};
+use anyhow::{bail, ensure, Context};
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE};
 use common::types::{ApplyOpts, ApplySummary};
@@ -23,6 +23,7 @@ pub struct LinkEnsure {
     pub source: Utf8PathBuf,
     #[serde(rename = "type")]
     pub link_type: LinkType,
+    #[serde(default)]
     pub force_link: bool,
 }
 
@@ -538,12 +539,11 @@ mod test {
         });
 
         let sut: LinkEnsure = serde_json::from_str(&json_def).unwrap();
-        assert!(
-            sut.apply(&ApplyOpts::default())
-                .unwrap_err()
-                .to_string()
-                .contains("target exists, is a directory and force-link is not set")
-        );
+        assert!(sut
+            .apply(&ApplyOpts::default())
+            .unwrap_err()
+            .to_string()
+            .contains("target exists, is a directory and force-link is not set"));
         assert!(target_dir.exists());
         assert!(target_dir.is_dir());
 
@@ -585,12 +585,11 @@ mod test {
         });
 
         let sut: LinkEnsure = serde_json::from_str(&json_def).unwrap();
-        assert!(
-            sut.apply(&ApplyOpts::default())
-                .unwrap_err()
-                .to_string()
-                .contains("is a file, and force-link is not set")
-        );
+        assert!(sut
+            .apply(&ApplyOpts::default())
+            .unwrap_err()
+            .to_string()
+            .contains("is a file, and force-link is not set"));
         assert!(target_file.exists());
         assert_eq!(
             "target-content".to_owned(),

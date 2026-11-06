@@ -1,13 +1,12 @@
-#
 # Write doer documentation to the console. Used by `gurp describe`
-# 
-(use ./lib)
+
+(import ../doers/lib/lib :only [comma-sep] :as doer-lib)
+(import ../dsl :only [fields])
+(import ../lib :only [drop-empty] :as gurp-lib)
+(import ./base :only [Base])
+(import ./lib :only [join-lines term-width])
+(import ../command-lib :only [strip-ansi])
 (use ./formatting)
-(use ../command-lib)
-(use ../lib)
-(use ../../test/doers/test-lib)
-(import ../dsl :prefix "" :only [files-in basename lines drop-empties pathcat parent])
-(import ../doers :prefix "")
 
 (defn- indent [text]
   (as-> text _
@@ -15,183 +14,95 @@
         (map (partial string "  ") _)
         (string/join _ "\n")))
 
-(defn code-block [code]
-  (string "\n" (indent code)))
+# Returns the width of a field which can accommodate the longest value in list
+(defn- field-width [list]
+  (if (empty? list) 0 (max ;(map length list))))
 
-(defn- field-width
-  "Returns the width of a field which can accommodate the longest value in list"
-  [list]
-  (if (empty? list)
-    0
-    (max (splice (map length list)))))
+(defn- flatten-types [types]
+  (string/format "[%s]" (string/join (map (partial string/format "%p") types) " ")))
 
-(defn- flatten-types
-  [types]
-  (string "[" (string/join (map |(string/format "%p" $) types) " ") "]"))
-
-(defn- type-list
-  [types]
+(defn- type-list [types]
   (map flatten-types types))
 
-(defn lay-out-help
-  "Returns an array of strings. The first element has the given leader right-
-  aligned, along with the first words of 'words'. The remaining elements are
-  the rest of 'words', left padded so they form a neat column"
-  [leader words pad-width whole-width]
-
+# Returns an array of strings. The first element has the given leader right-
+# aligned, along with the first words of 'words'. The remaining elements are
+# the rest of 'words', left padded so they form a neat column
+(defn lay-out-help [leader words pad-width whole-width]
   (let [pad (string/repeat " " pad-width)
-        invisible (- (length leader) (length (strip-ansi leader)) 2)
-        raw-words (array ;(drop-empties (string/split " " words)) nil)
+        invisible (- (length leader) (length (command-lib/strip-ansi leader)) 2)
+        raw-words (array ;(gurp-lib/drop-empty (dsl/fields words)) nil)
         lines @[]
-        format-string (string "%" (+ pad-width invisible) "s ")]
+        format-string (string/format "%%%ds " (+ pad-width invisible))]
 
     (var line (string/format format-string leader))
 
     (loop [word :in raw-words]
-      (if (or (nil? word) (> (+ (length word) (length line) 2) whole-width))
+      (if (or (nil? word) (< whole-width (+ (length word) (length line) 2)))
         (do
           (array/push lines line)
           (set line (string pad word)))
-        (set line (string line " " word))))
+        (set line (string/format "%s %s" line word))))
     lines))
 
-(defn format-properties
-  "Returns a single string of a block of properties, formatted for output."
-  [props]
+(defn construct-property-value
+  [prop]
+  (let [ret @[(prop :help)]]
+    (when-let [allowed-values (prop :values)]
+      (array/concat ret (string "Allowed values: "
+                                (doer-lib/comma-sep allowed-values))))
+    (when-let [default-value (prop :default)]
+      (array/concat ret (string/format "Default: `%p`" default-value)))
+    (string (string/join ret ". ") ".")))
+
+# Returns a single string of a block of properties, formatted for output.
+(defn format-properties [props]
   (if (empty? props)
     "  None"
-    (do
-      (def field-width-prop-names (field-width (map bold (keys props))))
-      (def stringy-types (type-list (map |(get $ :types) (values props))))
-      (def field-width-prop-types (field-width stringy-types))
-      (def leader-width (+ field-width-prop-names field-width-prop-types))
-      (def leader-format-string
-        (string "  %-" field-width-prop-names "s %-" field-width-prop-types "s"))
+    (let [field-width-prop-names (field-width (map bold (keys props)))
+          stringy-types (type-list (map |(get $ :types) (values props)))
+          field-width-prop-types (field-width stringy-types)
+          leader-width (+ field-width-prop-names field-width-prop-types)
+          leader-format-string (string/format "  %%-%ds %%-%ds"
+                                              field-width-prop-names
+                                              field-width-prop-types)]
 
-      (join-lines
-        (flatten
-          (seq [[prop-name prop-vals] :pairs props]
-            (def leader
-              (string/format leader-format-string
-                             (bold prop-name)
-                             (flatten-types (prop-vals :types))))
+      (-> (catseq [[prop-name prop-vals] :pairs props]
+            (lay-out-help (string/format leader-format-string
+                                         (bold prop-name)
+                                         (flatten-types (prop-vals :types)))
+                          (construct-property-value prop-vals)
+                          (- leader-width 3)
+                          (lib/term-width)))
+          (lib/join-lines)))))
 
-            (lay-out-help
-              leader
-              (prop-vals :help)
-              (- leader-width 3)
-              (term-width))))))))
+(def Inline
+  (table/setproto
+    @{:header-1 bold-underline
+      :header-2 bold
+      :example-formatter indent
+      :format-properties format-properties
+      :code (fn [code] (string "\n" (indent code)))
 
-(defn note
-  [note]
-  (string (join-lines (lay-out-help "" note 2 (term-width))) "\n\n"))
+      :description (fn [self text]
+                     (lib/join-lines (lay-out-help "" text 2 (lib/term-width))))
 
-(defn- examples-as-map
-  [dir]
-  (struct ;(flatten (map |(tuple (basename $) (slurp $)) (files-in dir :file)))))
+      :note-formatter (fn [note]
+                        (lib/join-lines
+                          (lay-out-help "" note 2 (lib/term-width))))
 
-(def code-examples
-  "This def pulls the examples into the Gurp Janet image"
-  (do
-    (def doer-dirs (files-in example-root :directory))
-    (def doers (map basename doer-dirs))
-    (def examples (map examples-as-map doer-dirs))
-    (zipcoll doers examples)))
+      :properties (fn [self prop-type properties]
+                    (string ((self :header-2)
+                              (string/format "%s Properties" prop-type))
+                            "\n"
+                            ((self :format-properties) properties)))
 
-(defn- code-example
-  "Returns a string formetted for doer/action, formatted via code-bock-fn"
-  [code-block-fn doer action]
+      :name (fn [self name-is]
+              (if name-is
+                (string/format "  %s  [:string]  %s" (bold "name") name-is)
+                "Does not take a name parameter."))} base/Base))
 
-  (defn example-filter
-    [[k v]]
-    (def prefix (string action "-"))
-    (when (string/has-prefix? prefix k) (code-block v)))
+(defn help-for-doer [doer]
+  (:render-doer (:new Inline (keyword doer))))
 
-  (string/join
-    (when-let [examples (get code-examples (string doer))]
-      (keep example-filter
-            (sort (pairs examples))))))
-
-(defn help-for-doer
-  "Returns a multiline string showing keys supported by the given doer"
-  [doer]
-  (string
-    (bold-underline doer)
-    "\n"
-    (join-lines
-      (lay-out-help "" (doer-lookup doer :description) 2 (term-width)))
-    "\n"
-    "\n"
-    (bold-underline (a/b doer "ensure"))
-    "\n"
-    (if-let [name-str (doer-lookup doer :name-is)]
-      (string "  " (bold "name")
-              "  [:string]  " name-str)
-      "\nThis doer does not take a name parameter.")
-    "\n"
-    "\n"
-    (bold "Mandatory properties")
-    "\n"
-    (format-properties (doer-lookup doer :mandatory-props-ensure))
-    "\n"
-    "\n"
-    (bold "Optional properties")
-    "\n"
-    (format-properties (doer-lookup doer :optional-props-ensure))
-    "\n"
-    "\n"
-    (bold-underline (a/b doer "remove"))
-    "\n"
-    "\n"
-    (if (doer-lookup doer :remove)
-      (string
-        (bold "Mandatory properties")
-        "\n"
-        (format-properties (doer-lookup doer :mandatory-props-remove))
-        "\n"
-        "\n"
-        (bold "Optional properties")
-        "\n"
-        (format-properties (doer-lookup doer :optional-props-remove))
-        "\n")
-      (string "There is no " doer "/remove action.\n"))
-
-    (if-let [notes (doer-lookup doer :notes)]
-      (string "\n" (bold "Notes") "\n" (splice (map note notes))))
-
-    (bold "EXAMPLES")
-    "\n"
-    (code-example code-block doer :ensure)
-    (code-example code-block doer :remove)))
-
-(defn help-for-helpers
-  "Returns a multiline string showing keys supported by the given helpers"
-  [doer helpers]
-
-  (string
-    (bold-underline (a/b doer helpers))
-    "\n"
-    (join-lines (lay-out-help
-                  ""
-                  (helpers-lookup doer helpers :description)
-                  2
-                  (term-width)))
-    "\n"
-    "\n"
-    (string "  "
-            (bold "name")
-            "  [:string]  "
-            (helpers-lookup doer helpers :name-is))
-    "\n"
-    "\n"
-    (bold "Mandatory properties")
-    "\n"
-    (format-properties (helpers-lookup doer helpers :mandatory-props))
-    "\n"
-    "\n"
-    (bold "Optional properties")
-    "\n"
-    (format-properties (helpers-lookup doer helpers :optional-props))
-    "\n"
-    (if-let [notes (helpers-lookup doer helpers :notes)]
-      (string "\n" (bold "Notes") "\n" (splice (map note notes))))))
+(defn help-for-helper [doer helper]
+  (:render-helper (:new Inline (keyword doer) (keyword helper))))

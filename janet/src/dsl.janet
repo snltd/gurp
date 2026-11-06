@@ -1,4 +1,5 @@
-(use ./lib)
+(import ./lib :only [drop-element drop-empty parsed-value ->key
+                     tabular-data->struct values-as-tuple])
 
 # Functions mostly exposed to the user and also used internally.
 
@@ -23,13 +24,10 @@
     (if (and (not (empty? role-definition))
              (tuple? (first role-definition))
              (= (get (first role-definition) 0) 'requires))
-      [(slice (first role-definition) 1)
-       (slice role-definition 1)]
-      [[]
-       role-definition]))
+      [(slice (first role-definition) 1) (slice role-definition 1)]
+      [[] role-definition]))
 
-  ~(defn ,role-name
-     [& params]
+  ~(defn ,role-name [& params]
      (setdyn :role-dyn (string ',role-name))
      (def role-params (struct ;params))
      ,;(map (fn [k]
@@ -41,7 +39,7 @@
      ,;body))
 
 (defmacro section
-  "A no-op which might help you write readable definitions"
+  "A no-op which might help you write more readable definitions"
   [name & body]
   ~(array ,;body))
 
@@ -53,9 +51,7 @@
 (defn stripslash
   "Removes leading and trailing slashes from a component"
   [chunk]
-  (-> chunk
-      (string)
-      (string/trim "/")))
+  (-> chunk (string) (string/trim "/")))
 
 (defn pathcat
   "Joins tokens to make a path"
@@ -64,7 +60,7 @@
     (error "pathcat called with a nil"))
   (as-> chunks _
         (map stripslash _)
-        (drop-empties _)
+        (lib/drop-empty _)
         (string/join _ "/")
         (string "/" _)))
 
@@ -74,7 +70,7 @@
   (if (nil? chunks)
     (error "zfscat called with a nil"))
   (-> (map stripslash chunks)
-      (drop-empties)
+      (lib/drop-empty)
       (string/join "/")))
 
 (defn qualified-path?
@@ -88,11 +84,10 @@
   to that directory, and returns the fully qualified path, but if it gets
   a fully qualified path, it simply returns it"
   [file-name]
-
   (if (qualified-path? file-name)
     file-name
     (do
-      (if (nil? (dyn :gurp-config-root))
+      (when (nil? (dyn :gurp-config-root))
         (errorf "cannot qualify path for %s: gurp-config-root is not set" file-name))
       (pathcat (dyn :gurp-config-root) "files" file-name))))
 
@@ -114,10 +109,7 @@
   "Returns a list of files in dir, including the path to dir. Optionally, files
   can be of type `kind`"
   [dir &opt kind]
-  (def filter-fn (if kind
-                   (fn [path] (= ((os/stat path) :mode) kind))
-                   identity))
-
+  (def filter-fn (if kind (fn [path] (= ((os/stat path) :mode) kind)) identity))
   (->> (string dir)
        (os/dir)
        (map (partial pathcat dir))
@@ -127,10 +119,7 @@
 (defn lines
   "Returns an array of the lines in the given string. Each is trimmed"
   [arg]
-  (->> arg
-       (string/trim)
-       (string/split "\n")
-       (map string/trim)))
+  (->> (string/trim arg) (string/split "\n") (map string/trim)))
 
 (defn fields
   "Returns an array of the whitespace-separated elements in a string"
@@ -152,7 +141,8 @@
   (dyn :host-dyn))
 
 (defn this-host-k
-  "Returns the name of the host as a keyword. This is set by a dyn in the host macro"
+  "Returns the name of the host as a keyword. This is set by a dyn in the host
+   macro"
   []
   (keyword (this-host)))
 
@@ -175,9 +165,8 @@
   "Given a string (usually hostname) and an interval in minutes, return the
   minutes past the hour at which gurp should run, as a comma-separated string"
   [seed-string interval]
-  (if-not (= (% 60 interval) 0)
+  (when (not= (% 60 interval) 0)
     (errorf "%d is not a divisor of 60" interval))
-
   (let [seed (% (apply + (seq [c :in seed-string] c)) interval)]
     (string/join (map string (seq [i :range [seed 60 interval]] i)) ",")))
 
@@ -188,7 +177,7 @@
   in the format string"
   [format-string format-values]
   (->> format-values
-       (map |(string/format (string format-string "\n") ;(values-as-tuple $)))
+       (map |(string/format (string format-string "\n") ;(lib/values-as-tuple $)))
        (string/join)))
 
 (defn indoc
@@ -197,7 +186,6 @@
   [str]
   (if-not (string? str)
     (errorf "indoc: expected a string literal, got %v" str))
-
   (def lines (string/split "\n" str))
 
   (def leader-to-remove
@@ -222,10 +210,7 @@
   "Returns the given tuple or array as a sorted array with duplicate elements
    removed"
   [list]
-  (-> list
-      (zipcoll (map nil? list))
-      keys
-      sorted))
+  (-> list (zipcoll (map nil? list)) keys sorted))
 
 (defn template-out
   "Takes a template with vars in {{ brackets }} and a table of vars to values.
@@ -292,19 +277,17 @@
 (defn tabular-rows->struct
   [rows &opt key-column]
   (default key-column 0)
-  (def struct-keys (->> rows (first) (fields) (map ->key)))
+  (def struct-keys (->> rows (first) (fields) (map lib/->key)))
   (def data (map fields (slice rows 1)))
 
   (defn- substruct
     [values]
     [(get values key-column)
      (table/to-struct
-       (zipcoll (drop-element struct-keys key-column)
-                (map parsed-value (drop-element values key-column))))])
+       (zipcoll (lib/drop-element struct-keys key-column)
+                (map lib/parsed-value (lib/drop-element values key-column))))])
 
-  (->> data
-       (map substruct)
-       (tabular-data->struct)))
+  (->> data (map substruct) (lib/tabular-data->struct)))
 
 (defn tabular-output->struct
   "Takes a table like dladm and ipadm output, and turns it into a struct. Keys
@@ -339,3 +322,15 @@
   "Sort a file when each line's first field is numeric"
   [str]
   (int/u64 (first (fields str))))
+
+(defn without-keys
+  "Return a copy of strct without any keys listed in `key-tuple`"
+  [strct key-tuple]
+  (def filter-fn (fn [[k _v]] (not (has-value? key-tuple k))))
+  (struct ;(flatten (filter filter-fn (pairs strct)))))
+
+(defn drop-empty-values
+  "Return a copy of strct without any keys whose values are empty"
+  [strct]
+  (def filter-fn (fn [[_k v]] (if (lengthable? v) (not (empty? v)) true)))
+  (struct ;(flatten (filter filter-fn (pairs strct)))))

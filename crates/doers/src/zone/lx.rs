@@ -1,4 +1,4 @@
-use crate::zone::config::{GurpZoneDns, ImageSource};
+use crate::zone::config::{Dns, ImageSource};
 use crate::zone::constants::{
     LX_RELEASES_URL, READINESS_WAIT_INTERVAL, READINESS_WAIT_TIMEOUT_NATIVE,
 };
@@ -13,7 +13,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use url::Url;
 
-pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &GurpZoneDns) -> anyhow::Result<()> {
+pub fn set_up_dns(zonepath: &Utf8PathBuf, dns_conf: &Dns) -> anyhow::Result<()> {
     let resolv_path = zonepath.join("root").join("etc").join("resolv.conf");
     tracing::debug!("creating {}", resolv_path);
 
