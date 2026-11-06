@@ -78,7 +78,7 @@
                         {:_id "/test-role/zone/lx-zone"
                          :attr @[@{:name "kernel-ver"
                                    :type "string"
-                                   :value "4.4"}]
+                                   :value "\"4.4\""}]
                          :autoboot true
                          :boot-after-install true
                          :brand "lx"
@@ -100,10 +100,10 @@
                                    :value "generic"}
                                  @{:name "diskif"
                                    :type "string"
-                                   :value "virtio-blk-device"}
+                                   :value "\"virtio-blk-device\""}
                                  @{:name "netif"
                                    :type "string"
-                                   :value "virtio-net-device"}]
+                                   :value "\"virtio-net-device\""}]
                          :autoboot true
                          :boot-after-install true
                          :brand "emu"
