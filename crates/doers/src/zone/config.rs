@@ -468,7 +468,7 @@ mod test {
             add attr
             \tset name=string-attr
             \tset type=string
-            \tset value=la-de-da
+            \tset value=\"la-de-da\"
             end
             add rctl
             \tset name=zone.max-swap
