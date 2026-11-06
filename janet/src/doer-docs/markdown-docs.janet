@@ -1,11 +1,11 @@
 # Generate Markdown documentation for all the doers, using the definition file
 # and code examples which are also uses in tests. Used by doers/build.sh, and
 # not built into the Gurp lib.
- 
+
 (import ../doers/lib/lib :prefix "" :only [comma-sep] :as doer-lib)
 (import ../dsl :only [pathcat])
 (import ../facts :only [fact->fn])
-(import ./base)
+(import ./base :only [Base])
 (import ./lib :only [doers join-lines repo-root squeeze])
 (use ./markdown-dsl)
 
@@ -15,7 +15,8 @@
 (defn- property-description [spec]
   (let [ret @[(spec :help)]]
     (when-let [allowed-values (spec :values)]
-      (array/concat ret (string "Allowed values: " (doer-lib/comma-sep allowed-values))))
+      (array/concat ret (string "Allowed values: "
+                                (doer-lib/comma-sep allowed-values))))
     (string (string/join ret ". ") ".")))
 
 # Make an array whose elements are cells for a row of a table
@@ -23,7 +24,8 @@
   [(code (string/format "%v" prop))
    (code (string/join (spec :types) " "))
    (lib/squeeze (property-description spec))
-   (if-let [default-val (spec :default)] (code (string/format "%p" default-val)) "")])
+   (if-let [default-val (spec :default)]
+     (code (string/format "%p" default-val)) "")])
 
 (defn- property-table [props]
   (let [rows (seq [[prop spec] :pairs props]
@@ -95,8 +97,8 @@
 # documents the core doer and any helpers
 (defn generate-all-docs []
   (generate-facts-doc)
-
-  (if-not (os/stat doer-doc-dir) (os/mkdir doer-doc-dir))
+  (if-not (os/stat doer-doc-dir)
+    (os/mkdir doer-doc-dir))
 
   (loop [doer :in (lib/doers)]
     (def md-file (string doer-doc-dir "/" doer ".md"))

@@ -4,35 +4,32 @@
 (import ./doer-docs/describe-docs :only [format-properties lay-out-help])
 (import ./doer-docs/lib :only [term-width join-lines] :as "doer-lib")
 
-(def control-keys
-  "Permissible control keys"
-  {:splay-seconds {:types [:number]
-                   :help "Tells Gurp to pause by a random number of seconds up
-                          to the given maximum before applying"}
-   :strict-hostname {:types [:boolean]
-                     :help "If true, Gurp will only run an apply if the host's
-                            name matches the name supplied in the Gurp 'host'
-                            definition"}
-   :self-update {:types [:string]
-                 :help "Update Gurp from the given source. Can be a file or a
-                        URL"}
-   :gem-path {:types [:string]
-              :help "Specify the gem binary used by the gem doer"}
-   :metrics-to {:types [:string]
-                :help "Send OpenTelemetry metrics to the given endpoint"}
-   :logs-to {:types [:string]
-             :help "Send OpenTelemetry logs to the given endpoint"}})
+(defmacro- defkey [k typ desc] (struct k (struct :types typ :help desc)))
 
-(defn new-control-data
-  "Returns an empty *control-data*."
-  []
-  @{})
+(defn- control-keys* []
+  (merge-into
+    @{}
+    (defkey :splay-seconds [:number]
+      "Tells Gurp to pause by a random number of seconds up to the given maximum
+       before applying")
+    (defkey :strict-hostname [:boolean]
+      "If true, Gurp will only run an apply if the host's name matches the name
+       supplied in the Gurp 'host' definition")
+    (defkey :self-update [:string]
+      "Update Gurp from the given source. Can be a file or a URL")
+    (defkey :gem-path [:string]
+      "Specify the gem binary used by the gem doer")
+    (defkey :metrics-to [:string]
+      "Send OpenTelemetry metrics to the given endpoint")
+    (defkey :logs-to [:string]
+      "Send OpenTelemetry logs to the given endpoint")))
 
+(def control-keys (control-keys*))
+(defn new-control-data [] @{})
 (var *control-data* (new-control-data))
 
-(defn control-data
-  "Adds to the *control-data* struct"
-  [key value]
+# Adds to the *control-data* struct
+(defn control-data [key value]
   (if-let [valid-key (control-keys key)]
     (if (has-value? (valid-key :types) (type value))
       (if-let [current-value (get *control-data* key)]
@@ -46,7 +43,7 @@
             key
             (comma-sep (keys control-keys)))))
 
-(defn describe []
+(defn description []
   (string
     (doer-lib/join-lines
       (describe-docs/lay-out-help

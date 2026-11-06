@@ -1,5 +1,4 @@
 (import ../../dsl :only [qualify-from-path])
-(import ../../defs :only [client-api-version ip-protocols])
 (import ./validators :only [validate-spec])
 
 # A user specifies a resource by calling a function such as (file/ensure ...)
@@ -29,28 +28,28 @@
 #       :optional - a struct of optional properties. Like :mandatory but
 #                   cannot have a default
 # 
-(defn- server-url
-  [server-name from-path]
-  (string "http://" server-name "/" defs/client-api-version "/file/" from-path))
+(def- client-api-version "v1")
 
-(defn- all-props
-  [attrs]
+# Protocols supported by ipadm
+(def- ip-protocols [:ip :ipv4 :ipv6 :icmp :tcp :sctp :udp])
+
+(defn- server-url [server-name from-path]
+  (string "http://" server-name "/" client-api-version "/file/" from-path))
+
+(defn- all-props [attrs]
   (merge-into @{}
               (get-in attrs [:props :mandatory] {})
               (get-in attrs [:props :optional] {})))
 
-(defn resource-id
-  "Safely generate a resource ID"
-  [resource-type role name]
+# Safely generate a resource ID
+(defn resource-id [resource-type role name]
   (let [name (if (nil? name) "NO-NAME" (string/replace-all "/" "_" name))]
     (string/format "/%s/%s/%s" role resource-type name)))
 
-(defn spec->resource
-  "Decorate a spec struct with everything it needs to become a resource."
-  [doer-name resource-name spec-struct]
+# Decorate a spec struct with everything it needs to become a resource.
+(defn spec->resource [doer-name resource-name spec-struct]
   (let [role (dyn :role-dyn "NO-ROLE")
         final-id-chunk (get spec-struct :label resource-name)]
-
     (table/to-struct
       (merge {:_id (resource-id doer-name role final-id-chunk)
               :name resource-name
@@ -60,10 +59,8 @@
 (defn spec-with-defaults [spec-struct default-prop-values]
   (merge default-prop-values spec-struct))
 
-(defn extract-defaults
-  [attrs]
-  (->> attrs
-       (all-props)
+(defn extract-defaults [attrs]
+  (->> (all-props attrs)
        (pairs)
        (map (fn [[k v]] {k (v :default)}))
        (splice)
@@ -203,15 +200,14 @@
    :spec (table :types types :help help ;opts)})
 
 (defn protocol-opts []
-  (catseq [protocol :in defs/ip-protocols]
+  (catseq [protocol :in ip-protocols]
     (property (string protocol) [:struct] :optional
               (string/format "key-value pairs of valid %s properties" protocol)
               :put-in :protocols)))
 
 # :handle-option deals with things like :exactly-one-of,
 # :handle-prop deals with properties
-(defn- collect
-  [args handle-option handle-prop]
+(defn- collect [args handle-option handle-prop]
   (var i 0)
   (while (< i (length args))
     (let [arg (args i)]
@@ -219,10 +215,8 @@
         (do (handle-option arg (args (+ i 1))) (+= i 2))
         (do (handle-prop arg) (++ i))))))
 
-
 # used by defdoer
-(defn- handle-action
-  [action & args]
+(defn- handle-action [action & args]
   (let [ret @{:props @{:mandatory @{} :optional @{}}}]
     (defn set-option [k v] (put ret k v))
     (defn add-prop [p] (put-in ret [:props (p :section) (p :name)] (p :spec)))
@@ -240,11 +234,9 @@
   (defn set-option [k v] (put doer k v))
   (defn add-section [s] (put doer (s :kind) (s :data)))
   (collect args set-option add-section)
-
   (when (has-key? doer :name-is)
     (put-in doer [:ensure :props :mandatory :name] {:types [:string]})
     (put-in doer [:remove :props :mandatory :name] {:types [:string]}))
-
   doer)
 
 (defmacro defdoer
@@ -258,10 +250,8 @@
   (defn set-option [k v] (put helper k v))
   (defn add-section [s] (put helper (s :kind) (s :data)))
   (collect args set-option add-section)
-
   (when (has-key? helper :name-is)
     (put-in helper [:helper :props :mandatory :name] {:types [:string]}))
-
   helper)
 
 (defmacro defhelper
