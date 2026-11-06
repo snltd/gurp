@@ -1,4 +1,4 @@
-(import ./lib)
+(import ./lib :only [a/b lookup joint props-without-name])
 (import ./examples :only [of])
 
 (def Base

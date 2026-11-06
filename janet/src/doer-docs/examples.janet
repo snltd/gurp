@@ -1,4 +1,4 @@
-(import ../dsl :only [basename fields files-in])
+(import ../dsl :only [basename files-in])
 (import ../../test/doers/lib/test-lib :only [example-root])
 
 (defn- code-examples-map-fn [dir]

@@ -1,12 +1,12 @@
 # Write doer documentation to the console. Used by `gurp describe`
 
-(import ../command-lib :only [strip-ansi])
 (import ../doers/lib/lib :only [comma-sep] :as doer-lib)
 (import ../dsl :only [fields])
 (import ../lib :only [drop-empty] :as gurp-lib)
-(import ./base)
-(import ./formatting :only [bold bold-underline underline] :prefix "")
+(import ./base :only [Base])
 (import ./lib :only [join-lines term-width])
+(import ../command-lib :only [strip-ansi])
+(use ./formatting)
 
 (defn- indent [text]
   (as-> text _
@@ -84,8 +84,7 @@
       :code (fn [code] (string "\n" (indent code)))
 
       :description (fn [self text]
-                     (lib/join-lines
-                       (lay-out-help "" text 2 (lib/term-width))))
+                     (lib/join-lines (lay-out-help "" text 2 (lib/term-width))))
 
       :note-formatter (fn [note]
                         (lib/join-lines
@@ -103,9 +102,7 @@
                 "Does not take a name parameter."))} base/Base))
 
 (defn help-for-doer [doer]
-  (def doccer (:new Inline (keyword doer)))
-  (:render-doer doccer))
+  (:render-doer (:new Inline (keyword doer))))
 
 (defn help-for-helper [doer helper]
-  (def doccer (:new Inline (keyword doer) (keyword helper)))
-  (:render-helper doccer))
+  (:render-helper (:new Inline (keyword doer) (keyword helper))))

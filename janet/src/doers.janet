@@ -1,12 +1,10 @@
-# Import all the doers, exporting their symbols
-# 
 (import ./doers/apk :export true)
 (import ./doers/bridge :export true)
 (import ./doers/cron :export true)
 (import ./doers/directory :export true)
 (import ./doers/etherstub :export true)
-(import ./doers/file-line :export true)
 (import ./doers/file :export true)
+(import ./doers/file-line :export true)
 (import ./doers/gem :export true)
 (import ./doers/group :export true)
 (import ./doers/ip-address :export true)

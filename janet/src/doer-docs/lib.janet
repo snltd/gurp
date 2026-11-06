@@ -1,6 +1,4 @@
-(use ../dsl)
-(use ../../test/doers/lib/test-lib)
-(import ../dsl :only [without-keys])
+(import ../dsl :only [pathcat without-keys])
 (import ../lib :only [compact] :as gurp-lib)
 
 (defn joint [& sections]
@@ -21,7 +19,7 @@
 
 # Name is used internally, but shouldn't be exposed as a property in the docs
 (defn props-without-name [action-info category]
-  (without-keys (get-in action-info [:props category] @{}) [:name]))
+  (dsl/without-keys (get-in action-info [:props category] @{}) [:name]))
 
 (defn term-width []
   (dyn :term-width 80)) # Gurp sets the width of the user terminal as a dyn
@@ -36,7 +34,7 @@
 
 # Directory containing front-end doer code
 (defn doer-root []
-  (pathcat (repo-root) "janet/src/doers"))
+  (dsl/pathcat (repo-root) "janet/src/doers"))
 
 # Array of all doer names
 (defn doers []
@@ -54,4 +52,3 @@
 (defn title-words [& words]
   (defn map-fn [word] (peg/replace 1 string/ascii-upper word))
   (string/join (map map-fn words) " "))
-
