@@ -1,5 +1,5 @@
 (use judge)
-(use ./test-lib)
+(use ./lib/test-lib)
 (use ../../src/collector)
 (use ../../src/dsl)
 (import ../../src/doers/zfs)
@@ -29,7 +29,7 @@
                         :size "10G"}
                        {:_id "/test-role/zfs/rpool_blank"
                         :name "rpool/blank"
-                        :properties {:mountpoint "none"}
+                        :properties @{:mountpoint "none"}
                         :role "test-role"}]}
       :remove @{:zfs @[{:_id "/test-role/zfs/rpool_old_filesystem"
                         :name "rpool/old/filesystem"
@@ -40,4 +40,4 @@
     (zfs/ensure "pool/fs"
                 :properties {:mountpoint "none"}
                 :volume-size "100M")
-    "In zfs/ensure pool/fs: unexpected property :volume-size. Valid properties are :properties, :size, :label"))
+    "In zfs/ensure pool/fs: unexpected property :volume-size. Valid properties are :label, :properties, :size"))

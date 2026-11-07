@@ -1,5 +1,5 @@
 (use judge)
-(use ./test-lib)
+(use ./lib/test-lib)
 (use ../../src/collector)
 (use ../../src/dsl)
 (import ../../src/doers/link)
@@ -12,7 +12,6 @@
 
   (test *collector*
     @{:ensure @{:link @[{:_id "/test-role/link/_link_is_here"
-                         :force-link false
                          :name "/link/is/here"
                          :role "test-role"
                          :source "/link/points/here"
@@ -31,10 +30,10 @@
 (deftest link-error
   (test-error
     (link/ensure "/where/does/this/point")
-    "In link/ensure /where/does/this/point: did not find mandatory property :source. Mandatory properties are :force-link, :source, :type")
+    "In link/ensure /where/does/this/point: did not find mandatory property :source. Mandatory properties are :source, :type")
 
   (test-error
     (link/ensure "/links/dont/work/like/that"
                  :source "/some/file"
                  :owner "me")
-    "In link/ensure /links/dont/work/like/that: unexpected property :owner. Valid properties are :force-link, :source, :type, :label"))
+    "In link/ensure /links/dont/work/like/that: unexpected property :owner. Valid properties are :force-link, :label, :source, :type"))

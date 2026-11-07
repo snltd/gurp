@@ -107,9 +107,6 @@ pub fn wait_for_state(svc: &str, state: &str) -> anyhow::Result<bool> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use tracing_test::traced_test;
-
     #[cfg(target_os = "illumos")]
     #[test]
     fn test_current_state_svc_is_always_online() {

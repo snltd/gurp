@@ -1,37 +1,19 @@
-(use ../lib)
+(use ../lib/definers)
 
 (defhelper :smf :dependent
   "Defines a dependent of an SMF service, inside an smf resource."
-  :name "Any convenient name - not used internally"
+  :name-is "Any convenient name - not used internally"
+  (helper
+    (property "name" [:string] :mandatory
+              "Convenient name for dependent, derived from resource name")
+    (property "fmri" [:string] :mandatory "Dependent FMRI")
+    (property "restart-on" [:string] :mandatory
+              "Policy for restarting parent service if this dependent restarts"
+              :default "none")
+    (property "grouping" [:string] :mandatory
+              "Which dependents are required by this service"
+              :default "require_all")
+    (property "type" [:string] :mandatory "Type of dependent"
+              :default "service")))
 
-  :optional-props
-  {:restart-on {:types [:string]
-                :help "Policy for restarting this service if dependent restarts"}
-   :grouping {:types [:string]
-              :help "Which dependencies are required by this service"}
-   :type {:types [:string]
-          :help "Type of dependent"}}
-
-  :mandatory-props
-  {:name {:types [:string]
-          :help "Convenient name for dependent, derived from resource name"}
-   :fmri {:types [:string]
-          :help "Dependent FMRI"}}
-
-  :defaults
-  {:restart-on "none"
-   :grouping "require_all"
-   :type "service"})
-
-(defn dependent
-  "A convenience function to help produce an SMF dependent"
-  [name & spec]
-  (let [doer "smf"
-        user-spec (make-spec-struct :name name ;spec)
-        spec-struct (pinpoint-error :dependent
-                                    (checked-spec user-spec
-                                                  mandatory-props-dependent
-                                                  optional-props-dependent))
-        all-specs (spec-with-defaults defaults-dependent spec-struct)]
-
-    (struct :dependencies all-specs)))
+(make-helper-fn :dependent)

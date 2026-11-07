@@ -8,6 +8,8 @@ use serde::Deserialize;
 use std::fmt::Debug;
 use std::fs;
 use url::Url;
+use util::checksum::Checksum;
+use util::hash::INTERNAL_HASHER;
 use util::{hash, http};
 
 const SYSTEM_CERT_DIR: &str = "/etc/ssl/certs";
@@ -22,6 +24,7 @@ pub struct SystemCertEnsure {
     pub from: Option<Utf8PathBuf>,
     pub from_url: Option<Url>,
     pub content: Option<String>,
+    pub checksum: Option<Checksum>,
     #[serde(default)]
     pub url_is_server: bool,
 }
@@ -59,8 +62,18 @@ impl SystemCertEnsure {
             bail!("no source for system-cert {}", self.name);
         };
 
+        if let Some(checksum) = &self.checksum {
+            let actual = hash::of_string(&source_str, &checksum.algorithm);
+            ensure!(
+                checksum.resolve_and_compare(&actual, self.from_url.as_ref())?,
+                format!("invalid checksum for {}", self.name)
+            );
+        }
+
         if target_path.exists() {
-            if hash::of_string(&source_str) == hash::of_file(&target_path)? {
+            if hash::of_string(&source_str, INTERNAL_HASHER)
+                == hash::of_file(&target_path, INTERNAL_HASHER)?
+            {
                 tracing::debug!("no change to system-cert at {target_path}");
             } else {
                 changed = true;
@@ -126,6 +139,8 @@ mod test {
     use camino::Utf8PathBuf;
     use pretty_assertions::assert_eq;
     use tester::{deserialized_example, janet2json, raw_example};
+    use util::checksum::HashValue;
+    use util::hash::HashAlgorithm;
 
     #[test]
     fn test_deserialize_system_cert_from_file() {
@@ -135,6 +150,7 @@ mod test {
             from: Some(Utf8PathBuf::from("/example/dir/files/ca/example")),
             from_url: None,
             content: None,
+            checksum: None,
             url_is_server: false,
         };
 
@@ -159,6 +175,10 @@ mod test {
                 from: None,
                 from_url: Some(Url::parse("https://cert-service/api").unwrap()),
                 content: None,
+                checksum: Some(Checksum {
+                    algorithm: HashAlgorithm::Sha256,
+                    value: HashValue::Suffix("sha256".to_owned())
+                }),
                 url_is_server: false,
             },
             deserialized_example("system-cert/ensure-from-url.janet")
@@ -183,6 +203,7 @@ mod test {
             name: "bad-input".to_owned(),
             from: Some(Utf8PathBuf::from("/dir/ca/example")),
             from_url: Some(Url::parse("https://cert-service/api").unwrap()),
+            checksum: None,
             content: None,
             url_is_server: false,
         };
@@ -195,6 +216,7 @@ mod test {
             from: Some(Utf8PathBuf::from("/dir/ca/example")),
             from_url: None,
             content: Some(r"---BEGIN CERT---\nblah blah\---END CERT---".to_owned()),
+            checksum: None,
             url_is_server: false,
         };
 
@@ -206,6 +228,7 @@ mod test {
             from: None,
             from_url: None,
             content: None,
+            checksum: None,
             url_is_server: false,
         };
 

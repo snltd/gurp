@@ -1,4 +1,4 @@
-FROM leafgarland/janet-sdk:v1.42.1
+FROM docker.io/leafgarland/janet-sdk:v1.42.1
 RUN mkdir /janet
 COPY . /janet
 RUN jpm install judge

@@ -21,7 +21,7 @@ pub fn build_zone(zone: &str, config: &ZoneConfig, opts: &ApplyOpts) -> anyhow::
             &config.brand,
             ZoneImage {
                 image_source: config.image.as_ref(),
-                checksum: config.image_checksum.as_ref(),
+                checksum: config.checksum.as_ref(),
             },
         )?;
     }

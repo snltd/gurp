@@ -1,43 +1,30 @@
-# Internal functions 
-
-(defn drop-element
-  "Return the given array without the given element. Like a non-destructive
-   array/remove"
-  [arr index]
+# Return the given array without the given element. Like a non-destructive
+# array/remove
+(defn drop-element [arr index]
   (if (>= index (length arr))
     arr
     (array/join (array/slice arr 0 index) (slice arr (inc index)))))
 
-(defn tabular-data->struct
-  "Turn an array of arrays into a struct"
-  [array-of-arrays]
-  (->> array-of-arrays
-       (flatten)
-       (splice)
-       (struct)))
+# Turn an array of arrays into a struct
+(defn tabular-data->struct [array-of-arrays]
+  (->> array-of-arrays (flatten) (splice) (struct)))
 
-(defn ->key
-  "turn a string into a downcased keyword, and remove #s"
-  [key]
+# Turn a string into a downcased keyword, and remove #s
+(defn ->key [key]
   (->> key (string/replace "#" "") (string/ascii-lower) (keyword)))
 
-(defn parsed-value
-  "If value is a number, return it as a :number, otherwise, return as-is"
-  [value]
+# If value is a number, return it as a :number, otherwise, return as-is
+(defn parsed-value [value]
   (if-let [num (scan-number value)] num value))
 
-(defn values-as-tuple
-  "Returns a flat array of values, whatever type of values it's given"
-  [& values]
+# Returns a flat array of values, whatever type of values it's given
+(defn values-as-tuple [& values]
   (flatten (array values)))
 
-(defn drop-empties
-  "Remove empty elements from an array. Errors if any element is not
-   lengthable?"
-  [arr]
+# Remove empty elements from an array. Errors if any element is not lengthable?
+(defn drop-empty [arr]
   (filter |(not (empty? $)) arr))
 
-(defn compact
-  "Remove nil elements from an array"
-  [arr]
+# Remove nil elements from an array
+(defn compact [arr]
   (filter |(not (nil? $)) arr))

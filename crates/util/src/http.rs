@@ -1,11 +1,11 @@
 use super::{atomic_write, hash};
-use anyhow::{Context, bail, ensure};
+use crate::checksum::Checksum;
+use anyhow::{Context, ensure};
 use camino::Utf8Path;
 use common::constants::{CLIENT_API_VERSION, CLIENT_RETRIES, SERVER_PORT};
-use common::types::{ApplyOpts, CompileError, FileChecksum, NetworkError};
-use std::fs::File;
+use common::types::{ApplyOpts, CompileError, NetworkError};
 use std::io::Write;
-use std::io::{self, BufWriter, Seek, SeekFrom};
+use std::io::{self, BufWriter};
 use std::thread;
 use std::time::Duration;
 use url::Url;
@@ -13,7 +13,7 @@ use url::Url;
 pub struct RemoteFileCopy<'a> {
     pub url: &'a Url,
     pub path: &'a Utf8Path,
-    pub checksum: Option<&'a FileChecksum>,
+    pub checksum: Option<&'a Checksum>,
     pub backup_suffix: Option<&'a str>,
 }
 
@@ -45,11 +45,12 @@ pub fn url_to_disk(file: &RemoteFileCopy, opts: &ApplyOpts) -> anyhow::Result<()
             writer.flush()?;
         }
 
-        if let Some(checksum) = &file.checksum {
+        if let Some(checksum) = file.checksum {
+            let actual = hash::of_reader(f, &checksum.algorithm)?;
+
             ensure!(
-                has_good_checksum(f, checksum)?,
-                "incorrect checksum for {}",
-                file.url
+                checksum.resolve_and_compare(&actual, Some(file.url))?,
+                format!("incorrect checksum for {}", file.url)
             );
         }
 
@@ -61,6 +62,8 @@ pub fn url_to_disk(file: &RemoteFileCopy, opts: &ApplyOpts) -> anyhow::Result<()
 
 // Downloads a file to memory
 pub fn url_to_memory(url: &Url) -> Result<Vec<u8>, NetworkError> {
+    tracing::debug!("fetching {url}");
+
     let mut response = match ureq::get(url.as_str()).call() {
         Ok(resp) => resp,
         Err(ureq::Error::StatusCode(code)) => {
@@ -159,20 +162,15 @@ fn log_ureq_error(url: &Url, e: &ureq::Error) {
     }
 }
 
-fn has_good_checksum(f: &mut File, expected: &FileChecksum) -> anyhow::Result<bool> {
-    f.seek(SeekFrom::Start(0))?;
+// fn has_good_checksum(f: &mut File, expected: &Checksum) -> anyhow::Result<bool> {
 
-    let actual = match expected.algorithm.as_str() {
-        "sha256" => hash::sha256_of_reader(&mut *f)?,
-        "blake3" => hash::of_reader(&mut *f)?.to_string(),
-        other => bail!("unsupported hash type: {other}"),
-    };
+//     let actual = expected.resolve();
 
-    tracing::debug!(
-        "comparing checksums: expected={} actual={}",
-        expected.value.trim(),
-        actual.trim()
-    );
+//     tracing::debug!(
+//         "comparing checksums: expected={} actual={}",
+//         expected.value.trim(),
+//         actual.trim()
+//     );
 
-    Ok(expected.value.trim() == actual.trim())
-}
+//     Ok(expected.value.trim() == actual.trim())
+// }

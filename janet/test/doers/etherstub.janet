@@ -1,5 +1,5 @@
 (use judge)
-(use ./test-lib)
+(use ./lib/test-lib)
 (import ../../src/doers/etherstub)
 (use ../../src/collector)
 
@@ -8,7 +8,7 @@
   (set *collector* (new-collector))
 
   (import-tests "etherstub")
-  
+
   (etherstub/ensure "estub1")
 
   (test *collector*

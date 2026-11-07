@@ -1,5 +1,5 @@
 (use judge)
-(use ./test-lib)
+(use ./lib/test-lib)
 (use ../../src/collector)
 (import ../../src/doers/network-flow)
 
@@ -71,7 +71,7 @@
                          :local-port 80
                          :maxbw "10M"
                          :priority "high")
-    "In network-flow/ensure extraneous-property: unexpected property :this-should-break-it. Valid properties are :link, :dsfield, :remote-port, :remote-ip, :priority, :protocol, :label, :local-port, :maxbw, :local-ip")
+    "In network-flow/ensure extraneous-property: unexpected property :this-should-break-it. Valid properties are :dsfield, :label, :link, :local-ip, :local-port, :maxbw, :priority, :protocol, :remote-ip, :remote-port")
 
   (test-error
     (network-flow/ensure "missing-link"

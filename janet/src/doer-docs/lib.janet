@@ -1,62 +1,54 @@
-(use ../dsl)
-(use ../../test/doers/test-lib)
+(import ../dsl :only [pathcat without-keys])
+(import ../lib :only [compact] :as gurp-lib)
 
-(defn a/b
-  "Join the given words with slashes"
-  [& words]
+(defn joint [& sections]
+  (string/join (gurp-lib/compact (array ;sections)) "\n\n"))
+
+(defn a/b [& words]
   (string/join words "/"))
 
-(defn join-lines
-  "Join the given lines with newlines"
-  [lines]
+(defn join-lines [lines]
   (string/join lines "\n"))
 
-(defn term-width
-  "Gurp sets the width of the user terminal as a dyn"
-  []
-  (dyn :term-width 80))
+(defn join-words [& words]
+  (string/join (tuple ;words) " "))
 
-(defn repo-root
-  "Return the root of this Gurp repo. Can by set dynamically by doers/build.rs"
-  []
+# Squash repeated whitespace into a single space
+(defn squeeze [str]
+  (peg/replace-all '(* (some :s)) " " str))
+
+# Name is used internally, but shouldn't be exposed as a property in the docs
+(defn props-without-name [action-info category]
+  (dsl/without-keys (get-in action-info [:props category] @{}) [:name]))
+
+(defn term-width []
+  (dyn :term-width 80)) # Gurp sets the width of the user terminal as a dyn
+
+# Return the root of this Gurp repo. Can by set dynamically by doers/build.rs
+(defn repo-root []
   (if-let [from-gurp (dyn :repo-root)]
     from-gurp
     (->> (dyn *current-file*)
          (os/realpath)
          (peg/replace '(* "/janet" (some 1)) ""))))
 
-(defn doer-root
-  "Return the directory containing front-end doer code"
-  []
-  (pathcat (repo-root) "janet/src/doers"))
+# Directory containing front-end doer code
+(defn doer-root []
+  (dsl/pathcat (repo-root) "janet/src/doers"))
 
-(defn doers
-  "Return array of all doer names"
-  []
+# Array of all doer names
+(defn doers []
   (seq [doer :in (sorted (os/dir (doer-root)))
-        :when (string/has-suffix? ".janet" doer)
-        :unless (= "lib.janet" doer)]
+        :when (string/has-suffix? ".janet" doer)]
     (string/replace ".janet" "" doer)))
 
-(defn doer-lookup
-  "Fetch the given binding from the given doer definition file"
-  [doer binding]
+# Value of the given prop in doer or doer/helper
+(defn lookup [resource prop &opt helper]
   (try
-    (do
-      (def lookup (symbol (a/b doer binding)))
-      (eval lookup))
+    (eval (symbol (a/b resource (if helper (keyword prop :- helper) prop))))
     ([_] nil)))
 
-(defn helpers-lookup
-  "As doer-lookup but for helperss"
-  [doer helpers binding]
-  (try
-    (do
-      (def lookup (symbol (string doer "/" binding "-" helpers)))
-      (eval lookup))
-    ([_] nil)))
-
-(defn squeeze
-  "Squash repeated whitespace into a single space"
-  [str]
-  (peg/replace-all '(* (some :s)) " " str))
+# Capitalise the first letter of each given word
+(defn title-words [& words]
+  (defn map-fn [word] (peg/replace 1 string/ascii-upper word))
+  (string/join (map map-fn words) " "))

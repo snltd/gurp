@@ -1,3 +1,4 @@
+use camino::Utf8PathBuf;
 use common::types::ApplyVmOpts;
 use embed::client;
 use janetrs::TaggedJanet;
@@ -12,8 +13,12 @@ pub fn my_group() -> String {
     Group::from_gid(getgid()).unwrap().unwrap().name
 }
 
+pub fn tmpdir() -> Utf8PathBuf {
+    Utf8PathBuf::from("/tmp").canonicalize_utf8().unwrap()
+}
+
 pub fn janet2json(janet_defn: &str) -> String {
-    let client = client::gurp(&ApplyVmOpts::from_file("/tmp".into()).unwrap())
+    let client = client::gurp(&ApplyVmOpts::from_dir(&tmpdir()).unwrap())
         .expect("janet2json failed to create gurp client");
     let janet_instructions = format!("(to-json {janet_defn})");
 

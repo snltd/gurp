@@ -1,4 +1,4 @@
-(use ./lib)
+(use ./lib/definers)
 (import ../collector)
 
 (def match-allowed ["exact" "starts-with" "ends-with" "contains" "regex"])
@@ -8,60 +8,33 @@
   "Ensure lines do or do not exist in the given file."
   :name-is "Fully qualified path to file"
 
-  :optional-props-ensure
-  {:insert-at {:types [:number]
-               :help "If a new line must be added, it will go at this index"}
-   :line {:types [:string]
-          :help "The line which must exist"}
-   :replace {:types [:string]
-             :help "Pattern to replace. Rust regex"}
-   :with {:types [:string]
-          :help "Counterpart to :replace"}
-   :apply-to {:types [:string]
-              :help (string "Which matches to act on when replacing: "
-                            (comma-sep apply-to-allowed))}}
+  (ensure
+    (property "insert-at" [:number] :optional
+              "If a new line must be added, it will go at this index")
+    (property "line" [:string] :optional "The line which must exist")
+    (property "replace" [:string] :optional "Pattern to replace. Rust regex")
+    (property "with" [:string] :optional "Counterpart to :replace")
+    (property "apply-to" [:string] :optional
+              "Which matches to act on when replacing"
+              :values apply-to-allowed))
 
-  :mandatory-props-remove
-  {:pattern {:types [:string]
-             :help "The line or pattern which must be removed"}
-   :match {:types [:string]
-           :help (string "How to match the line: " (comma-sep match-allowed))}
-   :apply-to {:types [:string]
-              :help (string "Which matches to act on: " (comma-sep apply-to-allowed))}}
+  (remove
+    (property "pattern" [:string] :mandatory
+              "The line or pattern which must be removed")
+    (property "match" [:string] :mandatory "How to match the line"
+              :values match-allowed
+              :default (first match-allowed))
+    (property "apply-to" [:string] :mandatory "Which matches to act on"
+              :values apply-to-allowed
+              :default (first apply-to-allowed)))
 
-  :defaults-remove
-  {:match "exact"
-   :apply-to "all"}
+  (notes
+    "The file is not managed here. Use a file resource."
+    "The doer reads the whole file into memory, so be mindful of file size."
+    "Appended lines have a newline at the beginning and end."
+    "Removing a line puts a newline on the end of the file if there wasn't one
+     already."
+    "Files are not backed up."))
 
-  :notes
-  ["The file is not managed here. Use a file resource."
-   "The doer reads the whole file into memory, so be mindful of file size."
-   "Appended lines have a newline at the beginning and end."
-   "Removing a line puts a newline on the end of the file if there wasn't one
-    already."
-   "Files are not backed up."])
-
-(defensure "file-line")
-
-(defn remove
-  [name & spec]
-  (let [spec-struct (make-spec-struct ;spec)]
-
-    (pinpoint-error
-      "remove"
-      (if-let [match-val (spec-struct :match)]
-        (if-not (has-value? match-allowed match-val)
-          (errorf "match must be one of %s [Got '%s']"
-                  (comma-sep match-allowed)
-                  match-val)))
-
-      (if-let [type-val (spec-struct :apply-to)]
-        (if-not (has-value? apply-to-allowed type-val)
-          (errorf "type must be one of " (comma-sep apply-to-allowed)))))
-
-    (let [all-specs (spec-with-defaults defaults-remove spec-struct)
-          safe-specs (checked-spec all-specs
-                                   mandatory-props-remove
-                                   optional-props-remove)]
-
-      (collector/push :remove doer (spec->resource doer name safe-specs)))))
+(make-fn :ensure :file-line)
+(make-fn :remove :file-line)
