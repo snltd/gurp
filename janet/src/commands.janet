@@ -11,15 +11,19 @@
 
 # Returns a multiline string describing a doer or helper. Called by Gurp's
 # 'describe' command
-(defn help-for [object]
-  (if (= object "control-data")
-    (control-data/description)
-    (try
-      (if (string/find "/" object)
-        (describe-docs/help-for-helper (splice (string/split "/" object 0 2)))
-        (describe-docs/help-for-doer object))
-      ([_e]
-        (string "No help for '" object "'")))))
+(defn help-for
+  [object]
+  (try
+    (if (string/find "/" object)
+      (let [[doer action] (string/split "/" object 0 2)]
+        (if (has-value? ["ensure" "remove"] action)
+          (describe-docs/help-for-doer doer)
+          (describe-docs/help-for-helper doer action)))
+      (if (= object "control-data")
+        (control-data/description)
+        (describe-docs/help-for-doer object)))
+  ([_e]
+    (string "No help for '" object "'"))))
 
 # Returns a multiline string, pairing doers with their descriptions. Used by
 # Gurp's 'doers' command
