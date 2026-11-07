@@ -4,4 +4,7 @@ resolver = "3"
 members = ["crates/*"]
 
 [patch.crates-io]
-evil-janet = { git = "https://github.com/snltd/evil-janet", branch = "janet-1.41.2" }
+evil-janet = { git = "https://github.com/snltd/evil-janet", branch = "dev-snltd" }
+janetrs = { git = "https://github.com/snltd/janetrs", branch = "dev" }
+# janetrs_version = { git = "https://github.com/snltd/janetrs/janetrs_version", branch = "dev" }
+# janetrs_macros = { git = "https://github.com/snltd/janetrs/janetrs_macros", branch = "dev" }
