@@ -20,7 +20,11 @@ Fully qualified path to directory [`:string`]
 
 ### Optional Properties
 
-None
+|  key  |  type  |  description  |  default  |
+|-------|--------|---------------|-----------|
+| `:checksum` | `struct` | Checksum of archive when using :create-from or create-with. See `file/checksum`. |  |
+| `:create-from` | `string` | Create the directory by unpacking the given archive. |  |
+| `:create-with` | `string` | Create the directoey and unpack the given archive inside it. |  |
 
 ## directory/remove
 
@@ -44,11 +48,22 @@ None
 
 - Removing a directory removes all its contents, but does not remove any empty ancestors.
 
+- `:create-from` and `:create-with` only apply when the directory is created. They will not modify an existing directory
+
 ## Examples
 
 
 ```janet
 (directory/ensure "/example/dir_1")
+```
+
+
+```janet
+(directory/ensure "/example/dir_4"
+                  :create-from "http://example.com/files/archive.tar"
+                  (file/checksum
+                    :algorithm "sha512"
+                    :suffix "sha512"))
 ```
 
 

@@ -18,3 +18,13 @@
   (test (has-exactly-one-of? [:a :b :c] {:a 1 :A 2 :alpha 3}) true)
   (test (has-exactly-one-of? [:a :b :c] {:a 1 :b 2 :c 3}) false)
   (test (has-exactly-one-of? [:x :y :z] {:a 1 :b 2 :c 3}) false))
+
+(deftest has-at-most-one-of?
+  (test (has-at-most-one-of? [:a :b :c] {:a 1 :A 2 :alpha 3}) true)
+  (test (has-at-most-one-of? [:a :b :c] {:a 1 :b 2 :c 3}) false)
+  (test (has-at-most-one-of? [:x :y :z] {:a 1 :b 2 :c 3}) true))
+
+(deftest has-at-least-one-of?
+  (test (has-at-least-one-of? [:a :b :c] {:a 1 :A 2 :alpha 3}) true)
+  (test (has-at-least-one-of? [:a :b :c] {:a 1 :b 2 :c 3}) true)
+  (test (has-at-least-one-of? [:x :y :z] {:a 1 :b 2 :c 3}) false))

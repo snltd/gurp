@@ -20,7 +20,7 @@
 
   (test-error
     (zone/capped-memory)
-    "In zone/capped-memory NO-NAME: need at-least one of :physical, :swap, :locked")
+    "In zone/capped-memory NO-NAME: need at least one of :physical, :swap, :locked")
 
   (test-error
     (zone/capped-memory :swap 1000)

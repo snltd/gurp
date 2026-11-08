@@ -6,6 +6,7 @@ use nix::unistd::{Gid, Uid};
 use os_types::{FileMode, GurpId};
 use serde::Deserialize;
 use std::fs;
+use util::checksum::Checksum;
 use util::file::{self, FileMetadata, NameOrId};
 
 #[derive(Deserialize, Debug)]
@@ -17,6 +18,9 @@ pub struct DirectoryEnsure {
     pub path: Utf8PathBuf,
     #[serde(flatten)]
     pub desired_state: DesiredDirectoryState,
+    pub checksum: Option<Checksum>,
+    pub create_from: Option<String>,
+    pub create_with: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -55,12 +59,8 @@ impl DirectoryEnsure {
                 self.path
             );
         } else {
-            tracing::info!("creating directory: {}", self.path);
             changed = true;
-
-            if !opts.noop {
-                fs::create_dir_all(&self.path)?;
-            }
+            self.create_directory()?
         }
 
         if file::ensure_metadata(
@@ -80,6 +80,44 @@ impl DirectoryEnsure {
         } else {
             Ok(ONE_RESOURCE_NO_CHANGE)
         }
+    }
+
+    fn create_directory(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
+        if let Some(archive) = &self.create_from {
+            tracing::info!(
+                "creating directory: {} from archive {}",
+                &self.path,
+                archive
+            );
+            let parent = self
+                .path
+                .parent()
+                .with_context(|| format!("cannot get parent of {}", &self.path));
+            if !opts.noop {
+                archive::unpack(archive, parent, &self.checksum)?;
+            }
+        } else {
+            tracing::info!("creating directory: {}", self.path);
+
+            if !opts.noop {
+                fs::create_dir_all(&self.path)?;
+            }
+
+            if let Some(archive) = &self.create_with {
+                tracing::info!(
+                    "populating {} with contents of archive {}",
+                    self.path,
+                    archive,
+                    &self.checksum,
+                );
+
+                if !opts.noop {
+                    archive::unpack(archive, &self.path)?;
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -126,6 +164,9 @@ mod test {
             DirectoryEnsure {
                 path: Utf8PathBuf::from("/example/dir_1"),
                 id: GurpId::new("/NO-ROLE/directory/_example_dir_1").unwrap(),
+                create_from: None,
+                create_with: None,
+                checksum: None,
                 desired_state: DesiredDirectoryState {
                     owner: NameOrId::Name("root".to_owned()),
                     group: NameOrId::Name("root".to_owned()),
@@ -142,6 +183,9 @@ mod test {
             DirectoryEnsure {
                 path: Utf8PathBuf::from("/example/dir_3"),
                 id: GurpId::new("/NO-ROLE/directory/my-dir").unwrap(),
+                create_from: None,
+                create_with: None,
+                checksum: None,
                 desired_state: DesiredDirectoryState {
                     owner: NameOrId::Id(4),
                     group: NameOrId::Id(12),
@@ -158,6 +202,9 @@ mod test {
             DirectoryEnsure {
                 path: Utf8PathBuf::from("/example/dir_2"),
                 id: GurpId::new("/NO-ROLE/directory/all-the-specs").unwrap(),
+                create_from: None,
+                create_with: None,
+                checksum: None,
                 desired_state: DesiredDirectoryState {
                     owner: NameOrId::Name("adm".to_owned()),
                     group: NameOrId::Name("sys".to_owned()),

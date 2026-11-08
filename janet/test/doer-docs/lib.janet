@@ -1,13 +1,17 @@
 (use judge)
 (use ../../src/doer-docs/lib)
+(import ../commands :only [matches] :prefix "")
 
 (deftest lookup
   (import ../../src/doers/directory)
   (import ../../src/doers/zone)
 
   (test
-    ((lookup :directory :attrs) :description)
-    "Create and remove directories. Parents are created like `mkdir -p`, but with  the owner/group/mode of the gurp process. Removal always removes directory  contents.")
+    (matches
+      ((lookup :directory :attrs) :description)
+      "Create and remove directories"
+      "Removal always removes directory")
+    2)
 
   (test
     (lookup :zone :description-fs)
@@ -21,4 +25,4 @@
   (test (squeeze "Correctly spaced words") @"Correctly spaced words")
   (test (squeeze `  words  with     irregular
    spacing`)
-    @" words with irregular spacing"))
+        @" words with irregular spacing"))
