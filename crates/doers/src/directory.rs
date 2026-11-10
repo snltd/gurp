@@ -1,4 +1,4 @@
-use anyhow::ensure;
+use anyhow::{Context, ensure};
 use camino::Utf8PathBuf;
 use common::constants::{ONE_RESOURCE_NO_CHANGE, ONE_RESOURCE_ONE_CHANGE, PROTECTED_DIRS};
 use common::types::{ApplyOpts, ApplySummary};
@@ -6,11 +6,13 @@ use nix::unistd::{Gid, Uid};
 use os_types::{FileMode, GurpId};
 use serde::Deserialize;
 use std::fs;
+use util::archive::{self, ArchiveSource};
 use util::checksum::Checksum;
 use util::file::{self, FileMetadata, NameOrId};
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
+#[serde(rename_all = "kebab-case")]
 pub struct DirectoryEnsure {
     #[serde(rename = "_id")]
     pub id: GurpId,
@@ -60,7 +62,7 @@ impl DirectoryEnsure {
             );
         } else {
             changed = true;
-            self.create_directory()?
+            self.create_directory(opts)?
         }
 
         if file::ensure_metadata(
@@ -83,18 +85,25 @@ impl DirectoryEnsure {
     }
 
     fn create_directory(&self, opts: &ApplyOpts) -> anyhow::Result<()> {
-        if let Some(archive) = &self.create_from {
+        if let Some(ref archive_str) = self.create_from {
             tracing::info!(
                 "creating directory: {} from archive {}",
                 &self.path,
-                archive
+                archive_str
             );
+
             let parent = self
                 .path
                 .parent()
-                .with_context(|| format!("cannot get parent of {}", &self.path));
+                .with_context(|| format!("cannot get parent of {}", self.path))?;
+
             if !opts.noop {
-                archive::unpack(archive, parent, &self.checksum)?;
+                archive::unpack(
+                    &ArchiveSource::try_from(archive_str.as_str())?,
+                    parent,
+                    self.checksum.as_ref(),
+                    opts,
+                )?;
             }
         } else {
             tracing::info!("creating directory: {}", self.path);
@@ -103,16 +112,20 @@ impl DirectoryEnsure {
                 fs::create_dir_all(&self.path)?;
             }
 
-            if let Some(archive) = &self.create_with {
+            if let Some(ref archive_str) = self.create_with {
                 tracing::info!(
                     "populating {} with contents of archive {}",
                     self.path,
-                    archive,
-                    &self.checksum,
+                    archive_str,
                 );
 
                 if !opts.noop {
-                    archive::unpack(archive, &self.path)?;
+                    archive::unpack(
+                        &ArchiveSource::try_from(archive_str.as_str())?,
+                        &self.path,
+                        self.checksum.as_ref(),
+                        opts,
+                    )?;
                 }
             }
         }
@@ -155,6 +168,7 @@ mod test {
     use camino_tempfile_ext::prelude::*;
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
+    use snltest::fixture;
     use std::os::unix::fs::PermissionsExt;
     use tester::{deserialized_example, janet2json, my_group, my_user};
 
@@ -364,5 +378,71 @@ mod test {
             .unwrap()
         );
         assert!(dir.exists());
+    }
+
+    #[test]
+    fn test_directory_create_with_remote_archive_with_checksum() {
+        let temp_dir = Utf8TempDir::new().unwrap();
+        let dir = temp_dir.child("test_directory");
+
+        assert!(!dir.exists());
+
+        let json_def = janet2json(&formatdoc! { r#"
+            (directory/ensure "{}"
+                :mode "0700"
+                :owner "{}"
+                :group "{}"
+                :create-with "https://github.com/snltd/gurp/releases/download/v2.5.0/gurp-v2.5.0-omnios.tar.gz"
+                (file/checksum
+                    :algorithm "sha256"
+                    :literal "402a8a3d0054ddb12eff3a2ff35269722f9555b4666d2ce1d69a08bab774a2df"))"#,
+            &dir.as_path(),
+            my_user(),
+            my_group(),
+        });
+
+        let sut: DirectoryEnsure = serde_json::from_str(&json_def).unwrap();
+
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
+
+        assert!(dir.exists());
+        assert!(dir.join("gurp").exists());
+        let metadata = fs::metadata(&dir).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o7777, 0o0700);
+    }
+
+    #[test]
+    fn test_directory_create_from_local_archive_without_checksum() {
+        let temp_dir = Utf8TempDir::new().unwrap();
+        let dir = temp_dir.child("sample");
+
+        assert!(!dir.exists());
+
+        let json_def = janet2json(&formatdoc! { r#"
+            (directory/ensure "{}"
+                :mode "0750"
+                :owner "{}"
+                :group "{}"
+                :create-from "{}")"#,
+            &dir.as_path(),
+            my_user(),
+            my_group(),
+            fixture!("directory/sample.tar")
+        });
+
+        let sut: DirectoryEnsure = serde_json::from_str(&json_def).unwrap();
+
+        assert_eq!(
+            ONE_RESOURCE_ONE_CHANGE,
+            sut.apply(&ApplyOpts::default()).unwrap()
+        );
+
+        assert!(dir.exists());
+        assert!(dir.join("sample_file").exists());
+        let metadata = fs::metadata(&dir).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o7777, 0o0750);
     }
 }

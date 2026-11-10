@@ -1,3 +1,5 @@
+- Add `:from-archive` and `:with-archive` to `directory/ensure`. These let you
+  create or populate a new directory from anything that GNU `tar` can process.
 - Move `zone/dns` and `zone/capped-memory` from bare structs to helpers.
   (Breaking change.)
 - Fix misc doer: scheduling class would not be changed if it was unset.

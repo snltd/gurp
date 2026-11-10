@@ -23,7 +23,6 @@ pub fn get_image(img_url: &Url, checksum: Option<&Checksum>) -> anyhow::Result<U
         tracing::debug!("found image at {img_path}");
     } else {
         tracing::debug!("no image at {img_path}: downloading");
-
         http::url_to_disk(
             &RemoteFileCopy {
                 url: img_url,

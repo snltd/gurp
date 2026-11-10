@@ -37,6 +37,7 @@ pretty_assertions = "1.4.1"
 snltest = { git = "https://github.com/snltd/snltest.git" }
 tempfile = "3.27.0"
 tester = { path = "../tester" }
+tracing-test = "0.2.6"
 
 [build-dependencies]
 build_helper = { path = "../build_helper" }

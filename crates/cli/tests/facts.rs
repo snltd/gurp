@@ -3,6 +3,9 @@ mod test {
     use assert_cmd::cargo::cargo_bin_cmd;
     use predicates::prelude::*;
 
+    #[cfg(target_os = "illumos")]
+    use snltest::fixture;
+
     #[test]
     #[ignore]
     fn test_facts_command() {

@@ -1,4 +1,5 @@
 (use ./lib/definers)
+(import ./file/checksum :prefix "" :export true)
 (import ../collector)
 
 (defdoer :directory
