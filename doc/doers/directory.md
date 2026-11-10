@@ -48,7 +48,9 @@ None
 
 - Removing a directory removes all its contents, but does not remove any empty ancestors.
 
-- `:create-from` and `:create-with` only apply when the directory is created. They will not modify an existing directory
+- `:create-from` and `:create-with` only apply when the directory is created. They will not modify an existing directory, and Gurp will not automatically manage any files created by unpacking the archive.
+
+- `:create-from` and `:create-with` require GNU `tar`.
 
 ## Examples
 

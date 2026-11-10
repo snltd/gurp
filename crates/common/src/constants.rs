@@ -116,7 +116,6 @@ pub const GROUPADD_BIN: &str = "/usr/sbin/groupadd";
 pub const GROUPDEL_BIN: &str = "/usr/sbin/groupdel";
 pub const GROUPMOD_BIN: &str = "/usr/sbin/groupmod";
 pub const GROUPS_BIN: &str = "/bin/groups";
-pub const GTAR_BIN: &str = "/usr/bin/gtar";
 pub const IPADM_BIN: &str = "/usr/sbin/ipadm";
 pub const IPF_BIN: &str = "/usr/sbin/ipf";
 pub const IPFSTAT_BIN: &str = "/usr/sbin/ipfstat";
@@ -145,6 +144,14 @@ pub const ZLOGIN_BIN: &str = "/usr/sbin/zlogin";
 pub const ZONEADM_BIN: &str = "/usr/sbin/zoneadm";
 pub const ZONECFG_BIN: &str = "/usr/sbin/zonecfg";
 pub const ZSTD_BIN: &str = "/bin/zstd";
+
+// Linux and MacOS for CI and dev: needed by the archive tests
+#[cfg(target_os = "linux")]
+pub const GTAR_BIN: &str = "/usr/bin/tar";
+#[cfg(target_os = "macos")]
+pub const GTAR_BIN: &str = "/opt/homebrew/bin/gtar";
+#[cfg(target_os = "illumos")]
+pub const GTAR_BIN: &str = "/usr/bin/gtar";
 
 // Shorthands for resources changes
 pub const ONE_RESOURCE_ONE_CHANGE: ApplySummary = ApplySummary {
