@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate macros;
 
+pub mod archive;
 pub mod atomic_write;
 pub mod checksum;
 pub mod deserializer;

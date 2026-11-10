@@ -2,7 +2,7 @@
 (use ../src/gurp)
 (import ../src/command-lib :only [strip-ansi])
 
-(defn- matches [haystack & needles]
+(defn matches [haystack & needles]
   (count |(string/find $ haystack) (tuple ;needles)))
 
 (deftest list-doers

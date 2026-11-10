@@ -41,10 +41,10 @@ impl Checksum {
     /// Resolve the expected checksum, NOT the actual one
     pub fn resolve_and_compare(
         &self,
-        expected: &str,
+        actual: &str,
         base_url: Option<&Url>,
     ) -> anyhow::Result<bool> {
-        let actual = self.resolve(base_url)?;
+        let expected = self.resolve(base_url)?;
         tracing::debug!("comparing checksums: expected={expected} actual={actual}");
         Ok(expected == actual)
     }

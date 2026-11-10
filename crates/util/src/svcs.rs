@@ -105,9 +105,13 @@ pub fn wait_for_state(svc: &str, state: &str) -> anyhow::Result<bool> {
     }
 }
 
+#[cfg(target_os = "illumos")]
 #[cfg(test)]
 mod test {
-    #[cfg(target_os = "illumos")]
+    use super::*;
+    use tracing_test::traced_test;
+
+    #[ignore]
     #[test]
     fn test_current_state_svc_is_always_online() {
         assert_eq!(
@@ -116,7 +120,6 @@ mod test {
         )
     }
 
-    #[cfg(target_os = "illumos")]
     #[ignore]
     #[traced_test]
     #[test]

@@ -48,7 +48,7 @@ None
 ## Notes
 
 
-- `:from` takes a fully-qualified or relative path. If you use the latter, Gurp assumes the file is in a ``files/` directory at the same level as the directory holding the file being parsed.
+- `:from` takes a fully-qualified or relative path. If you use the latter, Gurp assumes the file is in a `files/` directory at the same level as the directory holding the file being parsed.
 
 - `:from-struct` and `:to-format` let you turn Janet values into a config file. Fully supported file formats are `json`, `toml`, and `yaml`: these formats can represent any valid struct. You can create INI files (`:to-format "ini"`), but the limits of that format mean your struct must be a struct of structs, each representing a section. An invalid struct will cause an error.
 

@@ -16,7 +16,6 @@
   "Checks something is of a permissible type. Raises an error if it is not.
   Values can *always* be keywords, because they denote references."
   [prop-name prop-value allowed-types]
-  # (print (string/format "prop-name %p  prop-value %p  allowed-types %p " prop-name prop-value allowed-types) )
   (let [prop-type (type prop-value)]
     (if-not (or (= prop-type :keyword)
                 (has-value? allowed-types prop-type)
@@ -70,6 +69,10 @@
                                           (keys optional-props))))))
     spec-struct))
 
+(defn has-at-most-one-of?
+  [required-keys spec-struct]
+  (>= 1 (length (lib/keys-in-struct required-keys spec-struct))))
+
 (defn has-at-least-one-of?
   [required-keys spec-struct]
   (not (empty? (lib/keys-in-struct required-keys spec-struct))))
@@ -85,5 +88,8 @@
       (errorf "need exactly one of %s" (lib/comma-sep props))))
   (when-let [props (action-attrs :at-least-one-of)]
     (when (not (has-at-least-one-of? props spec))
-      (errorf "need at-least one of %s" (lib/comma-sep props))))
+      (errorf "need at least one of %s" (lib/comma-sep props))))
+  (when-let [props (action-attrs :at-most-one-of)]
+    (when (not (has-at-most-one-of? props spec))
+      (errorf "need at most one of %s" (lib/comma-sep props))))
   (checked-spec action-attrs spec))

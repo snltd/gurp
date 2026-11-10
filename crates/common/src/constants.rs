@@ -145,6 +145,14 @@ pub const ZONEADM_BIN: &str = "/usr/sbin/zoneadm";
 pub const ZONECFG_BIN: &str = "/usr/sbin/zonecfg";
 pub const ZSTD_BIN: &str = "/bin/zstd";
 
+// Linux and MacOS for CI and dev: needed by the archive tests
+#[cfg(target_os = "linux")]
+pub const GTAR_BIN: &str = "/usr/bin/tar";
+#[cfg(target_os = "macos")]
+pub const GTAR_BIN: &str = "/opt/homebrew/bin/gtar";
+#[cfg(target_os = "illumos")]
+pub const GTAR_BIN: &str = "/usr/bin/gtar";
+
 // Shorthands for resources changes
 pub const ONE_RESOURCE_ONE_CHANGE: ApplySummary = ApplySummary {
     resources: 1,

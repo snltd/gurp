@@ -848,6 +848,7 @@ dependencies = [
  "tester",
  "toml",
  "tracing",
+ "tracing-test",
  "ureq",
  "url",
  "util",
