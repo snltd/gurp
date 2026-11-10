@@ -9,11 +9,14 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
 use std::sync::LazyLock;
+use util::checksum::Checksum;
 use util::deserializer::property_deserializer;
+use util::file::FromSource;
 
 static ZFS_BIN_PATH: LazyLock<&'static str> = LazyLock::new(zfs_bin);
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct ZfsEnsure {
     #[serde(rename = "_id")]
@@ -22,6 +25,8 @@ pub struct ZfsEnsure {
     pub size: Option<String>,
     #[serde(default, deserialize_with = "property_deserializer")]
     pub properties: ZfsProperties,
+    pub checksum: Option<Checksum>,
+    pub create_from: Option<String>,
 }
 
 type ZfsProperties = HashMap<String, String>;
@@ -37,7 +42,13 @@ pub struct ZfsRemove {
 impl ZfsEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let fs = &self.name;
-        if zfs_exists(fs)? {
+        if !zfs_exists(fs)? {
+            if let Some(create_from) = &self.create_from {
+                self.create_filesystem_from_snapshot(opts)
+            } else {
+                self.create_filesystem(opts)
+            }
+        } else {
             tracing::debug!("zfs: {fs} exists");
             let current_state = zfs_state(fs)?;
             let mut run_cmd = false;
@@ -77,8 +88,6 @@ impl ZfsEnsure {
                 tracing::debug!("no change: {fs}");
                 Ok(ONE_RESOURCE_NO_CHANGE)
             }
-        } else {
-            self.create_filesystem(opts)
         }
     }
 
@@ -109,6 +118,14 @@ impl ZfsEnsure {
             run_cmd!(cmd)
                 .with_context(|| format!("failed to create ZFS filesystem {}", self.name))?;
         }
+
+        Ok(ONE_RESOURCE_ONE_CHANGE)
+    }
+
+    fn create_filesystem_from_snapshot(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        tracing::info!("creating filesystem: {} from snapshot", self.name);
+        let from_source = self.create_from.as_deref().context("no create-from")?;
+        let archive = FromSource::try_from(from_source)?;
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
@@ -194,6 +211,8 @@ mod test {
                     "mountpoint" => "/example/mountpoint",
                     "devices" => "off",
                 },
+                create_from: None,
+                checksum: None,
             },
             deserialized_example("zfs/ensure-filesystem-with-properties.janet")
         );
@@ -207,6 +226,8 @@ mod test {
                 name: "rpool/example/volume".to_owned(),
                 size: Some("10G".to_owned()),
                 properties: propmap! {},
+                create_from: None,
+                checksum: None,
             },
             deserialized_example("zfs/ensure-volume-with-label.janet")
         );

@@ -3348,6 +3348,7 @@ dependencies = [
  "camino-tempfile",
  "common",
  "hex",
+ "httpmock",
  "indoc",
  "ipnet",
  "macros",

@@ -1,6 +1,9 @@
+use crate::http;
 use crate::users_and_groups;
-use anyhow::{Context, bail};
+use crate::{checksum::Checksum, hash};
+use anyhow::{Context, bail, ensure};
 use camino::{Utf8Path, Utf8PathBuf};
+use camino_tempfile::NamedUtf8TempFile;
 use common::types::ApplyOpts;
 use nix::sys::stat::{self, FileStat};
 use nix::unistd::{Gid, Uid};
@@ -8,12 +11,25 @@ use os_types::FileMode;
 use serde::Deserialize;
 use std::os::unix::fs::PermissionsExt;
 use std::{env, fs};
+use url::Url;
 
 #[derive(Debug)]
 pub struct FileMetadata<'a> {
     pub group: &'a NameOrId,
     pub mode: &'a FileMode,
     pub owner: &'a NameOrId,
+}
+
+#[derive(Debug)]
+pub struct LocalFile {
+    path: Utf8PathBuf,
+    _guard: Option<NamedUtf8TempFile>,
+}
+
+impl LocalFile {
+    pub fn path(&self) -> &Utf8Path {
+        &self.path
+    }
 }
 
 #[derive(Debug, Deserialize, Clone, PartialEq)]
@@ -36,6 +52,74 @@ impl std::fmt::Display for NameOrId {
             NameOrId::Id(id) => write!(f, "{}", id),
         }
     }
+}
+
+/// FromSource handles those :from properties which can be a value or a URL.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(try_from = "&str")]
+pub enum FromSource {
+    // If we're in client/server mode, the front-end will have rewritten a file to a URL
+    Url(Url),
+    Path(Utf8PathBuf),
+}
+
+impl TryFrom<&str> for FromSource {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> anyhow::Result<Self> {
+        if let Ok(url) = Url::parse(value) {
+            Ok(FromSource::Url(url))
+        } else {
+            Ok(FromSource::Path(Utf8PathBuf::from(value)))
+        }
+    }
+}
+
+/// If you have FromSource this will make sure you have a local copy of it, and check it with
+/// a checksum if you have one.
+pub fn local_or_remote(
+    source: &FromSource,
+    checksum: Option<&Checksum>,
+    opts: &ApplyOpts,
+) -> anyhow::Result<LocalFile> {
+    let tempfile;
+
+    let path = match source {
+        FromSource::Path(path) => {
+            if let Some(checksum) = checksum {
+                let actual = hash::of_file(path, &checksum.algorithm)?;
+
+                ensure!(
+                    checksum.resolve_and_compare(&actual, None)?,
+                    "incorrect checksum for {path}"
+                );
+            }
+            LocalFile {
+                path: path.clone(),
+                _guard: None,
+            }
+        }
+        FromSource::Url(url) => {
+            tempfile = NamedUtf8TempFile::new_in("/var/tmp")?;
+            // url_to_disk checks the checksum itself
+            http::url_to_disk(
+                &http::RemoteFileCopy {
+                    url,
+                    path: tempfile.path(),
+                    checksum,
+                    backup_suffix: None,
+                },
+                opts,
+            )?;
+
+            LocalFile {
+                path: tempfile.path().to_owned(),
+                _guard: Some(tempfile),
+            }
+        }
+    };
+
+    Ok(path)
 }
 
 pub fn ensure_metadata(
@@ -158,4 +242,151 @@ fn set_mode(
 pub fn current_dir() -> anyhow::Result<Utf8PathBuf> {
     let cwd = env::current_dir().context("cannot get current dir from env")?;
     Utf8PathBuf::try_from(cwd).map_err(|e| e.into())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::checksum::HashValue;
+    use hash::HashAlgorithm;
+    use httpmock::prelude::*;
+    use snltest::fixture;
+
+    #[test]
+    fn test_local_or_remote_local_with_good_checksum() {
+        let checksum = Checksum {
+            algorithm: HashAlgorithm::Sha512,
+            value: HashValue::Literal(
+                "bd283809bc808e1b7733da97f5f035b6beaa7514a500d028743767733e4abf54fda3556120f115391492cbd0bd3dbf0fc11946ad657778e26e53a3cbec8ee53a".to_owned()
+            ),
+        };
+
+        let result = local_or_remote(
+            &FromSource::Path(fixture!("file/flat-archive.tar.gz")),
+            Some(&checksum),
+            &ApplyOpts::default(),
+        );
+
+        let ok = result.unwrap();
+        assert!(&ok.path.exists());
+    }
+
+    #[test]
+    fn test_local_or_remote_local_without_checksum() {
+        let result = local_or_remote(
+            &FromSource::Path(fixture!("file/flat-archive.tar.gz")),
+            None,
+            &ApplyOpts::default(),
+        );
+
+        let ok = result.unwrap();
+        assert!(&ok.path.exists());
+    }
+
+    #[test]
+    fn test_local_or_remote_local_with_bad_checksum() {
+        let checksum = Checksum {
+            algorithm: HashAlgorithm::Sha256,
+            value: HashValue::Literal(
+                "0000000000000000000000000000000000000000000000000000000000000000000000".to_owned(),
+            ),
+        };
+
+        let result = local_or_remote(
+            &FromSource::Path(fixture!("file/flat-archive.tar.gz")),
+            Some(&checksum),
+            &ApplyOpts::default(),
+        );
+
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .starts_with("incorrect checksum")
+        );
+    }
+
+    #[test]
+    fn test_local_or_remote_remote_with_good_checksum() {
+        let server = MockServer::start();
+        let conf_mock = server.mock(|when, then| {
+            when.method(GET).path("/flat-archive.tar.gz");
+            then.status(200)
+                .header("content-type", "application/octet-stream")
+                .body_from_file(fixture!("file/flat-archive.tar.gz"));
+        });
+
+        let checksum = Checksum {
+            algorithm: HashAlgorithm::Sha512,
+            value: HashValue::Literal(
+                "bd283809bc808e1b7733da97f5f035b6beaa7514a500d028743767733e4abf54fda3556120f115391492cbd0bd3dbf0fc11946ad657778e26e53a3cbec8ee53a".to_owned()
+            ),
+        };
+
+        let result = local_or_remote(
+            &FromSource::Url(Url::parse(&server.url("/flat-archive.tar.gz")).unwrap()),
+            Some(&checksum),
+            &ApplyOpts::default(),
+        );
+
+        let ok = result.unwrap();
+        assert!(&ok.path.exists());
+        conf_mock.assert();
+    }
+
+    #[test]
+    fn test_local_or_remote_remote_without_checksum() {
+        let server = MockServer::start();
+        let conf_mock = server.mock(|when, then| {
+            when.method(GET).path("/flat-archive.tar.gz");
+            then.status(200)
+                .header("content-type", "application/octet-stream")
+                .body_from_file(fixture!("file/flat-archive.tar.gz"));
+        });
+
+        let result = local_or_remote(
+            &FromSource::Url(Url::parse(&server.url("/flat-archive.tar.gz")).unwrap()),
+            None,
+            &ApplyOpts::default(),
+        );
+
+        let ok = result.unwrap();
+        assert!(&ok.path.exists());
+        conf_mock.assert();
+    }
+
+    #[test]
+    fn test_local_or_remote_remote_with_bad_checksum() {
+        let server = MockServer::start();
+        let conf_mock = server.mock(|when, then| {
+            when.method(GET).path("/flat-archive.tar.gz");
+            then.status(200)
+                .header("content-type", "application/octet-stream")
+                .body_from_file(fixture!("file/flat-archive.tar.gz"));
+        });
+
+        let checksum = Checksum {
+            algorithm: HashAlgorithm::Sha256,
+            value: HashValue::Literal(
+                "0000000000000000000000000000000000000000000000000000000000000000000000".to_owned(),
+            ),
+        };
+
+        let result = local_or_remote(
+            &FromSource::Url(Url::parse(&server.url("/flat-archive.tar.gz")).unwrap()),
+            Some(&checksum),
+            &ApplyOpts::default(),
+        );
+
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .starts_with("incorrect checksum")
+        );
+
+        conf_mock.assert();
+    }
 }

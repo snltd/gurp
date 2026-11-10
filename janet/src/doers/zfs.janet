@@ -12,14 +12,19 @@
 
 (defdoer :zfs
   "Create, destroy, and modify properties of ZFS filesystems."
-  :name-is "ZFS dataset name"
+  :name-is "ZFS filesystem name"
   (ensure
     :finalise-with finaliser
     (property "properties" [:struct] :optional
               "ZFS properties (:keyword) paired with desired value (`:string`)"
               :default {})
     (property "size" [:string] :optional
-              "If specified, creates a ZFS volume of given size (e.g. '10G')"))
+              "If specified, creates a ZFS volume of given size (e.g. '10G')")
+    (property "create-from" [:string] :optional
+              "If the filesystem does not exist, it will be created from the
+               given snapshot file. Can be a file path or a URL")
+    (property "checksum" [:struct] :optional
+              "Checksum for `:create-from` target. See `file/checksum`"))
 
   (notes
     "Gurp does not check parameters are valid, so if you get them wrong the
