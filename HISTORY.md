@@ -1,5 +1,8 @@
-- Add `:from-archive` and `:with-archive` to `directory/ensure`. These let you
+- Add `:create-from` and `:create-with` to `directory/ensure`. These let you
   create or populate a new directory from anything that GNU `tar` can process.
+  The archive may be local or remote.
+- Add `:create-from` to `zfs/ensure`, which creates a ZFS filesystem from a
+  snapshot image on local disk or fetched from a URL.
 - Move `zone/dns` and `zone/capped-memory` from bare structs to helpers.
   (Breaking change.)
 - Fix misc doer: scheduling class would not be changed if it was unset.

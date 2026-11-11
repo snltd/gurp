@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{Context, ensure};
 use bytesize::ByteSize;
 use camino::Utf8PathBuf;
 use common::cmd;
@@ -7,11 +7,12 @@ use common::types::{ApplyOpts, ApplySummary};
 use os_types::GurpId;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::fs::File;
 use std::process::{Command, Stdio};
 use std::sync::LazyLock;
 use util::checksum::Checksum;
 use util::deserializer::property_deserializer;
-use util::file::FromSource;
+use util::file::{self, FromSource};
 
 static ZFS_BIN_PATH: LazyLock<&'static str> = LazyLock::new(zfs_bin);
 
@@ -43,7 +44,7 @@ impl ZfsEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let fs = &self.name;
         if !zfs_exists(fs)? {
-            if let Some(create_from) = &self.create_from {
+            if self.create_from.is_some() {
                 self.create_filesystem_from_snapshot(opts)
             } else {
                 self.create_filesystem(opts)
@@ -124,8 +125,36 @@ impl ZfsEnsure {
 
     fn create_filesystem_from_snapshot(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         tracing::info!("creating filesystem: {} from snapshot", self.name);
+
         let from_source = self.create_from.as_deref().context("no create-from")?;
         let archive = FromSource::try_from(from_source)?;
+
+        let archive_path = file::local_or_remote(&archive, self.checksum.as_ref(), opts)?;
+        let handle = File::open(archive_path.path())?;
+
+        let mut cmd = Command::new(*ZFS_BIN_PATH);
+        cmd.arg("recv");
+
+        for (property, value) in &self.properties {
+            cmd.arg("-o");
+            cmd.arg(format!("{property}={value}"));
+        }
+
+        if opts.noop {
+            cmd.arg("-n");
+        }
+
+        cmd.arg(&self.name);
+        cmd.stdin(Stdio::from(handle));
+
+        let mut child = cmd.spawn()?;
+        let status = child.wait().context("error running zfs recv")?;
+
+        ensure!(
+            status.success(),
+            "failed to crate {} from ZFS snapshot",
+            self.name
+        );
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
