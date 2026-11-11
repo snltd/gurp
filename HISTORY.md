@@ -1,14 +1,20 @@
+- Move `zone/dns` and `zone/capped-memory` from bare structs to helpers.
+  (Breaking change.)
 - Add `:create-from` and `:create-with` to `directory/ensure`. These let you
   create or populate a new directory from anything that GNU `tar` can process.
   The archive may be local or remote.
 - Add `:create-from` to `zfs/ensure`, which creates a ZFS filesystem from a
   snapshot image on local disk or fetched from a URL.
-- Move `zone/dns` and `zone/capped-memory` from bare structs to helpers.
-  (Breaking change.)
-- Fix misc doer: scheduling class would not be changed if it was unset.
+- Fix `misc` doer: scheduling class would not be changed if it was unset.
 - Improve the way doer frontends are defined and how documentation is generated.
 - Property types specified as `:struct` will now accept `:table`; and `:tuple`
   will accept `:array`.
+- Add `user-def` function to DSL which facilitates querying of defs added with
+  `gurp apply -D`.
+- Add `without-keys` and `drop-empty-values` functions to DSL. These are used
+  internally but are generally useful.
+- Tidied and tightened Janet code to reduce size of config images.
+- Improve DSL docs.
 
 ## v2.5.0 (2026-10-23)
 

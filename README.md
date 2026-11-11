@@ -7,8 +7,8 @@ Gurp is an [illumos](https://www.illumos.org/) configuration management tool.
 
 ## Features
 
-- Configuration is described in a simple but powerful
-  [Lisp-like](https://janet-lang.org/) DSL.
+- Configuration is described in a powerful [Lisp-like](https://janet-lang.org/)
+  DSL.
 - illumos features like Zones, SMF, ZFS, Crossbow etc are first-class citizens.
 - Client/server mode, or standalone.
 - Single-binary deployment for client and server.
@@ -70,7 +70,7 @@ If you want to know more:
 - [An introductory walkthrough of Gurp and Janet](https://tech.id264.net/post/2025-09-01-lets-gurp).
 - [Documentation for all the "doers"](doc/doers) - the things that do the
   things.
-- [An overview of the built-in Janet DSL](doc/dsl.md) that make life easier.
+- [An overview of the built-in Janet DSL](doc/dsl.md).
 - [Examples of real configurations](https://github.com/snltd/merp/tree/main/tests/config/roles)
   taken from my own systems and used in acceptance tests.
 - [A series of informal blog articles](https://tech.id264.net/tag/Gurp) which
