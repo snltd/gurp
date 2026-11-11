@@ -6,9 +6,9 @@ use nix::unistd::{Gid, Uid};
 use os_types::{FileMode, GurpId};
 use serde::Deserialize;
 use std::fs;
-use util::archive::{self, ArchiveSource};
+use util::archive;
 use util::checksum::Checksum;
-use util::file::{self, FileMetadata, NameOrId};
+use util::file::{self, FileMetadata, FromSource, NameOrId};
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -99,7 +99,7 @@ impl DirectoryEnsure {
 
             if !opts.noop {
                 archive::unpack(
-                    &ArchiveSource::try_from(archive_str.as_str())?,
+                    &FromSource::try_from(archive_str.as_str())?,
                     parent,
                     self.checksum.as_ref(),
                     opts,
@@ -121,7 +121,7 @@ impl DirectoryEnsure {
 
                 if !opts.noop {
                     archive::unpack(
-                        &ArchiveSource::try_from(archive_str.as_str())?,
+                        &FromSource::try_from(archive_str.as_str())?,
                         &self.path,
                         self.checksum.as_ref(),
                         opts,

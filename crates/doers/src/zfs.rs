@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{Context, ensure};
 use bytesize::ByteSize;
 use camino::Utf8PathBuf;
 use common::cmd;
@@ -7,13 +7,17 @@ use common::types::{ApplyOpts, ApplySummary};
 use os_types::GurpId;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::fs::File;
 use std::process::{Command, Stdio};
 use std::sync::LazyLock;
+use util::checksum::Checksum;
 use util::deserializer::property_deserializer;
+use util::file::{self, FromSource};
 
 static ZFS_BIN_PATH: LazyLock<&'static str> = LazyLock::new(zfs_bin);
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct ZfsEnsure {
     #[serde(rename = "_id")]
@@ -22,6 +26,8 @@ pub struct ZfsEnsure {
     pub size: Option<String>,
     #[serde(default, deserialize_with = "property_deserializer")]
     pub properties: ZfsProperties,
+    pub checksum: Option<Checksum>,
+    pub create_from: Option<String>,
 }
 
 type ZfsProperties = HashMap<String, String>;
@@ -37,7 +43,13 @@ pub struct ZfsRemove {
 impl ZfsEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
         let fs = &self.name;
-        if zfs_exists(fs)? {
+        if !zfs_exists(fs)? {
+            if self.create_from.is_some() {
+                self.create_filesystem_from_snapshot(opts)
+            } else {
+                self.create_filesystem(opts)
+            }
+        } else {
             tracing::debug!("zfs: {fs} exists");
             let current_state = zfs_state(fs)?;
             let mut run_cmd = false;
@@ -77,8 +89,6 @@ impl ZfsEnsure {
                 tracing::debug!("no change: {fs}");
                 Ok(ONE_RESOURCE_NO_CHANGE)
             }
-        } else {
-            self.create_filesystem(opts)
         }
     }
 
@@ -109,6 +119,42 @@ impl ZfsEnsure {
             run_cmd!(cmd)
                 .with_context(|| format!("failed to create ZFS filesystem {}", self.name))?;
         }
+
+        Ok(ONE_RESOURCE_ONE_CHANGE)
+    }
+
+    fn create_filesystem_from_snapshot(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
+        tracing::info!("creating filesystem: {} from snapshot", self.name);
+
+        let from_source = self.create_from.as_deref().context("no create-from")?;
+        let archive = FromSource::try_from(from_source)?;
+
+        let archive_path = file::local_or_remote(&archive, self.checksum.as_ref(), opts)?;
+        let handle = File::open(archive_path.path())?;
+
+        let mut cmd = Command::new(*ZFS_BIN_PATH);
+        cmd.arg("recv");
+
+        for (property, value) in &self.properties {
+            cmd.arg("-o");
+            cmd.arg(format!("{property}={value}"));
+        }
+
+        if opts.noop {
+            cmd.arg("-n");
+        }
+
+        cmd.arg(&self.name);
+        cmd.stdin(Stdio::from(handle));
+
+        let mut child = cmd.spawn()?;
+        let status = child.wait().context("error running zfs recv")?;
+
+        ensure!(
+            status.success(),
+            "failed to crate {} from ZFS snapshot",
+            self.name
+        );
 
         Ok(ONE_RESOURCE_ONE_CHANGE)
     }
@@ -194,6 +240,8 @@ mod test {
                     "mountpoint" => "/example/mountpoint",
                     "devices" => "off",
                 },
+                create_from: None,
+                checksum: None,
             },
             deserialized_example("zfs/ensure-filesystem-with-properties.janet")
         );
@@ -207,6 +255,8 @@ mod test {
                 name: "rpool/example/volume".to_owned(),
                 size: Some("10G".to_owned()),
                 properties: propmap! {},
+                create_from: None,
+                checksum: None,
             },
             deserialized_example("zfs/ensure-volume-with-label.janet")
         );

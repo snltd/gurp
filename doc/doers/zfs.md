@@ -5,7 +5,7 @@ Create, destroy, and modify properties of ZFS filesystems.
 
 ### Resource Name
 
-ZFS dataset name [`:string`]
+ZFS filesystem name [`:string`]
 
 ## zfs/ensure
 
@@ -18,6 +18,8 @@ None
 
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
+| `:checksum` | `struct` | Checksum for `:create-from` target. See `file/checksum`. |  |
+| `:create-from` | `string` | If the filesystem does not exist, it will be created from the given snapshot file. Can be a file path or a URL. |  |
 | `:properties` | `struct` | ZFS properties (:keyword) paired with desired value (`:string`). | `{}` |
 | `:size` | `string` | If specified, creates a ZFS volume of given size (e.g. '10G'). |  |
 
@@ -44,6 +46,19 @@ None
 - `zfs/destroy` is recursive, and will remove all child filesystems and snapshots without asking or telling.
 
 ## Examples
+
+
+```janet
+(zfs/ensure "rpool/example"
+            :create-from "http://example.com/zfs/example.zfs"
+            :properties {:atime false
+                         :mtime false
+                         :exec false
+                         :compression "lz4"}
+            (file/checksum
+              :algorithm "sha256"
+              :literal "--checksum-goes-here--"))
+```
 
 
 ```janet
