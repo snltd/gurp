@@ -98,7 +98,6 @@ macro_rules! cmd_output {
             let output = match cmd.output() {
                 Ok(o) => o,
                 Err(e) => {
-                    println!("WHO'S THAT GIB LORD MERPIN?");
                     tracing::error!(
                     cmd = common::cmd::to_string(&cmd),
                         error = e.to_string(),
@@ -106,8 +105,6 @@ macro_rules! cmd_output {
                     return Err(anyhow::anyhow!(e))
                 }
             };
-
-            println!("LORD GIBBU<OUS QUIBBULOUS");
 
             if output.status.success() {
                 Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())

@@ -1,5 +1,6 @@
 - Move `zone/dns` and `zone/capped-memory` from bare structs to helpers.
   (Breaking change.)
+- Add `ipmp` doer.
 - Add `:create-from` and `:create-with` to `directory/ensure`. These let you
   create or populate a new directory from anything that GNU `tar` can process.
   The archive may be local or remote.
