@@ -34,7 +34,7 @@ None
 ## Notes
 
 
-- `ipmp/ensure` assumes that the interfaces it is given already exist. It is your responsiblity to create them, with the `ip-interface` doer
+- `ipmp/ensure` assumes that the interfaces it is given already exist. It is your responsibility to create them, with the `ip-interface` doer
 
 ## Examples
 
