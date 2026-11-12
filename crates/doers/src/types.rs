@@ -12,6 +12,7 @@ use crate::ip_address::{IpAddressEnsure, IpAddressRemove};
 use crate::ip_interface::{IpInterfaceEnsure, IpInterfaceRemove};
 use crate::ip_properties::IpPropertiesEnsure;
 use crate::ipfilter::{IpfilterEnsure, IpfilterRemove};
+use crate::ipmp::{IpmpEnsure, IpmpRemove};
 use crate::ipnat::{IpnatEnsure, IpnatRemove};
 use crate::link::{LinkEnsure, LinkRemove};
 use crate::misc::MiscEnsure;
@@ -117,6 +118,8 @@ pub struct EnsureResources {
     #[serde(default)]
     pub ipfilter: Vec<IpfilterEnsure>,
     #[serde(default)]
+    pub ipmp: Vec<IpmpEnsure>,
+    #[serde(default)]
     pub ipnat: Vec<IpnatEnsure>,
     #[serde(default)]
     pub link: Vec<LinkEnsure>,
@@ -180,6 +183,8 @@ pub struct RemoveResources {
     #[serde(default)]
     pub ipfilter: Vec<IpfilterRemove>,
     #[serde(default)]
+    pub ipmp: Vec<IpmpRemove>,
+    #[serde(default)]
     pub ipnat: Vec<IpnatRemove>,
     #[serde(default)]
     pub link: Vec<LinkRemove>,
@@ -234,6 +239,7 @@ impl_apply!(
     IpAddressEnsure,
     IpInterfaceEnsure,
     IpPropertiesEnsure,
+    IpmpEnsure,
     LinkEnsure,
     MiscEnsure,
     NetworkFlowEnsure,
@@ -257,6 +263,7 @@ impl_apply!(
     IpAddressRemove,
     IpInterfaceRemove,
     IpfilterRemove,
+    IpmpRemove,
     IpnatRemove,
     LinkRemove,
     NetworkFlowRemove,
@@ -482,6 +489,7 @@ impl Applicator {
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.vnic, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.vlan, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ip_interface, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ipmp, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ip_address, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.bridge, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.route, opts))?;
@@ -537,6 +545,7 @@ impl Applicator {
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.network_flow, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.route, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ip_address, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ipmp, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ip_interface, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.vlan, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.vnic, opts))?;

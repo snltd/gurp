@@ -117,6 +117,7 @@ pub const GROUPDEL_BIN: &str = "/usr/sbin/groupdel";
 pub const GROUPMOD_BIN: &str = "/usr/sbin/groupmod";
 pub const GROUPS_BIN: &str = "/bin/groups";
 pub const IPADM_BIN: &str = "/usr/sbin/ipadm";
+pub const IPMPSTAT_BIN: &str = "/usr/sbin/ipmpstat";
 pub const IPF_BIN: &str = "/usr/sbin/ipf";
 pub const IPFSTAT_BIN: &str = "/usr/sbin/ipfstat";
 pub const IPNAT_BIN: &str = "/usr/sbin/ipnat";

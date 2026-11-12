@@ -14,6 +14,7 @@ pub mod ip_address;
 pub mod ip_interface;
 pub mod ip_properties;
 pub mod ipfilter;
+pub mod ipmp;
 pub mod ipnat;
 pub mod link;
 pub mod misc;
