@@ -149,7 +149,4 @@ mod test {
             deserialized_example("ipmp/remove-stub.janet")
         );
     }
-
-    #[test]
-    fn test_ipmp_exists() {}
 }

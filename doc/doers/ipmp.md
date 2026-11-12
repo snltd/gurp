@@ -31,12 +31,21 @@ None
 
 None
 
+## Notes
+
+
+- `ipmp/ensure` assumes that the interfaces it is given already exist. It is your responsiblity to create them, with the `ip-interface` doer
+
 ## Examples
 
 
 ```janet
-(ipmp/ensure "ipmp0"
-             :interfaces ["bge0" "e1000g0"])
+(def interfaces ["mh0" "mh1" "mh2"])
+
+(each iface interfaces
+  (ip-interface/ensure iface))
+
+(ipmp/ensure "ipmp0" :interfaces interfaces)
 ```
 
 
