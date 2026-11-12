@@ -122,10 +122,13 @@ fn ipmp_interfaces(raw_output: &str, ipmp_group: &LinkName) -> HashSet<LinkName>
 #[cfg(test)]
 mod test {
     use super::*;
-    use tester::deserialized_example;
+    use tester::{deserialized_example, janet2json};
 
     #[test]
     fn test_ensure_ipmp_deserialize() {
+        let example_json = janet2json(r#"(ipmp/ensure "ipmp0" :interfaces["bge0" "e1000g0"])"#);
+        let sut: IpmpEnsure = serde_json::from_str(&example_json).unwrap();
+
         assert_eq!(
             IpmpEnsure {
                 id: GurpId::new("/NO-ROLE/ipmp/ipmp0").unwrap(),
@@ -135,7 +138,7 @@ mod test {
                     LinkName::new("e1000g0").unwrap()
                 ])
             },
-            deserialized_example("ipmp/ensure-01.janet")
+            sut
         );
     }
 
@@ -143,10 +146,10 @@ mod test {
     fn test_remove_ipmp_deserialize() {
         assert_eq!(
             IpmpRemove {
-                id: GurpId::new("/NO-ROLE/ipmp/oldstub0").unwrap(),
+                id: GurpId::new("/NO-ROLE/ipmp/ipmp1").unwrap(),
                 name: LinkName::new("ipmp1").unwrap(),
             },
-            deserialized_example("ipmp/remove-stub.janet")
+            deserialized_example("ipmp/remove-01.janet")
         );
     }
 }
