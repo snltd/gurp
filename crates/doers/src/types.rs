@@ -1,3 +1,4 @@
+use crate::aggr::{AggrEnsure, AggrRemove};
 use crate::apk::{ApkEnsure, ApkRemove};
 use crate::bridge::{BridgeEnsure, BridgeRemove};
 use crate::cron::{CronEnsure, CronRemove};
@@ -92,6 +93,8 @@ pub struct HostResources {
 #[serde(rename_all = "kebab-case")]
 pub struct EnsureResources {
     #[serde(default)]
+    pub aggr: Vec<AggrEnsure>,
+    #[serde(default)]
     pub apk: Vec<ApkEnsure>,
     #[serde(default)]
     pub bridge: Vec<BridgeEnsure>,
@@ -158,6 +161,8 @@ pub struct EnsureResources {
 #[derive(Default, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct RemoveResources {
+    #[serde(default)]
+    pub aggr: Vec<AggrRemove>,
     #[serde(default)]
     pub apk: Vec<ApkRemove>,
     #[serde(default)]
@@ -229,6 +234,7 @@ macro_rules! impl_apply {
 }
 
 impl_apply!(
+    AggrEnsure,
     BridgeEnsure,
     CronEnsure,
     DirectoryEnsure,
@@ -253,6 +259,7 @@ impl_apply!(
     VnicEnsure,
     ZfsEnsure,
     ZoneEnsure,
+    AggrRemove,
     BridgeRemove,
     CronRemove,
     DirectoryRemove,
@@ -488,6 +495,7 @@ impl Applicator {
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.etherstub, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.vnic, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.vlan, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.aggr, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ip_interface, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ipmp, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ip_address, opts))?;
@@ -548,6 +556,7 @@ impl Applicator {
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ipmp, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.ip_interface, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.vlan, opts))?;
+        self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.aggr, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.vnic, opts))?;
         self.accumulate(&mut sum, &mut ids, self.apply_resources(&res.etherstub, opts))?;
 

@@ -1,3 +1,4 @@
+(import ./doers/aggr :export true)
 (import ./doers/apk :export true)
 (import ./doers/bridge :export true)
 (import ./doers/cron :export true)
