@@ -3,4 +3,4 @@
              :label "remote-file"
              (file/checksum
                :algorithm "sha256"
-               :literal "561a47aa1d1bfc3a95ce45345639f9ce2d9ad332b05cfe5da74ad77f2842ee16"))
+               :literal "7bde5db38472e2c187ad2e5e10c25a4aecb59e8304c26b9894d11c4b99196ea7"))
