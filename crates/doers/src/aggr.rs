@@ -5,7 +5,7 @@ use common::types::{ApplyOpts, ApplySummary};
 use os_types::{GurpId, LinkName};
 use serde::Deserialize;
 use std::collections::HashSet;
-use std::net::IpAddr;
+// use std::net::IpAddr;
 use std::process::Command;
 
 #[derive(Deserialize, Debug)]
@@ -19,7 +19,18 @@ pub struct AggrEnsure {
     pub policy: String,
     pub lacp_mode: Option<String>,
     pub lacp_timer: Option<String>,
-    pub address: Option<IpAddr>,
+    pub mac_address: Option<String>,
+}
+
+#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
+pub struct ExtantAggr {
+    pub name: LinkName,
+    pub links: HashSet<LinkName>,
+    pub policy: String,
+    pub lacp_mode: String,
+    pub lacp_timer: String,
+    pub mac_address: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -32,12 +43,77 @@ pub struct AggrRemove {
 
 impl AggrEnsure {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        if aggr_exists(&self.name)? {
+        if let Some(extant_aggr) = aggr_info(&self.name)? {
             tracing::debug!("{} already exists", self.name);
-            // align_interfaces(&self.name, &self.interfaces, opts)
-            Ok(ONE_RESOURCE_NO_CHANGE)
+            self.align_aggr(&extant_aggr, opts)
         } else {
             self.create_aggr(opts)
+        }
+    }
+
+    fn align_aggr(
+        &self,
+        extant_aggr: &ExtantAggr,
+        opts: &ApplyOpts,
+    ) -> anyhow::Result<ApplySummary> {
+        if extant_aggr.links != self.links {
+            tracing::info!("Recreating aggr {}", self.name);
+            cmd_change_or_noop!(opts, DLADM_BIN, "delete-aggr", &self.name)?;
+            return self.create_aggr(opts);
+        }
+
+        let mut args = Vec::new();
+
+        if extant_aggr.policy != self.policy {
+            tracing::info!(
+                "aggr {} policy: {} -> {}",
+                self.name,
+                extant_aggr.policy,
+                self.policy
+            );
+            args.extend(["-P", &self.policy]);
+        }
+
+        if let Some(lacp_mode) = &self.lacp_mode
+            && lacp_mode != &extant_aggr.lacp_mode
+        {
+            tracing::info!(
+                "aggr {} lacp_mode: {} -> {}",
+                self.name,
+                extant_aggr.lacp_mode,
+                lacp_mode
+            );
+            args.extend(["-L", &self.policy]);
+        }
+
+        if let Some(lacp_timer) = &self.lacp_timer
+            && lacp_timer != &extant_aggr.lacp_timer
+        {
+            tracing::info!(
+                "aggr {} lacp_timer: {} -> {}",
+                self.name,
+                extant_aggr.lacp_timer,
+                lacp_timer
+            );
+            args.extend(["-T", lacp_timer]);
+        }
+
+        if args.is_empty() {
+            tracing::debug!("aggr {} is correct", self.name);
+            Ok(ONE_RESOURCE_NO_CHANGE)
+        } else {
+            let mut cmd = Command::new(DLADM_BIN);
+            cmd.arg("modify-aggr");
+            cmd.args(args);
+            cmd.arg(&self.name);
+
+            tracing::debug!(command = cmd::to_string(&cmd));
+
+            if !opts.noop {
+                run_cmd!(cmd).with_context(|| format!("failed to modify aggr {}", self.name))?;
+            }
+
+            Ok(ONE_RESOURCE_ONE_CHANGE)
         }
     }
 
@@ -56,8 +132,8 @@ impl AggrEnsure {
             cmd.args(["-T", timer]);
         }
 
-        if let Some(addr) = &self.address {
-            cmd.args(["-u", &addr.to_string()]);
+        if let Some(mac_addr) = &self.mac_address {
+            cmd.args(["-u", &mac_addr.to_string()]);
         }
 
         for link in &self.links {
@@ -75,36 +151,10 @@ impl AggrEnsure {
     }
 }
 
-// fn align_interfaces(
-//     group: &LinkName,
-//     desired_interfaces: &HashSet<LinkName>,
-//     opts: &ApplyOpts,
-// ) -> anyhow::Result<ApplySummary> {
-//     let current_interfaces = aggr_interfaces(&aggrstat_output()?, group);
-
-//     if &current_interfaces == desired_interfaces {
-//         tracing::debug!("{group} has correct interface list");
-//         return Ok(ONE_RESOURCE_NO_CHANGE);
-//     }
-
-//     for iface in desired_interfaces.difference(&current_interfaces) {
-//         tracing::info!("adding {iface} to aggr group {group}");
-//         cmd_change_or_noop!(opts, IPADM_BIN, "add-aggr", "-i", iface, group)?;
-//     }
-
-//     for iface in current_interfaces.difference(desired_interfaces) {
-//         tracing::info!("removing {iface} from aggr group {group}");
-//         cmd_change_or_noop!(opts, IPADM_BIN, "remove-aggr", "-i", iface, group)?;
-//     }
-
-//     Ok(ONE_RESOURCE_ONE_CHANGE)
-// }
-
 impl AggrRemove {
     pub fn apply(&self, opts: &ApplyOpts) -> anyhow::Result<ApplySummary> {
-        if aggr_exists(&self.name)? {
+        if aggr_info(&self.name)?.is_some() {
             tracing::info!("Removing {}", self.name);
-            // align_interfaces(&self.name, &HashSet::new(), opts)?;
             cmd_change_or_noop!(opts, DLADM_BIN, "delete-aggr", &self.name)
         } else {
             tracing::debug!("{} does not exist", self.name);
@@ -113,69 +163,132 @@ impl AggrRemove {
     }
 }
 
-fn aggr_exists(name: &LinkName) -> anyhow::Result<bool> {
-    // let group_list = cmd_output!(aggrSTAT_BIN, "-Pg", "-o", "group")?;
-    // Ok(group_list.lines().any(|l| l == name.to_string()))
-    Ok(false)
+fn extract_info(name: &LinkName, raw_info: &str, raw_x_info: &str) -> Option<ExtantAggr> {
+    if let Some(aggr_row) = raw_info
+        .lines()
+        .find(|l| l.starts_with(&format!("{name}:")))
+    {
+        let mut chunks = aggr_row.split(":");
+        chunks.next();
+
+        if let Some(policy) = chunks.next()
+            && let Some(_addr_policy) = chunks.next()
+            && let Some(lacp_mode) = chunks.next()
+            && let Some(lacp_timer) = chunks.next()
+        {
+            let links = raw_x_info
+                .lines()
+                .filter_map(|l| {
+                    let mut chunks = l.split(":");
+
+                    if let Some(_aggr) = chunks.next()
+                        && let Some(link) = chunks.next()
+                        && !link.is_empty()
+                        && let Some(link_name) = LinkName::new(link).ok()
+                    {
+                        Some(LinkName::new(link_name.to_string()).unwrap())
+                    } else {
+                        None
+                    }
+                })
+                .collect::<HashSet<_>>();
+
+            Some(ExtantAggr {
+                name: name.to_owned(),
+                links,
+                policy: policy.to_owned(),
+                lacp_mode: lacp_mode.to_owned(),
+                lacp_timer: lacp_timer.to_owned(),
+                mac_address: None,
+            })
+        } else {
+            None
+        }
+    } else {
+        None
+    }
 }
 
-// fn aggrstat_output() -> anyhow::Result<String> {
-//     cmd_output!(aggrSTAT_BIN, "-Pg", "-o", "group,interfaces")
-// }
+fn aggr_info(name: &LinkName) -> anyhow::Result<Option<ExtantAggr>> {
+    let raw_info = cmd_output!(
+        DLADM_BIN,
+        "show-aggr",
+        "-po",
+        "link,policy,addrpolicy,lacpactivity,lacptimer"
+    )
+    .context("cannot get list of aggrs")?;
 
-// fn aggr_interfaces(raw_output: &str, aggr_group: &LinkName) -> HashSet<LinkName> {
-//     raw_output
-//         .lines()
-//         .find_map(|l| {
-//             let mut chunks = l.split(":");
-//             if let Some(group) = chunks.next()
-//                 && let Some(interfaces) = chunks.next()
-//                 && group == aggr_group.to_string()
-//             {
-//                 Some(
-//                     interfaces
-//                         .split(" ")
-//                         .filter_map(|s| LinkName::new(s).ok())
-//                         .collect::<HashSet<_>>(),
-//                 )
-//             } else {
-//                 None
-//             }
-//         })
-//         .unwrap_or_default()
-// }
+    let raw_x_info = cmd_output!(DLADM_BIN, "show-aggr", "-xpo", "link,port")
+        .context("cannot get aggr link info")?;
 
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-//     use tester::{deserialized_example, janet2json};
+    Ok(extract_info(name, &raw_info, &raw_x_info))
+}
 
-//     #[test]
-//     fn test_ensure_aggr_deserialize() {
-//         let example_json = janet2json(r#"(aggr/ensure "aggr0" :interfaces["bge0" "e1000g0"])"#);
-//         let sut: AggrEnsure = serde_json::from_str(&example_json).unwrap();
+#[cfg(test)]
+mod test {
+    use super::*;
+    use indoc::indoc;
+    use tester::deserialized_example;
 
-//         assert_eq!(
-//             AggrEnsure {
-//                 id: GurpId::new("/NO-ROLE/aggr/aggr0").unwrap(),
-//                 name: LinkName::new("aggr0").unwrap(),
-//                 interfaces: HashSet::from([
-//                     LinkName::new("bge0").unwrap(),
-//                     LinkName::new("e1000g0").unwrap()
-//                 ])
-//             },
-//             sut
-//         );
-//     }
+    #[test]
+    fn test_extract_info() {
+        assert_eq!(
+            ExtantAggr {
+                name: LinkName::new("aggr0").unwrap(),
+                links: HashSet::from([
+                    LinkName::new("vioif1").unwrap(),
+                    LinkName::new("vioif2").unwrap()
+                ]),
+                policy: "L4".to_owned(),
+                lacp_timer: "short".to_owned(),
+                lacp_mode: "off".to_owned(),
+                mac_address: None,
+            },
+            extract_info(
+                &LinkName::new("aggr0").unwrap(),
+                indoc! {
+                "aggr0:L4:auto:off:short
+                 aggr1:L4:auto:off:short",
 
-//     #[test]
-//     fn test_remove_aggr_deserialize() {
-//         assert_eq!(
-//             AggrRemove {
-//                 id: GurpId::new("/NO-ROLE/aggr/aggr1").unwrap(),
-//                 name: LinkName::new("aggr1").unwrap(),
-//             },
-//             deserialized_example("aggr/remove-01.janet")
-//         );
-//     }
-// }
+                 },
+                indoc! {
+                "aggr0:
+                      aggr0:vioif2
+                      aggr0:vioif1"
+                  }
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn test_ensure_aggr_deserialize() {
+        assert_eq!(
+            AggrEnsure {
+                id: GurpId::new("/NO-ROLE/aggr/aggr0").unwrap(),
+                name: LinkName::new("aggr0").unwrap(),
+                policy: "L2,L3".to_owned(),
+                lacp_timer: Some("long".to_owned()),
+                lacp_mode: None,
+                mac_address: None,
+                links: HashSet::from([
+                    LinkName::new("vioif1").unwrap(),
+                    LinkName::new("vioif2").unwrap(),
+                    LinkName::new("vioif3").unwrap(),
+                ])
+            },
+            deserialized_example("aggr/ensure-01.janet")
+        );
+    }
+
+    #[test]
+    fn test_remove_aggr_deserialize() {
+        assert_eq!(
+            AggrRemove {
+                id: GurpId::new("/NO-ROLE/aggr/aggr1").unwrap(),
+                name: LinkName::new("aggr1").unwrap(),
+            },
+            deserialized_example("aggr/remove-01.janet")
+        );
+    }
+}

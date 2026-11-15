@@ -15,7 +15,7 @@ aggr name [`:string`]
 |  key  |  type  |  description  |  default  |
 |-------|--------|---------------|-----------|
 | `:links` | `tuple` | Underlying links. |  |
-| `:policy` | `string` | Port selection policy. Allowed values: "L2", "L3", "L4". | `"L4"` |
+| `:policy` | `string` | Port selection policy. | `"L4"` |
 
 ### Optional Properties
 
@@ -36,4 +36,24 @@ None
 
 None
 
+## Notes
+
+
+- Changing the underlying links forces removal and re-creation of the aggr.
+
+- The hardware address cannot be changed on an existing aggr.
+
 ## Examples
+
+
+```janet
+(aggr/ensure "aggr0"
+             :lacp-timer "long"
+             :policy "L2,L3"
+             :links ["vioif1" "vioif2" "vioif3"])
+```
+
+
+```janet
+(aggr/remove "aggr1")
+```

@@ -13,4 +13,4 @@
     (property "from-struct" [:struct] :optional
               "Generate a Cloudinit file from the given struct or table")))
 
-(make-helper-fn :cloudinit)
+(make-helper-fn "cloudinit")
