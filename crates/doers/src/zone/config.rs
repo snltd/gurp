@@ -129,10 +129,12 @@ pub struct CloudInitConfig {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct BootstrapConfig {
     pub file: Option<String>,
-    pub hostname: Option<String>,
+    pub host: Option<String>,
     pub server: Option<String>,
     pub gurp_binary: Utf8PathBuf,
+    #[serde(default)]
     pub copy_self: bool,
+    #[serde(default)]
     pub debug: bool,
 }
 

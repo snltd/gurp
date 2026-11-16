@@ -9,4 +9,4 @@
                            :defrouter "192.168.1.1")
              (zone/bootstrap
                :server "gurp.localnet"
-               :hostname "native-zone"))
+               :host "native-zone"))
