@@ -1,5 +1,6 @@
 - Move `zone/dns` and `zone/capped-memory` from bare structs to helpers.
   (Breaking change.)
+- Put (nearly) everything Gurp writes under `/var/gurp`.
 - Add `aggr` doer.
 - Add `ipmp` doer.
 - Add `:create-from` and `:create-with` to `directory/ensure`. These let you

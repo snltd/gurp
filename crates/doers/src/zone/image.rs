@@ -2,7 +2,7 @@ use crate::zfs;
 use crate::zone::config::ImageSource;
 use anyhow::{Context, bail, ensure};
 use camino::{Utf8Path, Utf8PathBuf};
-use common::constants::{IMG_CACHE_DIR, QEMU_IMG_BIN, ZFS_BIN, ZSTD_BIN};
+use common::constants::{GURP_DIR_CACHE, QEMU_IMG_BIN, ZFS_BIN, ZSTD_BIN};
 use common::types::ApplyOpts;
 use std::fs;
 use std::io::{BufReader, BufWriter, Write};
@@ -85,7 +85,7 @@ fn local_cached_path(url: &Url) -> anyhow::Result<Utf8PathBuf> {
         .last()
         .with_context(|| format!("unable to parse image URL {url}"))?;
 
-    let cache_dir = Utf8PathBuf::from(IMG_CACHE_DIR);
+    let cache_dir = Utf8PathBuf::from(GURP_DIR_CACHE);
 
     Ok(cache_dir.join(basename))
 }

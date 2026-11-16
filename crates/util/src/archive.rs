@@ -19,6 +19,7 @@ mod test {
     use super::*;
     use crate::checksum::HashValue;
     use crate::hash::HashAlgorithm;
+    use camino::Utf8PathBuf;
     use camino_tempfile::Utf8TempDir;
     use url::Url;
 
@@ -35,7 +36,10 @@ mod test {
                 &FromSource::Url(archive_url),
                 target_dir.path(),
                 checksum,
-                &ApplyOpts::default(),
+                &ApplyOpts {
+                    gurp_dir_tmp: Some(Utf8PathBuf::from("/tmp")),
+                    ..Default::default()
+                }
             )
             .unwrap()
         );
@@ -83,7 +87,10 @@ mod test {
             &FromSource::Url(archive_url),
             target_dir.path(),
             Some(&checksum),
-            &ApplyOpts::default(),
+            &ApplyOpts {
+                gurp_dir_tmp: Some(Utf8PathBuf::from("/tmp")),
+                ..Default::default()
+            },
         );
 
         assert!(result.is_err());

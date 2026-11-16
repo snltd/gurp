@@ -34,6 +34,7 @@ pub struct ApplyOpts {
     pub splay: Option<u64>,
     pub syspath: Option<Utf8PathBuf>,
     pub gurp_config_root: Option<Utf8PathBuf>,
+    pub gurp_dir_tmp: Option<Utf8PathBuf>, // for tests
 }
 
 /// User-supplied flags which affect Gurp's output

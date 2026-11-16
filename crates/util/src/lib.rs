@@ -12,6 +12,7 @@ pub mod http;
 pub mod info;
 pub mod ip_protocols;
 pub mod json;
+pub mod setup;
 pub mod smf_builder;
 pub mod svcs;
 pub mod url;

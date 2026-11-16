@@ -175,6 +175,11 @@ fn main() -> ExitCode {
         logs_to: cli.logs_to,
     };
 
+    if let Err(e) = util::setup::gurp_dirs() {
+        eprintln!("ERROR in setup: {e}");
+        return ExitCode::FAILURE;
+    }
+
     match cli.command {
         Commands::Apply {
             colour,
@@ -229,6 +234,7 @@ fn main() -> ExitCode {
                 },
                 client: ApplyClientOpts { server, host },
                 globals,
+                gurp_dir_tmp: None,
             };
 
             let providers = match init::init_telemetry("gurp", &opts.globals) {

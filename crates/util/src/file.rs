@@ -4,6 +4,7 @@ use crate::{checksum::Checksum, hash};
 use anyhow::{Context, bail, ensure};
 use camino::{Utf8Path, Utf8PathBuf};
 use camino_tempfile::NamedUtf8TempFile;
+use common::constants::GURP_DIR_TMP;
 use common::types::ApplyOpts;
 use nix::sys::stat::{self, FileStat};
 use nix::unistd::{Gid, Uid};
@@ -83,6 +84,10 @@ pub fn local_or_remote(
     opts: &ApplyOpts,
 ) -> anyhow::Result<LocalFile> {
     let tempfile;
+    let tempdir = opts
+        .gurp_dir_tmp
+        .clone()
+        .unwrap_or_else(|| Utf8PathBuf::from(GURP_DIR_TMP));
 
     let path = match source {
         FromSource::Path(path) => {
@@ -100,7 +105,7 @@ pub fn local_or_remote(
             }
         }
         FromSource::Url(url) => {
-            tempfile = NamedUtf8TempFile::new_in("/var/tmp")?;
+            tempfile = NamedUtf8TempFile::new_in(tempdir)?;
             // url_to_disk checks the checksum itself
             http::url_to_disk(
                 &http::RemoteFileCopy {
@@ -327,7 +332,10 @@ mod test {
         let result = local_or_remote(
             &FromSource::Url(Url::parse(&server.url("/flat-archive.tar.gz")).unwrap()),
             Some(&checksum),
-            &ApplyOpts::default(),
+            &ApplyOpts {
+                gurp_dir_tmp: Some(Utf8PathBuf::from("/tmp")),
+                ..Default::default()
+            },
         );
 
         let ok = result.unwrap();
@@ -348,7 +356,10 @@ mod test {
         let result = local_or_remote(
             &FromSource::Url(Url::parse(&server.url("/flat-archive.tar.gz")).unwrap()),
             None,
-            &ApplyOpts::default(),
+            &ApplyOpts {
+                gurp_dir_tmp: Some(Utf8PathBuf::from("/tmp")),
+                ..Default::default()
+            },
         );
 
         let ok = result.unwrap();
@@ -376,7 +387,10 @@ mod test {
         let result = local_or_remote(
             &FromSource::Url(Url::parse(&server.url("/flat-archive.tar.gz")).unwrap()),
             Some(&checksum),
-            &ApplyOpts::default(),
+            &ApplyOpts {
+                gurp_dir_tmp: Some(Utf8PathBuf::from("/tmp")),
+                ..Default::default()
+            },
         );
 
         assert!(result.is_err());
