@@ -1,6 +1,6 @@
 use crate::checksum::Checksum;
 use crate::file::{self, FromSource};
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8Path;
 use common::constants::GTAR_BIN;
 use common::types::ApplyOpts;
 
@@ -19,6 +19,7 @@ mod test {
     use super::*;
     use crate::checksum::HashValue;
     use crate::hash::HashAlgorithm;
+    use camino::Utf8PathBuf;
     use camino_tempfile::Utf8TempDir;
     use url::Url;
 
