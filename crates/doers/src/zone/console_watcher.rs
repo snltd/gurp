@@ -1,7 +1,7 @@
 use crate::zone::constants::READINESS_WAIT_TIMEOUT_EMULATED;
 use anyhow::{Context, bail};
 use camino::Utf8PathBuf;
-use common::constants::ZLOGIN_BIN;
+use common::constants::{GURP_DIR_CONSOLE_LOG, ZLOGIN_BIN};
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 use std::fs::File;
 use std::io::{BufWriter, Read, Write};
@@ -16,7 +16,7 @@ const WINDOW_SIZE: usize = 4096;
 pub fn wait_for_readiness(zone: &str, uuid: &Uuid) -> anyhow::Result<bool> {
     tracing::info!("Waiting for zone '{zone}' to be ready");
 
-    let console_log_dir = Utf8PathBuf::from("/var/tmp");
+    let console_log_dir = Utf8PathBuf::from(GURP_DIR_CONSOLE_LOG);
     let console_log_file = console_log_dir.join(format!("gurp-bhyve-{uuid}.log"));
 
     let pty_system = native_pty_system();

@@ -2,7 +2,7 @@ use super::metrics;
 use crate::apply::types::{ApplyStatus, FailPhase};
 use anyhow::Context;
 use camino::Utf8PathBuf;
-use common::constants::APPLY_LOCKFILE;
+use common::constants::GURP_LOCKFILE;
 use common::types::ApplyOpts;
 use std::fs;
 use std::time::Instant;
@@ -16,7 +16,7 @@ pub fn acquire(opts: &ApplyOpts) -> Option<ApplyLock> {
     if opts.noop || opts.no_lock || opts.exec.is_some() {
         None
     } else {
-        Some(ApplyLock::from(APPLY_LOCKFILE))
+        Some(ApplyLock::from(GURP_LOCKFILE))
     }
 }
 

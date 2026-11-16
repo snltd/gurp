@@ -1,6 +1,6 @@
 use crate::checksum::Checksum;
 use crate::file::{self, FromSource};
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
 use common::constants::GTAR_BIN;
 use common::types::ApplyOpts;
 
@@ -35,7 +35,10 @@ mod test {
                 &FromSource::Url(archive_url),
                 target_dir.path(),
                 checksum,
-                &ApplyOpts::default(),
+                &ApplyOpts {
+                    gurp_dir_tmp: Some(Utf8PathBuf::from("/tmp")),
+                    ..Default::default()
+                }
             )
             .unwrap()
         );
@@ -83,7 +86,10 @@ mod test {
             &FromSource::Url(archive_url),
             target_dir.path(),
             Some(&checksum),
-            &ApplyOpts::default(),
+            &ApplyOpts {
+                gurp_dir_tmp: Some(Utf8PathBuf::from("/tmp")),
+                ..Default::default()
+            },
         );
 
         assert!(result.is_err());

@@ -2,14 +2,13 @@ use super::report::{Report, ReportArgs, ReportStatus};
 use super::{config, lockfile, metrics};
 use crate::apply::types::{ApplyStatus, FailPhase};
 use camino::{Utf8Path, Utf8PathBuf};
+use common::constants::GURP_DIR_REPORT;
 use common::types::{ApplyOpts, CompileError};
 use doers::types::Applicator;
 use gurptel::{flush, types::TelemetryProviders};
 use jiff::Timestamp;
 use std::process::ExitCode;
 use std::time::Instant;
-
-const REPORT_DIR: &str = "/var/log";
 
 pub fn run(
     host_file: Option<&Utf8Path>,
@@ -49,7 +48,7 @@ pub fn run(
                                 host_file: host_file.map(|f| f.to_owned()),
                                 opts,
                             })
-                            .write(&Utf8PathBuf::from(REPORT_DIR));
+                            .write(&Utf8PathBuf::from(GURP_DIR_REPORT));
                         }
 
                         if providers.are_active() {
@@ -76,7 +75,7 @@ pub fn run(
                                 host_file: host_file.map(|f| f.to_owned()),
                                 opts,
                             })
-                            .write(&Utf8PathBuf::from(REPORT_DIR));
+                            .write(&Utf8PathBuf::from(GURP_DIR_REPORT));
                         }
 
                         if providers.are_active() {

@@ -3,8 +3,7 @@ use crate::zone::control::ZoneadmState;
 use crate::zone::types::{ZoneName, ZoneadmZones};
 use anyhow::{Context, ensure};
 use camino::Utf8PathBuf;
-use common::constants::IMG_CACHE_DIR;
-use common::constants::ZONEADM_BIN;
+use common::constants::{GURP_DIR_CACHE, ZONEADM_BIN};
 use common::types::ApplyOpts;
 use url::Url;
 use util::checksum::Checksum;
@@ -17,7 +16,7 @@ pub fn current_zone_list() -> anyhow::Result<ZoneadmZones> {
 
 pub fn get_image(img_url: &Url, checksum: Option<&Checksum>) -> anyhow::Result<Utf8PathBuf> {
     let img_fname = img_url.filename()?;
-    let img_path = Utf8PathBuf::from(IMG_CACHE_DIR).join(img_fname);
+    let img_path = Utf8PathBuf::from(GURP_DIR_CACHE).join(img_fname);
 
     if img_path.exists() {
         tracing::debug!("found image at {img_path}");

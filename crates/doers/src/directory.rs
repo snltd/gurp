@@ -405,7 +405,11 @@ mod test {
 
         assert_eq!(
             ONE_RESOURCE_ONE_CHANGE,
-            sut.apply(&ApplyOpts::default()).unwrap()
+            sut.apply(&ApplyOpts {
+                gurp_dir_tmp: Some(Utf8PathBuf::from("/tmp")),
+                ..Default::default()
+            })
+            .unwrap()
         );
 
         assert!(dir.exists());

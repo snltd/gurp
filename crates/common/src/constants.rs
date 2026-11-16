@@ -4,10 +4,17 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 //--- Filesystem locations
-pub const IMG_CACHE_DIR: &str = "/var/tmp";
+pub const GURP_DIR: &str = "/var/gurp";
+pub const GURP_DIR_CACHE: &str = "/var/gurp/cache";
+#[cfg(test)]
+pub const GURP_DIR_TMP: &str = "/tmp";
+#[cfg(not(test))]
+pub const GURP_DIR_TMP: &str = "/var/gurp/tmp";
+pub const GURP_DIR_REPORT: &str = "/var/gurp/report";
+pub const GURP_DIR_CONSOLE_LOG: &str = "/var/gurp/console_log";
+pub const GURP_LOCKFILE: &str = "/var/run/gurp.lock";
 pub const MANIFEST_DIR: &str = "/opt/site/lib/smf/manifest";
 pub const GEM_BIN_DIR: &str = "/opt/ooce/bin";
-pub const APPLY_LOCKFILE: &str = "/var/run/gurp.lock";
 
 //--- Sandbox configuration
 // Sandboxing disables certain features from the embedded Janet interpreter. Once the
@@ -15,8 +22,8 @@ pub const APPLY_LOCKFILE: &str = "/var/run/gurp.lock";
 //
 // Capabilities in this list are forbidden. Don't forget the :, cos they're Janet keywords.
 // For even a basic config to compile :compile, :fs, :fs-read, and :unmarshall must be enabled.
-// The capabilities list has changed in the past. We are currently pinned to an embedded
-// Janet interpreter v1.41.2. (doc sandbox) in the REPL lists capabilities.
+// The capabilities list has changed in the past.
+// (doc sandbox) in the REPL lists capabilities.
 pub const SANDBOX_FORBIDDEN_CAPABILITIES: &[&str] = &[
     ":asm",
     ":chroot",
