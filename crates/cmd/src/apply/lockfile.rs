@@ -88,7 +88,8 @@ impl ApplyLock {
 
     pub fn is_locked(&self) -> anyhow::Result<bool> {
         if self.exists() {
-            let sys = System::new_all();
+            let sys =
+                System::new().context("couldn't inspect running processes to validate lockfile")?;
             let processes = sys.processes();
             // Dumb check.
             if processes.contains_key(&self.locked_pid()?) {
