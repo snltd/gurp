@@ -9,28 +9,56 @@ Arguments:
   [HOST_CONFIG_FILE]  Host configuration file
 
 Options:
-  -M, --metrics-to <METRICS_TO>       HTTP POST OpenTelemetry metrics to this host
-  -s, --server <SERVER>               Get config from a Gurp server
-  -H, --hostname <HOSTNAME>           Hostname to use when fetching config from server
-  -L, --logs-to <LOGS_TO>             HTTP POST OpenTelemetry logs to this host
-  -p, --precompiled                   Use a pre-compiled JSON config, which may be local or remote
-  -i, --image                         Use a local pre-compiled Janet jimage as config
-  -n, --noop                          Say what would happen, without actually doing it
-  -D, --define <DEFINE>               Define a constant which can be accessed from config
-      --dump-configs                  Dump intermediate config files to stdout
-      --dump-diffs                    When files change, dump diffs to stdout
-  -C, --colour                        When dumping configs or diffs, use syntax colouring where supported
-  -N, --line-no                       When dumping configs, number lines
-      --destroy-everything-you-touch  Turn all ensures into removes. Use with extreme caution
-  -e, --exec <EXEC>                   Execute a literal snippet of Janet config
-      --no-lock                       Do not check for or use a lockfile
-      --no-report                     Do not write a JSON report at the end of the run
-      --pre-run-noop                  Perform a no-op check run before application
-      --post-run-noop                 If changes are made, re-run the apply phase, erroring if changes occur on the re-run
-      --remove-first                  Run remove actions BEFORE ensure actions
-      --only <ONLY>                   Only apply resources whose IDs match this regex
-  -S, --splay <SPLAY>                 Random delay with a maximum of this many seconds
-  -h, --help                          Print help
+  -M, --metrics-to <METRICS_TO>
+          HTTP POST OpenTelemetry metrics to this host
+  -s, --server <SERVER>
+          Get config from a Gurp server
+  -H, --host <HOST>
+          Host name or class to use when fetching config from server
+  -L, --logs-to <LOGS_TO>
+          HTTP POST OpenTelemetry logs to this host
+  -p, --precompiled
+          Use a pre-compiled JSON config, which may be local or remote
+  -i, --image
+          Use a local pre-compiled Janet jimage as config
+  -n, --noop
+          Say what would happen, without actually doing it
+      --syspath <SYSPATH>
+          Set the *syspath* dyn (defaults to parent of HOST_CONFIG_FILE, or cwd if used with --execute)
+      --gurp-config-root <GURP_CONFIG_ROOT>
+          Set the :gurp-config-root dyn (defaults parent of HOST_CONFIG_FILE, or cwd if used with --execute)
+  -D, --define <DEFINE>
+          Define a constant which can be accessed from config
+      --dump-configs
+          Dump intermediate config files to stdout
+      --dump-diffs
+          When files change, dump diffs to stdout
+  -C, --colour
+          When dumping configs or diffs, use syntax colouring where supported
+  -N, --line-no
+          When dumping configs, number lines
+      --destroy-everything-you-touch
+          Turn all ensures into removes. Use with extreme caution
+  -e, --exec <EXEC>
+          Execute a literal snippet of Janet config
+      --no-lock
+          Do not check for or use a lockfile
+  -U, --no-update
+          Do not update Gurp, even if directed to by the config
+      --no-report
+          Do not write a JSON report at the end of the run
+      --pre-run-noop
+          Perform a no-op check run before application
+      --post-run-noop
+          If changes are made, re-run the apply phase, erroring if changes occur on the re-run
+      --remove-first
+          Run remove actions BEFORE ensure actions
+      --only <ONLY>
+          Only apply resources whose IDs match this regex
+  -S, --splay <SPLAY>
+          Random delay with a maximum of this many seconds
+  -h, --help
+          Print help
 ```
 
 `apply` aligns the state of a host with that defined host configuration. That
@@ -49,10 +77,12 @@ There are options:
 - `-s, --server <SERVER>` Fetches configuration, over HTTP, from a Gurp server.
   Normally this is sent in a single jimage binary format which is executed on
   the client, producing the final configuration which is then applied.
-- `-H, --hostname <HOSTNAME>` ordinarily an apply with `--server` will fetch
+- `-H, --host <HOST>` ordinarily an apply with `--server` will fetch
   configuration for a host matching the client's own hostname. This option lets
   you request config for a different host. It can be useful for applying the
-  same configuration across hosts.
+  same configuration across hosts. If you create, for example, a config
+  `webserver.janet`, all your webserver hosts could be configured by calling the
+  server with `--host=webserver`.
 - `-p, --precompiled` Applies a precompiled JSON config, rather than compiling
   from Janet source.
 - `-i, --image` Compiles and applies a jimage config, rather than compiling from
@@ -75,12 +105,12 @@ There are options:
   Useful for cleaning up during development, but should be used with extreme
   caution. It has no short value, so you can't type it by accident.
 - `--no-lock` makes Gurp not check for, create, or remove its runtime lock file.
-- `--no-report` Gurp normally writes a JSON report in `/var/log/` at the end
-  of a run. This option turns of that report.
-- `--pre-run-noop` Runs a no-op before the normal apply: this is very
-  fast and minimises the chance of a partially applied config. Can be
-  problematic in some circumstances. For instance, if your config adds a `pkg`
-  repo then installs packages from it.
+- `--no-report` Gurp normally writes a JSON report in `/var/log/` at the end of
+  a run. This option turns of that report.
+- `--pre-run-noop` Runs a no-op before the normal apply: this is very fast and
+  minimises the chance of a partially applied config. Can be problematic in some
+  circumstances. For instance, if your config adds a `pkg` repo then installs
+  packages from it.
 - `--post-run-noop` If a Gurp `apply` makes a change to the system state, this
   option makes it immediately re-run the config as a no-op. If the no-op finds
   changes must be made, Gurp assumes it failed to correctly assert state, and

@@ -72,7 +72,7 @@ impl Report {
             gurp_version: GURP_VERSION.to_owned(),
             gurp_build: info::BUILD_HASH.to_owned(),
             server: args.opts.client.server.clone(),
-            client_name: args.opts.client.hostname.clone(),
+            client_name: args.opts.client.host.clone(),
             precompiled: args.opts.precompiled,
         }
     }

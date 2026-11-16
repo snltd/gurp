@@ -86,8 +86,8 @@ impl ApplyVmOpts {
 /// User-supplied flags which affect behaviour in client mode
 #[derive(Debug, Default, Clone)]
 pub struct ApplyClientOpts {
-    pub server: Option<String>,   // client mode only
-    pub hostname: Option<String>, // currently client mode only
+    pub server: Option<String>, // client mode only
+    pub host: Option<String>,   // currently client mode only
 }
 
 /// CLI options for the compile command

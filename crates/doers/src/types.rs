@@ -403,13 +403,22 @@ impl Applicator {
 
         tracing::debug!("Raw JSON is {}", self.json_config);
 
-        let host_config: HostConfig = match serde_json::from_str(&self.json_config) {
+        let de = &mut serde_json::Deserializer::from_str(&self.json_config);
+        let host_config: HostConfig = match serde_path_to_error::deserialize(de) {
             Ok(conf) => conf,
             Err(e) => {
-                self.display_error(e)?;
+                eprintln!("failed at path: {}", e.path());
+                self.display_error(e.into_inner())?;
                 bail!("end of deserializing output");
             }
         };
+        // let host_config: HostConfig = match serde_json::from_str(&self.json_config) {
+        //     Ok(conf) => conf,
+        //     Err(e) => {
+        //         self.display_error(e)?;
+        //         bail!("end of deserializing output");
+        //     }
+        // };
 
         Ok(host_config)
     }

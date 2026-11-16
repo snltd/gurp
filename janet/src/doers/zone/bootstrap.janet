@@ -18,8 +18,8 @@
               :default default-gurp-path)
     (property "server" [:string] :optional
               "hostname/IP address of server to install from")
-    (property "hostname" [:string] :optional
-              "hostname of client being bootstrapped")
+    (property "host" [:string] :optional
+              "request that server returns config for this host")
     (property "file" [:string] :optional
               "fully qualified path of file in zone which will be used to
                bootstrap")

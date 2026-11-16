@@ -29,9 +29,9 @@ enum Commands {
         /// Get config from a Gurp server
         #[arg(short = 's', long = "server")]
         server: Option<String>,
-        /// Hostname to use when fetching config from server
-        #[arg(short = 'H', long = "hostname", requires = "server")]
-        hostname: Option<String>,
+        /// Host name or class to use when fetching config from server
+        #[arg(short = 'H', long = "host", requires = "server")]
+        host: Option<String>,
         /// Use a pre-compiled JSON config, which may be local or remote
         #[arg(short = 'p', long = "precompiled")]
         precompiled: bool,
@@ -185,7 +185,7 @@ fn main() -> ExitCode {
             exec,
             gurp_config_root,
             host_config_file,
-            hostname,
+            host,
             image,
             line_no,
             no_lock,
@@ -227,7 +227,7 @@ fn main() -> ExitCode {
                     define,
                     ..Default::default()
                 },
-                client: ApplyClientOpts { server, hostname },
+                client: ApplyClientOpts { server, host },
                 globals,
             };
 

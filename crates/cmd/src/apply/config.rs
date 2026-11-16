@@ -42,7 +42,7 @@ pub(crate) fn from_snippet(snippet: &str) -> Result<String, CompileError> {
 }
 
 fn client_hostname(client_opts: &ApplyClientOpts) -> Result<String, CompileError> {
-    if let Some(user_set_hostname) = &client_opts.hostname {
+    if let Some(user_set_hostname) = &client_opts.host {
         Ok(user_set_hostname.clone())
     } else {
         util_info::my_hostname().map_err(CompileError::Other)

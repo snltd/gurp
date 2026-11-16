@@ -4,12 +4,12 @@
 (deftest zone/bootstrap
   (test
     (zone/bootstrap :server "gurp.localnet"
-                    :hostname "test-client")
+                    :host "test-client")
     [:bootstrap
      @{:copy-self true
        :from-helper true
        :gurp-binary "/var/tmp/gurp"
-       :hostname "test-client"
+       :host "test-client"
        :server "gurp.localnet"
        :unique true}])
 

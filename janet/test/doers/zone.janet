@@ -61,7 +61,7 @@
                          :boot-after-install true
                          :bootstrap @{:copy-self true
                                       :gurp-binary "/var/tmp/gurp"
-                                      :hostname "native-zone"
+                                      :host "native-zone"
                                       :server "gurp.localnet"}
                          :brand "lipkg"
                          :clone-from "gold-zone"
