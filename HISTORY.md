@@ -1,5 +1,6 @@
 - Move `zone/dns` and `zone/capped-memory` from bare structs to helpers.
   (Breaking change.)
+- Changed `--hostname` to `--host` in the `apply` command. (Breaking change.)
 - Put (nearly) everything Gurp writes under `/var/gurp`.
 - Add `aggr` doer.
 - Add `ipmp` doer.
