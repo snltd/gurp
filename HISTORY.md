@@ -1,5 +1,6 @@
 - Move `zone/dns` and `zone/capped-memory` from bare structs to helpers.
   (Breaking change.)
+- Changed `--hostname` to `--host` in the `apply` command. (Breaking change.)
 - Put (nearly) everything Gurp writes under `/var/gurp`.
 - Add `aggr` doer.
 - Add `ipmp` doer.
@@ -18,6 +19,7 @@
   internally but are generally useful.
 - Tidied and tightened Janet code to reduce size of config images.
 - Improve DSL docs.
+- Gracefully handle "update from server" control data when applying a local file.
 
 ## v2.5.0 (2026-10-23)
 

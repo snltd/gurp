@@ -157,8 +157,8 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
         }
 
         if !opts.noop {
-            let mut fh =
-                File::create(&nat_file).with_context(|| format!("failed to open {nat_file}"))?;
+            let mut fh = File::create(&nat_file)
+                .with_context(|| format!("failed to open ipnat file at {nat_file}"))?;
             write!(fh, "{desired_rules}")
                 .with_context(|| format!("failed to write ipnat rules to {nat_file}"))?;
         }

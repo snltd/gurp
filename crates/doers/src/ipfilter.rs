@@ -214,7 +214,7 @@ fn ensure_persistent_rules(desired_rules: &str, opts: &ApplyOpts) -> anyhow::Res
 
         if !opts.noop {
             let mut fh = File::create(&filter_file)
-                .with_context(|| format!("failed to open {filter_file}"))?;
+                .with_context(|| format!("failed to open ipfilter rules at {filter_file}"))?;
             write!(fh, "{desired_rules}")
                 .with_context(|| format!("failed to write ipfilter rules to {filter_file}"))?;
         }

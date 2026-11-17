@@ -1,7 +1,7 @@
 (import ../../collector)
 (use ../lib/definers)
 
-(def default-gurp-path "/var/tmp/gurp")
+(def default-gurp-path "/tmp/gurpstrap")
 
 (defhelper :zone :bootstrap
   "Tells gurp how to bootstrap a newly created zone."

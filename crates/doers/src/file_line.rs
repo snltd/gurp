@@ -79,9 +79,11 @@ impl FileLineEnsure {
                     let fh = fs::OpenOptions::new()
                         .append(true)
                         .open(&self.path)
-                        .with_context(|| format!("failed to open {}", self.path))?;
+                        .with_context(|| {
+                            format!("failed to open file for modification: {}", self.path)
+                        })?;
                     writeln!(&fh, "\n{}\n", line)
-                        .with_context(|| format!("failed to write {}", self.path))?;
+                        .with_context(|| format!("failed to write modified file: {}", self.path))?;
                 }
 
                 Ok(ONE_RESOURCE_ONE_CHANGE)

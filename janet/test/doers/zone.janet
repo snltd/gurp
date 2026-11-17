@@ -60,7 +60,7 @@
                          :autoboot true
                          :boot-after-install true
                          :bootstrap @{:copy-self true
-                                      :gurp-binary "/var/tmp/gurp"
+                                      :gurp-binary "/tmp/gurpstrap"
                                       :host "native-zone"
                                       :server "gurp.localnet"}
                          :brand "lipkg"
@@ -134,7 +134,7 @@
                          :boot-after-install true
                          :bootstrap @{:copy-self true
                                       :file "/var/tmp/bootstrap.janet"
-                                      :gurp-binary "/var/tmp/gurp"}
+                                      :gurp-binary "/tmp/gurpstrap"}
                          :brand "lipkg"
                          :name "test-zone-bootstrap-file"
                          :network @[@{:allowed-address "192.168.1.33/24"

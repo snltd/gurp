@@ -124,12 +124,12 @@ fn raw_to_zvol(raw_img_path: &Utf8Path, zvol: &str) -> anyhow::Result<()> {
 
     tracing::debug!("writing {} to {}", raw_img_path, zvol);
 
-    let src =
-        fs::File::open(raw_img_path).with_context(|| format!("failed to open {raw_img_path}"))?;
+    let src = fs::File::open(raw_img_path)
+        .with_context(|| format!("failed to open ZFS image at {raw_img_path}"))?;
     let dst = fs::OpenOptions::new()
         .write(true)
         .open(&zvol)
-        .with_context(|| format!("failed to open {zvol}"))?;
+        .with_context(|| format!("failed to open zvol for writing: {zvol}"))?;
 
     let mut reader = BufReader::with_capacity(BUFFER_CAP, src);
     let mut writer = BufWriter::with_capacity(BUFFER_CAP, dst);
