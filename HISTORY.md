@@ -18,6 +18,7 @@
   internally but are generally useful.
 - Tidied and tightened Janet code to reduce size of config images.
 - Improve DSL docs.
+- Gracefully handle "update from server" control data when applying a local file.
 
 ## v2.5.0 (2026-10-23)
 

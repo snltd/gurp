@@ -20,11 +20,13 @@ pub(crate) fn update_gurp(update_from: &str, opts: &ApplyOpts) -> anyhow::Result
     let metadata = file::metadata(&gurp_path)?;
 
     if update_from == "SERVER" {
-        let server = opts
-            .client
-            .server
-            .as_deref()
-            .context("requested server update, but server is not set")?;
+        let server = match opts.client.server.as_deref() {
+            Some(server) => server,
+            None => {
+                tracing::warn!("requested gurp update from server, but --server is not set");
+                return Ok(ONE_RESOURCE_NO_CHANGE);
+            }
+        };
 
         let base_url =
             Url::parse(&format!("http://{server}:1867/v1/")).context("cannot build server URL")?;

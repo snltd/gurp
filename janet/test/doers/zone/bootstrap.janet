@@ -8,7 +8,7 @@
     [:bootstrap
      @{:copy-self true
        :from-helper true
-       :gurp-binary "/var/tmp/gurp"
+       :gurp-binary "/tmp/gurpstrap"
        :host "test-client"
        :server "gurp.localnet"
        :unique true}])
@@ -19,7 +19,7 @@
      @{:copy-self true
        :file "/var/tmp/boot.janet"
        :from-helper true
-       :gurp-binary "/var/tmp/gurp"
+       :gurp-binary "/tmp/gurpstrap"
        :unique true}])
 
   (test-error

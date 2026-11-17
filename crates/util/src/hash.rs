@@ -66,7 +66,8 @@ pub fn of_reader(
 }
 
 pub fn of_file(path: &Utf8Path, algorithm: &HashAlgorithm) -> anyhow::Result<String> {
-    let file = File::open(path).with_context(|| format!("failed to open {path}"))?;
+    let file =
+        File::open(path).with_context(|| format!("failed to open file for hashing at {path}"))?;
     of_reader(file, algorithm)
 }
 
