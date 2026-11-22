@@ -1,5 +1,4 @@
 use super::client;
-use anyhow::Context;
 use camino::Utf8Path;
 use common::constants::SERVER_PORT;
 use common::info;
@@ -260,23 +259,33 @@ fn compile(client: &JanetClient, code: &str) -> Result<Vec<u8>, CompileError> {
 }
 
 /// Used in server mode to create a Janet jimage of a machine config
-pub fn to_jimage(client: &JanetClient, path: &Utf8Path) -> Result<Vec<u8>, CompileError> {
+pub fn to_jimage(
+    client: &JanetClient,
+    config_dir: Option<&Utf8Path>,
+    path: &Utf8Path,
+) -> Result<Vec<u8>, CompileError> {
     if !path.exists() {
         return Err(CompileError::FileNotFound(path.to_owned()));
     }
 
     let host_file = path.canonicalize_utf8().map_err(CompileError::Io)?;
 
-    let host_config_dir = host_file
-        .parent()
-        .context("cannot get host config dir")
-        .map_err(CompileError::Other)?
-        .to_owned();
+    let config_dir = match config_dir {
+        Some(d) => d,
+        None => match host_file.parent() {
+            Some(d) => d,
+            None => {
+                return Err(CompileError::Other(anyhow::anyhow!(format!(
+                    "cannot get parent of {host_file}"
+                ))));
+            }
+        },
+    };
 
     let janet_instructions = indoc::formatdoc! { r#"
         (def build-env (make-env (fiber/getenv (fiber/root))))
-        (set (build-env *syspath*) "{host_config_dir}")
-        (setdyn :gurp-config-root "{host_config_dir}")
+        (set (build-env *syspath*) "{config_dir}")
+        (setdyn :gurp-config-root "{config_dir}")
         (merge-module build-env (dofile "{host_file}" :env build-env) "" true)
         (make-image build-env)
         "#};
@@ -337,7 +346,7 @@ mod test {
     fn test_to_jimage() {
         let path = fixture!("basic_config.janet");
         let client = client::gurp(&ApplyVmOpts::from_file(&path).unwrap()).unwrap();
-        let image = to_jimage(&client, &path).unwrap();
+        let image = to_jimage(&client, None, &path).unwrap();
         assert!(image.len() > 100); // if it fails it's 10b long
     }
 

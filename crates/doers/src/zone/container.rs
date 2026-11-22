@@ -9,6 +9,7 @@ use common::types::ApplyOpts;
 use fs_extra::dir::CopyOptions;
 use std::process::{Command, Stdio};
 use std::{env, fs};
+use util::facts;
 
 // native container as opposed to emulation.
 
@@ -61,7 +62,11 @@ pub fn build_zone(zone: &str, config: &ZoneConfig, opts: &ApplyOpts) -> anyhow::
         }
     }
 
-    create_zone_brand_fact(&config.zonepath, &config.brand)?;
+    facts::create(
+        "zone-brand",
+        &config.brand.to_string(),
+        Some(config.zonepath.as_ref()),
+    )?;
 
     Ok(())
 }
@@ -91,21 +96,6 @@ fn clone(zone: &str, source_zone: &str) -> anyhow::Result<()> {
         .with_context(|| format!("failed to clone {zone} from {source_zone}"))?;
 
     tracing::debug!("zone {zone}: cloned");
-    Ok(())
-}
-
-/// Creates a file in the zone's /etc/gurp/ saying what brand the zone is
-fn create_zone_brand_fact(zonepath: &Utf8Path, brand: &Brand) -> anyhow::Result<()> {
-    let etc_dir = zonepath.join("root").join("etc").join("gurp");
-    let fact_path = etc_dir.join("zone-brand.fact");
-
-    if !etc_dir.exists() {
-        tracing::info!("creating {etc_dir}");
-        fs::create_dir_all(&etc_dir)
-            .with_context(|| format!("failed to create etc_dir {etc_dir}"))?;
-    }
-
-    fs::write(fact_path, format!("{brand}\n"))?;
     Ok(())
 }
 
@@ -158,6 +148,10 @@ fn copy_to_zone(zonepath: &Utf8Path, src: &Utf8Path, dest: &str) -> anyhow::Resu
 fn bootstrap(zone: &str, conf: &ZoneConfig, opts: &ApplyOpts) -> anyhow::Result<()> {
     let bootstrap_conf = conf.bootstrap.as_ref().context("no bootstrap config")?;
     let mut bootstrap_args: Vec<String> = Vec::new();
+
+    if let Some(as_host) = &opts.client.host {
+        facts::create("as-host", as_host, Some(conf.zonepath.as_ref()))?;
+    }
 
     // Passing the RUST_LOG env var breaks zlogin on LX zones
     if bootstrap_conf.debug {

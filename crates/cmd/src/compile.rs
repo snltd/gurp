@@ -82,7 +82,7 @@ fn compile_to_image(
         .context("writing an image requires an output path")?;
 
     let image_data =
-        compiler::to_jimage(&compiler.client, path).context("error compiling image file")?;
+        compiler::to_jimage(&compiler.client, None, path).context("error compiling image file")?;
 
     fs::write(output_path, image_data)
         .with_context(|| format!("error writing image file {output_path}"))?;

@@ -7,7 +7,7 @@ use common::types::{ApplyClientOpts, ApplyOpts, ApplyVmOpts, CompileError, JsonC
 use embed::compiler;
 use std::fs;
 use util::info as util_info;
-use util::{file, http, json};
+use util::{facts, file, http, json};
 
 /// Get content from either a remote server or a local file. Used for precompiled JSON
 /// and jimages
@@ -24,7 +24,7 @@ pub(crate) fn load(
         fs::read(path).map_err(CompileError::Io)
     } else if let Some(server) = &client_opts.server {
         tracing::debug!("requesting JSON config from {server}");
-        http::config_from_server(server, &client_hostname(client_opts)?, format)
+        http::config_from_server(server, &client_host(client_opts)?, format)
     } else {
         Err(CompileError::Other(anyhow::anyhow!(
             "no precompiled JSON path or server config"
@@ -41,9 +41,12 @@ pub(crate) fn from_snippet(snippet: &str) -> Result<String, CompileError> {
         (to-json (machine-config))"#})
 }
 
-fn client_hostname(client_opts: &ApplyClientOpts) -> Result<String, CompileError> {
-    if let Some(user_set_hostname) = &client_opts.host {
-        Ok(user_set_hostname.clone())
+/// If a value is given, use it. If not, see if there's an as-host fact. If not, use the hostname.
+fn client_host(client_opts: &ApplyClientOpts) -> Result<String, CompileError> {
+    if let Some(user_set_host) = &client_opts.host {
+        Ok(user_set_host.clone())
+    } else if let Some(as_host) = facts::get("as-host").map_err(CompileError::Other)? {
+        Ok(as_host)
     } else {
         util_info::my_hostname().map_err(CompileError::Other)
     }
