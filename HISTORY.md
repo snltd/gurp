@@ -9,7 +9,11 @@
   The archive may be local or remote.
 - Add `:create-from` to `zfs/ensure`, which creates a ZFS filesystem from a
   snapshot image on local disk or fetched from a URL.
+- When bootstrapping a zone using `--host`, a `as-host` fact is written in the
+  zone. Henceforth `gurp apply` will pick up this fact value and use it.
 - Fix `misc` doer: scheduling class would not be changed if it was unset.
+- Fix `file` doer: fully qualified `:from` paths should always be treated as
+  local, never requested from the server.
 - Improve the way doer frontends are defined and how documentation is generated.
 - Property types specified as `:struct` will now accept `:table`; and `:tuple`
   will accept `:array`.
@@ -19,7 +23,8 @@
   internally but are generally useful.
 - Tidied and tightened Janet code to reduce size of config images.
 - Improve DSL docs.
-- Gracefully handle "update from server" control data when applying a local file.
+- Gracefully handle "update from server" control data when applying a local
+  file.
 
 ## v2.5.0 (2026-10-23)
 

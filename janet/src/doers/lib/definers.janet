@@ -1,4 +1,4 @@
-(import ../../dsl :only [qualify-from-path])
+(import ../../dsl :only [qualify-from-path qualified-path?])
 (import ./validators :only [validate-spec])
 
 # A user specifies a resource by calling a function such as (file/ensure ...)
@@ -72,13 +72,14 @@
   (let [groups (group-by group-fn (pairs (all-props attrs)))]
     (tabseq [[target props] :pairs groups] target (map |(first $) props))))
 
+# Used by any resource that takes a :from. e.g. file and system-cert. Give it
+# a spec table, and it will turn relative :from paths into fully qualified paths
+# or server references, depending on the current execution environment. Returns
+# a modified spec-table.
 (defn- expand-from-value
-  "Used by any resource that takes a :from. e.g. file and system-cert. Give it
-  a spec table, and it will turn relative :from paths into fully qualified paths
-  or server references, depending on the current execution environment. Returns
-  a modified spec-table."
   [spec-table from-path]
-  (if-let [server-name (dyn :server-name)]
+  (if-let [server-name (dyn :server-name)
+           _carry-on? (not (dsl/qualified-path? from-path))]
     (do # Point at the server
       (set (spec-table :from) nil)
       (set (spec-table :from-url) (server-url server-name from-path))
