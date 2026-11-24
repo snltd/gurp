@@ -149,8 +149,9 @@ fn bootstrap(zone: &str, conf: &ZoneConfig, opts: &ApplyOpts) -> anyhow::Result<
     let bootstrap_conf = conf.bootstrap.as_ref().context("no bootstrap config")?;
     let mut bootstrap_args: Vec<String> = Vec::new();
 
-    if let Some(as_host) = &opts.client.host {
+    if let Some(as_host) = &bootstrap_conf.host {
         facts::create("as-host", as_host, Some(conf.zonepath.as_ref()))?;
+    } else {
     }
 
     // Passing the RUST_LOG env var breaks zlogin on LX zones
