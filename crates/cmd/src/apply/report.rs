@@ -1,17 +1,15 @@
 use super::types::FailPhase;
+use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use common::constants::GURP_VERSION;
 use common::types::{ApplyOpts, ApplySummary};
+use jiff::SignedDuration;
 use jiff::Timestamp;
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use serde_json;
 use std::fs;
-use std::time::Duration;
 use util::info;
 
-// Makes a best-effort to write a run report. Swallows any errors. No report is written
-// if we're execing a snippet.
-//
 #[derive(Serialize)]
 pub(crate) enum ReportStatus {
     Success,
@@ -32,11 +30,15 @@ pub(crate) struct ReportArgs<'a> {
     pub status: ReportStatus,
     pub fail_phase: Option<FailPhase>,
     pub summary: Option<&'a ApplySummary>,
-    pub duration: &'a Duration,
+    pub duration: SignedDuration,
     pub t_start: Timestamp,
     pub t_end: Timestamp,
     pub host_file: Option<Utf8PathBuf>,
     pub opts: &'a ApplyOpts,
+}
+
+fn ser_secs<S: Serializer>(d: &SignedDuration, s: S) -> Result<S::Ok, S::Error> {
+    s.serialize_f64(d.as_secs_f64())
 }
 
 #[derive(Serialize)]
@@ -48,7 +50,8 @@ pub(crate) struct Report {
     changes: Option<u32>,
     t_start: Timestamp,
     t_end: Timestamp,
-    duration: Duration,
+    #[serde(serialize_with = "ser_secs")]
+    duration: SignedDuration,
     gurp_version: String,
     gurp_build: String,
     server: Option<String>,
@@ -77,7 +80,11 @@ impl Report {
         }
     }
 
-    pub fn write(&self, dir: &Utf8Path) {
+    pub fn write(&self, dir: &Utf8Path) -> anyhow::Result<()> {
+        if !dir.exists() {
+            fs::create_dir_all(dir).context(format!("could not create report dir: {dir}"))?;
+        }
+
         let filename = if self.fail_phase.is_some() {
             "gurp_last_fail.json"
         } else {
@@ -85,15 +92,10 @@ impl Report {
         };
 
         let path = dir.join(filename);
+        let json =
+            serde_json::to_string_pretty(&self).context("could not construct report JSON")?;
 
-        match serde_json::to_string_pretty(&self) {
-            Ok(json) => {
-                if let Err(e) = fs::write(&path, json) {
-                    eprintln!("failed to write report to {path}: {e}");
-                }
-            }
-            Err(e) => eprintln!("failed to create report JSON: {e}"),
-        }
+        fs::write(&path, json).map_err(|e| e.into())
     }
 }
 
@@ -119,13 +121,14 @@ mod test {
                 resources: 123,
                 changes: 45,
             }),
-            duration: &Duration::from_millis(6789),
+            duration: SignedDuration::from_millis(6789),
             t_start,
             t_end,
             host_file: None,
             opts: &ApplyOpts::default(),
         })
-        .write(temp_dir.path());
+        .write(temp_dir.path())
+        .unwrap();
 
         let content = fs::read_to_string(&expected_file).unwrap();
         let v: serde_json::Value = serde_json::from_str(&content).unwrap();
@@ -135,8 +138,7 @@ mod test {
         assert_eq!(v["changes"], 45);
         assert_eq!(v["t_start"], "2026-06-14T12:00:00Z");
         assert_eq!(v["t_end"], "2026-06-14T12:00:06Z");
-        assert_eq!(v["duration"]["secs"], 6);
-        assert_eq!(v["duration"]["nanos"], 789_000_000);
+        assert_eq!(v["duration"], 6.789);
         assert_eq!(v["fail_phase"], serde_json::Value::Null);
         assert_eq!(v["host_file"], serde_json::Value::Null);
         assert!(v["hostname"].as_str().is_some_and(|s| !s.is_empty()));
@@ -156,13 +158,14 @@ mod test {
             status: ReportStatus::Fail,
             fail_phase: Some(FailPhase::Apply),
             summary: None,
-            duration: &Duration::from_millis(6789),
+            duration: SignedDuration::from_millis(6789),
             t_start,
             t_end,
             host_file: None,
             opts: &ApplyOpts::default(),
         })
-        .write(temp_dir.path());
+        .write(temp_dir.path())
+        .unwrap();
 
         let content = fs::read_to_string(&expected_file).unwrap();
         let v: serde_json::Value = serde_json::from_str(&content).unwrap();
@@ -172,8 +175,7 @@ mod test {
         assert_eq!(v["changes"], serde_json::Value::Null);
         assert_eq!(v["t_start"], "2026-06-14T12:00:00Z");
         assert_eq!(v["t_end"], "2026-06-14T12:00:06Z");
-        assert_eq!(v["duration"]["secs"], 6);
-        assert_eq!(v["duration"]["nanos"], 789_000_000);
+        assert_eq!(v["duration"], 6.789);
         assert_eq!(v["fail_phase"], "Apply");
         assert_eq!(v["host_file"], serde_json::Value::Null);
         assert!(v["hostname"].as_str().is_some_and(|s| !s.is_empty()));

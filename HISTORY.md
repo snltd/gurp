@@ -15,6 +15,7 @@
 - Fix `file` doer: fully qualified `:from` paths should always be treated as
   local, never requested from the server.
 - Improve the way doer frontends are defined and how documentation is generated.
+- Improve locking to avoid simultaneous runs.
 - Property types specified as `:struct` will now accept `:table`; and `:tuple`
   will accept `:array`.
 - Add `user-def` function to DSL which facilitates querying of defs added with
