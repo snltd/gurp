@@ -1,120 +1,225 @@
+use super::lockfile::ApplyLock;
 use super::report::{Report, ReportArgs, ReportStatus};
-use super::{config, lockfile, metrics};
+use super::{config, metrics};
 use crate::apply::types::{ApplyStatus, FailPhase};
 use camino::{Utf8Path, Utf8PathBuf};
-use common::constants::GURP_DIR_REPORT;
-use common::types::{ApplyOpts, CompileError};
+use common::constants::{GURP_DIR_REPORT, GURP_LOCKFILE};
+use common::types::{ApplyOpts, ApplySummary, CompileError};
 use doers::types::Applicator;
 use gurptel::{flush, types::TelemetryProviders};
-use jiff::Timestamp;
+use jiff::{SignedDuration, Timestamp};
 use std::process::ExitCode;
-use std::time::Instant;
+
+struct ReportInfo {
+    status: ReportStatus,
+    fail_phase: Option<FailPhase>,
+    summary: Option<ApplySummary>,
+}
 
 pub fn run(
     host_file: Option<&Utf8Path>,
     opts: &ApplyOpts,
     providers: TelemetryProviders,
 ) -> ExitCode {
-    let start_timestamp = Timestamp::now(); // goes in the the report
-    let run_timer = Instant::now(); // calculate run duration for metrics
+    let maybe_lock = set_up_lock(opts);
+    let exit_code = _run(host_file, maybe_lock.as_ref(), &providers, opts);
 
-    let exit_code = match config::compile(host_file, opts) {
-        Ok(cfg) => {
-            let lock = lockfile::acquire(opts);
+    if let Some(lock) = &maybe_lock
+        && let Err(e) = lock.release()
+    {
+        tracing::warn!("failed to clean up lock file at {GURP_LOCKFILE}: {e}");
+    }
 
-            if lockfile::is_on(&run_timer, &lock) {
-                ExitCode::FAILURE
-            } else {
-                let run_result = Applicator::from(cfg).run(opts);
-                let elapsed_time = run_timer.elapsed();
-                tracing::info!("Run time: {:.3?}", elapsed_time);
+    flush(providers);
+    exit_code
+}
 
-                let run_exit_code = match run_result {
-                    Ok(apply_summary) => {
-                        tracing::info!(
-                            "resources: {}  changes: {}",
-                            apply_summary.resources,
-                            apply_summary.changes,
-                        );
+fn flush(providers: TelemetryProviders) {
+    if providers.are_active() {
+        flush::flush(providers)
+    }
+}
 
-                        if !opts.no_report && opts.exec.is_none() {
-                            Report::from(ReportArgs {
-                                status: ReportStatus::Success,
-                                fail_phase: None,
-                                summary: Some(&apply_summary),
-                                duration: &elapsed_time,
-                                t_start: start_timestamp,
-                                t_end: Timestamp::now(),
-                                host_file: host_file.map(|f| f.to_owned()),
-                                opts,
-                            })
-                            .write(&Utf8PathBuf::from(GURP_DIR_REPORT));
-                        }
+// We don't use a lockfile for --exec applies, or for noops, and the user can request no
+// lock file. (Which is useful for testing more than in real life.)
+fn set_up_lock(opts: &ApplyOpts) -> Option<ApplyLock> {
+    if opts.noop || opts.no_lock || opts.exec.is_some() {
+        None
+    } else {
+        Some(ApplyLock::from(&Utf8PathBuf::from(GURP_LOCKFILE)))
+    }
+}
 
-                        if providers.are_active() {
-                            metrics::send(ApplyStatus::Ok(apply_summary), &elapsed_time);
-                        }
-                        ExitCode::SUCCESS
-                    }
-                    Err(e) => {
-                        tracing::error!("FAILED TO APPLY CONFIG");
-                        if let Some(path) = host_file {
-                            tracing::error!("apply error on {path}: {e:#}");
-                        } else {
-                            tracing::error!("apply error: {e:#}");
-                        }
+// We are only one level away from exiting here, so we'll log and handle errors and pass true or
+// false back to the controlling function.
+fn _run(
+    host_file: Option<&Utf8Path>,
+    maybe_lock: Option<&ApplyLock>,
+    providers: &TelemetryProviders,
+    opts: &ApplyOpts,
+) -> ExitCode {
+    let t_start = Timestamp::now();
+    let send_metrics = providers.are_active();
+    let mut ret = ExitCode::SUCCESS;
+    let report_info: ReportInfo;
 
-                        if !opts.no_report && opts.exec.is_none() {
-                            Report::from(ReportArgs {
-                                status: ReportStatus::Fail,
-                                fail_phase: Some(FailPhase::Apply),
-                                summary: None,
-                                duration: &elapsed_time,
-                                t_start: start_timestamp,
-                                t_end: Timestamp::now(),
-                                host_file: host_file.map(|f| f.to_owned()),
-                                opts,
-                            })
-                            .write(&Utf8PathBuf::from(GURP_DIR_REPORT));
-                        }
+    let compile_result = config::compile(host_file, opts);
 
-                        if providers.are_active() {
-                            metrics::send(ApplyStatus::Fail(FailPhase::Apply), &elapsed_time);
-                        }
-                        ExitCode::FAILURE
-                    }
-                };
+    let t_elapsed = Timestamp::now().duration_since(t_start);
 
-                lockfile::release(lock);
-                run_exit_code
-            }
-        }
-
+    match compile_result {
         Err(e) => {
-            tracing::error!("could not generate config: {e:#} (Run with debug for stack trace)");
+            report_info = report_compile_failure(&e, t_elapsed, send_metrics);
+            ret = ExitCode::FAILURE
+        }
+        Ok(json_config) => {
+            // If Gurp is locked, go no further.
+            if let Some(lock) = maybe_lock {
+                match lock.acquire() {
+                    Ok(true) => (),
+                    result @ (Ok(false) | Err(_)) => {
+                        let t_elapsed = Timestamp::now().duration_since(t_start);
+                        if let Err(e) = &result {
+                            tracing::error!("error handling lock file: {e}");
+                        } else {
+                            tracing::warn!("gurp apply is locked by {GURP_LOCKFILE}");
+                        }
+                        let report_info = report_lock_error(t_elapsed, providers.are_active());
+                        write_report(host_file, t_start, t_elapsed, report_info, opts);
+                        return ExitCode::FAILURE;
+                    }
+                }
+            }
 
-            if let CompileError::Compile { message, trace } = &e {
-                if message.contains("unknown symbol machine-config") {
-                    tracing::error!("config may lack a (host) definition");
-                };
+            let run_result = Applicator::from(json_config).run(opts);
+            tracing::info!("Run time: {:.3?}", t_elapsed);
 
-                for line in trace {
-                    tracing::debug!("{line}");
+            report_info = match run_result {
+                Ok(apply_summary) => report_apply_success(apply_summary, t_elapsed, send_metrics),
+                Err(e) => {
+                    ret = ExitCode::FAILURE;
+                    report_apply_failure(e, host_file, t_elapsed, send_metrics)
                 }
             };
+        }
+    }
 
-            if providers.are_active() {
-                metrics::send(ApplyStatus::Fail(e.into()), &run_timer.elapsed());
-            }
-            ExitCode::FAILURE
+    write_report(host_file, t_start, t_elapsed, report_info, opts);
+    ret
+}
+
+fn write_report(
+    host_file: Option<&Utf8Path>,
+    t_start: Timestamp,
+    t_elapsed: SignedDuration,
+    info: ReportInfo,
+    opts: &ApplyOpts,
+) {
+    if opts.no_report || opts.exec.is_some() {
+        return;
+    }
+
+    if let Err(e) = Report::from(ReportArgs {
+        status: info.status,
+        fail_phase: info.fail_phase,
+        summary: info.summary.as_ref(),
+        duration: t_elapsed,
+        t_start,
+        t_end: Timestamp::now(),
+        host_file: host_file.map(|f| f.to_owned()),
+        opts,
+    })
+    .write(&Utf8PathBuf::from(GURP_DIR_REPORT))
+    {
+        tracing::error!("failed to write report: {e}");
+    }
+}
+
+fn report_lock_error(t_elapsed: SignedDuration, send_metrics: bool) -> ReportInfo {
+    if send_metrics {
+        metrics::send(ApplyStatus::Fail(FailPhase::Locked), t_elapsed);
+    }
+
+    ReportInfo {
+        status: ReportStatus::Fail,
+        fail_phase: Some(FailPhase::Locked),
+        summary: None,
+    }
+}
+
+fn report_apply_success(
+    apply_summary: ApplySummary,
+    t_elapsed: SignedDuration,
+    send_metrics: bool,
+) -> ReportInfo {
+    tracing::info!(
+        "resources: {}  changes: {}",
+        apply_summary.resources,
+        apply_summary.changes,
+    );
+
+    if send_metrics {
+        metrics::send(ApplyStatus::Ok(apply_summary), t_elapsed);
+    }
+
+    ReportInfo {
+        status: ReportStatus::Success,
+        fail_phase: None,
+        summary: Some(apply_summary),
+    }
+}
+
+fn report_apply_failure(
+    e: anyhow::Error,
+    host_file: Option<&Utf8Path>,
+    t_elapsed: SignedDuration,
+    send_metrics: bool,
+) -> ReportInfo {
+    tracing::error!("FAILED TO APPLY CONFIG");
+
+    if let Some(path) = host_file {
+        tracing::error!("apply error on {path}: {e:#}");
+    } else {
+        tracing::error!("apply error: {e:#}");
+    }
+
+    if send_metrics {
+        metrics::send(ApplyStatus::Fail(FailPhase::Apply), t_elapsed);
+    }
+
+    ReportInfo {
+        status: ReportStatus::Fail,
+        fail_phase: Some(FailPhase::Apply),
+        summary: None,
+    }
+}
+
+fn report_compile_failure(
+    e: &CompileError,
+    t_elapsed: SignedDuration,
+    send_metrics: bool,
+) -> ReportInfo {
+    tracing::error!("could not generate config: {e:#} (Run with debug for stack trace)");
+
+    if let CompileError::Compile { message, trace } = e {
+        if message.contains("unknown symbol machine-config") {
+            tracing::error!("config may lack a (host) definition");
+        };
+
+        for line in trace {
+            tracing::debug!("{line}");
         }
     };
 
-    if providers.are_active() {
-        flush::flush(providers);
+    if send_metrics {
+        metrics::send(ApplyStatus::Fail(e.into()), t_elapsed);
     }
 
-    exit_code
+    ReportInfo {
+        status: ReportStatus::Fail,
+        fail_phase: Some(FailPhase::Compile),
+        summary: None,
+    }
 }
 
 #[cfg(test)]

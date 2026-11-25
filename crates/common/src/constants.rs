@@ -12,6 +12,7 @@ pub const GURP_DIR_TMP: &str = "/tmp";
 pub const GURP_DIR_TMP: &str = "/var/gurp/tmp";
 pub const GURP_DIR_REPORT: &str = "/var/gurp/report";
 pub const GURP_DIR_CONSOLE_LOG: &str = "/var/gurp/console_log";
+pub const GURP_DIR_STATIC_FACTS: &str = "/var/gurp/facts";
 pub const GURP_LOCKFILE: &str = "/var/run/gurp.lock";
 pub const MANIFEST_DIR: &str = "/opt/site/lib/smf/manifest";
 pub const GEM_BIN_DIR: &str = "/opt/ooce/bin";

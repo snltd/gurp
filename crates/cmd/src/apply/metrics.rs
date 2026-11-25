@@ -1,9 +1,9 @@
 use crate::apply::types::ApplyStatus;
 use gurptel::client::ClientMetrics;
 use gurptel::runtime_stats;
-use std::time::Duration;
+use jiff::SignedDuration;
 
-pub(crate) fn send(status: ApplyStatus, elapsed_time: &Duration) {
+pub(crate) fn send(status: ApplyStatus, elapsed_time: SignedDuration) {
     let metrics_handle = ClientMetrics::new();
     let elapsed_ms = elapsed_time.as_millis();
 

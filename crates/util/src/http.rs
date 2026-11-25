@@ -17,7 +17,7 @@ pub struct RemoteFileCopy<'a> {
     pub backup_suffix: Option<&'a str>,
 }
 
-// Downloads a file to disk
+/// Downloads a remote file to local disk, optionally checking its hash.
 pub fn url_to_disk(file: &RemoteFileCopy, opts: &ApplyOpts) -> anyhow::Result<()> {
     let mut response = match ureq::get(file.url.as_str()).call() {
         Ok(resp) => resp,
@@ -60,7 +60,7 @@ pub fn url_to_disk(file: &RemoteFileCopy, opts: &ApplyOpts) -> anyhow::Result<()
     Ok(())
 }
 
-// Downloads a file to memory
+/// Downloads a remote file to a Vec<u8> in memory.
 pub fn url_to_memory(url: &Url) -> Result<Vec<u8>, NetworkError> {
     tracing::debug!("fetching {url}");
 
@@ -88,18 +88,16 @@ pub fn url_to_string(url: &Url) -> anyhow::Result<String> {
         .context("failed to convert remote file to string")
 }
 
-pub fn config_from_server(
-    server: &str,
-    hostname: &str,
-    format: &str,
-) -> Result<Vec<u8>, CompileError> {
+/// Fetches Gurp config for the given host from the given server in the given format. Returns
+/// a Vec<u8> as it may be JSON or a binary jimage.
+pub fn config_from_server(server: &str, host: &str, format: &str) -> Result<Vec<u8>, CompileError> {
     let mut tries = 1;
     let mut err: Option<CompileError> = None;
 
     loop {
         tracing::debug!("try {tries}/{CLIENT_RETRIES}");
 
-        match fetch_precompiled_file(server, hostname, format) {
+        match fetch_precompiled_file(server, host, format) {
             Ok(resp) => {
                 return Ok(resp);
             }
@@ -123,16 +121,24 @@ pub fn config_from_server(
     Err(err.unwrap())
 }
 
-fn fetch_precompiled_file(
-    server: &str,
-    hostname: &str,
-    format: &str,
-) -> Result<Vec<u8>, CompileError> {
+fn fetch_precompiled_file(server: &str, host: &str, format: &str) -> Result<Vec<u8>, CompileError> {
     // We tell the server what we think it's called so it can build file resources we can find.
     // This lets us use a raw IP address, DNS name, whatever.
-    let url = Url::parse(
-        &format!("http://{server}:{SERVER_PORT}/{CLIENT_API_VERSION}/config/{hostname}?server_name={server}&format={format}")
-    ).context("failed to generate URL for precompiled file").map_err(CompileError::Other)?;
+    let mut url = Url::parse(&format!("http://{server}:{SERVER_PORT}"))
+        .context("failed to base server URL")
+        .map_err(CompileError::Other)?;
+
+    url.path_segments_mut()
+        .ok()
+        .context("failed to set up path segments")
+        .map_err(CompileError::Other)?
+        .push(CLIENT_API_VERSION)
+        .push("config")
+        .push(host);
+
+    url.query_pairs_mut()
+        .append_pair("server_name", server)
+        .append_pair("format", format);
 
     tracing::info!("fetching config from {url}");
     url_to_memory(&url).map_err(CompileError::Network)
@@ -161,16 +167,3 @@ fn log_ureq_error(url: &Url, e: &ureq::Error) {
         _ => tracing::error!("unhandled error: {e} on {url}"),
     }
 }
-
-// fn has_good_checksum(f: &mut File, expected: &Checksum) -> anyhow::Result<bool> {
-
-//     let actual = expected.resolve();
-
-//     tracing::debug!(
-//         "comparing checksums: expected={} actual={}",
-//         expected.value.trim(),
-//         actual.trim()
-//     );
-
-//     Ok(expected.value.trim() == actual.trim())
-// }

@@ -6,7 +6,7 @@ pub(crate) enum ApplyStatus {
     Fail(FailPhase),
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub(crate) enum FailPhase {
     Apply,
     Client,
@@ -30,8 +30,8 @@ impl std::fmt::Display for FailPhase {
     }
 }
 
-impl From<CompileError> for FailPhase {
-    fn from(e: CompileError) -> Self {
+impl From<&CompileError> for FailPhase {
+    fn from(e: &CompileError) -> Self {
         match e {
             CompileError::Network(e) => match e {
                 NetworkError::Http(code) => FailPhase::Network(code.to_string()),
@@ -46,5 +46,11 @@ impl From<CompileError> for FailPhase {
                 trace: _,
             } => FailPhase::Compile,
         }
+    }
+}
+
+impl From<CompileError> for FailPhase {
+    fn from(e: CompileError) -> Self {
+        Self::from(&e)
     }
 }

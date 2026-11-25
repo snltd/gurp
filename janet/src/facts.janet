@@ -8,11 +8,12 @@
 # Yes, another GLOBAL VARIABLE! Used to cache lazily-evaluated facts.
 (def *fact-cache* (new-fact-cache))
 
+# Returns the value of the given static fact, as a keyword, or nil if the fact
+# does not exist.
 (defn- static-fact
-  "Returns the value of the given static fact, as a keyword, or nil if the
-  fact does not exist."
   [fact-name]
-  (let [fact-file (dsl/pathcat "/etc/gurp" (string/format "%s.fact" fact-name))]
+  (let [fact-file (dsl/pathcat "/var/gurp/facts"
+                               (string/format "%s.fact" fact-name))]
     (if (os/stat fact-file)
       (-> (slurp fact-file) (string/trim) (keyword))
       nil)))
@@ -140,11 +141,12 @@
 
 (def fact->fn (fact->fn*))
 
-# Don't forget to update RUN_SAVE_CMDS in crates/common/src/constants.rs
 (defn fetch-and-cache [name]
   (def value (if-let [fun (fact->fn name)]
                ((fun :fn))
-               (errorf "unknown fact: %s" name)))
+               (if-let [static-value (static-fact name)]
+                 static-value
+                 (errorf "unknown fact: %s" name))))
   (set (*fact-cache* name) value))
 
 # Return, if it exists, the built-in fact with the given name. Facts are
