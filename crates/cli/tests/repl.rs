@@ -11,7 +11,9 @@ mod test {
             .write_stdin("(doc pathcat) (os/exit)")
             .assert()
             .success()
-            .stdout(predicate::str::contains("Joins tokens to make a path"));
+            .stdout(predicate::str::contains(
+                "Joins tokens to make a fully qualified path",
+            ));
     }
 
     #[test]
