@@ -2,7 +2,7 @@
 (import ../collector)
 (import ./file/checksum :prefix "" :export true)
 
-(def to-formats ["json" "toml" "yaml" "init" "kvp" "ini"])
+(def to-formats ["json" "toml" "yaml" "init" "k=v" "ini"])
 
 (defdoer :file
   "Create files from multiple sources, or remove them."
@@ -61,7 +61,7 @@
     "If you try to ensure a file at a path which exists, but is not a file, Gurp
      will error"
     "The `template-out` and `indoc` macros are useful when specifying :content."
-    "Gurp can also create key-value pairs (`:to-format \"kvp\"`). It can do this
+    "Gurp can also create key-value pairs (`:to-format \"k=v\"`). It can do this
      from a single-level struct, or from an array. In the latter case, entries
      are alternately keys and values. Using an array lets you create files with
      duplicate keys."))

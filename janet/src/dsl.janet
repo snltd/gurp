@@ -1,10 +1,10 @@
 (import ./lib :only [drop-element drop-empty parsed-value ->key
-                     tabular-data->struct values-as-tuple])
+                     squeeze tabular-data->struct values-as-tuple])
 
 # Functions mostly exposed to the user and also used internally.
 
 (defmacro host
-  "The top-level wrapper used to define a host to be configured"
+  "The top-level wrapper used to define a host to be configured."
   [host-name & host-definition]
   ~(upscope
      (setdyn :host-dyn (string ,host-name))
@@ -18,7 +18,7 @@
         :resources (finalise *collector*)})))
 
 (defmacro role
-  "Holder for role definitions"
+  "Holder for role definitions."
   [role-name & role-definition]
   (def [required-keys body]
     (if (and (not (empty? role-definition))
@@ -39,7 +39,7 @@
      ,;body))
 
 (defmacro section
-  "A no-op which might help you write more readable definitions"
+  "A no-op which might help you write more readable definitions."
   [name & body]
   ~(array ,;body))
 
@@ -49,40 +49,37 @@
   (string/join (tuple ;(map string chunks)) " "))
 
 (defn stripslash
-  "Removes leading and trailing slashes from a component"
+  "Removes leading and trailing slashes from a component."
   [chunk]
   (-> chunk (string) (string/trim "/")))
 
-(defn pathcat
-  "Joins tokens to make a path"
-  [& chunks]
-  (if (nil? chunks)
-    (error "pathcat called with a nil"))
-  (as-> chunks _
-        (map stripslash _)
-        (lib/drop-empty _)
-        (string/join _ "/")
-        (string "/" _)))
-
-(defn zfscat
-  "Joins tokens to make a ZFS dataset name"
-  [& chunks]
-  (if (nil? chunks)
-    (error "zfscat called with a nil"))
-  (-> (map stripslash chunks)
-      (lib/drop-empty)
-      (string/join "/")))
-
 (defn qualified-path?
-  "Returns true if the argument looks like a fully qualified path"
+  "Returns true if the argument looks like a fully qualified path."
   [path]
   (string/has-prefix? "/" path))
 
+(defn pathcat
+  "Joins tokens to make a fully qualified path."
+  [& chunks]
+  (if (nil? chunks)
+    (error "pathcat called with a nil"))
+  (let [path (lib/squeeze (string/join (map string chunks) "/") "/")]
+    (if (qualified-path? path)
+      (string path)
+      (string "/" path))))
+
+(defn zfscat
+  "Joins tokens to make a ZFS dataset name."
+  [& chunks]
+  (if (nil? chunks)
+    (error "zfscat called with a nil"))
+  (-> (map stripslash chunks) (lib/drop-empty) (string/join "/")))
+
 (defn qualify-from-path
-  "We expect files to be in a directory `files/` at the same level as
-  the role file which references those files. This expects a path relative
-  to that directory, and returns the fully qualified path, but if it gets
-  a fully qualified path, it simply returns it"
+  "We expect files to be in a directory `files/` at the same level as the role
+   file which references those files. This expects a path relative to that
+   directory, and returns the fully qualified path, but if it gets a fully
+   qualified path, it simply returns it."
   [file-name]
   (if (qualified-path? file-name)
     file-name
@@ -92,7 +89,7 @@
       (pathcat (dyn :gurp-config-root) "files" file-name))))
 
 (defn parent
-  "Returns the parent directory of path"
+  "Returns the parent directory of `path`."
   [path]
   (def components
     (peg/match ~{:main (some (choice (capture (some (if-not "/" 1))) 1))} path))
@@ -101,13 +98,13 @@
   (string "/" (string/join components "/")))
 
 (defn basename
-  "Returns the final component of path"
+  "Returns the final component of `path`."
   [path]
   (last (string/split "/" path)))
 
 (defn files-in
-  "Returns a list of files in dir, including the path to dir. Optionally, files
-  can be of type `kind`"
+  "Returns a list of files in dir, including the path to `dir`. Optionally,
+   files can be of type `kind`."
   [dir &opt kind]
   (def filter-fn (if kind (fn [path] (= ((os/stat path) :mode) kind)) identity))
   (->> (string dir)
@@ -117,17 +114,17 @@
        (sort)))
 
 (defn lines
-  "Returns an array of the lines in the given string. Each is trimmed"
-  [arg]
-  (->> (string/trim arg) (string/split "\n") (map string/trim)))
+  "Returns an array of the lines in `str`. Each is trimmed."
+  [str]
+  (->> (string/trim str) (string/split "\n") (map string/trim)))
 
 (defn fields
-  "Returns an array of the whitespace-separated elements in a string"
+  "Returns an array of the whitespace-separated elements in `str`."
   [str]
   (peg/match ~{:main (some (choice (capture :S+) 1))} str))
 
 (defn labelise
-  "Turns tokens into a safe label"
+  "Turns tokens into a safe label."
   [& chunks]
   (as-> chunks _
         (flatten _)
@@ -136,34 +133,34 @@
         (string/replace-all "/" "_" _)))
 
 (defn this-host
-  "Returns the name of the host, which is set by a dyn in the host macro"
+  "Returns the name of the host, which is set by a dyn in the host macro."
   []
   (dyn :host-dyn))
 
 (defn this-host-k
   "Returns the name of the host as a keyword. This is set by a dyn in the host
-   macro"
+   macro."
   []
   (keyword (this-host)))
 
 (defn this-role
-  "Returns the name of the role, set by a dyn in the role macro"
+  "Returns the name of the role, set by a dyn in the role macro."
   []
   (dyn :role-dyn))
 
 (defn this-role-k
-  "Returns the name of the role as a keyword, set by a dyn in the role macro"
+  "Returns the name of the role as a keyword, set by a dyn in the role macro."
   []
   (keyword (this-role)))
 
 (defn this
-  "A convenient way to reference a resource in the current role"
+  "A convenient way to reference a resource in the current role."
   [& args]
   (keyword (string/join (tuple "" (this-role) ;args) "/")))
 
 (defn cron-minutes-from-name
   "Given a string (usually hostname) and an interval in minutes, return the
-  minutes past the hour at which gurp should run, as a comma-separated string"
+   minutes past the hour at which gurp should run, as a comma-separated string."
   [seed-string interval]
   (when (not= (% 60 interval) 0)
     (errorf "%d is not a divisor of 60" interval))
@@ -172,9 +169,9 @@
 
 (defn repeated-line-file
   "Produces a string, with a trailing newline, created by mapping the given
-  values to a string produced by using each value in the given format string.
-  If format-values is an array of arrays, each value of the inner array is used
-  in the format string"
+   values to a string produced by using each value in the given format string.
+   If format-values is an array of arrays, each value of the inner array is used
+   in the format string."
   [format-string format-values]
   (->> format-values
        (map |(string/format (string format-string "\n") ;(lib/values-as-tuple $)))
@@ -182,7 +179,7 @@
 
 (defn indoc
   "Removes common leading spaces from multiline strings, adding a newline at the
-  end if there isn't one already. Start the first line on a new line."
+   end if there isn't one already. Start the first line on a new line."
   [str]
   (if-not (string? str)
     (errorf "indoc: expected a string literal, got %v" str))
@@ -208,13 +205,13 @@
 
 (defn uniq
   "Returns the given tuple or array as a sorted array with duplicate elements
-   removed"
+   removed."
   [list]
   (-> list (zipcoll (map nil? list)) keys sorted))
 
 (defn template-out
   "Takes a template with vars in {{ brackets }} and a table of vars to values.
-   Returns a string or an error"
+   Returns a string or an error."
   [template vars]
 
   (def peg
@@ -255,7 +252,7 @@
 
 (defn run-any-cmd
   "Returns stdout of the given command, or an error containing stderr. Only
-   works if allowed by sandbox settings"
+   works if allowed by sandbox settings."
   [cmd]
   (def proc (os/spawn (fields cmd) :p {:out :pipe :err :pipe}))
   (:wait proc)
@@ -264,13 +261,22 @@
     (error (string/trim (:read (proc :err) :all)))
     (string/trim stdout)))
 
-(defn config-file
-  "Returns the actual path of a file in ../files"
+(defn gurp-file
+  "Given relative path `components`, returns the full path to that file under
+   the gurp config root. Useful when copying files into zones, especially when
+   bootstrapping."
+  [& components]
+  (if-let [config-root (dyn :gurp-config-root)]
+    (pathcat config-root ;components)
+    (error "in gurp-file: :gurp-config-root is not set")))
+
+(defn file-path
+  "Returns the actual path of a file in ../files."
   [path]
   (qualify-from-path path))
 
 (defn cloudinit-meta-data
-  "Returns a cloudinit meta-data struct for the given hostname"
+  "Returns a cloudinit meta-data struct for the given hostname."
   [hostname]
   {:instance-id hostname :local-hostname hostname})
 
@@ -290,11 +296,11 @@
   (->> data (map substruct) (lib/tabular-data->struct)))
 
 (defn tabular-output->struct
-  "Takes a table like dladm and ipadm output, and turns it into a struct. Keys
-  are the column identified by 'key-column', which defaults to 0; values are
-  structs whose keys are the table headers, lowercased and as keywords, and
-  whose values are the values in the table. If any of those values can be safely
-  converted into numbers, they are."
+  "Takes a tabular format string such as the output of `dladm` or `ipadm`, and
+   turns it into a struct. Keys are the column identified by 'key-column',
+   which defaults to 0; values are structs whose keys are the table headers,
+   lowercased and as keywords, and whose values are the values in the table. If
+   any of those values can be safely converted into numbers, they are."
   [tabular-output &opt key-column]
   (if (empty? tabular-output)
     {}
@@ -303,15 +309,15 @@
       (tabular-rows->struct (lines tabular-output) key-column))))
 
 (defn user-def
-  "Returns the value of the given user-def"
-  [name]
+  "Returns the value of the given `user-def`."
+  [user-def]
   (let [user-defs (dyn :gurp-user-defs {})]
-    (user-defs (keyword name))))
+    (user-defs (keyword user-def))))
 
 (defn recreate?
   "Returns 1 (true) or 0 (false) depending on whether the user has defined
-  :recreate-zone-<name> or :recreate-all-zones. To be used in conjunction with
-  the zone :recreate property"
+   `:recreate-zone-<zone-name>` or `:recreate-all-zones`. To be used in
+   conjunction with the zone `:recreate` property."
   [zone-name]
   (if (or (user-def :recreate-all-zones)
           (user-def (keyword "recreate-zone-" zone-name)))
@@ -319,18 +325,18 @@
     0))
 
 (defn num-field-sort
-  "Sort a file when each line's first field is numeric"
+  "Sort a file when each line's first field is numeric."
   [str]
   (int/u64 (first (fields str))))
 
 (defn without-keys
-  "Return a copy of strct without any keys listed in `key-tuple`"
+  "Return a copy of `strct` without any keys listed in `key-tuple`."
   [strct key-tuple]
   (def filter-fn (fn [[k _v]] (not (has-value? key-tuple k))))
   (struct ;(flatten (filter filter-fn (pairs strct)))))
 
 (defn drop-empty-values
-  "Return a copy of strct without any keys whose values are empty"
+  "Return a copy of `strct` without any keys whose values are empty."
   [strct]
   (def filter-fn (fn [[_k v]] (if (lengthable? v) (not (empty? v)) true)))
   (struct ;(flatten (filter filter-fn (pairs strct)))))

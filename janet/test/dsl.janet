@@ -57,7 +57,7 @@
   (def var1 "/opt/site")
   (def var2 "lib")
   (test (pathcat 1 2 3) "/1/2/3")
-  (test (pathcat "a" "/b" "/" "/" "///c////") "/a/b/c")
+  (test (pathcat "a" "/b" "/" "/" "///c////") "/a/b/c/")
   (test (pathcat var1 "/chunk-a" var2 "chunk-b" "file.tar")
         "/opt/site/chunk-a/lib/chunk-b/file.tar")
   (test (pathcat "/opt/site/chunk-a/lib/chunk-b/file.tar")

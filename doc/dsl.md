@@ -53,7 +53,7 @@ gives you a few convenience functions and macros.
   the same level as the role file which references those files. This expects a
   path relative to that directory, and returns the fully qualified path. If it
   gets a fully qualified path, it simply returns that.
-- `(config-file)` returns the fully-qualified path of a relative file path. Used
+- `(file-path)` returns the fully-qualified path of a relative file path. Used
   internally by the `file` doer, but useful on its own.
 - `(template-out template var-struct)` takes a template string and a struct or
   table, and replaces references in the template with their corresponding values
@@ -69,6 +69,9 @@ gives you a few convenience functions and macros.
   for things like automount maps.
 - `(files-in dir &opt kind)` returns a list of files in `dir`, including the
   path to `dir`. Optionally, files can be only of type `kind`.
+- `(gurp-file components...)` given relative path `components`, returns the full
+  path to that file under the gurp config root. Useful when copying files into
+  zones, especially when bootstrapping.
 
 ### Strings and Data Structures
 
@@ -117,5 +120,6 @@ gives you a few convenience functions and macros.
 
 ## Dynamic Bindings
 
-- `:gurp-config-root` is bound to the directory which contains your top-level
-  host config file.
+- `:gurp-config-root` can be set by command-line options when running
+  `gurp apply` or `gurp repl`. Otherwise it is bound to the directory which
+  contains your top-level host config file.

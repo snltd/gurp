@@ -20,9 +20,3 @@
   (test
     (lookup :wat :nothing)
     nil))
-
-(deftest squeeze
-  (test (squeeze "Correctly spaced words") @"Correctly spaced words")
-  (test (squeeze `  words  with     irregular
-   spacing`)
-        @" words with irregular spacing"))

@@ -28,3 +28,9 @@
 # Remove nil elements from an array
 (defn compact [arr]
   (filter |(not (nil? $)) arr))
+
+# Squash repeated characters. If char is not given, condense whitespace to a
+# single space
+(defn squeeze [str &opt char]
+  (let [[search replace] (if char [char char] [:s " "])]
+    (peg/replace-all ~(* (some ,search)) replace str)))
