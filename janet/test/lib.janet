@@ -28,10 +28,19 @@
   (test (values-as-tuple 1 2 3 4 5) @[1 2 3 4 5]))
 
 (deftest drop-empty
-(test (drop-empty []) @[])
-(test (drop-empty ["a" "" "b" "c" ""]) @["a" "b" "c"]))
+  (test (drop-empty []) @[])
+  (test (drop-empty ["a" "" "b" "c" ""]) @["a" "b" "c"]))
 
 (deftest compact
- (test (compact [nil 1 2 nil 3 4 nil nil nil 5]) @[1 2 3 4 5])
+  (test (compact [nil 1 2 nil 3 4 nil nil nil 5]) @[1 2 3 4 5])
   (test (compact []) @[])
-(test (compact [1 2 3]) @[1 2 3]))
+  (test (compact [1 2 3]) @[1 2 3]))
+
+
+(deftest squeeze
+  (test (squeeze "/some////path///with//slashes//////////" "/")
+        @"/some/path/with/slashes/")
+  (test (squeeze "Correctly spaced words") @"Correctly spaced words")
+  (test (squeeze `  words  with     irregular
+   spacing`)
+        @" words with irregular spacing"))

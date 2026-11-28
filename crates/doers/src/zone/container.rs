@@ -260,161 +260,155 @@ fn exec_in(zone: &str, command: &str) -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use camino::Utf8Path;
-    use std::fs;
-    use tempfile::TempDir;
+    use snltest::fixture_dir;
 
-    #[test]
-    fn copy_file_to_explicit_dest_path() {
-        // dest names the file explicitly: /etc/myfile.conf
-        // Intermediate dirs should be created, file should appear at that exact path.
-        let (_ztmp, zone) = make_zone();
-        let src_tmp = TempDir::new().unwrap();
-        let src = make_src_file(&src_tmp, "myfile.conf", "data");
+    struct CopyTest<'a> {
+        source_files: Vec<&'a str>,
+        copy: &'a str,
+        to: &'a str,
+        expect: Vec<&'a str>,
+    }
 
-        copy_to_zone(&zone, &src, "/etc/myfile.conf").unwrap();
+    #[track_caller]
+    fn assert_copy(ct: CopyTest) {
+        let (_ztempdir, zonepath) = fixture_dir(vec!["root/", "root/etc/", "root/etc/app.cfg"]);
+        let (_stempdir, source_dir) = fixture_dir(ct.source_files);
 
-        let dest = zone.join("root/etc/myfile.conf");
-        assert!(dest.exists(), "file should exist at explicit dest path");
-        assert_eq!(fs::read_to_string(&dest).unwrap(), "data");
+        copy_to_zone(&zonepath, &source_dir.join(ct.copy), ct.to).unwrap();
+
+        for path in ct.expect {
+            let (expected_path, expected_content) = if path.contains("=") {
+                let (p, c) = path.split_once('=').unwrap();
+                (zonepath.join("root").join(p.trim_start_matches("/")), c)
+            } else {
+                (
+                    zonepath.join("root").join(path.trim_start_matches("/")),
+                    path.split('/').next_back().unwrap(),
+                )
+            };
+
+            assert!(
+                expected_path.exists(),
+                "expected {expected_path} to be created from {}",
+                ct.to
+            );
+
+            assert_eq!(expected_content, fs::read_to_string(expected_path).unwrap());
+        }
     }
 
     #[test]
-    fn copy_file_to_dest_with_trailing_slash_uses_src_filename() {
-        // dest ends with '/': the file should land inside that directory
-        // keeping its original name.
-        let (_ztmp, zone) = make_zone();
-        let src_tmp = TempDir::new().unwrap();
-        let src = make_src_file(&src_tmp, "myfile.conf", "content");
+    fn test_copy_in_file_when_target_dir_exists() {
+        // /etc exists: put file inside it, iterating over all the valid ways to define a target
+        for target in [
+            "/etc/myfile.conf",
+            "etc/myfile.conf",
+            "/etc", // trailing slash not required because dir exists
+            "etc",
+            "/etc/",
+            "etc/",
+        ] {
+            assert_copy(CopyTest {
+                source_files: vec!["myfile.conf"],
+                copy: "myfile.conf",
+                to: target,
+                expect: vec!["/etc/myfile.conf"],
+            });
+        }
+    }
 
-        // Pre-create the directory so we're testing the trailing-slash logic,
-        // not the dir-creation path.
-        fs::create_dir_all(zone.join("root/etc")).unwrap();
+    #[test]
+    fn test_copy_in_file_when_target_dir_does_not_exist() {
+        // create path and put file inside it
+        for target in [
+            "/usr/local/etc/app.cfg",
+            "usr/local/etc/app.cfg",
+            "/usr/local/etc/", // trailing slash required
+            "usr/local/etc/",  // trailing slash required
+        ] {
+            assert_copy(CopyTest {
+                source_files: vec!["app.cfg"],
+                copy: "app.cfg",
+                to: target,
+                expect: vec!["/usr/local/etc/app.cfg"],
+            });
+        }
+    }
 
-        copy_to_zone(&zone, &src, "/etc/").unwrap();
+    #[test]
+    fn test_copy_in_file_clobbers_existing_file() {
+        // clobber existing file
+        assert_copy(CopyTest {
+            source_files: vec!["app.cfg.new"],
+            copy: "app.cfg.new",
+            to: "/etc/app.cfg",
+            expect: vec!["/etc/app.cfg=app.cfg.new"],
+        });
+    }
 
-        let dest = zone.join("root/etc/myfile.conf");
+    #[test]
+    fn test_copy_in_file_copies_nested_file() {
+        assert_copy(CopyTest {
+            source_files: vec!["a/b/c/file.txt"],
+            copy: "a/b/c/file.txt",
+            to: "/",
+            expect: vec!["/file.txt=a/b/c/file.txt"],
+        });
+    }
+
+    #[test]
+    fn test_copy_in_file_copies_directory_trees() {
+        // copy whole directory
+        // a/ would put it *inside* another `a` directory
+        for target in ["/", "a", "/a"] {
+            assert_copy(CopyTest {
+                source_files: vec!["a/b/file_1", "a/b/file_2", "a/c/file_3"],
+                copy: "a",
+                to: target,
+                expect: vec![
+                    "/a/b/file_1=a/b/file_1",
+                    "/a/b/file_2=a/b/file_2",
+                    "/a/c/file_3=a/c/file_3",
+                ],
+            });
+        }
+        // with trailing slash, `a` goes *in* `/opt/local`
+        for target in ["/opt/local/", "opt/local/"] {
+            assert_copy(CopyTest {
+                source_files: vec!["a/b/file_1", "a/b/file_2", "a/c/file_3"],
+                copy: "a",
+                to: target,
+                expect: vec![
+                    "/opt/local/a/b/file_1=a/b/file_1",
+                    "/opt/local/a/b/file_2=a/b/file_2",
+                    "/opt/local/a/c/file_3=a/c/file_3",
+                ],
+            });
+        }
+        // without trailing slash, `a` *becomes* `/opt/local`
+        for target in ["/opt/local", "opt/local"] {
+            assert_copy(CopyTest {
+                source_files: vec!["a/b/file_1", "a/b/file_2", "a/c/file_3"],
+                copy: "a",
+                to: target,
+                expect: vec![
+                    "/opt/local/b/file_1=a/b/file_1",
+                    "/opt/local/b/file_2=a/b/file_2",
+                    "/opt/local/c/file_3=a/c/file_3",
+                ],
+            });
+        }
+    }
+
+    #[test]
+    fn test_copy_in_errors_when_src_does_not_exist() {
+        let (_ztempdir, zonepath) = fixture_dir(vec!["root/"]);
+
         assert!(
-            dest.exists(),
-            "file should be placed inside dir named by dest"
+            copy_to_zone(&zonepath, &Utf8PathBuf::from("/nonexistent/ghost"), "/")
+                .unwrap_err()
+                .to_string()
+                .contains("neither a file nor a directory"),
         );
-    }
-
-    #[test]
-    fn copy_file_creates_missing_intermediate_dirs() {
-        // Destination directories don't exist yet — function must create them.
-        let (_ztmp, zone) = make_zone();
-        let src_tmp = TempDir::new().unwrap();
-        let src = make_src_file(&src_tmp, "app.cfg", "cfg");
-
-        copy_to_zone(&zone, &src, "/usr/local/etc/app.cfg").unwrap();
-
-        assert!(zone.join("root/usr/local/etc/app.cfg").exists());
-    }
-
-    #[test]
-    fn copy_file_to_existing_dir_dest_uses_src_filename() {
-        // dest resolves to an existing directory (no trailing slash).
-        // Function should detect it's a dir and place the file inside.
-        let (_ztmp, zone) = make_zone();
-        let src_tmp = TempDir::new().unwrap();
-        let src = make_src_file(&src_tmp, "readme.txt", "hi");
-
-        let dest_dir = zone.join("root/opt");
-        fs::create_dir_all(&dest_dir).unwrap();
-
-        copy_to_zone(&zone, &src, "/opt").unwrap();
-
-        assert!(zone.join("root/opt/readme.txt").exists());
-    }
-
-    #[test]
-    fn copy_file_overwrites_existing_file() {
-        let (_ztmp, zone) = make_zone();
-        let src_tmp = TempDir::new().unwrap();
-
-        // Write original
-        let dest_path = zone.join("root/etc/config");
-        fs::create_dir_all(dest_path.parent().unwrap()).unwrap();
-        fs::write(&dest_path, "old").unwrap();
-
-        let src = make_src_file(&src_tmp, "config", "new");
-        copy_to_zone(&zone, &src, "/etc/config").unwrap();
-
-        assert_eq!(fs::read_to_string(&dest_path).unwrap(), "new");
-    }
-
-    // --- Directory copying ---
-
-    #[test]
-    fn copy_dir_to_dest() {
-        let (_ztmp, zone) = make_zone();
-        let src_tmp = TempDir::new().unwrap();
-        let src = make_src_dir(&src_tmp, "myapp");
-
-        copy_to_zone(&zone, &src, "/opt/myapp").unwrap();
-
-        // fs_extra with copy_inside copies the *contents* into dest_path
-        assert!(zone.join("root/opt/myapp/inner.txt").exists());
-    }
-
-    #[test]
-    fn copy_dir_with_trailing_slash_dest() {
-        let (_ztmp, zone) = make_zone();
-        let src_tmp = TempDir::new().unwrap();
-        let src = make_src_dir(&src_tmp, "myapp");
-
-        fs::create_dir_all(zone.join("root/opt")).unwrap();
-        copy_to_zone(&zone, &src, "/opt/").unwrap();
-
-        // dest ends with '/', so src dir name is appended → root/opt/myapp/
-        // copy_inside=true copies contents into that dir
-        assert!(zone.join("root/opt/myapp/inner.txt").exists());
-    }
-
-    #[test]
-    fn error_when_src_does_not_exist() {
-        let (_ztmp, zone) = make_zone();
-        let src = Utf8Path::new("/nonexistent/ghost.txt");
-
-        let err = copy_to_zone(&zone, src, "/etc/ghost.txt").unwrap_err();
-        assert!(
-            err.to_string().contains("neither a file nor a directory"),
-            "unexpected error: {err}"
-        );
-    }
-
-    #[test]
-    fn strips_leading_slash_from_dest() {
-        // Ensures dest is treated as relative inside the zone root, not absolute.
-        let (_ztmp, zone) = make_zone();
-        let src_tmp = TempDir::new().unwrap();
-        let src = make_src_file(&src_tmp, "foo.txt", "bar");
-
-        copy_to_zone(&zone, &src, "/foo.txt").unwrap();
-
-        // Must land inside zone root, not at the real filesystem root
-        assert!(zone.join("root/foo.txt").exists());
-        assert!(!std::path::Path::new("/foo.txt").exists());
-    }
-
-    fn make_zone() -> (TempDir, camino::Utf8PathBuf) {
-        let tmp = TempDir::new().unwrap();
-        let zone_path = camino::Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
-        fs::create_dir_all(zone_path.join("root")).unwrap();
-        (tmp, zone_path)
-    }
-
-    fn make_src_file(dir: &TempDir, name: &str, content: &str) -> camino::Utf8PathBuf {
-        let path = camino::Utf8PathBuf::from_path_buf(dir.path().join(name)).unwrap();
-        fs::write(&path, content).unwrap();
-        path
-    }
-
-    fn make_src_dir(dir: &TempDir, name: &str) -> camino::Utf8PathBuf {
-        let path = camino::Utf8PathBuf::from_path_buf(dir.path().join(name)).unwrap();
-        fs::create_dir_all(&path).unwrap();
-        fs::write(path.join("inner.txt"), "hello").unwrap();
-        path
     }
 }

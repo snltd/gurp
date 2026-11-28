@@ -13,10 +13,6 @@
 (defn join-words [& words]
   (string/join (tuple ;words) " "))
 
-# Squash repeated whitespace into a single space
-(defn squeeze [str]
-  (peg/replace-all '(* (some :s)) " " str))
-
 # Name is used internally, but shouldn't be exposed as a property in the docs
 (defn props-without-name [action-info category]
   (dsl/without-keys (get-in action-info [:props category] @{}) [:name]))

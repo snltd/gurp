@@ -26,6 +26,7 @@
 - Improve DSL docs.
 - Gracefully handle "update from server" control data when applying a local
   file.
+- DSL `pathcat` function now preserves trailing slashes.
 
 ## v2.5.0 (2026-10-23)
 

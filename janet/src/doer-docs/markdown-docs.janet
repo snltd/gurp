@@ -3,10 +3,11 @@
 # not built into the Gurp lib.
 
 (import ../doers/lib/lib :prefix "" :only [comma-sep] :as doer-lib)
+(import ../lib :only [squeeze] :as gurp-lib)
 (import ../dsl :only [pathcat])
 (import ../facts :only [fact->fn])
 (import ./base :only [Base])
-(import ./lib :only [doers join-lines repo-root squeeze])
+(import ./lib :only [doers join-lines repo-root])
 (use ./markdown-dsl)
 
 (def doc-dir (dsl/pathcat (lib/repo-root) "doc"))
@@ -23,7 +24,7 @@
 (defn- props-to-row [prop spec]
   [(code (string/format "%v" prop))
    (code (string/join (spec :types) " "))
-   (lib/squeeze (property-description spec))
+   (gurp-lib/squeeze (property-description spec))
    (if-let [default-val (spec :default)]
      (code (string/format "%p" default-val)) "")])
 
@@ -50,7 +51,7 @@
                          (string/format "- %s (%s) %s"
                                         (code (keyword name))
                                         (fact :type)
-                                        (lib/squeeze (fact :description))))))]
+                                        (gurp-lib/squeeze (fact :description))))))]
 
     (print "writing facts doc -> " facts-file)
     (with [fh (file/open facts-file :w)]
@@ -60,8 +61,8 @@
   (table/setproto
     @{:header-1 h1
       :header-2 h2
-      :description (fn [self text] (string (lib/squeeze text)))
-      :note-formatter (fn [note] (string "- " (lib/squeeze note)))
+      :description (fn [self text] (string (gurp-lib/squeeze text)))
+      :note-formatter (fn [note] (string "- " (gurp-lib/squeeze note)))
       :example-formatter code-block
 
       :name (fn [self name-is]
