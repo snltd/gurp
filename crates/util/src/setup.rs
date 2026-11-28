@@ -2,7 +2,8 @@ use crate::file::{self, FileMetadata, NameOrId};
 use anyhow::Context;
 use camino::Utf8PathBuf;
 use common::constants::{
-    GURP_DIR, GURP_DIR_CACHE, GURP_DIR_CONSOLE_LOG, GURP_DIR_REPORT, GURP_DIR_TMP,
+    GURP_DIR, GURP_DIR_CACHE, GURP_DIR_CONSOLE_LOG, GURP_DIR_REPORT, GURP_DIR_STATIC_FACTS,
+    GURP_DIR_TMP,
 };
 use common::types::ApplyOpts;
 use nix::unistd;
@@ -23,6 +24,7 @@ fn set_up_gurp_dirs() -> anyhow::Result<()> {
         GURP_DIR_CACHE,
         GURP_DIR_CONSOLE_LOG,
         GURP_DIR_REPORT,
+        GURP_DIR_STATIC_FACTS,
         GURP_DIR_TMP,
     ] {
         let path = Utf8PathBuf::from(dir);

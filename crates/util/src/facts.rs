@@ -19,7 +19,9 @@ pub fn create(
     zonepath: Option<&Utf8Path>,
 ) -> anyhow::Result<()> {
     let facts_dir = if let Some(zone_path) = zonepath {
-        zone_path.join(GURP_DIR_STATIC_FACTS)
+        zone_path
+            .join("root")
+            .join(GURP_DIR_STATIC_FACTS.trim_start_matches("/"))
     } else {
         Utf8PathBuf::from(GURP_DIR_STATIC_FACTS)
     };
@@ -32,7 +34,7 @@ pub fn create(
             .with_context(|| format!("failed to create etc_dir {facts_dir}"))?;
     }
 
-    tracing::debug!("creating fact: {fact_name} = {fact_value} [{fact_path}]");
+    tracing::info!("creating fact: {fact_name} = {fact_value} [{fact_path}]");
 
     fs::write(fact_path, format!("{fact_value}\n"))?;
     Ok(())
